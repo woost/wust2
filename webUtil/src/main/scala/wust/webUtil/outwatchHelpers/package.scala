@@ -2,14 +2,14 @@ package wust.webUtil
 
 import scala.scalajs.js.JSConverters._
 import cats.Functor
-import fontAwesome.{AbstractElement, FontawesomeObject, IconLookup, fontawesome}
+import fontAwesome.{ AbstractElement, FontawesomeObject, IconLookup, fontawesome }
 import wust.webUtil.macros.KeyHash
 import monix.eval.Task
-import monix.execution.{Ack, Cancelable, CancelableFuture, Scheduler}
+import monix.execution.{ Ack, Cancelable, CancelableFuture, Scheduler }
 import monix.reactive.OverflowStrategy.Unbounded
-import monix.reactive.{Observable, Observer}
+import monix.reactive.{ Observable, Observer }
 import org.scalajs.dom
-import org.scalajs.dom.{console, document}
+import org.scalajs.dom.{ console, document }
 import outwatch.ProHandler
 import outwatch.dom._
 import outwatch.dom.helpers.EmitterBuilder
@@ -17,35 +17,35 @@ import rx._
 import wust.facades.jquery.JQuerySelection
 import wust.util.Empty
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.scalajs.js
 import scala.util.control.NonFatal
-import scala.util.{Failure, Success}
+import scala.util.{ Failure, Success }
 
 package object outwatchHelpers extends KeyHash with RxInstances {
   //TODO: it is not so great to have a monix scheduler and execution context everywhere, move to main.scala and pass through
   implicit val monixScheduler: Scheduler =
-//    Scheduler.trampoline(executionModel = monix.execution.ExecutionModel.SynchronousExecution)
-      Scheduler.global
-//    Scheduler.trampoline(executionModel=AlwaysAsyncExecution)
+    //    Scheduler.trampoline(executionModel = monix.execution.ExecutionModel.SynchronousExecution)
+    Scheduler.global
+  //    Scheduler.trampoline(executionModel=AlwaysAsyncExecution)
 
   implicit object EmptyVDM extends Empty[VDomModifier] {
     @inline def empty: VDomModifier = VDomModifier.empty
   }
 
   implicit class RichVDomModifierFactory(val v: VDomModifier.type) extends AnyVal {
-    @inline def ifTrue(condition:Boolean): ModifierBooleanOps = new ModifierBooleanOps(condition)
-    @inline def ifNot(condition:Boolean): ModifierBooleanOps = new ModifierBooleanOps(!condition)
+    @inline def ifTrue(condition: Boolean): ModifierBooleanOps = new ModifierBooleanOps(condition)
+    @inline def ifNot(condition: Boolean): ModifierBooleanOps = new ModifierBooleanOps(!condition)
   }
 
   @inline implicit class RichFunctorVNode[F[_]: Functor](val f: F[VNode]) {
-    @inline def apply(mods: VDomModifier*): F[VNode] = Functor[F].map(f)(_.apply(mods :_*))
-    @inline def prepend(mods: VDomModifier*): F[VNode] = Functor[F].map(f)(_.prepend(mods :_*))
+    @inline def apply(mods: VDomModifier*): F[VNode] = Functor[F].map(f)(_.apply(mods: _*))
+    @inline def prepend(mods: VDomModifier*): F[VNode] = Functor[F].map(f)(_.prepend(mods: _*))
   }
 
   @inline implicit class RichFunctorVNodeNested[F[_]: Functor, G[_]: Functor](val f: F[G[VNode]]) {
-    @inline def apply(mods: VDomModifier*): F[G[VNode]] = Functor[F].map(f)(g => Functor[G].map(g)(_.apply(mods :_*)))
-    @inline def prepend(mods: VDomModifier*): F[G[VNode]] = Functor[F].map(f)(g => Functor[G].map(g)(_.apply(mods :_*)))
+    @inline def apply(mods: VDomModifier*): F[G[VNode]] = Functor[F].map(f)(g => Functor[G].map(g)(_.apply(mods: _*)))
+    @inline def prepend(mods: VDomModifier*): F[G[VNode]] = Functor[F].map(f)(g => Functor[G].map(g)(_.apply(mods: _*)))
   }
 
   implicit class RichVarFactory(val v: Var.type) extends AnyVal {
@@ -59,7 +59,7 @@ package object outwatchHelpers extends KeyHash with RxInstances {
         case Success(v) => rx() = v
         case Failure(t) => recover.lift(t) match {
           case Some(v) => rx() = v
-          case None => throw t
+          case None    => throw t
         }
       }
     }
@@ -83,7 +83,7 @@ package object outwatchHelpers extends KeyHash with RxInstances {
           sub = rx.triggerLater { value =>
             f(value) match {
               case Some(result) => mappedRx() = result
-              case None => sub.kill()
+              case None         => sub.kill()
             }
           }
 
@@ -148,7 +148,7 @@ package object outwatchHelpers extends KeyHash with RxInstances {
       val boxBgColor = "#000" // HCL(baseHue, 50, 63).toHex
       val boxStyle =
         s"color: white; background: $boxBgColor; border-radius: 3px; padding: 2px; font-weight: bold; font-size:larger;"
-//      val color = HCL(0, 0, 93).toHex // HCL(baseHue, 20, 93).toHex
+      //      val color = HCL(0, 0, 93).toHex // HCL(baseHue, 20, 93).toHex
       rx.foreach(x => console.log(s"%c ⟳ %c ${print(x)}", boxStyle, "background-color: transparent; font-weight: normal"))
     }
 
@@ -157,7 +157,7 @@ package object outwatchHelpers extends KeyHash with RxInstances {
       val boxStyle =
         s"color: white; background: $boxBgColor; border-radius: 3px; padding: 2px; font-weight: bold; font-size:larger;"
       //      val color = HCL(0, 0, 93).toHex // HCL(baseHue, 20, 93).toHex
-      rx.foreach{x =>
+      rx.foreach{ x =>
         console.asInstanceOf[js.Dynamic]
           .groupCollapsed(s"%c ⟳ %c ${print(x)}", boxStyle, "background-color: transparent; font-weight: normal")
         console.log(detail(x))
@@ -166,7 +166,7 @@ package object outwatchHelpers extends KeyHash with RxInstances {
     }
   }
 
-  def createManualOwner(): Ctx.Owner = new Ctx.Owner(new Rx.Dynamic[Unit]((_,_) => (), None))
+  def createManualOwner(): Ctx.Owner = new Ctx.Owner(new Rx.Dynamic[Unit]((_, _) => (), None))
   def withManualOwner(f: Ctx.Owner => VDomModifier): VDomModifier = {
     val ctx = createManualOwner()
     VDomModifier(f(ctx), dsl.onDomUnmount foreach { ctx.contextualRx.kill() })
@@ -209,6 +209,16 @@ package object outwatchHelpers extends KeyHash with RxInstances {
       OutWatch.renderReplace(document.createElement("div"), dsl.div(VNodeProxyNode(proxy))).unsafeRunSync()
       proxy.elm.get
     }
+
+    @inline def append(m: VDomModifier*) = vNode.apply(m: _*)
+  }
+
+  implicit class RichRxVNode(val vNode: Rx[VNode]) extends AnyVal {
+    @inline def append(m: VDomModifier*)(implicit ctx: Ctx.Owner) = vNode.map(_.apply(m: _*))
+  }
+
+  implicit class RichObservableVNode(val vNode: Observable[VNode]) extends AnyVal {
+    @inline def append(m: VDomModifier*) = vNode.map(_.apply(m: _*))
   }
 
   implicit class WustRichHandler[T](val o: Handler[T]) extends AnyVal {
@@ -220,13 +230,13 @@ package object outwatchHelpers extends KeyHash with RxInstances {
     }
 
     //TODO: helper in outwatch monixops
-    @inline def transformObserverWith[R](f: Observer[T] => Observer[R]): ProHandler[R, T] =  ProHandler(f(o), o)
+    @inline def transformObserverWith[R](f: Observer[T] => Observer[R]): ProHandler[R, T] = ProHandler(f(o), o)
   }
 
   implicit class WustRichObserver[T](val o: Observer[T]) extends AnyVal {
     //TODO: helper in outwatch monixops for redirectFuture
-    @inline def redirectEval[R](f: R => Task[T]): Observer[R] =  redirectFuture(r => f(r).runToFuture)
-    def redirectFuture[R](f: R => Future[T]): Observer[R] =  new Observer[R] {
+    @inline def redirectEval[R](f: R => Task[T]): Observer[R] = redirectFuture(r => f(r).runToFuture)
+    def redirectFuture[R](f: R => Future[T]): Observer[R] = new Observer[R] {
       override def onNext(elem: R): Future[Ack] = f(elem).flatMap(o.onNext(_))
       override def onError(ex: Throwable): Unit = o.onError(ex)
       override def onComplete(): Unit = o.onComplete()
@@ -250,19 +260,19 @@ package object outwatchHelpers extends KeyHash with RxInstances {
 
   //TODO: Outwatch observable for specific key is pressed Observable[Boolean]
   def keyDown(keyCode: Int): Observable[Boolean] = Observable(
-   outwatch.dom.dsl.events.document.onKeyDown.collect { case e if e.keyCode == keyCode => true },
-   outwatch.dom.dsl.events.document.onKeyUp.collect { case e if e.keyCode == keyCode   => false },
- ).merge.startWith(false :: Nil)
+    outwatch.dom.dsl.events.document.onKeyDown.collect { case e if e.keyCode == keyCode => true },
+    outwatch.dom.dsl.events.document.onKeyUp.collect { case e if e.keyCode == keyCode => false },
+  ).merge.startWith(false :: Nil)
 
   @inline def multiObserver[T](observers: Observer[T]*): Observer[T] = new CombinedObserver[T](observers)
 
   import scalacss.defaults.Exports.StyleA
   @inline implicit def styleToAttr(styleA: StyleA): VDomModifier = dsl.cls := styleA.htmlClass
 
-  def requestSingleAnimationFrame(): ( => Unit) => Unit = {
+  def requestSingleAnimationFrame(): (=> Unit) => Unit = {
     var lastAnimationFrameRequest = -1
     f => {
-      if(lastAnimationFrameRequest != -1) {
+      if (lastAnimationFrameRequest != -1) {
         dom.window.cancelAnimationFrame(lastAnimationFrameRequest)
       }
       lastAnimationFrameRequest = dom.window.requestAnimationFrame { _ =>
@@ -275,7 +285,6 @@ package object outwatchHelpers extends KeyHash with RxInstances {
     val requester = requestSingleAnimationFrame()
     () => requester(code)
   }
-
 
   def inNextAnimationFrame[T](next: T => Unit): Observer[T] = new Observer.Sync[T] {
     private val requester = requestSingleAnimationFrame()
@@ -290,16 +299,16 @@ package object outwatchHelpers extends KeyHash with RxInstances {
   //TODO AsEmitterBuilder type class in outwatch?
   @inline def emitterRx[T](rx: Rx[T]): EmitterBuilder[T, VDomModifier] = new RxEmitterBuilder[T](rx)
 
-  implicit class RichEmitterBuilderFactory(val factory: EmitterBuilder.type ) extends AnyVal {
+  implicit class RichEmitterBuilderFactory(val factory: EmitterBuilder.type) extends AnyVal {
     @inline def combine[T](others: EmitterBuilder[T, VDomModifier]*): EmitterBuilder[T, VDomModifier] = combineSeq(others)
     def combineSeq[T](others: Seq[EmitterBuilder[T, VDomModifier]]): EmitterBuilder[T, VDomModifier] = EmitterBuilder.ofModifier[T] { sink =>
       others.map(_ --> sink)
     }
   }
-  implicit class RichEmitterBuilderEvent[R](val builder: EmitterBuilder[dom.Event,R]) extends AnyVal {
+  implicit class RichEmitterBuilderEvent[R](val builder: EmitterBuilder[dom.Event, R]) extends AnyVal {
     def onlyOwnEvents: EmitterBuilder[dom.Event, R] = builder.filter(ev => ev.currentTarget == ev.target)
   }
-  implicit class RichEmitterBuilder[E,R](val builder: EmitterBuilder[E,R]) extends AnyVal {
+  implicit class RichEmitterBuilder[E, R](val builder: EmitterBuilder[E, R]) extends AnyVal {
     def discard: R = builder --> Observer.empty
   }
 
@@ -339,4 +348,3 @@ package object outwatchHelpers extends KeyHash with RxInstances {
   @inline override def onError(ex: Throwable): Unit = throw ex
   @inline override def onComplete(): Unit = ()
 }
-
