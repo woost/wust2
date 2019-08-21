@@ -92,6 +92,7 @@ object NotesView {
       // readability like github readme:
       padding := "48px",
       fontSize := "16px",
+      cls := "enable-text-selection",
 
       Rx {
         VDomModifier.ifNot(editMode())(
@@ -102,7 +103,6 @@ object NotesView {
 
       Components.editableNode(node, editMode = editMode, config = EditableContent.Config.cancelOnError.copy(submitOnEnter = false)).append(
         width := "100%",
-        cls := "enable-text-selection",
       ),
 
       controls(node.id, parentId, editMode, isDeleted)
