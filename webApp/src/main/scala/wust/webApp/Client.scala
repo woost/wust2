@@ -54,11 +54,12 @@ object Client {
     else Some(s"${location.protocol}//files.$hostname")
   }
 
-  private val wustUrl = calculateCoreUrl(withVersion = true)
-  private val wustUrlUnversioned = calculateCoreHttpUrl(withVersion = false)
+  private val wustWsUrl = calculateCoreUrl(withVersion = true)
+  private val wustHttpUrlVersioned = calculateCoreHttpUrl(withVersion = true)
+  private val wustHttpUrlUnversioned = calculateCoreHttpUrl(withVersion = false)
   val wustFilesUrl = calculateFilesUrl()
 
-  def backendIsOnline(): Future[Boolean] = {
+  private def backendIsOnline(url: String): Future[Boolean] = {
     import org.scalajs.dom.raw.XMLHttpRequest
     import scala.concurrent.Promise
 
@@ -67,11 +68,14 @@ object Client {
     xmlHttp.onreadystatechange = { _ =>
         if (xmlHttp.readyState == 4) promise.trySuccess(xmlHttp.status == 200)
     }
-    xmlHttp.open("GET", s"$wustUrlUnversioned/health", true);
+    xmlHttp.open("GET", s"$url/health", true);
     xmlHttp.send(null);
 
     promise.future
   }
+
+  def unversionedBackendIsOnline(): Future[Boolean] = backendIsOnline(wustHttpUrlUnversioned)
+  def versionedBackendIsOnline(): Future[Boolean] = backendIsOnline(wustHttpUrlVersioned)
 
   private val githubUrl = {
     if (LinkingInfo.developmentMode)
@@ -103,7 +107,7 @@ object Client {
   val slackApi = slackClient.wire[PluginApi]
 
   val apiErrorSubject = PublishSubject[Unit]
-  val factory: WustClientFactory[Future] = WustClient(wustUrl, apiErrorSubject, enableRequestLogging = DevOnly.isTrue)
+  val factory: WustClientFactory[Future] = WustClient(wustWsUrl, apiErrorSubject, enableRequestLogging = DevOnly.isTrue)
   val api = factory.defaultPriority.api
   val auth = factory.defaultPriority.auth
   val push = factory.defaultPriority.push

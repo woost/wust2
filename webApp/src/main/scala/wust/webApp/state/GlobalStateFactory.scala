@@ -255,10 +255,22 @@ object GlobalStateFactory {
       .foreach { isOnline =>
         if (!isOnline) {
           scribe.info("Client is offline, checking whether backend is online")
-          // if we can access the health check of core.app.woost.space (without version in name). then we know for sure, we can update:
-          Client.backendIsOnline().foreach { isOnline =>
-            if (isOnline) window.location.reload(flag = true)
-            else scribe.info("Backend is offline")
+          // if we can access the health check of core.app.woost.space (without version in name) and not the versioned one.
+          // then we know for sure, we can update:
+          Client.unversionedBackendIsOnline().foreach { isOnline =>
+            if (isOnline) {
+              scribe.info("Unversioned Backend is online.")
+              Client.versionedBackendIsOnline().foreach { isOnline =>
+                if (isOnline) {
+                  scribe.info("Versioned Backend is online.")
+                } else {
+                  scribe.info("Versioned Backend is offline, reloading.")
+                  window.location.reload(flag = true)
+                }
+              }
+            } else {
+              scribe.info("Unversioned Backend is offline.")
+            }
           }
         }
       }
