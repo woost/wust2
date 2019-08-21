@@ -21,7 +21,6 @@ object NotesView {
 
   //TODO: button in each sidebar line to jump directly to view (conversation / tasks)
   def apply(focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
-    val triggerSubmit = PublishSubject[Unit]
     div(
       keyed,
       Styles.growFull,
@@ -42,6 +41,14 @@ object NotesView {
       },
       registerDragContainer,
 
+        inputRow(focusState)
+      )
+    )
+  }
+
+  private def inputRow(focusState: FocusState)(implicit ctx:Ctx.Owner) = {
+    val triggerSubmit = PublishSubject[Unit]
+
       InputRow(
         Some(focusState),
         submitAction = { sub =>
@@ -58,7 +65,6 @@ object NotesView {
         triggerSubmit = triggerSubmit,
         blurAction = Some(_ => triggerSubmit.onNext(()))
       )
-    )
   }
 
   private def renderNote(node: Node, parentId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
