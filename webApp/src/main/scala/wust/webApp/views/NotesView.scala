@@ -9,10 +9,10 @@ import wust.graph._
 import wust.ids._
 import wust.webApp.Icons
 import wust.webApp.dragdrop.DragItem
-import wust.webApp.state.{FeatureState, FocusState, GlobalState, Placeholder}
+import wust.webApp.state.{ FeatureState, FocusState, GlobalState, Placeholder }
 import wust.webApp.views.DragComponents.registerDragContainer
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{Elements, UI}
+import wust.webUtil.{ Elements, UI }
 import monix.reactive.subjects.PublishSubject
 
 // Notes view, this is a simple view for storing note/wiki/documentation on a node.
@@ -53,7 +53,7 @@ object NotesView {
     )
   }
 
-  private def inputRow(focusState: FocusState)(implicit ctx:Ctx.Owner) = {
+  private def inputRow(focusState: FocusState)(implicit ctx: Ctx.Owner) = {
     val triggerSubmit = PublishSubject[Unit]
 
     InputRow(
@@ -89,24 +89,26 @@ object NotesView {
     div(
       cls := "ui segment",
       cls := "note",
+      div(
 
-      // readability like github readme:
-      padding := "48px",
-      fontSize := "16px",
-      cls := "enable-text-selection",
+        // readability like github readme:
+        padding := "48px",
+        fontSize := "16px",
+        cls := "enable-text-selection",
 
-      Rx {
-        VDomModifier.ifNot(editMode())(
-          DragComponents.dragWithHandle(DragItem.Note(node.id)),
-          cursor.auto, // overwrite drag cursor
-        )
-      },
+        Rx {
+          VDomModifier.ifNot(editMode())(
+            DragComponents.dragWithHandle(DragItem.Note(node.id)),
+            cursor.auto, // overwrite drag cursor
+          )
+        },
 
-      Components.editableNode(node, editMode = editMode, config = EditableContent.Config.cancelOnError.copy(submitOnEnter = false)).append(
-        width := "100%",
+        Components.editableNode(node, editMode = editMode, config = EditableContent.Config.cancelOnError.copy(submitOnEnter = false)).append(
+          width := "100%",
+        ),
       ),
 
-      controls(node.id, parentId, editMode, isDeleted)
+      controls (node.id, parentId, editMode, isDeleted)
         .apply(
           position.absolute,
           top := "10px",
