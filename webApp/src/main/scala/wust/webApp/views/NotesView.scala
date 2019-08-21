@@ -126,6 +126,7 @@ object NotesView {
 
     UnreadComponents.readObserver(nodeId),
 
+    color := "#666",
     editButton(editMode),
     zoomButton(nodeId),
     deleteButton(nodeId, parentId, isDeleted),
