@@ -5,21 +5,21 @@ import monix.reactive.Observer
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.css.{CommonStyles, Styles}
+import wust.css.{ CommonStyles, Styles }
 import wust.graph._
-import wust.ids.{Feature, _}
+import wust.ids.{ Feature, _ }
 import wust.sdk.Colors
 import wust.util.collection._
 import wust.webApp.Icons
-import wust.webApp.dragdrop.{DragItem, DragPayload, DragTarget}
-import wust.webApp.state.{FocusPreference, FocusState, GlobalState, TraverseState}
+import wust.webApp.dragdrop.{ DragItem, DragPayload, DragTarget }
+import wust.webApp.state.{ FocusPreference, FocusState, GlobalState, TraverseState }
 import wust.webApp.views.Components._
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{BrowserDetect, Ownable, UI, Elements}
+import wust.webUtil.{ BrowserDetect, Ownable, UI, Elements }
 
 object NodeDetails {
 
-  def tagsPropertiesAssignments(nodeId:NodeId)(implicit ctx:Ctx.Owner) = {
+  def tagsPropertiesAssignments(nodeId: NodeId)(implicit ctx: Ctx.Owner) = {
     val propertySingle = Rx {
       val graph = GlobalState.graph()
       PropertyData.Single(graph, graph.idToIdxOrThrow(nodeId))
@@ -37,13 +37,13 @@ object NodeDetails {
         else VDomModifier(
 
           propertySingle().info.tags.map { tag =>
-            Components.removableNodeTag( tag, taggedNodeId = nodeId)
+            Components.removableNodeTag(tag, taggedNodeId = nodeId)
           },
 
           propertySingle().properties.map { property =>
             property.values.map { value =>
               VDomModifier.ifTrue(value.edge.data.showOnCard) {
-                Components.removableNodeCardProperty( value.edge, value.node)
+                Components.removableNodeCardProperty(value.edge, value.node)
               }
             }
           },
@@ -54,8 +54,7 @@ object NodeDetails {
             justifyContent.flexEnd,
             flexWrap.wrap,
             propertySingle().info.assignedUsers.map(userNode =>
-              Components.removableUserAvatar( userNode, targetNodeId = nodeId)
-            ),
+              Components.removableUserAvatar(userNode, targetNodeId = nodeId)),
           ),
         )
       }
@@ -68,14 +67,11 @@ object NodeDetails {
     @inline def nonEmpty = !isEmpty
   }
 
-  def childStatsRx(nodeId:NodeId)(implicit ctx:Ctx.Owner):Rx[ChildStats] = {
-    val nodeIdx = GlobalState.graph.map(_.idToIdxOrThrow(nodeId))
-    Rx {
-      val graph = GlobalState.graph()
+  object ChildStats {
+    def from(nodeIdx: Int, graph: Graph): ChildStats = {
+      val messageChildrenCount = graph.messageChildrenIdx.sliceLength(nodeIdx)
 
-      val messageChildrenCount = graph.messageChildrenIdx.sliceLength(nodeIdx())
-
-      val taskChildren = graph.taskChildrenIdx(nodeIdx())
+      val taskChildren = graph.taskChildrenIdx(nodeIdx)
       val taskChildrenCount = taskChildren.length
 
       val taskDoneCount = taskChildren.fold(0) { (count, childIdx) =>
@@ -83,11 +79,9 @@ object NodeDetails {
         else count
       }
 
-      val noteChildrenCount = graph.noteChildrenIdx.sliceLength(nodeIdx())
-
-      val propertiesCount = graph.propertiesEdgeIdx.sliceLength(nodeIdx())
-
-      val projectChildrenCount = graph.projectChildrenIdx.sliceLength(nodeIdx())
+      val noteChildrenCount = graph.noteChildrenIdx.sliceLength(nodeIdx)
+      val propertiesCount = graph.propertiesEdgeIdx.sliceLength(nodeIdx)
+      val projectChildrenCount = graph.projectChildrenIdx.sliceLength(nodeIdx)
 
       ChildStats(messageChildrenCount, taskChildrenCount, noteChildrenCount, taskDoneCount, propertiesCount, projectChildrenCount)
     }
@@ -108,13 +102,13 @@ object NodeDetails {
         height := "3px",
         padding := "0",
         width := s"${math.max(progress, 0)}%",
-        backgroundColor := s"${if(progress < 100) "#ccc" else "#32CD32"}",
+        backgroundColor := s"${if (progress < 100) "#ccc" else "#32CD32"}",
         UI.tooltip("top right") := s"$progress% Progress. ${taskStats.taskDoneCount} / ${taskStats.taskChildrenCount} done."
       ),
     )
   }
 
-  def cardFooter(nodeId:NodeId, taskStats: Rx[NodeDetails.ChildStats], isExpanded: Rx[Boolean])(implicit ctx:Ctx.Owner) = Rx {
+  def cardFooter(nodeId: NodeId, taskStats: Rx[NodeDetails.ChildStats], isExpanded: Rx[Boolean])(implicit ctx: Ctx.Owner) = Rx {
     VDomModifier.ifTrue(taskStats().nonEmpty)(
       div(
         cls := "childstats",
