@@ -13,7 +13,7 @@ import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{BrowserDetect, Elements, UI}
 import wust.graph._
 import wust.webApp.state.GlobalState
-import wust.css.Styles
+import wust.css.{Styles, ZIndex}
 
 import scala.concurrent.duration._
 import scala.scalajs.js
@@ -203,6 +203,7 @@ object EditableContent {
             backgroundColor := "rgba(255, 255, 255, 0.75)",
             boxShadow := "0px 0px 3px 0px rgba(0, 0, 0, 0.75)",
             borderRadius := "3px",
+            zIndex := ZIndex.overlay,
             cancelButton(handledCurrent).apply(marginRight := "6px"),
             saveButton(saveHandler)
           )
