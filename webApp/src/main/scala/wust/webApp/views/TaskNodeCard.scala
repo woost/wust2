@@ -21,46 +21,6 @@ object TaskNodeCard {
 
   val maxLength = 300 // TODO: use text-overflow:ellipsis instead.
 
-  private val renderMessageCount = {
-    div(
-      cls := "childstat",
-      Styles.flex,
-      Styles.flexStatic,
-      margin := "5px 5px 5px 0px",
-      div(Icons.conversation, marginLeft := "5px", marginRight := "5px"),
-    )
-  }
-
-  private val renderProjectsCount = {
-    div(
-      cls := "childstat",
-      Styles.flex,
-      Styles.flexStatic,
-      margin := "5px 5px 5px 0px",
-      div(Icons.projects, marginLeft := "5px", marginRight := "5px"),
-    )
-  }
-
-  private val renderNotesCount = {
-    div(
-      cls := "childstat",
-      Styles.flex,
-      Styles.flexStatic,
-      margin := "5px 5px 5px 0px",
-      div(Icons.notes, marginLeft := "5px", marginRight := "5px"),
-    )
-  }
-
-  private val renderTaskCount = {
-    div(
-      cls := "childstat",
-      Styles.flex,
-      Styles.flexStatic,
-      margin := "5px",
-      div(Icons.tasks, marginRight := "5px"),
-    )
-  }
-
   def renderThunk(
 
     focusState: FocusState,
@@ -88,32 +48,7 @@ object TaskNodeCard {
       GlobalState.graph().isExpanded(GlobalState.userId(), nodeIdx()).getOrElse(false)
     }
 
-    final case class TaskStats(messageChildrenCount: Int, taskChildrenCount: Int, noteChildrenCount: Int, taskDoneCount: Int, propertiesCount: Int, projectChildrenCount: Int) {
-      @inline def progress = (100 * taskDoneCount) / taskChildrenCount
-      @inline def isEmpty = messageChildrenCount == 0 && taskChildrenCount == 0 && noteChildrenCount == 0 && projectChildrenCount == 0 //&& propertiesCount == 0
-      @inline def nonEmpty = !isEmpty
-    }
-    val taskStats = Rx {
-      val graph = GlobalState.graph()
-
-      val messageChildrenCount = graph.messageChildrenIdx.sliceLength(nodeIdx())
-
-      val taskChildren = graph.taskChildrenIdx(nodeIdx())
-      val taskChildrenCount = taskChildren.length
-
-      val taskDoneCount = taskChildren.fold(0) { (count, childIdx) =>
-        if (graph.isDone(childIdx)) count + 1 //TODO done inside this node...
-        else count
-      }
-
-      val noteChildrenCount = graph.noteChildrenIdx.sliceLength(nodeIdx())
-
-      val propertiesCount = graph.propertiesEdgeIdx.sliceLength(nodeIdx())
-
-      val projectChildrenCount = graph.projectChildrenIdx.sliceLength(nodeIdx())
-
-      TaskStats(messageChildrenCount, taskChildrenCount, noteChildrenCount, taskDoneCount, propertiesCount, projectChildrenCount)
-    }
+    val childStats = NodeDetails.childStatsRx(nodeId)
 
     val buttonBar = {
       /// @return a Builder for a menu item which takes a boolean specifying whether it should be compressed or not
@@ -195,126 +130,6 @@ object TaskNodeCard {
       )
     }
 
-    def renderTaskProgress(taskStats: TaskStats) = {
-      val progress = taskStats.progress
-      div(
-        cls := "childstat",
-        Styles.flex,
-        flexGrow := 1,
-        alignItems.flexEnd,
-        minWidth := "40px",
-        backgroundColor := "#eee",
-        borderRadius := "2px",
-        margin := "3px 5px",
-        div(
-          height := "3px",
-          padding := "0",
-          width := s"${math.max(progress, 0)}%",
-          backgroundColor := s"${if(progress < 100) "#ccc" else "#32CD32"}",
-          UI.tooltip("top right") := s"$progress% Progress. ${taskStats.taskDoneCount} / ${taskStats.taskChildrenCount} done."
-        ),
-      )
-    }
-
-      val propertySingle = Rx {
-        val graph = GlobalState.graph()
-        PropertyData.Single(graph, graph.idToIdxOrThrow(nodeId))
-      }
-      val propertySingleEmpty = Rx {
-        propertySingle().isEmpty // optimize for empty property because properties are array and are therefore never equal
-      }
-
-    val tagsPropertiesAssignments = VDomModifier(
-        Styles.flex,
-        flexWrap.wrap,
-
-        Rx {
-          if (propertySingleEmpty()) VDomModifier.empty
-          else VDomModifier(
-          VDomModifier.ifTrue(!inOneLine)(
-            Rx {
-              VDomModifier.ifTrue(taskStats().isEmpty)(marginBottom := "3px")
-            },
-          ),
-
-            propertySingle().info.tags.map { tag =>
-              Components.removableNodeTag( tag, taggedNodeId = nodeId)
-            },
-
-            propertySingle().properties.map { property =>
-              property.values.map { value =>
-                VDomModifier.ifTrue(value.edge.data.showOnCard) {
-                  Components.removableNodeCardProperty( value.edge, value.node)
-                }
-              }
-            },
-
-            div(
-              marginLeft.auto,
-              Styles.flex,
-              justifyContent.flexEnd,
-              flexWrap.wrap,
-              propertySingle().info.assignedUsers.map(userNode =>
-                Components.removableUserAvatar( userNode, targetNodeId = nodeId)
-              ),
-            ),
-          )
-        }
-      )
-
-    val cardFooter = Rx {
-      VDomModifier.ifTrue(taskStats().nonEmpty)(
-        div(
-          cls := "childstats",
-          Styles.flex,
-          alignItems.center,
-          justifyContent.flexEnd,
-          VDomModifier.ifTrue(taskStats().taskChildrenCount > 0)(
-            div(
-              flexGrow := 1,
-
-              Styles.flex,
-              renderTaskCount(
-                s"${taskStats().taskDoneCount}/${taskStats().taskChildrenCount}",
-              ),
-              renderTaskProgress(taskStats()).apply(alignSelf.center),
-
-              onClick.stopPropagation.mapTo {
-                val edge = Edge.Expanded(nodeId, EdgeData.Expanded(!isExpanded()), GlobalState.user.now.id)
-                GraphChanges(addEdges = Array(edge))
-              } --> GlobalState.eventProcessor.changes,
-              cursor.pointer,
-            )
-          ),
-
-          VDomModifier.ifTrue(taskStats().noteChildrenCount > 0)(
-            renderNotesCount(
-              taskStats().noteChildrenCount,
-              UI.tooltip("left center") := "Show notes",
-              onClick.stopPropagation(Some(FocusPreference(nodeId, Some(View.Content)))) --> GlobalState.rightSidebarNode,
-              cursor.pointer,
-            ),
-          ),
-          VDomModifier.ifTrue(taskStats().messageChildrenCount > 0)(
-            renderMessageCount(
-              taskStats().messageChildrenCount,
-              UI.tooltip("left center") := "Show comments",
-              onClick.stopPropagation(Some(FocusPreference(nodeId, Some(View.Conversation)))) --> GlobalState.rightSidebarNode,
-              cursor.pointer,
-            ),
-          ),
-          VDomModifier.ifTrue(taskStats().projectChildrenCount > 0)(
-            renderProjectsCount(
-              taskStats().projectChildrenCount,
-              UI.tooltip("left center") := "Show Projects",
-              onClick.stopPropagation(Some(FocusPreference(nodeId, Some(View.Dashboard)))) --> GlobalState.rightSidebarNode,
-              cursor.pointer,
-            ),
-          ),
-        )
-      )
-    }
-
     VDomModifier(
       Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, nodeId),
       Components.showHoveredNode( nodeId),
@@ -330,7 +145,7 @@ object TaskNodeCard {
           maxLength = Some(maxLength),
           contentInject = VDomModifier(
             VDomModifier.ifTrue(isDone)(textDecoration.lineThrough),
-            VDomModifier.ifTrue(inOneLine)(alignItems.flexStart, tagsPropertiesAssignments, marginRight := "40px"), // marginRight to not interfere with button bar...
+            VDomModifier.ifTrue(inOneLine)(alignItems.flexStart, NodeDetails.tagsPropertiesAssignments(nodeId), marginRight := "40px"), // marginRight to not interfere with button bar...
             VDomModifier.ifNot(showCheckbox)(
               marginLeft := "2px"
             )
@@ -352,9 +167,13 @@ object TaskNodeCard {
       VDomModifier.ifNot(inOneLine)(div(
         margin := "0 3px",
         marginLeft := s"${if(isCompact) CommonStyles.taskPaddingCompactPx else CommonStyles.taskPaddingPx}px",
-        alignItems.center, tagsPropertiesAssignments
+        alignItems.center,
+        NodeDetails.tagsPropertiesAssignments(nodeId),
+        Rx {
+          VDomModifier.ifTrue(childStats().isEmpty)(marginBottom := "3px")
+        },
       )),
-      cardFooter,
+      NodeDetails.cardFooter(nodeId, childStats, isExpanded),
 
       Rx {
         val graph = GlobalState.graph()
@@ -372,4 +191,5 @@ object TaskNodeCard {
       buttonBar(position.absolute, top := "3px", right := "3px"), // distance to not interefere with sidebar-focus box-shadow around node
     )
   })
+
 }
