@@ -11,7 +11,7 @@ import Def.{setting => dep}
 
 // -- common setting --
 // 2.11 is needed for android app
-crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.8")
+crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.9")
 scalaVersion in ThisBuild := crossScalaVersions.value.last
 
 // Global / onChangedBuildSource := ReloadOnSourceChanges //TODO: reactivate for sbt-1.3.0
