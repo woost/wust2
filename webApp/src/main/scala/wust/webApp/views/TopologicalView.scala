@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import outwatch.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
@@ -70,17 +71,18 @@ object TopologicalView {
         nodeInfos().map { nodeInfo =>
           val isNewGroup = lastLevel != nodeInfo.depth
           lastLevel = nodeInfo.depth
-          TaskNodeCard.render(
-            nodeInfo.node,
-            parentId = focusState.focusedId,
-            focusState = focusState,
-            inOneLine = true,
-            dragPayload = nodeId => DragItem.TaskConnect(nodeInfo.node.id, propertyName()),
-            dragTarget = nodeId => DragItem.TaskConnect(nodeInfo.node.id, propertyName()),
-          ).apply(
-              marginBottom := "3px",
-              VDomModifier.ifTrue(isNewGroup)(marginTop := "40px"),
-            )
+          VDomModifier("not implemented")
+//          TaskNodeCard.render(
+//            nodeInfo.node,
+//            parentId = focusState.focusedId,
+//            focusState = focusState,
+//            inOneLine = true,
+//            dragPayload = nodeId => DragItem.TaskConnect(nodeInfo.node.id, propertyName()),
+//            dragTarget = nodeId => DragItem.TaskConnect(nodeInfo.node.id, propertyName()),
+//          ).apply(
+//              marginBottom := "3px",
+//              VDomModifier.ifTrue(isNewGroup)(marginTop := "40px"),
+//            )
         }
       },
       registerDragContainer,
