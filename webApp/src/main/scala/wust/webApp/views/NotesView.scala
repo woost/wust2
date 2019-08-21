@@ -25,21 +25,27 @@ object NotesView {
       keyed,
       Styles.growFull,
       overflow.auto,
-      padding := "20px",
 
-      Rx {
-        val graph = GlobalState.graph()
-        val nodeIdx = graph.idToIdxOrThrow(focusState.focusedId)
+      Styles.flex,
+      justifyContent.center,
+      div(
+        padding := "20px",
 
-        val childNodes = graph.childrenIdx.map(nodeIdx) { childIdx =>
-          graph.nodes(childIdx)
-        }.sortBy(_.id)
+        maxWidth := "980px", // like github readme
 
-        childNodes.map { node =>
-          VDomModifier.ifTrue(node.role == NodeRole.Note)(renderNote(node, parentId = focusState.focusedId))
-        }
-      },
-      registerDragContainer,
+        Rx {
+          val graph = GlobalState.graph()
+          val nodeIdx = graph.idToIdxOrThrow(focusState.focusedId)
+
+          val childNodes = graph.childrenIdx.map(nodeIdx) { childIdx =>
+            graph.nodes(childIdx)
+          }.sortBy(_.id)
+
+          childNodes.map { node =>
+            VDomModifier.ifTrue(node.role == NodeRole.Note)(renderNote(node, parentId = focusState.focusedId))
+          }
+        },
+        registerDragContainer,
 
         inputRow(focusState)
       )
@@ -49,22 +55,22 @@ object NotesView {
   private def inputRow(focusState: FocusState)(implicit ctx:Ctx.Owner) = {
     val triggerSubmit = PublishSubject[Unit]
 
-      InputRow(
-        Some(focusState),
-        submitAction = { sub =>
-          val newNode = Node.MarkdownNote(sub.text)
-          val changes = GraphChanges.addNodeWithParent(newNode, ParentId(focusState.focusedId)) merge sub.changes(newNode.id)
-          GlobalState.submitChanges(changes)
-          FeatureState.use(Feature.CreateNoteInNotes)
-        },
-        submitOnEnter = false,
-        showSubmitIcon = true,
-        submitIcon = freeSolid.faPlus,
-        placeholder = Placeholder.newNote,
-        showMarkdownHelp = true,
-        triggerSubmit = triggerSubmit,
-        blurAction = Some(_ => triggerSubmit.onNext(()))
-      )
+    InputRow(
+      Some(focusState),
+      submitAction = { sub =>
+        val newNode = Node.MarkdownNote(sub.text)
+        val changes = GraphChanges.addNodeWithParent(newNode, ParentId(focusState.focusedId)) merge sub.changes(newNode.id)
+        GlobalState.submitChanges(changes)
+        FeatureState.use(Feature.CreateNoteInNotes)
+      },
+      submitOnEnter = false,
+      showSubmitIcon = true,
+      submitIcon = freeSolid.faPlus,
+      placeholder = Placeholder.newNote,
+      showMarkdownHelp = true,
+      triggerSubmit = triggerSubmit,
+      blurAction = Some(_ => triggerSubmit.onNext(()))
+    )
   }
 
   private def renderNote(node: Node, parentId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
@@ -82,6 +88,13 @@ object NotesView {
     div(
       cls := "ui segment",
       cls := "note",
+
+      // readability like github readme:
+      paddingTop := "48px",
+      paddingBottom := "48px",
+      paddingLeft := "48px",
+      fontSize := "16px",
+
       Styles.flex,
       justifyContent.spaceBetween,
       alignItems.flexStart,
@@ -98,7 +111,11 @@ object NotesView {
         cls := "enable-text-selection",
       ),
 
-      controls(node.id, parentId, editMode, isDeleted).apply(Styles.flexStatic)
+      controls(node.id, parentId, editMode, isDeleted)
+        .apply(
+          Styles.flexStatic,
+          marginLeft := "26px",
+        )
     )
   }
 
