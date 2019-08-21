@@ -603,7 +603,6 @@ object Components {
     }
 
     def editableNodeOnClick(
-      
       node: Node,
       maxLength: Option[Int] = None,
       editMode: Var[Boolean] = Var(false),
