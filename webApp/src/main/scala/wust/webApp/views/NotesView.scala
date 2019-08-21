@@ -32,6 +32,7 @@ object NotesView {
         padding := "20px",
 
         maxWidth := "980px", // like github readme
+        width := "100%",
 
         Rx {
           val graph = GlobalState.graph()
