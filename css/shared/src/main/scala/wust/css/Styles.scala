@@ -771,6 +771,8 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".notifications-view" - (
+    width(100 %%),
+    maxWidth(980 px),
     &(".notifications-header") - (
       // marginTop(40 px),
       Styles.flex,
@@ -782,29 +784,56 @@ object CommonStyles extends StyleSheet.Standalone {
         margin(5 px, 0 px),
 
         &(".divider") - (
-          color(c"rgba(165, 165, 165, 0.78)")
+          color(c"rgba(165, 165, 165, 0.78)"),
         ),
       ),
       &(".breadcrumb") - (
-        nodeCardShadow
+        maxWidth(25 em),
+        nodeCardShadow,
       ),
       &(".breadcrumb.project") - (
-        boxShadow := none
+        boxShadow := none,
       )
     ),
 
-    &("table") - (
-      &("td") - (
-        verticalAlign.top,
-        &(".notifications-header") - (
-          flexWrap.nowrap,
-        ),
-      ),
+    &(".prefix-icon") - (
+      Styles.flexStatic,
+      opacity(0.3),
+      marginTop(4 px),
+      width(27.5 px), // same with as collapse icons (fontSize 22px)
 
-      &("td > .nodecard") - (
-          display.inlineFlex, // avoid 100% width given by div
-      ),
-    )
+    ),
+
+    &(".notifications-body") - (
+      paddingLeft(29 px), // must be set so that the blue circles align
+      paddingBottom(30 px),
+
+      &(".unread-row") - (
+        Styles.flex,
+        justifyContent.flexStart,
+        marginBottom(3 px),
+
+        &(".unread-row-dot") - (
+          cursor.pointer,
+          paddingTop(3 px),
+        ),
+
+        &(".nodecard") - (
+          maxWidth(30 em),
+        )
+      )
+    ),
+
+    &(">.notifications-body") - ( // toplevel
+      backgroundColor.white,
+      padding(10 px),
+      borderRadius(3 px),
+    ),
+
+    &(".notifications-header") - (
+      justifyContent.flexStart,
+      flexWrap.nowrap,
+    ),
   )
 
 

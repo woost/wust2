@@ -10,6 +10,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
 import rx._
+import wust.webUtil.Elements.onClickDefault
 import wust.webUtil.BrowserDetect
 import wust.webUtil.outwatchHelpers._
 import wust.api.AuthUser
@@ -22,6 +23,7 @@ import wust.webApp.Icons
 import wust.webApp.state.{ FocusState, GlobalState }
 import wust.webApp.views.Components._
 import SharedViewElements._
+import wust.webUtil.UI
 
 import scala.collection.{ breakOut, mutable }
 import scala.scalajs.js.Date
@@ -29,6 +31,8 @@ import scala.scalajs.js.Date
 // Unread view, this view is for showing all new unread items in the current page.
 // It shows the node roles: Message, Task, Notes, Project
 object NotificationView {
+
+  val readColor = "gray"
 
   sealed trait Revision {
     def timestamp: EpochMilli
@@ -43,51 +47,56 @@ object NotificationView {
   def apply(focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
 
     val renderTime = EpochMilli.now
-    val expanded = Var(Set(focusState.focusedId))
+    val collapsed = Var(Set.empty[NodeId])
 
     div(
       keyed,
       Styles.growFull,
       overflow.auto,
-      cls := "notifications-view",
 
-      if (BrowserDetect.isMobile) padding := "8px" else padding := "20px",
+      Styles.flex,
+      justifyContent.center,
 
-      Rx {
-        val graph = GlobalState.graph()
-        val userId = GlobalState.user().id
-        val page = GlobalState.page()
+      div(
+        cls := "notifications-view",
+        if (BrowserDetect.isMobile) padding := "8px" else padding := "20px",
 
-        val unreadTree: Option[UnreadNode] = for {
-          pageParentId <- page.parentId
-          pageParentIdx <- graph.idToIdx(pageParentId)
-          tree <- calculateUnreadTree(graph, pageParentIdx, userId, renderTime)
-        } yield tree
+        Rx {
+          val graph = GlobalState.graph()
+          val userId = GlobalState.user().id
+          val page = GlobalState.page()
 
-        val currentTime = EpochMilli.now
+          val unreadTree: Option[UnreadNode] = for {
+            pageParentId <- page.parentId
+            pageParentIdx <- graph.idToIdx(pageParentId)
+            tree <- calculateUnreadTree(graph, pageParentIdx, userId, renderTime)
+          } yield tree
 
-        VDomModifier(
-          unreadTree match {
-            case Some(unreadTreeNode) =>
-              VDomModifier(
-                div(
-                  Styles.flex,
-                  h3("What's new?"),
-                  markAllAsReadButton("Mark everything as read", focusState.focusedId, graph, userId, renderTime)
-                ),
-                renderUnreadGroup(graph, userId, unreadTreeNode, focusedId = focusState.focusedId, renderTime = renderTime, currentTime = currentTime, expanded, isToplevel = true)
-              )
-            case _ =>
-              h3(
-                textAlign.center,
-                color.gray,
-                "Nothing New.",
-                padding := "10px"
-              )
-          }
-        )
-      },
-      div(height := "20px") // padding bottom workaround in flexbox
+          val currentTime = EpochMilli.now
+
+          VDomModifier(
+            unreadTree match {
+              case Some(unreadTreeNode) =>
+                VDomModifier(
+                  div(
+                    Styles.flex,
+                    h3("What's new?"),
+                    markAllAsReadButton("Mark everything as read", focusState.focusedId, graph, userId, renderTime)
+                  ),
+                  renderUnreadGroup(graph, userId, unreadTreeNode, focusedId = focusState.focusedId, renderTime = renderTime, currentTime = currentTime, collapsed, isToplevel = true)
+                )
+              case _ =>
+                h3(
+                  textAlign.center,
+                  color.gray,
+                  "Nothing New.",
+                  padding := "10px"
+                )
+            }
+          )
+        },
+        div(height := "20px") // padding bottom workaround in flexbox
+      )
     )
   }
 
@@ -167,14 +176,13 @@ object NotificationView {
   }
 
   private def renderUnreadGroup(
-
     graph: Graph,
     userId: UserId,
     unreadParentNodeInitial: UnreadNode,
     focusedId: NodeId,
     renderTime: EpochMilli,
     currentTime: EpochMilli,
-    expanded: Var[Set[NodeId]],
+    collapsed: Var[Set[NodeId]],
     isToplevel: Boolean = false
   )(implicit ctx: Ctx.Owner): VDomModifier = {
 
@@ -188,7 +196,6 @@ object NotificationView {
     val parentId = graph.nodeIds(unreadParentNode.nodeIdx)
     val breadCrumbs = Rx {
       BreadCrumbs(
-
         graph,
         GlobalState.user(),
         Some(focusedId),
@@ -200,29 +207,16 @@ object NotificationView {
       )
     }
 
-    val deepUnreadChildrenCount = {
-      calculateDeepUnreadChildren(graph, parentId, userId, renderTime).length
-    }
     val expandToggleButton = Rx {
       val toggleIcon =
-        if (expanded().contains(parentId)) freeSolid.faAngleDown: VDomModifier
+        if (!collapsed().contains(parentId)) freeSolid.faAngleDown: VDomModifier
         else freeSolid.faAngleRight: VDomModifier
 
-      VDomModifier.ifTrue(deepUnreadChildrenCount > 0)(
+      VDomModifier.ifTrue(hasDeepUnreadChildren(graph, parentId, userId, renderTime))(
         div(
           cls := "expand-collapsebutton",
-          cursor.pointer,
           div(toggleIcon, cls := "fa-fw"),
-          onClick.stopPropagation.foreach{ _ => expanded.update(_.toggle(parentId)) }
-        )
-      )
-    }
-
-    val deepUnreadChildrenLabel = Rx {
-      VDomModifier.ifTrue(deepUnreadChildrenCount > 0)(
-        UnreadComponents.unreadLabelElement(
-          deepUnreadChildrenCount,
-        // marginRight := "0px"
+          onClickDefault.foreach{ _ => collapsed.update(_.toggle(parentId)) }
         )
       )
     }
@@ -233,28 +227,17 @@ object NotificationView {
           cls := "notifications-header",
 
           expandToggleButton,
-          breadCrumbs,
-          deepUnreadChildrenLabel,
-          markAllAsReadButton("Mark all as read", parentId, graph, userId, renderTime)
+          markAllAsReadIcon(parentId, graph, userId, renderTime),
+          breadCrumbs.append(marginRight.auto),
         )
       ),
       Rx {
-        val selfExpanded = expanded().contains(parentId)
-        VDomModifier.ifTrue(selfExpanded)(
+        val selfCollapsed = collapsed().contains(parentId)
+        VDomModifier.ifTrue(!selfCollapsed)(
           div(
-            cls := "ui segment",
-            marginTop := "0px", // remove semantic ui marginTop
-            table(
-              // fix expanding of table with large content:
-              tableLayout.fixed,
-              width := "100%",
+            cls := "notifications-body",
 
-              thead(tr(
-                th(),
-                th(),
-                th(width := "20px"),
-              )),
-
+            div(
               unreadParentNode.children.map { unreadNode =>
                 graph.nodes(unreadNode.nodeIdx) match {
                   case node: Node.Content => // node is always Content
@@ -262,36 +245,17 @@ object NotificationView {
 
                     VDomModifier(
                       VDomModifier.ifTrue(unreadNode.newRevisions.nonEmpty)(
-                        tr(
-                          td(
-                            VDomModifier.ifTrue(allSeen)(opacity := 0.5),
-                            nodeCard(node, maxLength = Some(150), projectWithIcon = true).apply(
-                              VDomModifier.ifTrue(deletedTime.isDefined)(cls := "node-deleted"),
-                              Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, node.id)
-                            )
-                          ),
-
-                          td(
-                            revisionTable
-                          ),
-
-                          td(
-                            cursor.pointer,
-
-                            //TODO: hack for having a better layout on mobile with this table
-                            if (BrowserDetect.isMobile)
-                              marginTop := "-6px"
-                            else
-                              padding := "5px",
-
-                            textAlign.right,
-                            if (allSeen) VDomModifier(
-                              freeRegular.faCircle,
-                              color.gray
+                        div(
+                          cls := "unread-row",
+                          div(
+                            cls := "unread-row-dot",
+                            if (!allSeen) VDomModifier(
+                              freeSolid.faCircle,
+                              color := Colors.unread,
                             )
                             else VDomModifier(
-                              color := Colors.unread,
-                              freeSolid.faCircle
+                              freeRegular.faCircle,
+                              color := readColor,
                             ),
 
                             onClick.stopPropagation.foreach {
@@ -306,16 +270,29 @@ object NotificationView {
                               GlobalState.submitChanges(changes)
                               ()
                             }
-                          )
+                          ),
+                          VDomModifier.ifTrue(allSeen)(opacity := 0.5),
+                          node.role match {
+                            case NodeRole.Message => div(cls := "prefix-icon fa-fw", Icons.message)
+                            case NodeRole.Task    => div(cls := "prefix-icon fa-fw", Icons.task)
+                            case NodeRole.Note    => div(cls := "prefix-icon fa-fw", Icons.note)
+                            case _                => VDomModifier.empty
+                          },
+                          nodeCard(node, maxLength = Some(150), projectWithIcon = true).apply(
+                            VDomModifier.ifTrue(deletedTime.isDefined)(cls := "node-deleted"),
+                            Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, node.id)
+                          ),
+
+                          revisionTable(paddingTop := "5px")
                         )
                       ),
                       VDomModifier.ifTrue(unreadNode.children.nonEmpty){
-                        tr(
-                          td(
+                        div(
+                          div(
                             colSpan := 3,
                             paddingRight := "0px",
                             paddingLeft := "0px",
-                            renderUnreadGroup(graph, userId, unreadNode, focusedId = graph.nodeIds(unreadNode.nodeIdx), renderTime = renderTime, currentTime = currentTime, expanded = expanded)
+                            renderUnreadGroup(graph, userId, unreadNode, focusedId = graph.nodeIds(unreadNode.nodeIdx), renderTime = renderTime, currentTime = currentTime, collapsed = collapsed)
                           )
                         )
                       }
@@ -357,74 +334,42 @@ object NotificationView {
       revision match {
         case revision: Revision.Edit =>
           allSeen = allSeen && revision.seen
-          (freeSolid.faEdit, s"Edited ${node.role}", Some(revision.author), revision.seen)
+          (freeSolid.faEdit, s"edited", Some(revision.author), revision.seen)
         case revision: Revision.Create =>
           allSeen = allSeen && revision.seen
-          (freeSolid.faPlus, s"Created ${node.role}", Some(revision.author), revision.seen)
-        case revision: Revision.Delete => (freeSolid.faTrash, s"Archived ${node.role}", None, true)
+          (freeSolid.faPlus, "", Some(revision.author), revision.seen)
+        case revision: Revision.Delete => (freeSolid.faTrash, s"archived", None, true)
       }
     }
-
-    def descriptionModifiers(doIcon: IconDefinition, doDescription: String) = VDomModifier(
-      color.gray,
-      span(
-        display.inlineBlock,
-        cls := "fa-fw",
-        doIcon,
-        marginRight := "5px"
-      ),
-      doDescription
-    )
 
     def authorModifiers(doAuthor: Option[Node.User]) = VDomModifier(
       doAuthor.map { author =>
         div(
-          fontSize := "0.8em",
           fontWeight.bold,
           Styles.flex,
           alignItems.center,
           Components.nodeAvatar(author, size = 12).apply(Styles.flexStatic, marginRight := "3px"),
           Components.displayUserName(author.data),
-          marginLeft.auto
         )
       }
     )
 
-    def timestampModifiers(timestamp: EpochMilli) = VDomModifier(
-      fontSize.smaller,
-      s"${DateFns.formatDistance(new Date(timestamp), new Date(currentTime))} ago"
-    )
+    def timestampModifiers(timestamp: EpochMilli) = s"${DateFns.formatDistance(new Date(timestamp), new Date(currentTime))} ago"
 
-    val tableNode = if (BrowserDetect.isMobile) div(
+    val tableNode = div(
       newRevisionsWithDelete.map { revision =>
         val (doIcon, doDescription, doAuthor, isSeen) = revisionVisuals(revision)
 
         div(
           Styles.flex,
-          justifyContent.spaceBetween,
+          justifyContent.flexStart,
           flexWrap.wrap,
 
           VDomModifier.ifTrue(isSeen)(opacity := 0.5),
+          fontSize := "0.8em",
 
-          div(authorModifiers(doAuthor)),
-          div(descriptionModifiers(doIcon, doDescription)),
-          div(timestampModifiers(revision.timestamp))
-        )
-      }
-    )
-    else table(
-      cls := "ui compact fixed table",
-      cls := "no-inner-table-borders",
-      border := "none",
-      newRevisionsWithDelete.map { revision =>
-        val (doIcon, doDescription, doAuthor, isSeen) = revisionVisuals(revision)
-
-        tr(
-          VDomModifier.ifTrue(isSeen)(opacity := 0.5),
-
-          td(authorModifiers(doAuthor)),
-          td(descriptionModifiers(doIcon, doDescription)),
-          td(timestampModifiers(revision.timestamp))
+          div(authorModifiers(doAuthor), marginLeft := "1em"),
+          div(s"$doDescription ${timestampModifiers(revision.timestamp)}", marginLeft := "1em"),
         )
       }
     )
@@ -454,6 +399,32 @@ object NotificationView {
     )
   }
 
+  def markAllAsReadIcon(parentId: NodeId, graph: Graph, userId: UserId, renderTime: EpochMilli) = {
+    div(
+      UI.tooltip("top center") := "Mark all as read",
+      Styles.flexStatic,
+      cls := "fa-fw",
+
+      if (hasDeepUnreadChildren(graph, parentId, userId, EpochMilli.now)) VDomModifier(
+        freeSolid.faArrowAltCircleDown,
+        color := Colors.unread,
+        onClickDefault.foreach {
+          val changes = GraphChanges(
+            addEdges = calculateDeepUnreadChildren(graph, parentId, userId, renderTime = renderTime)
+              .map(nodeIdx => Edge.Read(GlobalState.graph.now.nodeIds(nodeIdx), EdgeData.Read(EpochMilli.now), GlobalState.user.now.id))(breakOut)
+          )
+
+          GlobalState.submitChanges(changes)
+          ()
+        }
+      )
+      else VDomModifier(
+        freeRegular.faArrowAltCircleDown,
+        color := readColor,
+      )
+    )
+  }
+
   private def calculateDeepUnreadChildren(graph: Graph, parentNodeId: NodeId, userId: UserId, renderTime: EpochMilli): js.Array[Int] = {
     val unreadNodes = js.Array[Int]()
 
@@ -470,6 +441,18 @@ object NotificationView {
     }
 
     unreadNodes
+  }
+
+  private def hasDeepUnreadChildren(graph: Graph, parentNodeId: NodeId, userId: UserId, renderTime: EpochMilli): Boolean = {
+    graph.idToIdx(parentNodeId).fold(false) { parentNodeIdx =>
+      graph.descendantsIdxExists(parentNodeIdx) { nodeIdx =>
+        UnreadComponents.readStatusOfNode(graph, userId, nodeIdx) match {
+          case UnreadComponents.ReadStatus.SeenAt(timestamp, lastAuthorship) if timestamp > renderTime => true
+          case UnreadComponents.ReadStatus.Unseen(lastAuthorship) => true
+          case _ => false
+        }
+      }
+    }
   }
 
 }
