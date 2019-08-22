@@ -39,29 +39,33 @@ object PageHeader {
       GlobalState.graph().nodesByIdOrThrow(pageNodeId)
     }
 
-    val channelTitle = Rx {
-      val node = pageNode()
-      div(
-        Components.renderNodeCardMod(node, Components.renderAsOneLineText(_), projectWithIcon = false),
-        backgroundColor := pageStyle.pageBgColor,
+    val channelTitle = div(
+      backgroundColor := pageStyle.pageBgColor,
+      cls := "pageheader-channeltitle",
 
-        cls := "pageheader-channeltitle",
-        Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, node.id),
-        Components.showHoveredNode(node.id),
-        registerDragContainer,
-        DragItem.fromNodeRole(node.id, node.role).map(DragComponents.drag(_)),
+      Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, pageNodeId),
+      Components.showHoveredNode(pageNodeId),
+      registerDragContainer,
 
-        div(
-          UnreadComponents.readObserver(
-            node.id,
-            labelModifier = border := s"1px solid ${Colors.unreadBorder}" // light border has better contrast on colored pageheader background
-          ),
-          onClick.stopPropagation(View.Notifications).foreach(view => GlobalState.urlConfig.update(_.focus(view))),
-          float.right,
-          alignSelf.center,
+      Rx {
+        val node = pageNode()
+
+        VDomModifier(
+          Components.renderNodeCardMod(node, Components.renderAsOneLineText(_), projectWithIcon = false),
+          DragItem.fromNodeRole(node.id, node.role).map(DragComponents.drag(_)),
         )
+      },
+
+      div(
+        UnreadComponents.readObserver(
+          pageNodeId,
+          labelModifier = border := s"1px solid ${Colors.unreadBorder}" // light border has better contrast on colored pageheader background
+        ),
+        onClick.stopPropagation(View.Notifications).foreach(view => GlobalState.urlConfig.update(_.focus(view))),
+        float.right,
+        alignSelf.center,
       )
-    }
+    )
 
     val channelNotification = UnreadComponents
       .notificationsButton(pageNodeId, modifiers = VDomModifier(marginLeft := "5px"))
@@ -82,7 +86,7 @@ object PageHeader {
       Permission.resolveInherited(GlobalState.rawGraph(), pageNodeId)
     }
 
-    val filterControls = VDomModifier(
+    def filterControls = VDomModifier(
       ViewFilter.filterBySearchInputWithIcon.apply(marginLeft.auto),
       MovableElement.withToggleSwitch(
         Seq(
@@ -118,8 +122,9 @@ object PageHeader {
                 FeedbackForm(ctx)(Styles.flexStatic),
                 FeatureExplorer(Styles.flexStatic),
               )
-              else
-                FeedbackForm(ctx)(marginLeft.auto, Styles.flexStatic),
+              else VDomModifier(
+                FeedbackForm(ctx)(marginLeft.auto, Styles.flexStatic)
+              ),
               AuthControls.authStatusOnColoredBackground.map(_(Styles.flexStatic))
             )
           )
