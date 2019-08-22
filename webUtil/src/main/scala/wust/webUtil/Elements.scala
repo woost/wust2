@@ -388,14 +388,12 @@ object Elements {
     target := "_blank"
   )
 
-  private val domPurifyConfig = new DomPurifyConfig {}
   def markdownString(str: String): String = {
     if(str.trim.isEmpty) "<p></p>" // add least produce an empty paragraph to preserve line-height
     else {
       EmojiConvertor.replace_colons(
         DOMPurify.sanitize(
           Marked(EmojiConvertor.replace_emoticons_with_colons(str)),
-          domPurifyConfig
         )
       )
     }
