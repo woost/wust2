@@ -137,7 +137,7 @@ object Deps {
     val intersectionObserver = "intersection-observer" -> "0.7.0"
     val marked = "marked" -> "0.7.0"
     val dompurify = "dompurify" -> "1.0.11"
-    val highlight = "highlight.js" -> "9.15.8"
+    val highlight = "highlight.js" -> "9.15.10"
     val dateFns = "date-fns" -> "v2.0.0-alpha.27"
     val draggable = "@shopify/draggable" -> "1.0.0-beta.8"
     val fomanticUi = "fomantic-ui-css" -> "2.7.6"
