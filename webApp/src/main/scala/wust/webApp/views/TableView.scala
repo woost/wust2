@@ -22,7 +22,7 @@ import scala.scalajs.js
 import scala.collection.{breakOut, mutable}
 
 object TableView {
-  def apply(focusState: FocusState, roles: List[NodeRole])(implicit ctx: Ctx.Owner): VNode = {
+  def apply(focusState: FocusState, roles: List[NodeRole], viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VNode = {
     val sort = Var[Option[UI.ColumnSort]](None)
 
     div(
@@ -33,12 +33,12 @@ object TableView {
 
       Rx {
         val graph = GlobalState.graph()
-        table( graph, focusState.focusedId, roles, sort)
+        table( graph, focusState.focusedId, roles, sort, viewRender)
       }
     )
   }
 
-  def table(graph: Graph, focusedId: NodeId, roles: List[NodeRole], sort: Var[Option[UI.ColumnSort]])(implicit ctx: Ctx.Owner): VDomModifier = {
+  def table(graph: Graph, focusedId: NodeId, roles: List[NodeRole], sort: Var[Option[UI.ColumnSort]], viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VDomModifier = {
     val focusedIdx = graph.idToIdxOrThrow(focusedId)
 
     val globalEditMode = Var(Option.empty[(String, Seq[Edge.LabeledProperty])])
@@ -255,14 +255,13 @@ object TableView {
                 padding := "10px",
                 div(
                   UI.toggle("Keep as default", keepPropertyAsDefault).apply(marginBottom := "5px"),
-                  // GraphChangesAutomationUI.settingsButton( focusedId).prepend(
-                  //   span("Manage automations", textDecoration.underline, marginRight := "5px")
-                  // ),
-                  // i(
-                  //   padding := "4px",
-                  //   whiteSpace.normal,
-                  //   s"* The properties you set here will be applied to ${propertyGroup.infos.size} nodes."
-                  // )
+
+                  // GraphChangesAutomationUI.settingsButton(
+                  //   focusedId,
+                  //   activeMod = visibility.visible,
+                  //   viewRender = viewRender,
+                  //   tooltipDirection = "left center"
+                  // ).prepend(span("Manage automations", marginRight := "5px"))
                 )
               ),
             ),
