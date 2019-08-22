@@ -32,6 +32,8 @@ object Circe extends wust.ids.serialize.Circe {
   implicit val ConnectionEncoder7: Encoder[Edge.Read] = deriveEncoder[Edge.Read]
   implicit val ConnectionDecoder8: Decoder[Edge.Mention] = deriveDecoder[Edge.Mention]
   implicit val ConnectionEncoder8: Encoder[Edge.Mention] = deriveEncoder[Edge.Mention]
+  implicit val ConnectionDecoder9: Decoder[Edge.Reminder] = deriveDecoder[Edge.Reminder]
+  implicit val ConnectionEncoder9: Encoder[Edge.Reminder] = deriveEncoder[Edge.Reminder]
   implicit val ConnectionDecoder: Decoder[Edge] = deriveDecoder[Edge]
   implicit val ConnectionEncoder: Encoder[Edge] = deriveEncoder[Edge]
 
