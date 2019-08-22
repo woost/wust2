@@ -1,6 +1,5 @@
 package wust.webApp.views
 
-import acyclic.file
 import fontAwesome.freeSolid
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -187,7 +186,15 @@ object RightSidebar {
           flexDirection.column,
           justifyContent.flexStart,
           boxShadow := "none", //explicitly overwrite boxshadow from accordion.
-        )
+        ),
+      div(
+        cls := "ui secondary menu",
+        flexWrap.wrap,
+        flexDirection.column,
+        height := "600px",
+        justifyContent.spaceAround,
+        PageSettingsMenu.sidebarMenuItems(focusPref.nodeId)
+      )
     )
   }
   private def viewContent(focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit, nodeStyle: PageStyle, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner) = {

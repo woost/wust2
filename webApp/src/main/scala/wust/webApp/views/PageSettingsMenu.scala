@@ -44,7 +44,7 @@ object PageSettingsMenu {
     GlobalState.graph().pinnedNodeIdx(userIdx).contains(channelIdx)
   }
 
-  private def sidebarMenuItems(channelId: NodeId)(implicit ctx: Ctx.Owner) = {
+  def sidebarMenuItems(channelId: NodeId)(implicit ctx: Ctx.Owner) = {
     val isBookmarked = nodeIsBookmarked( channelId)
 
     val channelAsNode: Rx[Option[Node]] = Rx {
