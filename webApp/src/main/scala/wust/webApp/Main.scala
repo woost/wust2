@@ -3,6 +3,7 @@ package wust.webApp
 import wust.facades.wdtEmojiBundle._
 import colorado.HCL
 import wust.facades.defaultPassiveEvents.DefaultPassiveEvents
+import wust.facades.dompurify.DOMPurify
 import wust.facades.intersectionObserver.IntersectionObserver
 import wust.facades.emojijs.EmojiConvertor
 import wust.facades.fomanticui.SearchResults
@@ -77,6 +78,7 @@ object Main {
     setupDefaultPassiveEvents()
     setupIntersectionObserverPolyfill()
     setupSetImmediatePolyfill()
+    setupDomPurify()
     setupMarked()
     setupEmojis()
     setupEmojiPicker()
@@ -102,18 +104,31 @@ object Main {
     }
   }
 
-  private def setupMarked():Unit = {
-    // to open links in new windows:
-    // https://github.com/markedjs/marked/issues/655#issuecomment-383226346
-    val newRenderer = new Renderer()
-    val linkRenderer = newRenderer.link
-    newRenderer.link = {(renderer, href, title, text) => 
-      val html = linkRenderer(renderer, href, title, text)
-      html.replaceFirst("^<a ", s"""<a target="_blank" rel="${Elements.safeRelForTargetBlank} nofollow" onclick="event.stopPropagation()"""") // If link is in nodecard, stopPropagation prevents the nodecard click (e.g. rightsidebar) 
-    }
+  private def setupDomPurify(): Unit = {
+    // make all links target blank with safe rel props
+    // see: https://github.com/cure53/DOMPurify/blob/master/demos/hooks-target-blank-demo.html
+    DOMPurify.addHook("afterSanitizeAttributes", { node =>
+        if (js.Object.hasProperty(node, "target")) {
+            // set all elements owning target to target=_blank
+            node.setAttribute("target","_blank");
+            // prevent https://www.owasp.org/index.php/Reverse_Tabnabbing
+            node.setAttribute("rel", s"${Elements.safeRelForTargetBlank} nofollow");
+            // If link is in nodecard, stopPropagation prevents the nodecard click (e.g. rightsidebar)
+            node.setAttribute("onclick", "event.stopPropagation()")
+        }
 
+        if (!node.hasAttribute("target") && (node.hasAttribute("xlink:href") || node.hasAttribute("href"))) {
+            // set non-HTML/MathML links to xlink:show=new
+            node.setAttribute("xlink:show", "new");
+        }
+
+        node
+    })
+  }
+
+  private def setupMarked():Unit = {
     Marked.setOptions(new MarkedOptions {
-      renderer = newRenderer
+      renderer = new Renderer()
       gfm = true
       breaks = true // If true, add <br> on a single line break (copies GitHub). Requires gfm be true.
       highlight = ((code: String, lang: js.UndefOr[String]) => { // Only gets called for code blocks
