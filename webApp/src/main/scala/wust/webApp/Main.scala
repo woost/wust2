@@ -137,9 +137,8 @@ object Main {
           case _ => "<div class = \"hljs\">" + Highlight.highlightAuto(code).value + "</div>"
         }
       }): js.Function2[String, js.UndefOr[String], String]
-      // Setting sanitizer like this sanitizes the output only partially,
-      // therefore we sanitize Strings in Elements.markdownString
-      // sanitizer = DOMPurify.sanitize: js.Function1[String, String]
+
+      // We sanitize marked output using dompurify in Elements.markdownString
     })
   }
 
