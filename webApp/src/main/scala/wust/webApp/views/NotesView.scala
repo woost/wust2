@@ -96,17 +96,17 @@ object NotesView {
         fontSize := "16px",
         cls := "enable-text-selection",
 
-        Rx {
-          VDomModifier.ifNot(editMode())(
-            DragComponents.dragWithHandle(DragItem.Note(node.id)),
-            cursor.auto, // overwrite drag cursor
-          )
-        },
-
         Components.editableNode(node, editMode = editMode, config = EditableContent.Config.cancelOnError.copy(submitOnEnter = false)).append(
           width := "100%",
         ),
       ),
+
+      Rx {
+        VDomModifier.ifNot(editMode())(
+          DragComponents.dragWithHandle(DragItem.Note(node.id)),
+          cursor.auto, // overwrite drag cursor
+          )
+      },
 
       controls (node.id, parentId, editMode, isDeleted)
         .apply(
