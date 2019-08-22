@@ -380,6 +380,7 @@ object Elements {
     }
   }
 
+  def onClickDefault:SyncEmitterBuilder[com.raquo.domtypes.jsdom.defs.events.TypedTargetMouseEvent[org.scalajs.dom.Element],outwatch.dom.VDomModifier] = onClick.stopPropagation.mapResult(mod => VDomModifier(mod, cursor.pointer))
   val safeRelForTargetBlank = "noopener noreferrer"
 
   // https://www.jitbit.com/alexblog/256-targetblank---the-most-underestimated-vulnerability-ever/
