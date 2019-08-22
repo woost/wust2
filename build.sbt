@@ -160,6 +160,9 @@ lazy val webSettings = Seq(
   scalaJSStage in Test := FastOptStage,
   scalaJSLinkerConfig in (Compile, fastOptJS) ~= { _.withSourceMap(withSourceMaps) },
   scalaJSLinkerConfig in (Compile, fullOptJS) ~= { _.withSourceMap(withSourceMaps) },
+  scalaJSLinkerConfig in (Test, fastOptJS) ~= { _.withSourceMap(withSourceMaps) },
+  scalaJSLinkerConfig in (Test, fullOptJS) ~= { _.withSourceMap(withSourceMaps) },
+
   npmDevDependencies in Compile ++= Deps.npm.webpackDependencies,
   version in webpack := Deps.webpackVersion,
   version in startWebpackDevServer := Deps.webpackDevServerVersion,
