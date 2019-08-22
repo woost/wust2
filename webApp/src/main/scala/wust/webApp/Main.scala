@@ -25,6 +25,7 @@ import wust.webApp.dragdrop.SortableEvents
 import wust.webApp.jsdom.ServiceWorker
 import wust.webApp.state.{GlobalState, GlobalStateFactory}
 import wust.webApp.views.{GenericSidebar, MainView, Modal}
+import wust.webUtil.JSDefined
 
 import scala.scalajs.js.JSON
 import scala.scalajs.{LinkingInfo, js}
@@ -132,9 +133,9 @@ object Main {
       gfm = true
       breaks = true // If true, add <br> on a single line break (copies GitHub). Requires gfm be true.
       highlight = ((code: String, lang: js.UndefOr[String]) => { // Only gets called for code blocks
-        lang.toOption match {
-          case Some(l) if Highlight.getLanguage(l).isDefined => "<div class = \"hljs\">" + Highlight.highlight(l, code).value + "</div>"
-          case _ => "<div class = \"hljs\">" + Highlight.highlightAuto(code).value + "</div>"
+        lang match {
+          case JSDefined(lang) if Highlight.getLanguage(lang).isDefined => Highlight.highlight(lang, code).value
+          case _ => Highlight.highlightAuto(code).value
         }
       }): js.Function2[String, js.UndefOr[String], String]
 

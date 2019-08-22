@@ -1024,15 +1024,16 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   val codeBgColor = c"hsla(210, 58%, 25%, 0.06)"
-  ".markdown code .hljs," + // code which is syntax-highlighted
-  ".markdown code:not([class])" - (// code which is not syntax-highlighted
+  ".markdown code" - (
+    // both code blocks and inline code
     backgroundColor(codeBgColor),
     borderRadius(3 px),
+    padding(0.15 em, 0.4 em), // vertical padding is chosen such that two inline codes in two lines do not overlap
   )
 
-  ".markdown code:not([class])" - ( 
-    margin(0 px),
-    padding(0.2 em, 0.4 em),
+  ".markdown pre code" - ( // code block
+    display.block,
+    padding(0.4 em),
   )
 
   ".oneline.markdown *:not(.emoji-outer):not(.emoji-sizer):not(.emoji-inner)" - (
