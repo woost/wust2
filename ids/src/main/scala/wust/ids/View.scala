@@ -85,6 +85,10 @@ object View {
     def viewKey = "notifications"
     override def isContent = true
   }
+  case object ActivityStream extends Visible {
+    def viewKey = "activity"
+    override def isContent = true
+  }
   case object Empty extends Visible {
     def viewKey = "empty"
     override def isContent = true

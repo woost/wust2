@@ -21,18 +21,19 @@ object ViewRender extends ViewRenderLike {
       case View.Empty            => emptyView
     }
     def withFocusState(focusState: FocusState): PartialFunction[View.Visible, VNode] = withoutFocusState orElse {
-      case View.Chat          => ChatView( focusState)
-      case View.Thread        => ThreadView( focusState)
-      case View.Table(roles)  => TableView( focusState, roles, ViewRender)
-      case View.List          => ListView( focusState)
-      case View.Kanban        => KanbanView( focusState, ViewRender)
-      case View.Graph         => GraphView( focusState)
-      case View.Dashboard     => DashboardView( focusState)
-      case View.Files         => FilesView( focusState)
-      case View.Content       => NotesView( focusState)
-      case View.Gantt         => GanttView( focusState)
-      case View.Topological   => TopologicalView( focusState)
-      case View.Notifications => NotificationView( focusState)
+      case View.Chat          => ChatView(focusState)
+      case View.Thread        => ThreadView(focusState)
+      case View.Table(roles)  => TableView(focusState, roles, ViewRender)
+      case View.List          => ListView(focusState)
+      case View.Kanban        => KanbanView(focusState, ViewRender)
+      case View.Graph         => GraphView(focusState)
+      case View.Dashboard     => DashboardView(focusState)
+      case View.Files         => FilesView(focusState)
+      case View.Content       => NotesView(focusState)
+      case View.Gantt         => GanttView(focusState)
+      case View.Topological   => TopologicalView(focusState)
+      case View.Notifications => NotificationView(focusState)
+      case View.ActivityStream => ActivityStream(focusState)
     }
 
     val renderView: PartialFunction[View.Visible, VNode] = focusState.fold(withoutFocusState)(withFocusState)
