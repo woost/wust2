@@ -97,7 +97,7 @@ object RightSidebar {
           freeSolid.faChevronLeft,
           focusHistory.map {
             case Nil => color := "gray"
-            case _ => VDomModifier.empty
+            case _   => VDomModifier.empty
           },
           cls := "fa-fw",
           cursor.pointer,
@@ -116,7 +116,7 @@ object RightSidebar {
           freeSolid.faChevronRight,
           focusFuture.map {
             case Nil => color := "gray"
-            case _ => VDomModifier.empty
+            case _   => VDomModifier.empty
           },
           cls := "fa-fw",
           cursor.pointer,
@@ -267,7 +267,7 @@ object RightSidebar {
     val editMode = Var(false)
 
     val node = Rx {
-      GlobalState.graph().nodesByIdOrThrow(focusPref.nodeId)
+      GlobalState.graph().nodesById(focusPref.nodeId)
     }
 
     val hasNotDeletedParents = Rx {
@@ -314,23 +314,25 @@ object RightSidebar {
     }
 
     val nodeCard = Rx {
-      Components.nodeCardEditable(node(), editMode,
-        contentInject = width := "100%" // pushes cancel button to the right
-      ).apply(
-        cls := "right-sidebar-node",
+      node().map{ node =>
+        Components.nodeCardEditable(node, editMode,
+          contentInject = width := "100%" // pushes cancel button to the right
+        ).apply(
+          cls := "right-sidebar-node",
 
-        Styles.flex,
-        justifyContent.spaceBetween,
+          Styles.flex,
+          justifyContent.spaceBetween,
 
-        fontSize := "20px",
-        width := "100%",
-        margin := "3px 3px 3px 3px",
-        Styles.wordWrap,
-        cls := "enable-text-selection",
-        onClick.stopPropagation(true) --> editMode,
+          fontSize := "20px",
+          width := "100%",
+          margin := "3px 3px 3px 3px",
+          Styles.wordWrap,
+          cls := "enable-text-selection",
+          onClick.stopPropagation(true) --> editMode,
 
-        UnreadComponents.readObserver(node().id)
-      )
+          UnreadComponents.readObserver(node.id)
+        )
+      }
     }
 
     div(
