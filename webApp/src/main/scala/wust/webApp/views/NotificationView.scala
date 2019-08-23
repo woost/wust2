@@ -197,7 +197,6 @@ object NotificationView {
     val breadCrumbs = Rx {
       BreadCrumbs(
         graph,
-        GlobalState.user(),
         Some(focusedId),
         parentId = Some(parentId),
         parentIdAction = nodeId => GlobalState.rightSidebarNode.update({

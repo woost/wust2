@@ -253,7 +253,6 @@ object RightSidebar {
       Rx {
         BreadCrumbs(
           GlobalState.rawGraph(),
-          GlobalState.user(),
           GlobalState.page().parentId,
           Some(focusedNodeId.nodeId),
           nodeId => parentIdAction(Some(nodeId)),

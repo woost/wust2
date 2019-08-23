@@ -23,9 +23,6 @@ import wust.webApp.state.FeatureState
 
 object BreadCrumbs {
 
-  /** options */
-  private val showOwn = true
-
   private def intersperse[T](list: List[T], co: T): List[T] = list match {
     case one :: two :: rest => one :: co :: intersperse(two :: rest, co)
 //    case one :: Nil         => one :: co :: Nil
@@ -51,22 +48,22 @@ object BreadCrumbs {
 
   def apply: VNode = {
     div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
-      modifier( None, GlobalState.page.map(_.parentId), nid => GlobalState.focus(nid))
+      modifierRx( None, GlobalState.page.map(_.parentId), nid => GlobalState.focus(nid))
     })
   }
   def apply(filterUpTo: Option[NodeId], parentIdRx: Rx[Option[NodeId]], parentIdAction: NodeId => Unit)(implicit ctx: Ctx.Owner): VNode = {
    div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
-      modifier( filterUpTo, parentIdRx, parentIdAction)
+      modifierRx( filterUpTo, parentIdRx, parentIdAction)
    })
   }
 
-  def apply(graph: Graph, user: AuthUser, filterUpTo: Option[NodeId], parentId: Option[NodeId], parentIdAction: NodeId => Unit, hideIfSingle:Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(graph: Graph, filterUpTo: Option[NodeId], parentId: Option[NodeId], parentIdAction: NodeId => Unit, hideIfSingle:Boolean = false, showOwn: Boolean = true)(implicit ctx: Ctx.Owner): VNode = {
     div(
-      modifier( graph, user, filterUpTo, parentId = parentId, parentIdAction = parentIdAction, hideIfSingle)
+      modifier( graph, filterUpTo, parentId = parentId, parentIdAction = parentIdAction, hideIfSingle = hideIfSingle, showOwn = showOwn)
     )
   }
 
-  private def modifier(graph: Graph, user: AuthUser, filterUpTo: Option[NodeId], parentId: Option[NodeId], parentIdAction: NodeId => Unit, hideIfSingle:Boolean = false)(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def modifier(graph: Graph, filterUpTo: Option[NodeId], parentId: Option[NodeId], parentIdAction: NodeId => Unit, hideIfSingle:Boolean = false, showOwn: Boolean = true)(implicit ctx: Ctx.Owner): VDomModifier = {
     VDomModifier(
       cls := "breadcrumbs",
       parentId.map { (parentId: NodeId) =>
@@ -90,7 +87,7 @@ object BreadCrumbs {
           }
         }.flatten
 
-        val elements: List[VDomModifier] = filterUpTo.fold(elementNodes)(id => elementNodes.dropWhile(_ != id)).map { nid =>
+        val elements: List[VDomModifier] = filterUpTo.fold(elementNodes)(id => elementNodes.dropWhile(_ != id).dropWhile(_ == id)).map { nid =>
           val onClickFocus = VDomModifier(
             cursor.pointer,
             onClick foreach { e =>
@@ -124,13 +121,13 @@ object BreadCrumbs {
     )
   }
 
-  private def modifier(filterUpTo: Option[NodeId], parentIdRx: Rx[Option[NodeId]], parentIdAction: NodeId => Unit)(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def modifierRx(filterUpTo: Option[NodeId], parentIdRx: Rx[Option[NodeId]], parentIdAction: NodeId => Unit)(implicit ctx: Ctx.Owner): VDomModifier = {
     Rx {
       val parentId = parentIdRx()
       val user = GlobalState.user()
       val graph = GlobalState.rawGraph()
 
-      modifier( graph, user, filterUpTo, parentId = parentId, parentIdAction = parentIdAction)
+      modifier( graph, filterUpTo, parentId = parentId, parentIdAction = parentIdAction)
     }
   }
 }
