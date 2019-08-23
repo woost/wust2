@@ -31,7 +31,7 @@ object GenericSidebar {
       config.closedModifier.map { closedModifier =>
         VDomModifier(
           cls := "sidebar",
-          openSwipe,
+          VDomModifier.ifTrue(BrowserDetect.isMobile)(openSwipe),
           closedModifier
         )
       }
@@ -46,8 +46,7 @@ object GenericSidebar {
       cls := "overlay-sidebar",
       directionOverlayModifier,
       onClick.onlyOwnEvents(false) --> sidebarOpen,
-      onSwipeLeft(false) --> sidebarOpen,
-      closeSwipe,
+      VDomModifier.ifTrue(BrowserDetect.isMobile)(closeSwipe),
 
       div(
         openSidebar(config),
@@ -68,7 +67,7 @@ object GenericSidebar {
     def sidebarWithExpand(config: Config)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
       cls := "expanded-sidebar",
       directionExpandedModifier,
-      closeSwipe,
+      VDomModifier.ifTrue(BrowserDetect.isMobile)(closeSwipe),
       div(
         Rx {
           sidebarOpen() match {
