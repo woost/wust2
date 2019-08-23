@@ -210,14 +210,25 @@ object UnreadComponents {
     val channelNotification = Rx {
       VDomModifier.ifTrue(haveUnreadNotifications())(
         button(
-          cls := "ui compact inverted button",
+          cls := "ui mini compact button",
           Icons.notifications,
           onClick.stopPropagation(View.Notifications) --> sink,
-          modifiers,
         )
       )
     }
-    channelNotification
+
+    val activityStream = button(
+      cls := "ui mini compact button",
+      Icons.activityStream,
+      onClick.stopPropagation(View.ActivityStream) --> sink,
+    )
+
+    div(
+      cls := "ui mini basic compact buttons",
+      channelNotification,
+      activityStream,
+      modifiers
+    )
   }
 
   // check whether there are unread nodes for the user within parentNodeId
