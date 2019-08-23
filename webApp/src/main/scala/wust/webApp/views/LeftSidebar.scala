@@ -75,13 +75,13 @@ object LeftSidebar {
                   "Filters & Deleted Items",
                   FilterWindow.body(Styles.flexStatic),
                   active = false
-                ),
+                )
+              ) ++ StagingOnly(
                 accordionEntry(
                   FeatureExplorer.toggleButton.apply(marginBottom := "10px"),
                   FeatureExplorer(),
                   active = false
-                ),
-              ),
+                )).toSeq,
               styles = "styled fluid",
               exclusive = true, //BrowserDetect.isMobile
             ).apply(
