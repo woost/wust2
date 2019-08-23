@@ -63,7 +63,6 @@ object ActivityStream {
       keyed,
       Styles.growFull,
       overflow.auto,
-      backgroundColor := "white",
 
       Styles.flex,
       justifyContent.center,
@@ -249,8 +248,6 @@ object ActivityStream {
 
           div(
             nodeCard(unreadNode.node, maxLength = Some(250), projectWithIcon = true).apply(
-              backgroundColor := "white",
-
               VDomModifier.ifTrue(unreadNode.revision.isInstanceOf[Revision.Delete])(cls := "node-deleted"),
 
               Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, unreadNode.node.id)
