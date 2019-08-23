@@ -12,7 +12,8 @@ import wust.ids.{Feature, _}
 import wust.webApp.dragdrop.DragContainer
 import wust.webApp.state.{FocusState, GlobalState, Placeholder, TraverseState}
 import wust.webApp.views.Components._
-import wust.webApp.views.DragComponents.registerDragContainer
+import wust.webApp.views.DragComponents.{registerDragContainer, drag}
+import wust.webApp.dragdrop.{DragItem}
 
 object ListView {
   import SharedViewElements._
@@ -33,6 +34,8 @@ object ListView {
       overflow.auto,
       padding := "5px",
       flexGrow := 2,
+      drag(target = DragItem.Workspace(focusState.focusedId)),
+      registerDragContainer(DragContainer.Checklist),
     )
   }
 
