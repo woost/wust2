@@ -17,7 +17,7 @@ import wust.webApp.Icons
 import wust.webApp.dragdrop.{DragContainer, DragItem}
 import wust.webApp.state._
 import wust.webApp.views.Components._
-import wust.webApp.views.DragComponents.registerDragContainer
+import wust.webApp.views.DragComponents.{registerDragContainer, drag}
 
 object KanbanView {
 
@@ -36,10 +36,11 @@ object KanbanView {
       alignItems.flexStart,
 
       renderInboxColumn( focusState, traverseState, viewRender, selectedNodeIds),
-
       renderToplevelColumns( focusState, traverseState, viewRender, selectedNodeIds),
-
       newColumnArea( focusState).apply(Styles.flexStatic),
+
+      drag(target = DragItem.Workspace(focusState.focusedId)),
+      registerDragContainer(DragContainer.Kanban.Background),
     )
   }
 
