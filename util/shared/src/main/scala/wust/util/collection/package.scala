@@ -15,6 +15,15 @@ package object collection {
 
   implicit class RichCollection[T, Repr[_]](val col: IterableLike[T, Repr[T]]) extends AnyVal {
 
+    def findMap[B](f: T => Option[B]): Option[B] = {
+      col.foreach { x =>
+        val result = f(x)
+        if (result.isDefined) return result
+      }
+
+      None
+    }
+
     @inline def groupByForeach[K,B](f: ((K, B) => Unit) => T => Unit): scala.collection.Map[K, scala.collection.Seq[B]] = {
       val map = mutable.HashMap[K, mutable.ArrayBuffer[B]]()
       val add: (K, B) => Unit = { (k,b) =>
