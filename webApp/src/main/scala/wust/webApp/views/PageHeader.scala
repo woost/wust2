@@ -98,7 +98,7 @@ object PageHeader {
       )
     )
 
-    val breadCrumbs = Rx{
+    def breadCrumbs = Rx{
       VDomModifier.ifTrue(GlobalState.pageHasNotDeletedParents())(
         BreadCrumbs(flexShrink := 1, marginRight := "10px")
       )
@@ -112,21 +112,19 @@ object PageHeader {
         Styles.flex,
         alignItems.center,
 
-        breadCrumbs,
         Rx {
-          VDomModifier(
-            VDomModifier.ifTrue(GlobalState.screenSize() != ScreenSize.Small)(
-              // depending on the screen size, different elements receive marginLeft.auto
-              if (GlobalState.screenSize() == ScreenSize.Large) VDomModifier(
-                AnnouncekitWidget.widget.apply(marginLeft.auto, Styles.flexStatic),
-                FeedbackForm(ctx)(Styles.flexStatic),
-                FeatureExplorer(Styles.flexStatic),
-              )
-              else VDomModifier(
-                FeedbackForm(ctx)(marginLeft.auto, Styles.flexStatic)
-              ),
-              AuthControls.authStatusOnColoredBackground.map(_(Styles.flexStatic))
+          VDomModifier.ifTrue(GlobalState.screenSize() != ScreenSize.Small)(
+            breadCrumbs,
+            // depending on the screen size, different elements receive marginLeft.auto
+            if (GlobalState.screenSize() == ScreenSize.Large) VDomModifier(
+              AnnouncekitWidget.widget.apply(marginLeft.auto, Styles.flexStatic),
+              FeedbackForm(ctx)(Styles.flexStatic),
+              FeatureExplorer(Styles.flexStatic),
             )
+            else VDomModifier(
+              FeedbackForm(ctx)(marginLeft.auto, Styles.flexStatic)
+            ),
+            AuthControls.authStatusOnColoredBackground.map(_(Styles.flexStatic))
           )
         },
       ),
