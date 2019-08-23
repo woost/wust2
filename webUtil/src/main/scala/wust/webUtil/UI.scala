@@ -146,7 +146,7 @@ object UI {
       onClick = click: js.Function0[Unit]
       position = "bottom right"
       title = _title
-      message = EmojiConvertor.replace_colons(escapeHtml(msg))
+      message = EmojiConvertor.replace_colons_safe(escapeHtml(msg))
       showIcon = if(enableIcon) customIcon match {case Some(faIconName) => faIconName; case None => true} else false
       displayTime = if (autoclose) 5000 else 0
       showProgress = "bottom"

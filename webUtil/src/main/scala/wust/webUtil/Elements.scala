@@ -393,10 +393,10 @@ object Elements {
   }
   def markdownString(str: String): String = {
     if(str.trim.isEmpty) "<p></p>" // add least produce an empty paragraph to preserve line-height
-    else { 
-      EmojiConvertor.replace_colons(
+    else {
+      EmojiConvertor.replace_colons_safe(
         DOMPurify.sanitize(
-          Marked(EmojiConvertor.replace_emoticons_with_colons(str)),
+          Marked(EmojiConvertor.replace_emoticons_with_colons_safe(str)),
           domPurifyConfig
         )
       )

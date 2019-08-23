@@ -87,13 +87,13 @@ object Components {
 
   def replaceEmoji(str: String): VNode = {
     span.thunkStatic(uniqueKey(str))(VDomModifier(
-      Elements.innerHTML := Elements.UnsafeHTML(EmojiConvertor.replace_colons(escapeHtml(str)))
+      Elements.innerHTML := Elements.UnsafeHTML(EmojiConvertor.replace_colons_safe(escapeHtml(str)))
     ))
   }
 
   def replaceEmojiUnified(str: String): VNode = {
     span.thunkStatic(uniqueKey(str))(VDomModifier(
-      Elements.innerHTML := Elements.UnsafeHTML(EmojiConvertor.replace_unified(escapeHtml(str)))
+      Elements.innerHTML := Elements.UnsafeHTML(EmojiConvertor.replace_unified_safe(escapeHtml(str)))
     ))
   }
 
