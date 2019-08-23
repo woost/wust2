@@ -304,10 +304,10 @@ object UI {
   }
 
 
-  def segment(header: VDomModifier, description: VDomModifier, segmentClass: String = "", segmentsClass: String = "") = div(
+  def segment(header: VDomModifier, description: VDomModifier, headerSegmentClass: String = "top", segmentClass: String = "", segmentsClass: String = "") = div(
     cls := s"ui segments $segmentsClass",
-    div(
-      cls := s"ui secondary segment $segmentClass",
+    h5(
+      cls := s"ui segment $headerSegmentClass",
       padding := "0.5em 0.5em",
       header
     ),
