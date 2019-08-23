@@ -287,14 +287,7 @@ object NotificationView {
                         )
                       ),
                       VDomModifier.ifTrue(unreadNode.children.nonEmpty){
-                        div(
-                          div(
-                            colSpan := 3,
-                            paddingRight := "0px",
-                            paddingLeft := "0px",
-                            renderUnreadGroup(graph, userId, unreadNode, focusedId = graph.nodeIds(unreadNode.nodeIdx), renderTime = renderTime, currentTime = currentTime, collapsed = collapsed)
-                          )
-                        )
+                        renderUnreadGroup(graph, userId, unreadNode, focusedId = graph.nodeIds(unreadNode.nodeIdx), renderTime = renderTime, currentTime = currentTime, collapsed = collapsed)
                       }
                     )
 
