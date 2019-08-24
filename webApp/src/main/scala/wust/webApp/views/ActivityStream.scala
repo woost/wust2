@@ -43,21 +43,17 @@ object ActivityStream {
     final case class Edit(author: Node.User, timestamp: EpochMilli, seen: Boolean) extends Revision
     final case class Create(author: Node.User, timestamp: EpochMilli, seen: Boolean) extends Revision
   }
-  final case class UnreadNode(node: Node, revision: Revision)
+  final case class ActivityNode(node: Node, revision: Revision)
 
-  private val lookBackInTime: DurationMilli = DurationMilli(2L * 60 * 60 * 24) // 2 days
   private val readColor = "gray"
 
   def apply(focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
 
-    val renderTime = EpochMilli.now
-    val resolvedTime = EpochMilli(renderTime - lookBackInTime)
-
     val graph = GlobalState.rawGraph
     val userId = GlobalState.userId
 
-    val unreadNodes = Rx {
-      calculateUnreadList(graph(), focusState.focusedId, userId(), resolvedTime = resolvedTime)
+    val activityNodes = Rx {
+      calculateActivityList(graph(), focusState.focusedId, userId()).take(100) // max 100 items
     }
 
     div(
@@ -75,16 +71,16 @@ object ActivityStream {
         div(
           Styles.flex,
           h3("Activity Stream"),
-          markAllAsReadButton("Mark all as read", focusState.focusedId, graph, userId)
+          markAllAsReadButton("Mark all as read", activityNodes, userId)
         ),
 
         Rx {
-          if (unreadNodes().isEmpty) {
+          if (activityNodes().isEmpty) {
             emptyNotifications
           } else {
             val currentTime = EpochMilli.now
             VDomModifier(
-              unreadNodes().map(renderUnreadNode(graph, _, focusState.focusedId, currentTime = currentTime))
+              activityNodes().map(renderUnreadNode(graph, _, focusState.focusedId, userId(), currentTime = currentTime))
             )
           }
         },
@@ -103,9 +99,9 @@ object ActivityStream {
     )
   }
 
-  private def calculateUnreadList(graph: Graph, nodeId: NodeId, userId: UserId, resolvedTime: EpochMilli): scala.collection.Seq[UnreadNode] = graph.idToIdxFold(nodeId)(Seq.empty[UnreadNode]) { nodeIdx =>
+  private def calculateActivityList(graph: Graph, nodeId: NodeId, userId: UserId): scala.collection.Seq[ActivityNode] = graph.idToIdxFold(nodeId)(Seq.empty[ActivityNode]) { nodeIdx =>
 
-    val buffer = mutable.ArrayBuffer[UnreadNode]()
+    val buffer = mutable.ArrayBuffer[ActivityNode]()
 
     dfs.foreach(_(nodeIdx), dfs.withStart, graph.childrenIdx, { nodeIdx =>
       if (UnreadComponents.nodeIsActivity(graph, nodeIdx)) {
@@ -114,7 +110,7 @@ object ActivityStream {
           val revision =
             if (activity.authorship.isCreation) Revision.Create(activity.authorship.author, activity.authorship.timestamp, seen = activity.isSeen)
             else Revision.Edit(activity.authorship.author, activity.authorship.timestamp, seen = activity.isSeen)
-          buffer += UnreadNode(node, revision)
+          buffer += ActivityNode(node, revision)
         }
 
         graph.parentEdgeIdx.whileElement(nodeIdx) { idx =>
@@ -123,7 +119,7 @@ object ActivityStream {
             edge.data.deletedAt.foreach { ts =>
               // val isSeen = lastReadTime.exists(_ isAfterOrEqual ts)
               val revision = Revision.Delete(ts, seen = true) // looks better?
-              buffer += UnreadNode(node, revision)
+              buffer += ActivityNode(node, revision)
             }
             false
           } else true
@@ -136,20 +132,21 @@ object ActivityStream {
 
   private def renderUnreadNode(
     graph: Rx[Graph],
-    unreadNode: UnreadNode,
+    activityNode: ActivityNode,
     focusedId: NodeId,
+    userId: UserId,
     currentTime: EpochMilli
   )(implicit ctx: Ctx.Owner): VDomModifier = {
 
     val nodeIdx = Rx {
-      graph().idToIdxOrThrow(unreadNode.node.id)
+      graph().idToIdxOrThrow(activityNode.node.id)
     }
 
     val breadCrumbs = Rx {
       BreadCrumbs(
         graph(),
         filterUpTo = Some(focusedId),
-        parentId = Some(unreadNode.node.id),
+        parentId = Some(activityNode.node.id),
         parentIdAction = (nodeId: NodeId) => GlobalState.rightSidebarNode.update({
           case Some(pref) if pref.nodeId == nodeId => None
           case _                                   => Some(FocusPreference(nodeId))
@@ -158,13 +155,13 @@ object ActivityStream {
       ).apply(color := "black")
     }
 
-    val (doIcon, doDescription, doAuthor, isSeen): (IconDefinition, String, Option[Node.User], Boolean) = unreadNode.revision match {
-      case revision: Revision.Edit => (freeSolid.faEdit, s"Edited ${unreadNode.node.role}", Some(revision.author), revision.seen)
-      case revision: Revision.Create => (freeSolid.faPlus, s"Created ${unreadNode.node.role}", Some(revision.author), revision.seen)
-      case revision: Revision.Delete => (freeSolid.faTrash, s"Archived ${unreadNode.node.role}", None, revision.seen)
+    val (doIcon, doDescription, doAuthor, isSeen): (IconDefinition, String, Option[Node.User], Boolean) = activityNode.revision match {
+      case revision: Revision.Edit => (freeSolid.faEdit, s"Edited ${activityNode.node.role}", Some(revision.author), revision.seen)
+      case revision: Revision.Create => (freeSolid.faPlus, s"Created ${activityNode.node.role}", Some(revision.author), revision.seen)
+      case revision: Revision.Delete => (freeSolid.faTrash, s"Archived ${activityNode.node.role}", None, revision.seen)
     }
 
-    val nodeIcon: VDomModifier = unreadNode.node.role match {
+    val nodeIcon: VDomModifier = activityNode.node.role match {
       case NodeRole.Message => Icons.message
       case NodeRole.Task    => Icons.task
       case NodeRole.Note    => Icons.note
@@ -245,21 +242,21 @@ object ActivityStream {
 
               div(
                 marginRight := "10px",
-                timestampString(unreadNode.revision.timestamp)
+                timestampString(activityNode.revision.timestamp)
               ),
 
               breadCrumbs.map(_.apply(flexWrap.wrap, marginLeft := "-2px")), //correct some padding to align...
             ),
 
             // currently cannot toggle delete revision...
-            VDomModifier.ifNot(unreadNode.revision.isInstanceOf[Revision.Delete])(markSingleAsReadButton(unreadNode))
+            VDomModifier.ifNot(activityNode.revision.isInstanceOf[Revision.Delete])(markSingleAsReadButton(activityNode, userId))
           ),
 
           div(
-            nodeCard(unreadNode.node, maxLength = Some(250), projectWithIcon = true).apply(
-              VDomModifier.ifTrue(unreadNode.revision.isInstanceOf[Revision.Delete])(cls := "node-deleted"),
+            nodeCard(activityNode.node, maxLength = Some(250), projectWithIcon = true).apply(
+              VDomModifier.ifTrue(activityNode.revision.isInstanceOf[Revision.Delete])(cls := "node-deleted"),
 
-              Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, unreadNode.node.id)
+              Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, activityNode.node.id)
             )
           )
         )
@@ -267,7 +264,7 @@ object ActivityStream {
     )
   }
 
-  def markAllAsReadButton(text: String, parentId: NodeId, graph: Rx[Graph], userId: Rx[UserId]) = {
+  def markAllAsReadButton(text: String, activityNodes: Rx[Seq[ActivityNode]], userId: Rx[UserId]) = {
     button(
       cls := "ui tiny compact basic button",
       text,
@@ -280,8 +277,7 @@ object ActivityStream {
       onClickDefault.foreach {
         val now = EpochMilli.now
         val changes = GraphChanges(
-          addEdges = calculateDeepUnreadChildren(graph.now, parentId, userId.now, renderTime = now)
-            .map(nodeIdx => Edge.Read(graph.now.nodeIds(nodeIdx), EdgeData.Read(now), userId.now))(breakOut)
+          addEdges = unreadNodeIds(activityNodes.now).map(nodeId => Edge.Read(nodeId, EdgeData.Read(now), userId.now))
         )
 
         GlobalState.submitChanges(changes)
@@ -290,9 +286,9 @@ object ActivityStream {
     )
   }
 
-  def markSingleAsReadButton(unreadNode: UnreadNode)  = {
+  def markSingleAsReadButton(activityNode: ActivityNode, userId: UserId)  = {
     div(
-      if (unreadNode.revision.seen) VDomModifier(
+      if (activityNode.revision.seen) VDomModifier(
         freeRegular.faCircle,
         color := readColor,
       )
@@ -302,14 +298,14 @@ object ActivityStream {
       ),
 
       onClickDefault.foreach {
-        val changes = if (unreadNode.revision.seen) {
-          GraphChanges.from(delEdges = GlobalState.graph.now.readEdgeIdx.flatMap[Edge.Read](GlobalState.graph.now.idToIdxOrThrow(unreadNode.node.id)) { idx =>
+        val changes = if (activityNode.revision.seen) {
+          GraphChanges.from(delEdges = GlobalState.graph.now.readEdgeIdx.flatMap[Edge.Read](GlobalState.graph.now.idToIdxOrThrow(activityNode.node.id)) { idx =>
             val edge = GlobalState.graph.now.edges(idx).as[Edge.Read]
-            if (edge.userId == GlobalState.user.now.id) Array(edge) else Array.empty
+            if (edge.userId == userId) Array(edge) else Array.empty
           })
         } else {
           GraphChanges(
-            addEdges = Array(Edge.Read(unreadNode.node.id, EdgeData.Read(EpochMilli.now), GlobalState.user.now.id))
+            addEdges = Array(Edge.Read(activityNode.node.id, EdgeData.Read(EpochMilli.now), userId))
           )
         }
 
@@ -319,21 +315,13 @@ object ActivityStream {
     ),
   }
 
-  private def calculateDeepUnreadChildren(graph: Graph, parentNodeId: NodeId, userId: UserId, renderTime: EpochMilli): js.Array[Int] = {
-    val unreadNodes = js.Array[Int]()
+  private def unreadNodeIds(activityNodes: Seq[ActivityNode]): Array[NodeId] = {
+    val unreadNodeIds = distinctBuilder[NodeId, Array]
 
-    graph.idToIdx(parentNodeId).foreach { parentNodeIdx =>
-      graph.descendantsIdxForeach(parentNodeIdx) { nodeIdx =>
-        UnreadComponents.readStatusOfNode(graph, userId, nodeIdx) match {
-          case UnreadComponents.ReadStatus.SeenAt(timestamp, lastAuthorship) if timestamp > renderTime =>
-            unreadNodes += nodeIdx
-          case UnreadComponents.ReadStatus.Unseen(lastAuthorship) =>
-            unreadNodes += nodeIdx
-          case _ => ()
-        }
-      }
+    activityNodes.foreach { activityNode =>
+      if (!activityNode.revision.seen) unreadNodeIds += activityNode.node.id
     }
 
-    unreadNodes
+    unreadNodeIds.result
   }
 }
