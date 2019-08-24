@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.webUtil.Ownable
 import wust.webApp.state._
 import wust.util.collection._
 import scala.scalajs.js
@@ -80,7 +81,7 @@ object ActivityStream {
           } else {
             val currentTime = EpochMilli.now
             VDomModifier(
-              activityNodes().map(renderUnreadNode(graph, _, focusState.focusedId, userId(), currentTime = currentTime))
+              activityNodes().map(renderActivityNode(graph, _, focusState.focusedId, userId(), currentTime = currentTime))
             )
           }
         },
@@ -130,13 +131,13 @@ object ActivityStream {
     buffer.sortBy(x => -x.revision.timestamp)
   }
 
-  private def renderUnreadNode(
+  private def renderActivityNode(
     graph: Rx[Graph],
     activityNode: ActivityNode,
     focusedId: NodeId,
     userId: UserId,
     currentTime: EpochMilli
-  )(implicit ctx: Ctx.Owner): VDomModifier = {
+  ): VDomModifier = div.thunk(activityNode.node.id.toStringFast + activityNode.revision.timestamp)(activityNode)(Ownable { implicit ctx => // multiple nodes with same id...
 
     val nodeIdx = Rx {
       graph().idToIdxOrThrow(activityNode.node.id)
@@ -198,7 +199,7 @@ object ActivityStream {
 
     def timestampString(timestamp: EpochMilli) = s"${DateFns.formatDistance(new Date(timestamp), new Date(currentTime))} ago"
 
-    div(
+    VDomModifier(
       borderBottom := "1px solid rgba(0,0,0,0.1)",
       paddingTop := "15px",
       paddingBottom := "15px",
@@ -262,7 +263,7 @@ object ActivityStream {
         )
       )
     )
-  }
+  })
 
   def markAllAsReadButton(text: String, activityNodes: Rx[Seq[ActivityNode]], userId: Rx[UserId]) = {
     button(
