@@ -181,7 +181,10 @@ object EditableContent {
 
   final case class CommonEditHandler[T](edit: Handler[EditInteraction[T]], save: Observable[Unit])
   private def commonEditStructure[T](initial: Option[T], current: Handler[EditInteraction[T]], config: Config, handle: EditInteraction[T] => EditInteraction[T])(modifier: CommonEditHandler[T] => VDomModifier) = {
-    val handledCurrent = current.transformObserverWith(_.redirectMap(handleEditInteraction[T](initial, config) andThen handle))
+    val handledCurrent = current
+      .transformObserverWith(_.redirectMap(handleEditInteraction[T](initial, config) andThen handle))
+      .transformObservable(_.filter(uniqueEditInteraction[T](initial)))
+
     val saveHandler = PublishSubject[Unit]
 
     dsl.span(
@@ -234,6 +237,20 @@ object EditableContent {
         else VDomModifier(currentVar.collect { case EditInteraction.Input(current) => renderFn(ctx)(current) }.prepend(renderFn(ctx)(current)), keyed)
       },
     )
+  }
+
+  private def uniqueEditInteraction[T](initial: Option[T]): EditInteraction[T] => Boolean = {
+    var lastValue = initial
+
+    {
+      case EditInteraction.Input(value) =>
+        val alreadyExists = lastValue.contains(value)
+        lastValue = Some(value)
+        !alreadyExists
+      case _ =>
+        lastValue = None
+        true
+    }
   }
 
   private def handleEditInteraction[T](initial: Option[T], config: Config): EditInteraction[T] => EditInteraction[T] = {
