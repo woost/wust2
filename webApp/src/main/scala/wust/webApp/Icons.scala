@@ -90,7 +90,7 @@ object Icons {
   val task: IconDefinition = freeRegular.faCheckSquare
   val message: IconDefinition = freeRegular.faComment
   val note: IconDefinition = freeRegular.faStickyNote
-  val project: IconDefinition = freeSolid.faFolder
+  val project: IconDefinition = freeRegular.faFolder
 
   val fileUpload: IconDefinition = freeSolid.faPaperclip
   val userPermission: IconDefinition = freeSolid.faUserLock

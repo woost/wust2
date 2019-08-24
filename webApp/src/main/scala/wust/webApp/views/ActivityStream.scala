@@ -4,6 +4,7 @@ import wust.webApp.state._
 import wust.util.collection._
 import scala.scalajs.js
 import wust.facades.dateFns.DateFns
+import wust.util.algorithm.dfs
 import flatland._
 import fontAwesome.{ IconDefinition, freeRegular, freeSolid }
 import outwatch.dom._
@@ -63,14 +64,13 @@ object ActivityStream {
       keyed,
       Styles.growFull,
       overflow.auto,
-      backgroundColor := "white",
 
       Styles.flex,
       justifyContent.center,
 
       div(
         cls := "activity-stream-view",
-        if (BrowserDetect.isMobile) padding := "10px" else padding := "50px",
+        if (BrowserDetect.isMobile) padding := "5px" else padding := "20px",
 
         div(
           Styles.flex,
@@ -105,40 +105,31 @@ object ActivityStream {
 
   private def calculateUnreadList(graph: Graph, nodeId: NodeId, userId: UserId, resolvedTime: EpochMilli): scala.collection.Seq[UnreadNode] = graph.idToIdxFold(nodeId)(Seq.empty[UnreadNode]) { nodeIdx =>
 
-    def authorshipRevision(nodeIdx: Int, lastAuthorship: UnreadComponents.Authorship, seen: Boolean): Revision = {
-      import lastAuthorship._
-      if (isCreation) Revision.Create(author, timestamp, seen = seen)
-      else Revision.Edit(author, timestamp, seen = seen)
-    }
-
     val buffer = mutable.ArrayBuffer[UnreadNode]()
 
-    graph.descendantsIdxForeach(nodeIdx) { nodeIdx =>
-      if (UnreadComponents.nodeRoleIsAccepted(graph.nodes(nodeIdx).role)) {
-        val readRevision = UnreadComponents.readStatusOfNode(graph, userId, nodeIdx) match {
-          case UnreadComponents.ReadStatus.SeenAt(timestamp, lastAuthorship) if timestamp > resolvedTime =>
-            Some(authorshipRevision(nodeIdx, lastAuthorship, seen = true))
-          case UnreadComponents.ReadStatus.Unseen(lastAuthorship) =>
-            Some(authorshipRevision(nodeIdx, lastAuthorship, seen = false))
-          case _ =>
-            None
+    dfs.foreach(_(nodeIdx), dfs.withStart, graph.childrenIdx, { nodeIdx =>
+      if (UnreadComponents.nodeIsActivity(graph, nodeIdx)) {
+        val node = graph.nodes(nodeIdx)
+        val lastReadTime = UnreadComponents.activitiesOfNode(graph, userId, nodeIdx) { activity =>
+          val revision =
+            if (activity.authorship.isCreation) Revision.Create(activity.authorship.author, activity.authorship.timestamp, seen = activity.isSeen)
+            else Revision.Edit(activity.authorship.author, activity.authorship.timestamp, seen = activity.isSeen)
+          buffer += UnreadNode(node, revision)
         }
 
-        val deleteRevision = graph.parentEdgeIdx(nodeIdx).findMap { idx =>
+        graph.parentEdgeIdx.whileElement(nodeIdx) { idx =>
           val edge = graph.edges(idx).as[Edge.Child]
           if (edge.parentId == nodeId) {
-            readRevision match {
-              case Some(readRevision) => edge.data.deletedAt.collect { case ts if ts > readRevision.timestamp => Revision.Delete(ts, readRevision.seen) }
-              case None => edge.data.deletedAt.collect { case ts if ts > resolvedTime => Revision.Delete(ts, seen = true) }
+            edge.data.deletedAt.foreach { ts =>
+              // val isSeen = lastReadTime.exists(_ isAfterOrEqual ts)
+              val revision = Revision.Delete(ts, seen = true) // looks better?
+              buffer += UnreadNode(node, revision)
             }
-          }
-          else None
+            false
+          } else true
         }
-
-        val result = deleteRevision orElse readRevision
-        result.foreach(rev => buffer += UnreadNode(graph.nodes(nodeIdx), rev))
       }
-    }
+    })
 
     buffer.sortBy(x => -x.revision.timestamp)
   }
@@ -168,9 +159,9 @@ object ActivityStream {
     }
 
     val (doIcon, doDescription, doAuthor, isSeen): (IconDefinition, String, Option[Node.User], Boolean) = unreadNode.revision match {
-      case revision: Revision.Edit => (freeSolid.faEdit, "", Some(revision.author), revision.seen)
-      case revision: Revision.Create => (freeSolid.faPlus, "", Some(revision.author), revision.seen)
-      case revision: Revision.Delete => (freeSolid.faTrash, "", None, revision.seen)
+      case revision: Revision.Edit => (freeSolid.faEdit, s"Edited ${unreadNode.node.role}", Some(revision.author), revision.seen)
+      case revision: Revision.Create => (freeSolid.faPlus, s"Created ${unreadNode.node.role}", Some(revision.author), revision.seen)
+      case revision: Revision.Delete => (freeSolid.faTrash, s"Archived ${unreadNode.node.role}", None, revision.seen)
     }
 
     val nodeIcon: VDomModifier = unreadNode.node.role match {
@@ -181,10 +172,15 @@ object ActivityStream {
       case _                => VDomModifier.empty
     }
 
+    val authorWidth = if (BrowserDetect.isMobile) "40px" else "90px"
     val authorDecoration = div(
+      fontSize.xSmall,
+      textAlign.center,
+      marginRight := "5px",
+      flexShrink := 0,
       fontWeight.bold,
-      width := "150px",
-      maxWidth := "150px",
+      width := "100px",
+      maxWidth := "100px",
       Styles.flex,
       alignItems.center,
       flexDirection.column,
@@ -203,18 +199,19 @@ object ActivityStream {
       )
     )
 
-    def timestampModifiers(timestamp: EpochMilli) = s"${DateFns.formatDistance(new Date(timestamp), new Date(currentTime))} ago"
+    def timestampString(timestamp: EpochMilli) = s"${DateFns.formatDistance(new Date(timestamp), new Date(currentTime))} ago"
 
     div(
       borderBottom := "1px solid rgba(0,0,0,0.1)",
-      padding := "40px",
+      paddingTop := "10px",
+      paddingBottom := "10px",
       width := "100%",
 
       div(
+        marginTop := "15px",
         Styles.flex,
         justifyContent.spaceBetween,
         alignItems.flexStart,
-        flexWrap.wrap,
         width := "100%",
 
         VDomModifier.ifTrue(isSeen)(opacity := 0.5),
@@ -222,35 +219,44 @@ object ActivityStream {
         authorDecoration,
 
         div(
+          maxWidth := "100vw",
           flexGrow := 1,
-          marginLeft := "20px",
 
           div(
+            width := "100%",
             Styles.flex,
             alignItems.center,
             justifyContent.spaceBetween,
-            marginTop := "15px",
-            marginBottom := "15px",
+            marginBottom := "10px",
 
             div(
               color.gray,
               Styles.flex,
               alignItems.center,
+              flexWrap.wrap,
 
-              doIcon,
+              div(
+                marginRight := "10px",
+                Styles.flex,
+                alignItems.center,
+                renderFontAwesomeIcon(doIcon).apply(marginRight := "10px"),
+                doDescription
+              ),
 
-              div(s" $doDescription ${timestampModifiers(unreadNode.revision.timestamp)}", marginLeft := "20px"),
+              div(
+                marginRight := "10px",
+                timestampString(unreadNode.revision.timestamp)
+              ),
 
-              breadCrumbs.map(_.apply(marginLeft := "20px")),
+              breadCrumbs.map(_.apply(flexWrap.wrap, marginLeft := "-2px")), //correct some padding to align...
             ),
 
-            markSingleAsReadButton(unreadNode)
+            // currently cannot toggle delete revision...
+            VDomModifier.ifNot(unreadNode.revision.isInstanceOf[Revision.Delete])(markSingleAsReadButton(unreadNode))
           ),
 
           div(
             nodeCard(unreadNode.node, maxLength = Some(250), projectWithIcon = true).apply(
-              backgroundColor := "white",
-
               VDomModifier.ifTrue(unreadNode.revision.isInstanceOf[Revision.Delete])(cls := "node-deleted"),
 
               Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, unreadNode.node.id)

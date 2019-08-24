@@ -58,6 +58,8 @@ object UnreadComponents {
   }
   case class Authorship(author: Node.User, timestamp: EpochMilli, isCreation: Boolean)
 
+  case class Activity(authorship: Authorship, isSeen: Boolean)
+
   private def findLastReadTime(graph: Graph, userId: UserId, nodeIdx: Int): Option[EpochMilli] = {
     var lastReadTime: Option[EpochMilli] = None
     graph.readEdgeIdx.foreachElement(nodeIdx) { edgeIdx =>
@@ -101,13 +103,47 @@ object UnreadComponents {
       seenLastAuthorshipAt.fold[ReadStatus](ReadStatus.Unseen(lastAuthorship))(ReadStatus.SeenAt(_, lastAuthorship))
     }
 
-    if (nodeIsReadable(graph, userId, nodeIdx))
+    if (nodeIsActivity(graph, nodeIdx))
       findLastAuthorshipFromSomeoneElse(graph, userId, nodeIdx).fold[ReadStatus](ReadStatus.Ignore)(seenTimestamp)
     else
       ReadStatus.Ignore
   }
 
+  // returns lastreadtime
+  @inline def activitiesOfNode(graph:Graph, userId:UserId, nodeIdx:Int)(collect: Activity => Unit): Option[EpochMilli] = {
+    val lastReadTime = findLastReadTime(graph, userId, nodeIdx)
+    var isFirst = true
+    var lastAuthorship: Authorship = null
+    graph.sortedAuthorshipEdgeIdx.foreachElement(nodeIdx) { edgeIdx =>
+      val edge = graph.edges(edgeIdx).as[Edge.Author]
+      val author = graph.nodes(graph.edgesIdx.b(edgeIdx)).as[Node.User]
+      val authorship = Authorship(author, edge.data.timestamp, isCreation = isFirst)
+
+      // TODO: filter out duplicate author edges with very similar time that we have from
+      // a multiple edit bug.  delete from db? currently jitter is 1 seconds.
+      if (lastAuthorship == null || (authorship.author.id != lastAuthorship.author.id || authorship.timestamp.isAfterOrEqual(EpochMilli(lastAuthorship.timestamp + 1000L)))) {
+        val isSeen = lastReadTime.exists(_ isAfterOrEqual authorship.timestamp)
+        val activity = Activity(authorship, isSeen = isSeen)
+        collect(activity)
+      }
+
+      isFirst = false
+      lastAuthorship = authorship
+    }
+
+    lastReadTime
+  }
+
   @inline def nodeRoleIsAccepted(role: NodeRole) = InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Project, NodeRole.Note, NodeRole.Task)(role)
+
+  def nodeIsActivity(graph:Graph, nodeIdx:Int):Boolean = {
+    @inline def nodeHasContentRole = {
+      val node = graph.nodes(nodeIdx)
+      nodeRoleIsAccepted(node.role)
+    }
+
+    nodeHasContentRole
+  }
 
   def nodeIsReadable(graph:Graph, userId:UserId, nodeIdx:Int):Boolean = {
     @inline def nodeHasContentRole = {
