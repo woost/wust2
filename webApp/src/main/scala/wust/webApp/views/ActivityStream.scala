@@ -200,8 +200,8 @@ object ActivityStream {
 
     div(
       borderBottom := "1px solid rgba(0,0,0,0.1)",
-      paddingTop := "10px",
-      paddingBottom := "10px",
+      paddingTop := "15px",
+      paddingBottom := "15px",
       width := "100%",
 
       div(
