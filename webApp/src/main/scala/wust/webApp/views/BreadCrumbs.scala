@@ -21,6 +21,8 @@ import wust.webApp.views.DragComponents.registerDragContainer
 import scala.collection.breakOut
 import wust.webApp.state.FeatureState
 
+// Breadcrumbs are a path of nodes rendered between filterUpTo and parentId (inclusive)
+
 object BreadCrumbs {
 
   private def intersperse[T](list: List[T], co: T): List[T] = list match {
