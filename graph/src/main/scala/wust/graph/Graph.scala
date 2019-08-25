@@ -872,7 +872,7 @@ object GraphLookup {
                 if (parentIsTag) tagParentsDegree(targetIdx) += 1
                 if (parentIsStage) stageParentsDegree(targetIdx) += 1
                 notDeletedParentsDegree(targetIdx) += 1
-              notDeletedChildrenDegree(sourceIdx) += 1
+                notDeletedChildrenDegree(sourceIdx) += 1
               case Some(deletedAt) =>
                 if (deletedAt isAfter buildNow) { // in the future
                   if (childIsTag) tagChildrenDegree(sourceIdx) += 1
@@ -884,6 +884,8 @@ object GraphLookup {
                 // TODO everything deleted further in the past should already be filtered in backend
                 // BUT received on request
             }
+
+            filteredChildEdges += edgeIdx
           }
         })
 
@@ -930,7 +932,7 @@ object GraphLookup {
                 if (parentIsTag) tagParentsIdxBuilder.add(targetIdx, sourceIdx)
                 if (parentIsStage) stageParentsIdxBuilder.add(targetIdx, sourceIdx)
                 notDeletedParentsIdxBuilder.add(targetIdx, sourceIdx)
-              notDeletedChildrenIdxBuilder.add(sourceIdx, targetIdx)
+                notDeletedChildrenIdxBuilder.add(sourceIdx, targetIdx)
               case Some(deletedAt) =>
                 if (deletedAt isAfter buildNow) { // in the future
                   if (childIsTag) tagChildrenIdxBuilder.add(sourceIdx, targetIdx)
