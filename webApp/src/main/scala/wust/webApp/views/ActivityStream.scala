@@ -151,13 +151,12 @@ object ActivityStream {
     val breadCrumbs = Rx {
       BreadCrumbs(
         graph(),
-        filterUpTo = Some(focusedId),
-        parentId = Some(activityNode.node.id),
-        parentIdAction = (nodeId: NodeId) => GlobalState.rightSidebarNode.update({
+        start = BreadCrumbs.EndPoint.Node(focusedId, inclusive = false),
+        end = BreadCrumbs.EndPoint.Node(activityNode.node.id, inclusive = false),
+        clickAction = (nodeId: NodeId) => GlobalState.rightSidebarNode.update({
           case Some(pref) if pref.nodeId == nodeId => None
           case _                                   => Some(FocusPreference(nodeId))
         }: Option[FocusPreference] => Option[FocusPreference]),
-        showOwn = false
       ).apply(color := "black")
     }
 

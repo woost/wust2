@@ -194,17 +194,16 @@ object NotificationView {
     }
 
     val parentId = graph.nodeIds(unreadParentNode.nodeIdx)
-    val breadCrumbs = Rx {
-      BreadCrumbs(
-        graph,
-        filterUpTo = Some(focusedId),
-        parentId = Some(parentId),
-        parentIdAction = nodeId => GlobalState.rightSidebarNode.update({
-          case Some(pref) if pref.nodeId == nodeId => None
-          case _                                   => Some(FocusPreference(nodeId))
-        }: Option[FocusPreference] => Option[FocusPreference])
-      )
-    }
+
+    def breadCrumbs = BreadCrumbs(
+      graph,
+      start = BreadCrumbs.EndPoint.Node(focusedId),
+      end = BreadCrumbs.EndPoint.Node(parentId),
+      clickAction = nodeId => GlobalState.rightSidebarNode.update({
+        case Some(pref) if pref.nodeId == nodeId => None
+        case _                                   => Some(FocusPreference(nodeId))
+      }: Option[FocusPreference] => Option[FocusPreference])
+    )
 
     val expandToggleButton = Rx {
       val toggleIcon =
