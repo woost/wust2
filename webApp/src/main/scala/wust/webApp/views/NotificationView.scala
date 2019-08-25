@@ -197,7 +197,7 @@ object NotificationView {
     val breadCrumbs = Rx {
       BreadCrumbs(
         graph,
-        Some(focusedId),
+        filterUpTo = Some(focusedId),
         parentId = Some(parentId),
         parentIdAction = nodeId => GlobalState.rightSidebarNode.update({
           case Some(pref) if pref.nodeId == nodeId => None
