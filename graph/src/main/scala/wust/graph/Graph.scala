@@ -34,6 +34,7 @@ final class Graph(val nodes: Array[Node], val edges: Array[Edge], createNewLooku
   def copy(nodes: Array[Node], edges: Array[Edge]) = Graph(nodes, edges)
   def copyOnlyNodes(nodes: Array[Node]) = Graph(nodes, edges)
   def copyOnlyEdges(edges: Array[Edge]) = Graph(nodes, edges, graph => GraphLookup.withNodeKnowledge(graph, lookup.idToIdxHashMap))
+  def filterChildEdges(f: (Edge.Child, Int) => Boolean) = Graph(nodes, edges, _ => GraphLookup.copyFrom(this, childFilter = Some(f)))
 
   // because it is a final case class, we overwrite equals and hashcode, because we do not want comparisons here.
   override def hashCode(): Int = super.hashCode()
@@ -173,44 +174,44 @@ object RoleStats {
   )
 }
 
-final class GraphLookup(
+final case class GraphLookup private(
   graph: Graph,
-  val idToIdxHashMap: mutable.Map[NodeId, Int],
-  val consistentEdges: ArraySet,
-  val edgesIdx: InterleavedArrayInt,
-  val parentsIdx: NestedArrayInt,
-  val parentEdgeIdx: NestedArrayInt,
-  val readEdgeIdx: NestedArrayInt,
-  val childrenIdx: NestedArrayInt,
-  val childEdgeIdx: NestedArrayInt,
-  val accessEdgeReverseIdx: NestedArrayInt,
-  val contentsEdgeIdx: NestedArrayInt,
-  val messageChildrenIdx: NestedArrayInt,
-  val taskChildrenIdx: NestedArrayInt,
-  val noteChildrenIdx: NestedArrayInt,
-  val tagChildrenIdx: NestedArrayInt,
-  val projectChildrenIdx: NestedArrayInt,
-  val tagParentsIdx: NestedArrayInt,
-  val stageParentsIdx: NestedArrayInt,
-  val notDeletedParentsIdx: NestedArrayInt,
-  val notDeletedChildrenIdx: NestedArrayInt,
-  val authorshipEdgeIdx: NestedArrayInt,
-  val membershipEdgeForNodeIdx: NestedArrayInt,
-  val notifyByUserIdx: NestedArrayInt,
-  val authorsIdx: NestedArrayInt,
-  val pinnedNodeIdx: NestedArrayInt,
-  val inviteNodeIdx: NestedArrayInt,
-  val expandedEdgeIdx: NestedArrayInt,
-  val assignedNodesIdx: NestedArrayInt,
-  val assignedUsersIdx: NestedArrayInt,
-  val propertiesEdgeIdx: NestedArrayInt,
-  val propertiesEdgeReverseIdx: NestedArrayInt,
-  val automatedEdgeIdx: NestedArrayInt,
-  val automatedEdgeReverseIdx: NestedArrayInt,
-  val derivedFromTemplateEdgeIdx: NestedArrayInt,
-  val derivedFromTemplateEdgeReverseIdx: NestedArrayInt,
-  val referencesTemplateEdgeIdx: NestedArrayInt,
-  val mentionsEdgeIdx: NestedArrayInt,
+  idToIdxHashMap: mutable.Map[NodeId, Int],
+  consistentEdges: ArraySet,
+  edgesIdx: InterleavedArrayInt,
+  parentsIdx: NestedArrayInt,
+  parentEdgeIdx: NestedArrayInt,
+  readEdgeIdx: NestedArrayInt,
+  childrenIdx: NestedArrayInt,
+  childEdgeIdx: NestedArrayInt,
+  accessEdgeReverseIdx: NestedArrayInt,
+  contentsEdgeIdx: NestedArrayInt,
+  messageChildrenIdx: NestedArrayInt,
+  taskChildrenIdx: NestedArrayInt,
+  noteChildrenIdx: NestedArrayInt,
+  tagChildrenIdx: NestedArrayInt,
+  projectChildrenIdx: NestedArrayInt,
+  tagParentsIdx: NestedArrayInt,
+  stageParentsIdx: NestedArrayInt,
+  notDeletedParentsIdx: NestedArrayInt,
+  notDeletedChildrenIdx: NestedArrayInt,
+  authorshipEdgeIdx: NestedArrayInt,
+  membershipEdgeForNodeIdx: NestedArrayInt,
+  notifyByUserIdx: NestedArrayInt,
+  authorsIdx: NestedArrayInt,
+  pinnedNodeIdx: NestedArrayInt,
+  inviteNodeIdx: NestedArrayInt,
+  expandedEdgeIdx: NestedArrayInt,
+  assignedNodesIdx: NestedArrayInt,
+  assignedUsersIdx: NestedArrayInt,
+  propertiesEdgeIdx: NestedArrayInt,
+  propertiesEdgeReverseIdx: NestedArrayInt,
+  automatedEdgeIdx: NestedArrayInt,
+  automatedEdgeReverseIdx: NestedArrayInt,
+  derivedFromTemplateEdgeIdx: NestedArrayInt,
+  derivedFromTemplateEdgeReverseIdx: NestedArrayInt,
+  referencesTemplateEdgeIdx: NestedArrayInt,
+  mentionsEdgeIdx: NestedArrayInt,
   buildNow: EpochMilli
 ) {
   scribe.info(s"Creating new graph lookup (nodes = $n, edges = $m)")
@@ -820,9 +821,153 @@ object GraphLookup {
     withNodeKnowledge(graph, idToIdxMap)
   }
 
+  def copyFrom(
+    graph: Graph,
+    childFilter: Option[(Edge.Child, Int) => Boolean] = None
+  ): GraphLookup = {
+
+    childFilter match {
+      case Some(childFilter) =>
+        val n = graph.nodes.length
+        import graph.{nodes, edges}, graph.lookup.buildNow
+
+        val filteredChildEdges = ArraySet.create(graph.edges.length)
+
+        val parentsDegree = new Array[Int](n)
+        val childrenDegree = new Array[Int](n)
+        val messageChildrenDegree = new Array[Int](n)
+        val taskChildrenDegree = new Array[Int](n)
+        val noteChildrenDegree = new Array[Int](n)
+        val projectChildrenDegree = new Array[Int](n)
+        val tagChildrenDegree = new Array[Int](n)
+        val tagParentsDegree = new Array[Int](n)
+        val stageParentsDegree = new Array[Int](n)
+        val notDeletedParentsDegree = new Array[Int](n)
+        val notDeletedChildrenDegree = new Array[Int](n)
+
+        graph.lookup.parentEdgeIdx.foreach(_.foreach { edgeIdx =>
+          val e = graph.lookup.edges(edgeIdx).as[Edge.Child]
+          if (childFilter(e, edgeIdx)) {
+            val sourceIdx = graph.lookup.edgesIdx.a(edgeIdx)
+            val targetIdx = graph.lookup.edgesIdx.b(edgeIdx)
+
+            val childIsMessage = nodes(targetIdx).role == NodeRole.Message
+            val childIsTask = nodes(targetIdx).role == NodeRole.Task
+            val childIsNote = nodes(targetIdx).role == NodeRole.Note
+            val childIsProject = nodes(targetIdx).role == NodeRole.Project
+            val childIsTag = nodes(targetIdx).role == NodeRole.Tag
+            val parentIsTag = nodes(sourceIdx).role == NodeRole.Tag
+            val parentIsStage = nodes(sourceIdx).role == NodeRole.Stage
+            parentsDegree(targetIdx) += 1
+            childrenDegree(sourceIdx) += 1
+
+            if (childIsProject) projectChildrenDegree(sourceIdx) += 1
+            if (childIsMessage) messageChildrenDegree(sourceIdx) += 1
+            if (childIsTask) taskChildrenDegree(sourceIdx) += 1
+            if (childIsNote) noteChildrenDegree(sourceIdx) += 1
+
+            e.data.deletedAt match {
+              case None =>
+                if (childIsTag) tagChildrenDegree(sourceIdx) += 1
+                if (parentIsTag) tagParentsDegree(targetIdx) += 1
+                if (parentIsStage) stageParentsDegree(targetIdx) += 1
+                notDeletedParentsDegree(targetIdx) += 1
+              notDeletedChildrenDegree(sourceIdx) += 1
+              case Some(deletedAt) =>
+                if (deletedAt isAfter buildNow) { // in the future
+                  if (childIsTag) tagChildrenDegree(sourceIdx) += 1
+                  if (parentIsTag) tagParentsDegree(targetIdx) += 1
+                  if (parentIsStage) stageParentsDegree(targetIdx) += 1
+                  notDeletedParentsDegree(targetIdx) += 1
+                notDeletedChildrenDegree(sourceIdx) += 1
+                }
+                // TODO everything deleted further in the past should already be filtered in backend
+                // BUT received on request
+            }
+          }
+        })
+
+        val parentsIdxBuilder = NestedArrayInt.builder(parentsDegree)
+        val parentEdgeIdxBuilder = NestedArrayInt.builder(parentsDegree)
+        val childrenIdxBuilder = NestedArrayInt.builder(childrenDegree)
+        val childEdgeIdxBuilder = NestedArrayInt.builder(childrenDegree)
+        val messageChildrenIdxBuilder = NestedArrayInt.builder(messageChildrenDegree)
+        val taskChildrenIdxBuilder = NestedArrayInt.builder(taskChildrenDegree)
+        val noteChildrenIdxBuilder = NestedArrayInt.builder(noteChildrenDegree)
+        val projectChildrenIdxBuilder = NestedArrayInt.builder(projectChildrenDegree)
+        val tagChildrenIdxBuilder = NestedArrayInt.builder(tagChildrenDegree)
+        val tagParentsIdxBuilder = NestedArrayInt.builder(tagParentsDegree)
+        val stageParentsIdxBuilder = NestedArrayInt.builder(stageParentsDegree)
+        val notDeletedParentsIdxBuilder = NestedArrayInt.builder(notDeletedParentsDegree)
+        val notDeletedChildrenIdxBuilder = NestedArrayInt.builder(notDeletedChildrenDegree)
+
+        graph.lookup.parentEdgeIdx.foreach(_.foreach { edgeIdx =>
+          if (filteredChildEdges.contains(edgeIdx)) {
+            val e = graph.lookup.edges(edgeIdx).as[Edge.Child]
+            val sourceIdx = graph.lookup.edgesIdx.a(edgeIdx)
+            val targetIdx = graph.lookup.edgesIdx.b(edgeIdx)
+
+            val childIsMessage = nodes(targetIdx).role == NodeRole.Message
+            val childIsTask = nodes(targetIdx).role == NodeRole.Task
+            val childIsNote = nodes(targetIdx).role == NodeRole.Note
+            val childIsTag = nodes(targetIdx).role == NodeRole.Tag
+            val childIsProject = nodes(targetIdx).role == NodeRole.Project
+            val parentIsTag = nodes(sourceIdx).role == NodeRole.Tag
+            val parentIsStage = nodes(sourceIdx).role == NodeRole.Stage
+            parentsIdxBuilder.add(targetIdx, sourceIdx)
+            parentEdgeIdxBuilder.add(targetIdx, edgeIdx)
+            childrenIdxBuilder.add(sourceIdx, targetIdx)
+            childEdgeIdxBuilder.add(sourceIdx, edgeIdx)
+
+            if (childIsProject) projectChildrenIdxBuilder.add(sourceIdx, targetIdx)
+            if (childIsMessage) messageChildrenIdxBuilder.add(sourceIdx, targetIdx)
+            if (childIsTask) taskChildrenIdxBuilder.add(sourceIdx, targetIdx)
+            if (childIsNote) noteChildrenIdxBuilder.add(sourceIdx, targetIdx)
+
+            e.data.deletedAt match {
+              case None =>
+                if (childIsTag) tagChildrenIdxBuilder.add(sourceIdx, targetIdx)
+                if (parentIsTag) tagParentsIdxBuilder.add(targetIdx, sourceIdx)
+                if (parentIsStage) stageParentsIdxBuilder.add(targetIdx, sourceIdx)
+                notDeletedParentsIdxBuilder.add(targetIdx, sourceIdx)
+              notDeletedChildrenIdxBuilder.add(sourceIdx, targetIdx)
+              case Some(deletedAt) =>
+                if (deletedAt isAfter buildNow) { // in the future
+                  if (childIsTag) tagChildrenIdxBuilder.add(sourceIdx, targetIdx)
+                  if (parentIsTag) tagParentsIdxBuilder.add(targetIdx, sourceIdx)
+                  if (parentIsStage) stageParentsIdxBuilder.add(targetIdx, sourceIdx)
+                  notDeletedParentsIdxBuilder.add(targetIdx, sourceIdx)
+                  notDeletedChildrenIdxBuilder.add(sourceIdx, targetIdx)
+                }
+                // TODO everything deleted further in the past should already be filtered in backend
+                // BUT received on request
+            }
+          }
+        })
+
+        graph.lookup.copy(
+          parentsIdx = parentsIdxBuilder.result(),
+          parentEdgeIdx = parentEdgeIdxBuilder.result(),
+          childrenIdx = childrenIdxBuilder.result(),
+          childEdgeIdx = childEdgeIdxBuilder.result(),
+          messageChildrenIdx = messageChildrenIdxBuilder.result(),
+          taskChildrenIdx = taskChildrenIdxBuilder.result(),
+          noteChildrenIdx = noteChildrenIdxBuilder.result(),
+          projectChildrenIdx = projectChildrenIdxBuilder.result(),
+          tagChildrenIdx = tagChildrenIdxBuilder.result(),
+          tagParentsIdx = tagParentsIdxBuilder.result(),
+          stageParentsIdx = stageParentsIdxBuilder.result(),
+          notDeletedParentsIdx = notDeletedParentsIdxBuilder.result(),
+          notDeletedChildrenIdx = notDeletedChildrenIdxBuilder.result(),
+        )
+
+      case None => graph.lookup
+    }
+  }
+
   def withNodeKnowledge(
     graph: Graph,
-    idToIdxMap: mutable.Map[NodeId, Int],
+    idToIdxMap: mutable.Map[NodeId, Int]
   ): GraphLookup = {
     import graph.nodes, graph.edges
 
@@ -925,33 +1070,33 @@ object GraphLookup {
                   // TODO everything deleted further in the past should already be filtered in backend
                   // BUT received on request
               }
-                case _: Edge.Assigned =>
-                  assignedNodesDegree(targetIdx) += 1
-                  assignedUsersDegree(sourceIdx) += 1
-                case _: Edge.Expanded =>
-                  expandedEdgesDegree(sourceIdx) += 1
-                case _: Edge.Notify =>
-                  notifyByUserDegree(targetIdx) += 1
-                case _: Edge.Pinned =>
-                  pinnedNodeDegree(targetIdx) += 1
-                case _: Edge.Invite =>
-                  inviteNodeDegree(targetIdx) += 1
-                case _: Edge.LabeledProperty =>
-                  propertiesDegree(sourceIdx) += 1
-                  propertiesReverseDegree(targetIdx) += 1
-                case _: Edge.Automated =>
-                  automatedDegree(sourceIdx) += 1
-                  automatedReverseDegree(targetIdx) += 1
-                case _: Edge.DerivedFromTemplate =>
-                  derivedFromTemplateDegree(sourceIdx) += 1
-                  derivedFromTemplateReverseDegree(targetIdx) += 1
-                case _: Edge.ReferencesTemplate =>
-                  referencesTemplateDegree(sourceIdx) += 1
-                case _: Edge.Mention =>
-                  mentionsDegree(sourceIdx) += 1
-                case _: Edge.Read =>
-                  readDegree(sourceIdx) += 1
-                case _ =>
+            case _: Edge.Assigned =>
+              assignedNodesDegree(targetIdx) += 1
+              assignedUsersDegree(sourceIdx) += 1
+            case _: Edge.Expanded =>
+              expandedEdgesDegree(sourceIdx) += 1
+            case _: Edge.Notify =>
+              notifyByUserDegree(targetIdx) += 1
+            case _: Edge.Pinned =>
+              pinnedNodeDegree(targetIdx) += 1
+            case _: Edge.Invite =>
+              inviteNodeDegree(targetIdx) += 1
+            case _: Edge.LabeledProperty =>
+              propertiesDegree(sourceIdx) += 1
+              propertiesReverseDegree(targetIdx) += 1
+            case _: Edge.Automated =>
+              automatedDegree(sourceIdx) += 1
+              automatedReverseDegree(targetIdx) += 1
+            case _: Edge.DerivedFromTemplate =>
+              derivedFromTemplateDegree(sourceIdx) += 1
+              derivedFromTemplateReverseDegree(targetIdx) += 1
+            case _: Edge.ReferencesTemplate =>
+              referencesTemplateDegree(sourceIdx) += 1
+            case _: Edge.Mention =>
+              mentionsDegree(sourceIdx) += 1
+            case _: Edge.Read =>
+              readDegree(sourceIdx) += 1
+            case _ =>
           }
         }
       }
@@ -1043,38 +1188,38 @@ object GraphLookup {
                 if (parentIsTag) tagParentsIdxBuilder.add(targetIdx, sourceIdx)
                 if (parentIsStage) stageParentsIdxBuilder.add(targetIdx, sourceIdx)
                 notDeletedParentsIdxBuilder.add(targetIdx, sourceIdx)
-              notDeletedChildrenIdxBuilder.add(sourceIdx, targetIdx)
+                notDeletedChildrenIdxBuilder.add(sourceIdx, targetIdx)
               }
               // TODO everything deleted further in the past should already be filtered in backend
               // BUT received on request
           }
-            case _: Edge.Expanded =>
-              expandedEdgeIdxBuilder.add(sourceIdx, edgeIdx)
-            case _: Edge.Assigned =>
-              assignedNodesIdxBuilder.add(targetIdx, sourceIdx)
-              assignedUsersIdxBuilder.add(sourceIdx, targetIdx)
-            case _: Edge.Notify =>
-              notifyByUserIdxBuilder.add(targetIdx, sourceIdx)
-            case _: Edge.Pinned =>
-              pinnedNodeIdxBuilder.add(targetIdx, sourceIdx)
-            case _: Edge.Invite =>
-              inviteNodeIdxBuilder.add(targetIdx, sourceIdx)
-            case _: Edge.LabeledProperty =>
-              propertiesEdgeIdxBuilder.add(sourceIdx, edgeIdx)
-              propertiesEdgeReverseIdxBuilder.add(targetIdx, edgeIdx)
-            case _: Edge.Automated =>
-              automatedEdgeIdxBuilder.add(sourceIdx, edgeIdx)
-              automatedEdgeReverseIdxBuilder.add(targetIdx, edgeIdx)
-            case _: Edge.DerivedFromTemplate =>
-              derivedFromTemplateEdgeIdxBuilder.add(sourceIdx, edgeIdx)
-              derivedFromTemplateReverseEdgeIdxBuilder.add(targetIdx, edgeIdx)
-            case _: Edge.ReferencesTemplate =>
-              referencesTemplateEdgeIdxBuilder.add(sourceIdx, edgeIdx)
-            case _: Edge.Mention =>
-              mentionsEdgeIdxBuilder.add(sourceIdx, edgeIdx)
-            case _: Edge.Read =>
-              readEdgeIdxBuilder.add(sourceIdx, edgeIdx)
-            case _ =>
+        case _: Edge.Expanded =>
+          expandedEdgeIdxBuilder.add(sourceIdx, edgeIdx)
+        case _: Edge.Assigned =>
+          assignedNodesIdxBuilder.add(targetIdx, sourceIdx)
+          assignedUsersIdxBuilder.add(sourceIdx, targetIdx)
+        case _: Edge.Notify =>
+          notifyByUserIdxBuilder.add(targetIdx, sourceIdx)
+        case _: Edge.Pinned =>
+          pinnedNodeIdxBuilder.add(targetIdx, sourceIdx)
+        case _: Edge.Invite =>
+          inviteNodeIdxBuilder.add(targetIdx, sourceIdx)
+        case _: Edge.LabeledProperty =>
+          propertiesEdgeIdxBuilder.add(sourceIdx, edgeIdx)
+          propertiesEdgeReverseIdxBuilder.add(targetIdx, edgeIdx)
+        case _: Edge.Automated =>
+          automatedEdgeIdxBuilder.add(sourceIdx, edgeIdx)
+          automatedEdgeReverseIdxBuilder.add(targetIdx, edgeIdx)
+        case _: Edge.DerivedFromTemplate =>
+          derivedFromTemplateEdgeIdxBuilder.add(sourceIdx, edgeIdx)
+          derivedFromTemplateReverseEdgeIdxBuilder.add(targetIdx, edgeIdx)
+        case _: Edge.ReferencesTemplate =>
+          referencesTemplateEdgeIdxBuilder.add(sourceIdx, edgeIdx)
+        case _: Edge.Mention =>
+          mentionsEdgeIdxBuilder.add(sourceIdx, edgeIdx)
+        case _: Edge.Read =>
+          readEdgeIdxBuilder.add(sourceIdx, edgeIdx)
+        case _ =>
       }
     }
 
