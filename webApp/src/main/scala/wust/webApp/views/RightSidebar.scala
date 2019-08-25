@@ -251,13 +251,16 @@ object RightSidebar {
   private def nodeBreadcrumbs(focusedNodeId: FocusPreference, parentIdAction: Option[NodeId] => Unit, hideIfSingle: Boolean)(implicit ctx: Ctx.Owner) = {
     VDomModifier(
       Rx {
-        BreadCrumbs(
-          GlobalState.rawGraph(),
-          GlobalState.page().parentId,
-          Some(focusedNodeId.nodeId),
-          nodeId => parentIdAction(Some(nodeId)),
-          hideIfSingle = hideIfSingle
-        ).apply(paddingBottom := "3px")
+        val page = GlobalState.page()
+        page.parentId.map { parentId =>
+          BreadCrumbs(
+            GlobalState.rawGraph(),
+            start = BreadCrumbs.EndPoint.Node(parentId, inclusive = false),
+            end = BreadCrumbs.EndPoint.Node(focusedNodeId.nodeId),
+            nodeId => parentIdAction(Some(nodeId)),
+            hideIfSingle = hideIfSingle
+          ).apply(paddingBottom := "3px")
+        }
       }
     )
   }
