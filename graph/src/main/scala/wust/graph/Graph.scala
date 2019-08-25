@@ -176,6 +176,42 @@ object RoleStats {
 final class GraphLookup(
   graph: Graph,
   val idToIdxHashMap: mutable.Map[NodeId, Int],
+  val consistentEdges: ArraySet,
+  val edgesIdx: InterleavedArrayInt,
+  val parentsIdx: NestedArrayInt,
+  val parentEdgeIdx: NestedArrayInt,
+  val readEdgeIdx: NestedArrayInt,
+  val childrenIdx: NestedArrayInt,
+  val childEdgeIdx: NestedArrayInt,
+  val accessEdgeReverseIdx: NestedArrayInt,
+  val contentsEdgeIdx: NestedArrayInt,
+  val messageChildrenIdx: NestedArrayInt,
+  val taskChildrenIdx: NestedArrayInt,
+  val noteChildrenIdx: NestedArrayInt,
+  val tagChildrenIdx: NestedArrayInt,
+  val projectChildrenIdx: NestedArrayInt,
+  val tagParentsIdx: NestedArrayInt,
+  val stageParentsIdx: NestedArrayInt,
+  val notDeletedParentsIdx: NestedArrayInt,
+  val notDeletedChildrenIdx: NestedArrayInt,
+  val authorshipEdgeIdx: NestedArrayInt,
+  val membershipEdgeForNodeIdx: NestedArrayInt,
+  val notifyByUserIdx: NestedArrayInt,
+  val authorsIdx: NestedArrayInt,
+  val pinnedNodeIdx: NestedArrayInt,
+  val inviteNodeIdx: NestedArrayInt,
+  val expandedEdgeIdx: NestedArrayInt,
+  val assignedNodesIdx: NestedArrayInt,
+  val assignedUsersIdx: NestedArrayInt,
+  val propertiesEdgeIdx: NestedArrayInt,
+  val propertiesEdgeReverseIdx: NestedArrayInt,
+  val automatedEdgeIdx: NestedArrayInt,
+  val automatedEdgeReverseIdx: NestedArrayInt,
+  val derivedFromTemplateEdgeIdx: NestedArrayInt,
+  val derivedFromTemplateEdgeReverseIdx: NestedArrayInt,
+  val referencesTemplateEdgeIdx: NestedArrayInt,
+  val mentionsEdgeIdx: NestedArrayInt,
+  buildNow: EpochMilli
 ) {
   scribe.info(s"Creating new graph lookup (nodes = $n, edges = $m)")
   assert(idToIdxHashMap.size == nodes.length, s"nodes are not distinct by id: ${graph.nodes.indices.map(graph.nodeStr).mkString("\n")}")
@@ -203,290 +239,6 @@ final class GraphLookup(
   def nodesById(nodeId: NodeId): Option[Node] = idToIdxFold[Option[Node]](nodeId)(None)(idx => Some(nodes(idx)))
 
   def contains(nodeId: NodeId): Boolean = idToIdxFold[Boolean](nodeId)(false)(_ => true)
-
-  private val consistentEdges = ArraySet.create(edges.length)
-  val edgesIdx = InterleavedArrayInt.create(edges.length)
-
-  // TODO: have one big triple nested array for all edge lookups?
-
-  // To avoid array builders for each node, we collect the node degrees in a
-  // loop and then add the indices in a second loop. This is twice as fast
-  // than using one loop with arraybuilders. (A lot less allocations)
-  private val outDegree = new Array[Int](n)
-  private val parentsDegree = new Array[Int](n)
-  private val contentsDegree = new Array[Int](n)
-  private val accessEdgeReverseDegree = new Array[Int](n)
-  private val readDegree = new Array[Int](n)
-  private val childrenDegree = new Array[Int](n)
-  private val messageChildrenDegree = new Array[Int](n)
-  private val taskChildrenDegree = new Array[Int](n)
-  private val noteChildrenDegree = new Array[Int](n)
-  private val projectChildrenDegree = new Array[Int](n)
-  private val tagChildrenDegree = new Array[Int](n)
-  private val tagParentsDegree = new Array[Int](n)
-  private val stageParentsDegree = new Array[Int](n)
-  private val notDeletedParentsDegree = new Array[Int](n)
-  private val notDeletedChildrenDegree = new Array[Int](n)
-  private val authorshipDegree = new Array[Int](n)
-  private val membershipsForNodeDegree = new Array[Int](n)
-  private val notifyByUserDegree = new Array[Int](n)
-  private val pinnedNodeDegree = new Array[Int](n)
-  private val inviteNodeDegree = new Array[Int](n)
-  private val expandedEdgesDegree = new Array[Int](n)
-  private val assignedNodesDegree = new Array[Int](n)
-  private val assignedUsersDegree = new Array[Int](n)
-  private val propertiesDegree = new Array[Int](n)
-  private val propertiesReverseDegree = new Array[Int](n)
-  private val automatedDegree = new Array[Int](n)
-  private val automatedReverseDegree = new Array[Int](n)
-  private val derivedFromTemplateDegree = new Array[Int](n)
-  private val derivedFromTemplateReverseDegree = new Array[Int](n)
-  private val referencesTemplateDegree = new Array[Int](n)
-  private val mentionsDegree = new Array[Int](n)
-
-  private val buildNow = EpochMilli.now
-
-  edges.foreachIndexAndElement { (edgeIdx, edge) =>
-    idToIdxForeach(edge.sourceId) { sourceIdx =>
-      idToIdxForeach(edge.targetId) { targetIdx =>
-        consistentEdges.add(edgeIdx)
-        edgesIdx.updatea(edgeIdx, sourceIdx)
-        edgesIdx.updateb(edgeIdx, targetIdx)
-        outDegree(sourceIdx) += 1
-        edge match {
-          case e: Edge.Content => contentsDegree(sourceIdx) += 1
-          case _               =>
-        }
-        edge match {
-          case _: Edge.Child | _: Edge.LabeledProperty => accessEdgeReverseDegree(targetIdx) += 1
-          case _               =>
-        }
-
-        edge match {
-          case _: Edge.Author =>
-            authorshipDegree(sourceIdx) += 1
-          case _: Edge.Member =>
-            membershipsForNodeDegree(sourceIdx) += 1
-          case e: Edge.Child =>
-            val childIsMessage = nodes(targetIdx).role == NodeRole.Message
-            val childIsTask = nodes(targetIdx).role == NodeRole.Task
-            val childIsNote = nodes(targetIdx).role == NodeRole.Note
-            val childIsProject = nodes(targetIdx).role == NodeRole.Project
-            val childIsTag = nodes(targetIdx).role == NodeRole.Tag
-            val parentIsTag = nodes(sourceIdx).role == NodeRole.Tag
-            val parentIsStage = nodes(sourceIdx).role == NodeRole.Stage
-            parentsDegree(targetIdx) += 1
-            childrenDegree(sourceIdx) += 1
-
-            if (childIsProject) projectChildrenDegree(sourceIdx) += 1
-            if (childIsMessage) messageChildrenDegree(sourceIdx) += 1
-            if (childIsTask) taskChildrenDegree(sourceIdx) += 1
-            if (childIsNote) noteChildrenDegree(sourceIdx) += 1
-
-            e.data.deletedAt match {
-              case None =>
-                if (childIsTag) tagChildrenDegree(sourceIdx) += 1
-                if (parentIsTag) tagParentsDegree(targetIdx) += 1
-                if (parentIsStage) stageParentsDegree(targetIdx) += 1
-                notDeletedParentsDegree(targetIdx) += 1
-                notDeletedChildrenDegree(sourceIdx) += 1
-              case Some(deletedAt) =>
-                if (deletedAt isAfter buildNow) { // in the future
-                  if (childIsTag) tagChildrenDegree(sourceIdx) += 1
-                  if (parentIsTag) tagParentsDegree(targetIdx) += 1
-                  if (parentIsStage) stageParentsDegree(targetIdx) += 1
-                  notDeletedParentsDegree(targetIdx) += 1
-                  notDeletedChildrenDegree(sourceIdx) += 1
-                }
-              // TODO everything deleted further in the past should already be filtered in backend
-              // BUT received on request
-            }
-          case _: Edge.Assigned =>
-            assignedNodesDegree(targetIdx) += 1
-            assignedUsersDegree(sourceIdx) += 1
-          case _: Edge.Expanded =>
-            expandedEdgesDegree(sourceIdx) += 1
-          case _: Edge.Notify =>
-            notifyByUserDegree(targetIdx) += 1
-          case _: Edge.Pinned =>
-            pinnedNodeDegree(targetIdx) += 1
-          case _: Edge.Invite =>
-            inviteNodeDegree(targetIdx) += 1
-          case _: Edge.LabeledProperty =>
-            propertiesDegree(sourceIdx) += 1
-            propertiesReverseDegree(targetIdx) += 1
-          case _: Edge.Automated =>
-            automatedDegree(sourceIdx) += 1
-            automatedReverseDegree(targetIdx) += 1
-          case _: Edge.DerivedFromTemplate =>
-            derivedFromTemplateDegree(sourceIdx) += 1
-            derivedFromTemplateReverseDegree(targetIdx) += 1
-          case _: Edge.ReferencesTemplate =>
-            referencesTemplateDegree(sourceIdx) += 1
-          case _: Edge.Mention =>
-            mentionsDegree(sourceIdx) += 1
-          case _: Edge.Read =>
-            readDegree(sourceIdx) += 1
-          case _ =>
-        }
-      }
-    }
-  }
-
-  private val parentsIdxBuilder = NestedArrayInt.builder(parentsDegree)
-  private val parentEdgeIdxBuilder = NestedArrayInt.builder(parentsDegree)
-  private val contentsEdgeIdxBuilder = NestedArrayInt.builder(contentsDegree)
-  private val accessEdgeReverseIdxBuilder = NestedArrayInt.builder(accessEdgeReverseDegree)
-  private val readEdgeIdxBuilder = NestedArrayInt.builder(readDegree)
-  private val childrenIdxBuilder = NestedArrayInt.builder(childrenDegree)
-  private val childEdgeIdxBuilder = NestedArrayInt.builder(childrenDegree)
-  private val messageChildrenIdxBuilder = NestedArrayInt.builder(messageChildrenDegree)
-  private val taskChildrenIdxBuilder = NestedArrayInt.builder(taskChildrenDegree)
-  private val noteChildrenIdxBuilder = NestedArrayInt.builder(noteChildrenDegree)
-  private val projectChildrenIdxBuilder = NestedArrayInt.builder(projectChildrenDegree)
-  private val tagChildrenIdxBuilder = NestedArrayInt.builder(tagChildrenDegree)
-  private val tagParentsIdxBuilder = NestedArrayInt.builder(tagParentsDegree)
-  private val stageParentsIdxBuilder = NestedArrayInt.builder(stageParentsDegree)
-  private val notDeletedParentsIdxBuilder = NestedArrayInt.builder(notDeletedParentsDegree)
-  private val notDeletedChildrenIdxBuilder = NestedArrayInt.builder(notDeletedChildrenDegree)
-  private val authorshipEdgeIdxBuilder = NestedArrayInt.builder(authorshipDegree)
-  private val authorIdxBuilder = NestedArrayInt.builder(authorshipDegree)
-  private val membershipEdgeForNodeIdxBuilder = NestedArrayInt.builder(membershipsForNodeDegree)
-  private val notifyByUserIdxBuilder = NestedArrayInt.builder(notifyByUserDegree)
-  private val pinnedNodeIdxBuilder = NestedArrayInt.builder(pinnedNodeDegree)
-  private val inviteNodeIdxBuilder = NestedArrayInt.builder(inviteNodeDegree)
-  private val expandedEdgeIdxBuilder = NestedArrayInt.builder(expandedEdgesDegree)
-  private val assignedNodesIdxBuilder = NestedArrayInt.builder(assignedNodesDegree)
-  private val assignedUsersIdxBuilder = NestedArrayInt.builder(assignedUsersDegree)
-  private val propertiesEdgeIdxBuilder = NestedArrayInt.builder(propertiesDegree)
-  private val propertiesEdgeReverseIdxBuilder = NestedArrayInt.builder(propertiesReverseDegree)
-  private val automatedEdgeIdxBuilder = NestedArrayInt.builder(automatedDegree)
-  private val automatedEdgeReverseIdxBuilder = NestedArrayInt.builder(automatedReverseDegree)
-  private val derivedFromTemplateEdgeIdxBuilder = NestedArrayInt.builder(derivedFromTemplateDegree)
-  private val derivedFromTemplateReverseEdgeIdxBuilder = NestedArrayInt.builder(derivedFromTemplateReverseDegree)
-  private val referencesTemplateEdgeIdxBuilder = NestedArrayInt.builder(referencesTemplateDegree)
-  private val mentionsEdgeIdxBuilder = NestedArrayInt.builder(mentionsDegree)
-
-  consistentEdges.foreach { edgeIdx =>
-    val sourceIdx = edgesIdx.a(edgeIdx)
-    val targetIdx = edgesIdx.b(edgeIdx)
-    val edge = edges(edgeIdx)
-
-    edge match {
-      case e: Edge.Content => contentsEdgeIdxBuilder.add(sourceIdx, edgeIdx)
-      case _               =>
-    }
-
-    edge match {
-      case _: Edge.Child | _: Edge.LabeledProperty => accessEdgeReverseIdxBuilder.add(targetIdx, edgeIdx)
-      case _               =>
-    }
-
-    edge match {
-      case _: Edge.Author =>
-        authorshipEdgeIdxBuilder.add(sourceIdx, edgeIdx)
-        authorIdxBuilder.add(sourceIdx, targetIdx)
-      case _: Edge.Member =>
-        membershipEdgeForNodeIdxBuilder.add(sourceIdx, edgeIdx)
-      case e: Edge.Child =>
-        val childIsMessage = nodes(targetIdx).role == NodeRole.Message
-        val childIsTask = nodes(targetIdx).role == NodeRole.Task
-        val childIsNote = nodes(targetIdx).role == NodeRole.Note
-        val childIsTag = nodes(targetIdx).role == NodeRole.Tag
-        val childIsProject = nodes(targetIdx).role == NodeRole.Project
-        val parentIsTag = nodes(sourceIdx).role == NodeRole.Tag
-        val parentIsStage = nodes(sourceIdx).role == NodeRole.Stage
-        parentsIdxBuilder.add(targetIdx, sourceIdx)
-        parentEdgeIdxBuilder.add(targetIdx, edgeIdx)
-        childrenIdxBuilder.add(sourceIdx, targetIdx)
-        childEdgeIdxBuilder.add(sourceIdx, edgeIdx)
-
-        if (childIsProject) projectChildrenIdxBuilder.add(sourceIdx, targetIdx)
-        if (childIsMessage) messageChildrenIdxBuilder.add(sourceIdx, targetIdx)
-        if (childIsTask) taskChildrenIdxBuilder.add(sourceIdx, targetIdx)
-        if (childIsNote) noteChildrenIdxBuilder.add(sourceIdx, targetIdx)
-
-        e.data.deletedAt match {
-          case None =>
-            if (childIsTag) tagChildrenIdxBuilder.add(sourceIdx, targetIdx)
-            if (parentIsTag) tagParentsIdxBuilder.add(targetIdx, sourceIdx)
-            if (parentIsStage) stageParentsIdxBuilder.add(targetIdx, sourceIdx)
-            notDeletedParentsIdxBuilder.add(targetIdx, sourceIdx)
-            notDeletedChildrenIdxBuilder.add(sourceIdx, targetIdx)
-          case Some(deletedAt) =>
-            if (deletedAt isAfter buildNow) { // in the future
-              if (childIsTag) tagChildrenIdxBuilder.add(sourceIdx, targetIdx)
-              if (parentIsTag) tagParentsIdxBuilder.add(targetIdx, sourceIdx)
-              if (parentIsStage) stageParentsIdxBuilder.add(targetIdx, sourceIdx)
-              notDeletedParentsIdxBuilder.add(targetIdx, sourceIdx)
-              notDeletedChildrenIdxBuilder.add(sourceIdx, targetIdx)
-            }
-          // TODO everything deleted further in the past should already be filtered in backend
-          // BUT received on request
-        }
-      case _: Edge.Expanded =>
-        expandedEdgeIdxBuilder.add(sourceIdx, edgeIdx)
-      case _: Edge.Assigned =>
-        assignedNodesIdxBuilder.add(targetIdx, sourceIdx)
-        assignedUsersIdxBuilder.add(sourceIdx, targetIdx)
-      case _: Edge.Notify =>
-        notifyByUserIdxBuilder.add(targetIdx, sourceIdx)
-      case _: Edge.Pinned =>
-        pinnedNodeIdxBuilder.add(targetIdx, sourceIdx)
-      case _: Edge.Invite =>
-        inviteNodeIdxBuilder.add(targetIdx, sourceIdx)
-      case _: Edge.LabeledProperty =>
-        propertiesEdgeIdxBuilder.add(sourceIdx, edgeIdx)
-        propertiesEdgeReverseIdxBuilder.add(targetIdx, edgeIdx)
-      case _: Edge.Automated =>
-        automatedEdgeIdxBuilder.add(sourceIdx, edgeIdx)
-        automatedEdgeReverseIdxBuilder.add(targetIdx, edgeIdx)
-      case _: Edge.DerivedFromTemplate =>
-        derivedFromTemplateEdgeIdxBuilder.add(sourceIdx, edgeIdx)
-        derivedFromTemplateReverseEdgeIdxBuilder.add(targetIdx, edgeIdx)
-      case _: Edge.ReferencesTemplate =>
-        referencesTemplateEdgeIdxBuilder.add(sourceIdx, edgeIdx)
-      case _: Edge.Mention =>
-        mentionsEdgeIdxBuilder.add(sourceIdx, edgeIdx)
-      case _: Edge.Read =>
-        readEdgeIdxBuilder.add(sourceIdx, edgeIdx)
-      case _ =>
-    }
-  }
-
-  val parentsIdx: NestedArrayInt = parentsIdxBuilder.result()
-  val parentEdgeIdx: NestedArrayInt = parentEdgeIdxBuilder.result()
-  val readEdgeIdx: NestedArrayInt = readEdgeIdxBuilder.result()
-  val childrenIdx: NestedArrayInt = childrenIdxBuilder.result()
-  val childEdgeIdx: NestedArrayInt = childEdgeIdxBuilder.result()
-  val accessEdgeReverseIdx: NestedArrayInt = accessEdgeReverseIdxBuilder.result()
-  val contentsEdgeIdx: NestedArrayInt = contentsEdgeIdxBuilder.result()
-  val messageChildrenIdx: NestedArrayInt = messageChildrenIdxBuilder.result()
-  val taskChildrenIdx: NestedArrayInt = taskChildrenIdxBuilder.result()
-  val noteChildrenIdx: NestedArrayInt = noteChildrenIdxBuilder.result()
-  val tagChildrenIdx: NestedArrayInt = tagChildrenIdxBuilder.result()
-  val projectChildrenIdx: NestedArrayInt = projectChildrenIdxBuilder.result()
-  val tagParentsIdx: NestedArrayInt = tagParentsIdxBuilder.result()
-  val stageParentsIdx: NestedArrayInt = stageParentsIdxBuilder.result()
-  val notDeletedParentsIdx: NestedArrayInt = notDeletedParentsIdxBuilder.result()
-  val notDeletedChildrenIdx: NestedArrayInt = notDeletedChildrenIdxBuilder.result()
-  val authorshipEdgeIdx: NestedArrayInt = authorshipEdgeIdxBuilder.result()
-  val membershipEdgeForNodeIdx: NestedArrayInt = membershipEdgeForNodeIdxBuilder.result()
-  val notifyByUserIdx: NestedArrayInt = notifyByUserIdxBuilder.result()
-  val authorsIdx: NestedArrayInt = authorIdxBuilder.result()
-  val pinnedNodeIdx: NestedArrayInt = pinnedNodeIdxBuilder.result()
-  val inviteNodeIdx: NestedArrayInt = inviteNodeIdxBuilder.result()
-  val expandedEdgeIdx: NestedArrayInt = expandedEdgeIdxBuilder.result()
-  val assignedNodesIdx: NestedArrayInt = assignedNodesIdxBuilder.result() // user -> node
-  val assignedUsersIdx: NestedArrayInt = assignedUsersIdxBuilder.result() // node -> user
-  val propertiesEdgeIdx: NestedArrayInt = propertiesEdgeIdxBuilder.result() // node -> property edge
-  val propertiesEdgeReverseIdx: NestedArrayInt = propertiesEdgeReverseIdxBuilder.result() // node -> property edge
-  val automatedEdgeIdx: NestedArrayInt = automatedEdgeIdxBuilder.result()
-  val automatedEdgeReverseIdx: NestedArrayInt = automatedEdgeReverseIdxBuilder.result()
-  val derivedFromTemplateEdgeIdx: NestedArrayInt = derivedFromTemplateEdgeIdxBuilder.result()
-  val derivedFromTemplateEdgeReverseIdx: NestedArrayInt = derivedFromTemplateReverseEdgeIdxBuilder.result()
-  val referencesTemplateEdgeIdx: NestedArrayInt = referencesTemplateEdgeIdxBuilder.result()
-  val mentionsEdgeIdx: NestedArrayInt = mentionsEdgeIdxBuilder.result()
 
   @inline def isExpanded(userId: UserId, nodeId: NodeId): Option[Boolean] = idToIdx(nodeId).flatMap(isExpanded(userId, _))
   @inline def isExpanded(userId: UserId, nodeIdx: Int): Option[Boolean] = expandedEdgeIdx.collectFirst(nodeIdx) {
@@ -1064,16 +816,343 @@ object GraphLookup {
       val nodeId = node.id
       idToIdxMap(nodeId) = i
     }
-    new GraphLookup(
-      graph,
-      idToIdxMap,
-    )
+
+    withNodeKnowledge(graph, idToIdxMap)
   }
 
   def withNodeKnowledge(
     graph: Graph,
     idToIdxMap: mutable.Map[NodeId, Int],
-  ): GraphLookup = new GraphLookup(graph, idToIdxMap)
+  ): GraphLookup = {
+    import graph.nodes, graph.edges
+
+    val buildNow = EpochMilli.now
+
+    val n = nodes.length
+
+    val consistentEdges = ArraySet.create(edges.length)
+    val edgesIdx = InterleavedArrayInt.create(edges.length)
+
+    // TODO: have one big triple nested array for all edge lookups?
+
+    // To avoid array builders for each node, we collect the node degrees in a
+    // loop and then add the indices in a second loop. This is twice as fast
+    // than using one loop with arraybuilders. (A lot less allocations)
+    val outDegree = new Array[Int](n)
+    val parentsDegree = new Array[Int](n)
+    val contentsDegree = new Array[Int](n)
+    val accessEdgeReverseDegree = new Array[Int](n)
+    val readDegree = new Array[Int](n)
+    val childrenDegree = new Array[Int](n)
+    val messageChildrenDegree = new Array[Int](n)
+    val taskChildrenDegree = new Array[Int](n)
+    val noteChildrenDegree = new Array[Int](n)
+    val projectChildrenDegree = new Array[Int](n)
+    val tagChildrenDegree = new Array[Int](n)
+    val tagParentsDegree = new Array[Int](n)
+    val stageParentsDegree = new Array[Int](n)
+    val notDeletedParentsDegree = new Array[Int](n)
+    val notDeletedChildrenDegree = new Array[Int](n)
+    val authorshipDegree = new Array[Int](n)
+    val membershipsForNodeDegree = new Array[Int](n)
+    val notifyByUserDegree = new Array[Int](n)
+    val pinnedNodeDegree = new Array[Int](n)
+    val inviteNodeDegree = new Array[Int](n)
+    val expandedEdgesDegree = new Array[Int](n)
+    val assignedNodesDegree = new Array[Int](n)
+    val assignedUsersDegree = new Array[Int](n)
+    val propertiesDegree = new Array[Int](n)
+    val propertiesReverseDegree = new Array[Int](n)
+    val automatedDegree = new Array[Int](n)
+    val automatedReverseDegree = new Array[Int](n)
+    val derivedFromTemplateDegree = new Array[Int](n)
+    val derivedFromTemplateReverseDegree = new Array[Int](n)
+    val referencesTemplateDegree = new Array[Int](n)
+    val mentionsDegree = new Array[Int](n)
+
+    edges.foreachIndexAndElement { (edgeIdx, edge) =>
+      idToIdxMap.get(edge.sourceId).foreach { sourceIdx =>
+        idToIdxMap.get(edge.targetId).foreach { targetIdx =>
+          consistentEdges.add(edgeIdx)
+          edgesIdx.updatea(edgeIdx, sourceIdx)
+          edgesIdx.updateb(edgeIdx, targetIdx)
+          outDegree(sourceIdx) += 1
+          edge match {
+            case e: Edge.Content => contentsDegree(sourceIdx) += 1
+            case _               =>
+          }
+          edge match {
+            case _: Edge.Child | _: Edge.LabeledProperty => accessEdgeReverseDegree(targetIdx) += 1
+            case _               =>
+          }
+
+          edge match {
+            case _: Edge.Author =>
+              authorshipDegree(sourceIdx) += 1
+            case _: Edge.Member =>
+              membershipsForNodeDegree(sourceIdx) += 1
+            case e: Edge.Child =>
+              val childIsMessage = nodes(targetIdx).role == NodeRole.Message
+              val childIsTask = nodes(targetIdx).role == NodeRole.Task
+              val childIsNote = nodes(targetIdx).role == NodeRole.Note
+              val childIsProject = nodes(targetIdx).role == NodeRole.Project
+              val childIsTag = nodes(targetIdx).role == NodeRole.Tag
+              val parentIsTag = nodes(sourceIdx).role == NodeRole.Tag
+              val parentIsStage = nodes(sourceIdx).role == NodeRole.Stage
+              parentsDegree(targetIdx) += 1
+              childrenDegree(sourceIdx) += 1
+
+              if (childIsProject) projectChildrenDegree(sourceIdx) += 1
+              if (childIsMessage) messageChildrenDegree(sourceIdx) += 1
+              if (childIsTask) taskChildrenDegree(sourceIdx) += 1
+              if (childIsNote) noteChildrenDegree(sourceIdx) += 1
+
+              e.data.deletedAt match {
+                case None =>
+                  if (childIsTag) tagChildrenDegree(sourceIdx) += 1
+                  if (parentIsTag) tagParentsDegree(targetIdx) += 1
+                  if (parentIsStage) stageParentsDegree(targetIdx) += 1
+                  notDeletedParentsDegree(targetIdx) += 1
+                notDeletedChildrenDegree(sourceIdx) += 1
+                case Some(deletedAt) =>
+                  if (deletedAt isAfter buildNow) { // in the future
+                    if (childIsTag) tagChildrenDegree(sourceIdx) += 1
+                    if (parentIsTag) tagParentsDegree(targetIdx) += 1
+                    if (parentIsStage) stageParentsDegree(targetIdx) += 1
+                    notDeletedParentsDegree(targetIdx) += 1
+                  notDeletedChildrenDegree(sourceIdx) += 1
+                  }
+                  // TODO everything deleted further in the past should already be filtered in backend
+                  // BUT received on request
+              }
+                case _: Edge.Assigned =>
+                  assignedNodesDegree(targetIdx) += 1
+                  assignedUsersDegree(sourceIdx) += 1
+                case _: Edge.Expanded =>
+                  expandedEdgesDegree(sourceIdx) += 1
+                case _: Edge.Notify =>
+                  notifyByUserDegree(targetIdx) += 1
+                case _: Edge.Pinned =>
+                  pinnedNodeDegree(targetIdx) += 1
+                case _: Edge.Invite =>
+                  inviteNodeDegree(targetIdx) += 1
+                case _: Edge.LabeledProperty =>
+                  propertiesDegree(sourceIdx) += 1
+                  propertiesReverseDegree(targetIdx) += 1
+                case _: Edge.Automated =>
+                  automatedDegree(sourceIdx) += 1
+                  automatedReverseDegree(targetIdx) += 1
+                case _: Edge.DerivedFromTemplate =>
+                  derivedFromTemplateDegree(sourceIdx) += 1
+                  derivedFromTemplateReverseDegree(targetIdx) += 1
+                case _: Edge.ReferencesTemplate =>
+                  referencesTemplateDegree(sourceIdx) += 1
+                case _: Edge.Mention =>
+                  mentionsDegree(sourceIdx) += 1
+                case _: Edge.Read =>
+                  readDegree(sourceIdx) += 1
+                case _ =>
+          }
+        }
+      }
+    }
+
+    val parentsIdxBuilder = NestedArrayInt.builder(parentsDegree)
+    val parentEdgeIdxBuilder = NestedArrayInt.builder(parentsDegree)
+    val contentsEdgeIdxBuilder = NestedArrayInt.builder(contentsDegree)
+    val accessEdgeReverseIdxBuilder = NestedArrayInt.builder(accessEdgeReverseDegree)
+    val readEdgeIdxBuilder = NestedArrayInt.builder(readDegree)
+    val childrenIdxBuilder = NestedArrayInt.builder(childrenDegree)
+    val childEdgeIdxBuilder = NestedArrayInt.builder(childrenDegree)
+    val messageChildrenIdxBuilder = NestedArrayInt.builder(messageChildrenDegree)
+    val taskChildrenIdxBuilder = NestedArrayInt.builder(taskChildrenDegree)
+    val noteChildrenIdxBuilder = NestedArrayInt.builder(noteChildrenDegree)
+    val projectChildrenIdxBuilder = NestedArrayInt.builder(projectChildrenDegree)
+    val tagChildrenIdxBuilder = NestedArrayInt.builder(tagChildrenDegree)
+    val tagParentsIdxBuilder = NestedArrayInt.builder(tagParentsDegree)
+    val stageParentsIdxBuilder = NestedArrayInt.builder(stageParentsDegree)
+    val notDeletedParentsIdxBuilder = NestedArrayInt.builder(notDeletedParentsDegree)
+    val notDeletedChildrenIdxBuilder = NestedArrayInt.builder(notDeletedChildrenDegree)
+    val authorshipEdgeIdxBuilder = NestedArrayInt.builder(authorshipDegree)
+    val authorIdxBuilder = NestedArrayInt.builder(authorshipDegree)
+    val membershipEdgeForNodeIdxBuilder = NestedArrayInt.builder(membershipsForNodeDegree)
+    val notifyByUserIdxBuilder = NestedArrayInt.builder(notifyByUserDegree)
+    val pinnedNodeIdxBuilder = NestedArrayInt.builder(pinnedNodeDegree)
+    val inviteNodeIdxBuilder = NestedArrayInt.builder(inviteNodeDegree)
+    val expandedEdgeIdxBuilder = NestedArrayInt.builder(expandedEdgesDegree)
+    val assignedNodesIdxBuilder = NestedArrayInt.builder(assignedNodesDegree)
+    val assignedUsersIdxBuilder = NestedArrayInt.builder(assignedUsersDegree)
+    val propertiesEdgeIdxBuilder = NestedArrayInt.builder(propertiesDegree)
+    val propertiesEdgeReverseIdxBuilder = NestedArrayInt.builder(propertiesReverseDegree)
+    val automatedEdgeIdxBuilder = NestedArrayInt.builder(automatedDegree)
+    val automatedEdgeReverseIdxBuilder = NestedArrayInt.builder(automatedReverseDegree)
+    val derivedFromTemplateEdgeIdxBuilder = NestedArrayInt.builder(derivedFromTemplateDegree)
+    val derivedFromTemplateReverseEdgeIdxBuilder = NestedArrayInt.builder(derivedFromTemplateReverseDegree)
+    val referencesTemplateEdgeIdxBuilder = NestedArrayInt.builder(referencesTemplateDegree)
+    val mentionsEdgeIdxBuilder = NestedArrayInt.builder(mentionsDegree)
+
+    consistentEdges.foreach { edgeIdx =>
+      val sourceIdx = edgesIdx.a(edgeIdx)
+      val targetIdx = edgesIdx.b(edgeIdx)
+      val edge = edges(edgeIdx)
+
+      edge match {
+        case e: Edge.Content => contentsEdgeIdxBuilder.add(sourceIdx, edgeIdx)
+        case _               =>
+      }
+
+      edge match {
+        case _: Edge.Child | _: Edge.LabeledProperty => accessEdgeReverseIdxBuilder.add(targetIdx, edgeIdx)
+        case _               =>
+      }
+
+      edge match {
+        case _: Edge.Author =>
+          authorshipEdgeIdxBuilder.add(sourceIdx, edgeIdx)
+          authorIdxBuilder.add(sourceIdx, targetIdx)
+        case _: Edge.Member =>
+          membershipEdgeForNodeIdxBuilder.add(sourceIdx, edgeIdx)
+        case e: Edge.Child =>
+          val childIsMessage = nodes(targetIdx).role == NodeRole.Message
+          val childIsTask = nodes(targetIdx).role == NodeRole.Task
+          val childIsNote = nodes(targetIdx).role == NodeRole.Note
+          val childIsTag = nodes(targetIdx).role == NodeRole.Tag
+          val childIsProject = nodes(targetIdx).role == NodeRole.Project
+          val parentIsTag = nodes(sourceIdx).role == NodeRole.Tag
+          val parentIsStage = nodes(sourceIdx).role == NodeRole.Stage
+          parentsIdxBuilder.add(targetIdx, sourceIdx)
+          parentEdgeIdxBuilder.add(targetIdx, edgeIdx)
+          childrenIdxBuilder.add(sourceIdx, targetIdx)
+          childEdgeIdxBuilder.add(sourceIdx, edgeIdx)
+
+          if (childIsProject) projectChildrenIdxBuilder.add(sourceIdx, targetIdx)
+          if (childIsMessage) messageChildrenIdxBuilder.add(sourceIdx, targetIdx)
+          if (childIsTask) taskChildrenIdxBuilder.add(sourceIdx, targetIdx)
+          if (childIsNote) noteChildrenIdxBuilder.add(sourceIdx, targetIdx)
+
+          e.data.deletedAt match {
+            case None =>
+              if (childIsTag) tagChildrenIdxBuilder.add(sourceIdx, targetIdx)
+              if (parentIsTag) tagParentsIdxBuilder.add(targetIdx, sourceIdx)
+              if (parentIsStage) stageParentsIdxBuilder.add(targetIdx, sourceIdx)
+              notDeletedParentsIdxBuilder.add(targetIdx, sourceIdx)
+            notDeletedChildrenIdxBuilder.add(sourceIdx, targetIdx)
+            case Some(deletedAt) =>
+              if (deletedAt isAfter buildNow) { // in the future
+                if (childIsTag) tagChildrenIdxBuilder.add(sourceIdx, targetIdx)
+                if (parentIsTag) tagParentsIdxBuilder.add(targetIdx, sourceIdx)
+                if (parentIsStage) stageParentsIdxBuilder.add(targetIdx, sourceIdx)
+                notDeletedParentsIdxBuilder.add(targetIdx, sourceIdx)
+              notDeletedChildrenIdxBuilder.add(sourceIdx, targetIdx)
+              }
+              // TODO everything deleted further in the past should already be filtered in backend
+              // BUT received on request
+          }
+            case _: Edge.Expanded =>
+              expandedEdgeIdxBuilder.add(sourceIdx, edgeIdx)
+            case _: Edge.Assigned =>
+              assignedNodesIdxBuilder.add(targetIdx, sourceIdx)
+              assignedUsersIdxBuilder.add(sourceIdx, targetIdx)
+            case _: Edge.Notify =>
+              notifyByUserIdxBuilder.add(targetIdx, sourceIdx)
+            case _: Edge.Pinned =>
+              pinnedNodeIdxBuilder.add(targetIdx, sourceIdx)
+            case _: Edge.Invite =>
+              inviteNodeIdxBuilder.add(targetIdx, sourceIdx)
+            case _: Edge.LabeledProperty =>
+              propertiesEdgeIdxBuilder.add(sourceIdx, edgeIdx)
+              propertiesEdgeReverseIdxBuilder.add(targetIdx, edgeIdx)
+            case _: Edge.Automated =>
+              automatedEdgeIdxBuilder.add(sourceIdx, edgeIdx)
+              automatedEdgeReverseIdxBuilder.add(targetIdx, edgeIdx)
+            case _: Edge.DerivedFromTemplate =>
+              derivedFromTemplateEdgeIdxBuilder.add(sourceIdx, edgeIdx)
+              derivedFromTemplateReverseEdgeIdxBuilder.add(targetIdx, edgeIdx)
+            case _: Edge.ReferencesTemplate =>
+              referencesTemplateEdgeIdxBuilder.add(sourceIdx, edgeIdx)
+            case _: Edge.Mention =>
+              mentionsEdgeIdxBuilder.add(sourceIdx, edgeIdx)
+            case _: Edge.Read =>
+              readEdgeIdxBuilder.add(sourceIdx, edgeIdx)
+            case _ =>
+      }
+    }
+
+    val parentsIdx: NestedArrayInt = parentsIdxBuilder.result()
+    val parentEdgeIdx: NestedArrayInt = parentEdgeIdxBuilder.result()
+    val readEdgeIdx: NestedArrayInt = readEdgeIdxBuilder.result()
+    val childrenIdx: NestedArrayInt = childrenIdxBuilder.result()
+    val childEdgeIdx: NestedArrayInt = childEdgeIdxBuilder.result()
+    val accessEdgeReverseIdx: NestedArrayInt = accessEdgeReverseIdxBuilder.result()
+    val contentsEdgeIdx: NestedArrayInt = contentsEdgeIdxBuilder.result()
+    val messageChildrenIdx: NestedArrayInt = messageChildrenIdxBuilder.result()
+    val taskChildrenIdx: NestedArrayInt = taskChildrenIdxBuilder.result()
+    val noteChildrenIdx: NestedArrayInt = noteChildrenIdxBuilder.result()
+    val tagChildrenIdx: NestedArrayInt = tagChildrenIdxBuilder.result()
+    val projectChildrenIdx: NestedArrayInt = projectChildrenIdxBuilder.result()
+    val tagParentsIdx: NestedArrayInt = tagParentsIdxBuilder.result()
+    val stageParentsIdx: NestedArrayInt = stageParentsIdxBuilder.result()
+    val notDeletedParentsIdx: NestedArrayInt = notDeletedParentsIdxBuilder.result()
+    val notDeletedChildrenIdx: NestedArrayInt = notDeletedChildrenIdxBuilder.result()
+    val authorshipEdgeIdx: NestedArrayInt = authorshipEdgeIdxBuilder.result()
+    val membershipEdgeForNodeIdx: NestedArrayInt = membershipEdgeForNodeIdxBuilder.result()
+    val notifyByUserIdx: NestedArrayInt = notifyByUserIdxBuilder.result()
+    val authorsIdx: NestedArrayInt = authorIdxBuilder.result()
+    val pinnedNodeIdx: NestedArrayInt = pinnedNodeIdxBuilder.result()
+    val inviteNodeIdx: NestedArrayInt = inviteNodeIdxBuilder.result()
+    val expandedEdgeIdx: NestedArrayInt = expandedEdgeIdxBuilder.result()
+    val assignedNodesIdx: NestedArrayInt = assignedNodesIdxBuilder.result() // user -> node
+    val assignedUsersIdx: NestedArrayInt = assignedUsersIdxBuilder.result() // node -> user
+    val propertiesEdgeIdx: NestedArrayInt = propertiesEdgeIdxBuilder.result() // node -> property edge
+    val propertiesEdgeReverseIdx: NestedArrayInt = propertiesEdgeReverseIdxBuilder.result() // node -> property edge
+    val automatedEdgeIdx: NestedArrayInt = automatedEdgeIdxBuilder.result()
+    val automatedEdgeReverseIdx: NestedArrayInt = automatedEdgeReverseIdxBuilder.result()
+    val derivedFromTemplateEdgeIdx: NestedArrayInt = derivedFromTemplateEdgeIdxBuilder.result()
+    val derivedFromTemplateEdgeReverseIdx: NestedArrayInt = derivedFromTemplateReverseEdgeIdxBuilder.result()
+    val referencesTemplateEdgeIdx: NestedArrayInt = referencesTemplateEdgeIdxBuilder.result()
+    val mentionsEdgeIdx: NestedArrayInt = mentionsEdgeIdxBuilder.result()
+
+    new GraphLookup(
+      graph,
+      idToIdxMap,
+      consistentEdges = consistentEdges,
+      edgesIdx = edgesIdx,
+      parentsIdx = parentsIdxBuilder.result(),
+      parentEdgeIdx = parentEdgeIdxBuilder.result(),
+      readEdgeIdx = readEdgeIdxBuilder.result(),
+      childrenIdx = childrenIdxBuilder.result(),
+      childEdgeIdx = childEdgeIdxBuilder.result(),
+      accessEdgeReverseIdx = accessEdgeReverseIdxBuilder.result(),
+      contentsEdgeIdx = contentsEdgeIdxBuilder.result(),
+      messageChildrenIdx = messageChildrenIdxBuilder.result(),
+      taskChildrenIdx = taskChildrenIdxBuilder.result(),
+      noteChildrenIdx = noteChildrenIdxBuilder.result(),
+      tagChildrenIdx = tagChildrenIdxBuilder.result(),
+      projectChildrenIdx = projectChildrenIdxBuilder.result(),
+      tagParentsIdx = tagParentsIdxBuilder.result(),
+      stageParentsIdx = stageParentsIdxBuilder.result(),
+      notDeletedParentsIdx = notDeletedParentsIdxBuilder.result(),
+      notDeletedChildrenIdx = notDeletedChildrenIdxBuilder.result(),
+      authorshipEdgeIdx = authorshipEdgeIdxBuilder.result(),
+      membershipEdgeForNodeIdx = membershipEdgeForNodeIdxBuilder.result(),
+      notifyByUserIdx = notifyByUserIdxBuilder.result(),
+      authorsIdx = authorIdxBuilder.result(),
+      pinnedNodeIdx = pinnedNodeIdxBuilder.result(),
+      inviteNodeIdx = inviteNodeIdxBuilder.result(),
+      expandedEdgeIdx = expandedEdgeIdxBuilder.result(),
+      assignedNodesIdx = assignedNodesIdxBuilder.result(), // user -> node
+      assignedUsersIdx = assignedUsersIdxBuilder.result(), // node -> user
+      propertiesEdgeIdx = propertiesEdgeIdxBuilder.result(), // node -> property edge
+      propertiesEdgeReverseIdx = propertiesEdgeReverseIdxBuilder.result(), // node -> property edge
+      automatedEdgeIdx = automatedEdgeIdxBuilder.result(),
+      automatedEdgeReverseIdx = automatedEdgeReverseIdxBuilder.result(),
+      derivedFromTemplateEdgeIdx = derivedFromTemplateEdgeIdxBuilder.result(),
+      derivedFromTemplateEdgeReverseIdx = derivedFromTemplateReverseEdgeIdxBuilder.result(),
+      referencesTemplateEdgeIdx = referencesTemplateEdgeIdxBuilder.result(),
+      mentionsEdgeIdx = mentionsEdgeIdxBuilder.result(),
+      buildNow = buildNow
+    )
+  }
 }
 
 sealed trait Tree {
