@@ -17,6 +17,7 @@ object Topbar {
           marginLeft.auto,
           marginTop := "3px",
           marginRight := "3px",
+          id := "tutorial-welcome-authcontrols",
         ))
       )
     })

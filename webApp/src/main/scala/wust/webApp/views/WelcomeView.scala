@@ -27,23 +27,22 @@ object WelcomeView {
         justifyContent.spaceAround,
         overflow.auto,
         div(
-          Rx{
-            val user = GlobalState.user().toNode
-            VDomModifier(
-              welcomeTitle(user),
-              welcomeMessage
+          Styles.flex,
+          flexDirection.column,
+          alignItems.center,
+          Rx{ welcomeTitle(GlobalState.user().toNode).append(Styles.flexStatic) },
+          welcomeMessage(Styles.flexStatic, marginBottom := "50px"),
+          newProjectButton(Styles.flexStatic),
+          Rx {
+            (GlobalState.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](
+              tutorialMessage(
+                Styles.flexStatic,
+                marginTop := "50px",
+                marginBottom := "50px",
+              )
             )
           },
-          marginBottom := "10%",
-          textAlign.center,
-          newProjectButton,
-          tutorialMessage,
-          Rx{
-            val user = GlobalState.user().toNode
-            user.data.isImplicit.ifTrue[VDomModifier](
-              implicitUserMessage
-            )
-          },
+          div (width := "1px", height := "1px", Styles.flexStatic), // margin bottom hack for flexbox
         )
       ),
       Rx {
@@ -57,7 +56,6 @@ object WelcomeView {
   def newProjectButton = NewProjectPrompt.newProjectButton().apply(
     cls := "primary",
     padding := "20px",
-    margin := "0px 40px",
     id := "tutorial-newprojectbutton",
     onClick.stopPropagation.foreach {
       FeatureState.use(Feature.CreateProjectFromWelcomeView)
@@ -75,40 +73,34 @@ object WelcomeView {
   def welcomeMessage = div(
     cls := "ui segment",
     maxWidth := "80ex",
-    marginBottom := "50px",
-    h3("Welcome to Woost!"),
+    h3("Welcome to Woost."),
     p("If you are new to Woost, start by creating a Project."),
     p("In a ", b("Project"), " you can invite other people to collaborate. You can also add different tools, like a ", b("Checklist"), ", a ", b("Kanban Board"), " or a ", b("Chat."))
-  )
-
-  def implicitUserMessage = div(
-    cls := "ui segment",
-    maxWidth := "80ex",
-    marginTop := "50px",
-    marginBottom := "50px",
-    p("You can use Woost without registration."), p("Everything you create is private (unless you share it). Whenever you want to access your data from another device, just ", a(href := "#", "create an account",
-      onClick.preventDefault(GlobalState.urlConfig.now.focusWithRedirect(View.Signup)) --> GlobalState.urlConfig,
-      onClick.preventDefault foreach {
-        FeatureState.use(Feature.ClickSignupInWelcomeView)
-      }), ".")
   )
 
   def tutorialMessage = div(
     cls := "ui segment",
     maxWidth := "80ex",
-    marginTop := "50px",
-    marginBottom := "50px",
-    // h3("Welcome to Woost!"),
     p(
-      "There are some things you should know about Woost. If you want to explore yourself, take a look at ", b("Explored Features"), " in the left sidebar. It will track your progress and suggest things you should try."
+      "We're different from other collaboration tools in some really special ways. So we'd like to take you through them."
     ),
-    button(cls := "ui violet button", "Show me the basics",
-      onClick.stopPropagation.foreach {
-        MainTutorial.startTour()
-      })
+    div(
+      Styles.flex,
+      justifyContent.center,
+      button(
+        cls := "ui pink basic button", "Show me the basics",
+        onClick.stopPropagation.foreach {
+          MainTutorial.startTour()
+        },
+        marginBottom := "20px"
+      )
+    ),
+    p(
+      "If you want to explore yourself, take a look at ", b("Explored Features"), " in the left sidebar. It will track your progress and suggest things you should try next."
+    ),
   )
 
-  def authControls(implicit ctx: Ctx.Owner) = 
+  def authControls(implicit ctx: Ctx.Owner) =
     div(
       padding := "15px",
       div(
