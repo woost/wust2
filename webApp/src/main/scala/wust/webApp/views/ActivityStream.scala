@@ -67,7 +67,7 @@ object ActivityStream {
 
       div(
         cls := "activity-stream-view",
-        if (BrowserDetect.isMobile) padding := "5px" else padding := "20px",
+        if (BrowserDetect.isMobile) padding := "8px" else padding := "20px",
 
         div(
           Styles.flex,
@@ -75,17 +75,22 @@ object ActivityStream {
           markAllAsReadButton("Mark all as read", activityNodes, userId)
         ),
 
-        Rx {
-          if (activityNodes().isEmpty) {
-            emptyNotifications
-          } else {
-            val currentTime = EpochMilli.now
-            VDomModifier(
-              activityNodes().map(renderActivityNode(graph, _, focusState.focusedId, userId(), currentTime = currentTime))
-            )
-          }
-        },
+        div(
+          cls := "activity-stream-container",
+          if (BrowserDetect.isMobile) padding := "5px" else padding := "20px",
 
+          Rx {
+            if (activityNodes().isEmpty) {
+              emptyNotifications
+            } else {
+              val currentTime = EpochMilli.now
+              VDomModifier(
+                activityNodes().map(renderActivityNode(graph, _, focusState.focusedId, userId(), currentTime = currentTime))
+              )
+            }
+          },
+
+        ),
         div(height := "20px") // padding bottom workaround in flexbox
       )
     )
@@ -186,13 +191,15 @@ object ActivityStream {
       doAuthor match {
         case Some(author) => VDomModifier(
           Components.nodeAvatar(author, size = 16).apply(Styles.flexStatic),
-          Components.displayUserName(author.data),
+          Components.displayUserName(author.data)
         )
         case None => VDomModifier.empty
       },
 
       div(
+        opacity := 0.3,
         padding := "5px",
+        fontSize := "2em",
         nodeIcon
       )
     )
@@ -203,28 +210,24 @@ object ActivityStream {
       borderBottom := "1px solid rgba(0,0,0,0.1)",
       paddingTop := "15px",
       paddingBottom := "15px",
-      width := "100%",
 
       div(
         marginTop := "15px",
         Styles.flex,
-        justifyContent.spaceBetween,
+        justifyContent.flexStart,
         alignItems.flexStart,
-        width := "100%",
 
         VDomModifier.ifTrue(isSeen)(opacity := 0.5),
 
-        authorDecoration,
+        authorDecoration.append(Styles.flexStatic),
 
         div(
-          maxWidth := "100vw",
           flexGrow := 1,
 
           div(
-            width := "100%",
             Styles.flex,
             alignItems.center,
-            justifyContent.spaceBetween,
+            justifyContent.flexStart,
             marginBottom := "10px",
 
             div(
@@ -246,11 +249,11 @@ object ActivityStream {
                 timestampString(activityNode.revision.timestamp)
               ),
 
-              breadCrumbs.map(_.apply(flexWrap.wrap, marginLeft := "-2px")), //correct some padding to align...
+              breadCrumbs.map(_.apply(marginLeft := "-2px")), //correct some padding to align...
             ),
 
             // currently cannot toggle delete revision...
-            VDomModifier.ifNot(activityNode.revision.isInstanceOf[Revision.Delete])(markSingleAsReadButton(activityNode, userId))
+            VDomModifier.ifNot(activityNode.revision.isInstanceOf[Revision.Delete])(markSingleAsReadButton(activityNode, userId)(marginLeft.auto))
           ),
 
           div(
@@ -267,7 +270,7 @@ object ActivityStream {
 
   def markAllAsReadButton(text: String, activityNodes: Rx[Seq[ActivityNode]], userId: Rx[UserId]) = {
     button(
-      cls := "ui tiny compact basic button",
+      cls := "ui tiny compact button",
       text,
       marginLeft := "auto",
       marginRight := "0px", // remove semantic ui button margin
@@ -291,11 +294,11 @@ object ActivityStream {
     div(
       if (activityNode.revision.seen) VDomModifier(
         freeRegular.faCircle,
-        color := readColor,
+        color := readColor
       )
       else VDomModifier(
         freeSolid.faCircle,
-        color := Colors.unread,
+        color := Colors.unread
       ),
 
       onClickDefault.foreach {

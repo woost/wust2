@@ -771,14 +771,24 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".activity-stream-view" - (
-    width := "100%",
+    width(100 %%),
     maxWidth(980 px),
 
-    &(".breadcrumbs") - (
-      &(".divider") - (
-        color(c"rgba(165, 165, 165, 0.78)"),
+    &(".activity-stream-container") - (
+      backgroundColor.white,
+      padding(10 px),
+      borderRadius(3 px),
+      
+      &(".breadcrumbs") - (
+        &(".divider") - (
+          color(c"rgba(165, 165, 165, 0.78)"),
+        ),
       ),
-    )
+
+      &(".nodecard") - (
+        maxWidth(30 em),
+      )
+    ),
   )
 
   ".notifications-view" - (
