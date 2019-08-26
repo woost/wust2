@@ -35,7 +35,7 @@ final case class NotifiedNode(node: Node.Content, kind: NotifiedKind) {
   val nodeContent = EmojiParser.parseToText(node.data.str.trim)
 
   def description = kind match {
-    case NotifiedKind.NewNode => s"New ${node.role}"
+    case NotifiedKind.NewNode => if (node.role == NodeRole.Message) "" else s"New ${node.role}"
     case NotifiedKind.NewMention => s"Mentioned in ${node.role}"
     case NotifiedKind.NewAssigned => s"Assigned to ${node.role}"
     case NotifiedKind.NewInvite => s"Invited in ${node.role}"
