@@ -512,6 +512,7 @@ lazy val webUtil = project
       Deps.kantanRegex.core.value ::
       Deps.kantanRegex.generic.value ::
       Deps.fontawesome.value ::
+      ScalablyTyped.C.chart_dot_js ::
       Nil
   )
 
@@ -564,6 +565,7 @@ lazy val webApp = project
       Deps.npm.wdtEmojiBundle ::
       Deps.npm.tribute ::
       Deps.npm.autoresizeTextarea ::
+      Deps.npm.chartJs ::
       Nil,
 
       /* wartremoverWarnings ++= Warts.allBut( */

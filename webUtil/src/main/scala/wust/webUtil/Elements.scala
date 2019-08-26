@@ -1,5 +1,6 @@
 package wust.webUtil
 
+import typings.chartDotJs.chartDotJsMod.ChartConfiguration
 import cats.effect.IO
 import fontAwesome.{IconLookup, Params, Transform, fontawesome, freeSolid}
 import wust.facades.fomanticui.AutoResizeConfig
@@ -438,6 +439,59 @@ object Elements {
       },
       resize := "none",
       height := "0px"
+    )
+  }
+
+  // create a canvas with a chart using chart.js
+  // Example:
+  // Elements.chartCanvas {
+  //   import typings.chartDotJs.chartDotJsMod._
+  //
+  //   ChartConfiguration {
+  //     `type` = "bar"
+  //     data = new ChartData {
+  //       labels = js.Array[String | js.Array[String]]("Red", "Blue", "Yellow", "Green", "Purple", "Orange")
+  //       datasets = js.Array(new ChartDataSets {
+  //         label = "# of Votes"
+  //         data = js.Array[js.UndefOr[ChartPoint | Double | Null]](12, 19, 3, 5, 2, 3)
+  //         backgroundColor = js.Array(
+  //           "rgba(255, 99, 132, 0.2)",
+  //           "rgba(54, 162, 235, 0.2)",
+  //           "rgba(255, 206, 86, 0.2)",
+  //           "rgba(75, 192, 192, 0.2)",
+  //           "rgba(153, 102, 255, 0.2)",
+  //           "rgba(255, 159, 64, 0.2)"
+  //         )
+  //         borderColor = js.Array(
+  //           "rgba(255, 99, 132, 1)",
+  //           "rgba(54, 162, 235, 1)",
+  //           "rgba(255, 206, 86, 1)",
+  //           "rgba(75, 192, 192, 1)",
+  //           "rgba(153, 102, 255, 1)",
+  //           "rgba(255, 159, 64, 1)"
+  //         )
+  //         borderWidth = 1
+  //       })
+  //     }
+  //     options = new ChartOptions {
+  //       scales = new ChartScales {
+  //         yAxes = js.Array(new ChartYAxe {
+  //           ticks = new TickOptions {
+  //             beginAtZero = true
+  //           }
+  //         })
+  //       }
+  //     }
+  //   }
+  // },
+  def chartCanvas(configuration: ChartConfiguration): VNode = {
+    canvas(
+      managedElement { elem =>
+        val context = elem.asInstanceOf[dom.html.Canvas].getContext("2d").asInstanceOf[typings.std.CanvasRenderingContext2D]
+        val chart = new typings.chartDotJs.chartDotJsMod.^(context, configuration)
+
+        Cancelable(() => chart.destroy())
+      }
     )
   }
 }

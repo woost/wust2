@@ -84,11 +84,16 @@ object Main {
     setupEmojis()
     setupEmojiPicker()
     setupFomanticUISearch()
+    setupChartJS()
 
     if (LinkingInfo.developmentMode) {
       setupRuntimeScalaCSSInjection()
        // setupSnabbdomDebugging()
     }
+  }
+
+  private def setupChartJS(): Unit = {
+    typings.chartDotJs.chartDotJsRequire
   }
 
   private def enableEventLogging() = {
