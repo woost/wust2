@@ -174,14 +174,14 @@ object ActivityStream {
       case _                => VDomModifier.empty
     }
 
-    val authorWidth = if (BrowserDetect.isMobile) "40px" else "90px"
+    val authorWidth = if (BrowserDetect.isMobile) "50px" else "90px"
     val authorDecoration = div(
       fontSize.xSmall,
       textAlign.center,
       marginRight := "5px",
       flexShrink := 0,
       fontWeight.bold,
-      width := "100px",
+      width := authorWidth,
       maxWidth := "100px",
       Styles.flex,
       alignItems.center,
