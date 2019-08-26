@@ -14,12 +14,12 @@ sealed trait UserViewGraphTransformation {
 object GraphOperation {
   type EdgeFilter = Option[(Edge.Child, Int) => Boolean] // (edge, edgeidx) => boolean
 
-  def filter(graph: Graph, pageId: NodeId, userId: UserId, filters: Seq[UserViewGraphTransformation]): Graph = {
+  def filter(graph: Graph, pageId: NodeId, userId: UserId, filters: Seq[UserViewGraphTransformation]): EdgeFilter = {
     val pageIdx = graph.idToIdx(pageId)
     val userIdx = graph.idToIdxOrThrow(userId)
     val edgeFilters: Seq[(Edge.Child, Int) => Boolean] = filters.flatMap(_.filterWithViewData(pageIdx, userIdx, graph))
-    if (edgeFilters.isEmpty) graph
-    else graph.filterChildEdges((e, i) => edgeFilters.forall(_(e, i)))
+    if (edgeFilters.isEmpty) None
+    else Some((e, i) => edgeFilters.forall(_(e, i)))
   }
 
   final case class OnlyTaggedWith(tagId: NodeId) extends UserViewGraphTransformation {

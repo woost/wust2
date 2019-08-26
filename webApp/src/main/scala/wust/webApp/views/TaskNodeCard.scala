@@ -48,7 +48,7 @@ object TaskNodeCard {
       GlobalState.graph().isExpanded(GlobalState.userId(), nodeIdx()).getOrElse(false)
     }
 
-    val childStats = Rx { NodeDetails.ChildStats.from(nodeIdx(), GlobalState.graph()) }
+    val childStats = Rx { NodeDetails.ChildStats.from(nodeIdx(), GlobalState.graph(), GlobalState.filteredGraph()) }
 
     val buttonBar = {
       /// @return a Builder for a menu item which takes a boolean specifying whether it should be compressed or not

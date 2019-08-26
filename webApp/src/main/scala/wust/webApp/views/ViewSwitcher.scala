@@ -93,6 +93,7 @@ object ViewSwitcher {
       minWidth.auto,
 
       Rx {
+        val filtered = GlobalState.filteredGraph()
         val graph = GlobalState.graph()
         val channelNode = graph.nodesById(channelId)
         val user = GlobalState.user()
@@ -104,8 +105,8 @@ object ViewSwitcher {
           nodeIdx <- nodeIdx
           if !BrowserDetect.isPhone
         } yield {
-          val messageChildrenCount = graph.messageChildrenIdx.sliceLength(nodeIdx)
-          val taskChildrenCount = graph.taskChildrenIdx.sliceLength(nodeIdx)
+          val messageChildrenCount = filtered.messageChildrenIdx.sliceLength(nodeIdx)
+          val taskChildrenCount = filtered.taskChildrenIdx.sliceLength(nodeIdx)
           val filesCount = graph.pageFilesIdx(nodeIdx).length
           (messageChildrenCount, taskChildrenCount, filesCount)
         }) getOrElse ((0, 0, 0))

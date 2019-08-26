@@ -229,17 +229,24 @@ object GlobalState {
   val graphTransformations: Var[Seq[UserViewGraphTransformation]] = Var(defaultTransformations)
 
   // transform graph with graphTransformations
-  val graph: Rx[Graph] = Rx {
+  val graphTransformationsEdgeFilter: Rx[GraphOperation.EdgeFilter] = Rx {
     val graphTrans = graphTransformations()
     val currentGraph = rawGraph()
     val currentUserId = userId()
     val currentPage = urlPage.now // use now because we do not want to trigger on page change but wait for the new raw graph, coming from each page change.
 
-    currentPage.parentId.fold(currentGraph) { parentId =>
+    currentPage.parentId.flatMap { parentId =>
       if (currentGraph.contains(parentId) && graphTrans.nonEmpty) GraphOperation.filter(currentGraph, parentId, currentUserId, graphTrans)
-      else currentGraph
+      else None
     }
   }
+
+  val filteredGraph: Rx[FilteredGraph] = Rx {
+    FilteredGraph(graph(), graphTransformationsEdgeFilter())
+  }
+
+  val graph: Rx[Graph] = rawGraph
+
   val isAnyFilterActive: Rx[Boolean] = Rx { graphTransformations().length != 2 || defaultTransformations.exists(t => !graphTransformations().contains(t)) }
 
   def toFocusState(viewConfig: ViewConfig): Option[FocusState] = viewConfig.page.parentId.map { parentId =>

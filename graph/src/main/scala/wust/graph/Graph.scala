@@ -34,7 +34,6 @@ final class Graph(val nodes: Array[Node], val edges: Array[Edge], createNewLooku
   def copy(nodes: Array[Node], edges: Array[Edge]) = Graph(nodes, edges)
   def copyOnlyNodes(nodes: Array[Node]) = Graph(nodes, edges)
   def copyOnlyEdges(edges: Array[Edge]) = Graph(nodes, edges, graph => GraphLookup.withNodeKnowledge(graph, lookup.idToIdxHashMap))
-  def filterChildEdges(f: (Edge.Child, Int) => Boolean) = Graph(nodes, edges, _ => GraphLookup.copyFrom(this, childFilter = Some(f)))
 
   // because it is a final case class, we overwrite equals and hashcode, because we do not want comparisons here.
   override def hashCode(): Int = super.hashCode()
@@ -186,11 +185,11 @@ final case class GraphLookup private(
   childEdgeIdx: NestedArrayInt,
   accessEdgeReverseIdx: NestedArrayInt,
   contentsEdgeIdx: NestedArrayInt,
-  messageChildrenIdx: NestedArrayInt,
-  taskChildrenIdx: NestedArrayInt,
-  noteChildrenIdx: NestedArrayInt,
+  private val messageChildrenIdx: NestedArrayInt,
+  private val taskChildrenIdx: NestedArrayInt,
+  private val noteChildrenIdx: NestedArrayInt,
   tagChildrenIdx: NestedArrayInt,
-  projectChildrenIdx: NestedArrayInt,
+  private val projectChildrenIdx: NestedArrayInt,
   tagParentsIdx: NestedArrayInt,
   stageParentsIdx: NestedArrayInt,
   notDeletedParentsIdx: NestedArrayInt,
@@ -821,152 +820,6 @@ object GraphLookup {
     withNodeKnowledge(graph, idToIdxMap)
   }
 
-  def copyFrom(
-    graph: Graph,
-    childFilter: Option[(Edge.Child, Int) => Boolean] = None
-  ): GraphLookup = {
-
-    childFilter match {
-      case Some(childFilter) =>
-        val n = graph.nodes.length
-        import graph.{nodes, edges}, graph.lookup.buildNow
-
-        val filteredChildEdges = ArraySet.create(graph.edges.length)
-
-        val parentsDegree = new Array[Int](n)
-        val childrenDegree = new Array[Int](n)
-        val messageChildrenDegree = new Array[Int](n)
-        val taskChildrenDegree = new Array[Int](n)
-        val noteChildrenDegree = new Array[Int](n)
-        val projectChildrenDegree = new Array[Int](n)
-        val tagChildrenDegree = new Array[Int](n)
-        val tagParentsDegree = new Array[Int](n)
-        val stageParentsDegree = new Array[Int](n)
-        val notDeletedParentsDegree = new Array[Int](n)
-        val notDeletedChildrenDegree = new Array[Int](n)
-
-        graph.lookup.parentEdgeIdx.foreach(_.foreach { edgeIdx =>
-          val e = graph.lookup.edges(edgeIdx).as[Edge.Child]
-          if (childFilter(e, edgeIdx)) {
-            val sourceIdx = graph.lookup.edgesIdx.a(edgeIdx)
-            val targetIdx = graph.lookup.edgesIdx.b(edgeIdx)
-
-            val childIsMessage = nodes(targetIdx).role == NodeRole.Message
-            val childIsTask = nodes(targetIdx).role == NodeRole.Task
-            val childIsNote = nodes(targetIdx).role == NodeRole.Note
-            val childIsProject = nodes(targetIdx).role == NodeRole.Project
-            val childIsTag = nodes(targetIdx).role == NodeRole.Tag
-            val parentIsTag = nodes(sourceIdx).role == NodeRole.Tag
-            val parentIsStage = nodes(sourceIdx).role == NodeRole.Stage
-            parentsDegree(targetIdx) += 1
-            childrenDegree(sourceIdx) += 1
-
-            if (childIsProject) projectChildrenDegree(sourceIdx) += 1
-            if (childIsMessage) messageChildrenDegree(sourceIdx) += 1
-            if (childIsTask) taskChildrenDegree(sourceIdx) += 1
-            if (childIsNote) noteChildrenDegree(sourceIdx) += 1
-
-            e.data.deletedAt match {
-              case None =>
-                if (childIsTag) tagChildrenDegree(sourceIdx) += 1
-                if (parentIsTag) tagParentsDegree(targetIdx) += 1
-                if (parentIsStage) stageParentsDegree(targetIdx) += 1
-                notDeletedParentsDegree(targetIdx) += 1
-                notDeletedChildrenDegree(sourceIdx) += 1
-              case Some(deletedAt) =>
-                if (deletedAt isAfter buildNow) { // in the future
-                  if (childIsTag) tagChildrenDegree(sourceIdx) += 1
-                  if (parentIsTag) tagParentsDegree(targetIdx) += 1
-                  if (parentIsStage) stageParentsDegree(targetIdx) += 1
-                  notDeletedParentsDegree(targetIdx) += 1
-                notDeletedChildrenDegree(sourceIdx) += 1
-                }
-                // TODO everything deleted further in the past should already be filtered in backend
-                // BUT received on request
-            }
-
-            filteredChildEdges += edgeIdx
-          }
-        })
-
-        val parentsIdxBuilder = NestedArrayInt.builder(parentsDegree)
-        val parentEdgeIdxBuilder = NestedArrayInt.builder(parentsDegree)
-        val childrenIdxBuilder = NestedArrayInt.builder(childrenDegree)
-        val childEdgeIdxBuilder = NestedArrayInt.builder(childrenDegree)
-        val messageChildrenIdxBuilder = NestedArrayInt.builder(messageChildrenDegree)
-        val taskChildrenIdxBuilder = NestedArrayInt.builder(taskChildrenDegree)
-        val noteChildrenIdxBuilder = NestedArrayInt.builder(noteChildrenDegree)
-        val projectChildrenIdxBuilder = NestedArrayInt.builder(projectChildrenDegree)
-        val tagChildrenIdxBuilder = NestedArrayInt.builder(tagChildrenDegree)
-        val tagParentsIdxBuilder = NestedArrayInt.builder(tagParentsDegree)
-        val stageParentsIdxBuilder = NestedArrayInt.builder(stageParentsDegree)
-        val notDeletedParentsIdxBuilder = NestedArrayInt.builder(notDeletedParentsDegree)
-        val notDeletedChildrenIdxBuilder = NestedArrayInt.builder(notDeletedChildrenDegree)
-
-        graph.lookup.parentEdgeIdx.foreach(_.foreach { edgeIdx =>
-          if (filteredChildEdges.contains(edgeIdx)) {
-            val e = graph.lookup.edges(edgeIdx).as[Edge.Child]
-            val sourceIdx = graph.lookup.edgesIdx.a(edgeIdx)
-            val targetIdx = graph.lookup.edgesIdx.b(edgeIdx)
-
-            val childIsMessage = nodes(targetIdx).role == NodeRole.Message
-            val childIsTask = nodes(targetIdx).role == NodeRole.Task
-            val childIsNote = nodes(targetIdx).role == NodeRole.Note
-            val childIsTag = nodes(targetIdx).role == NodeRole.Tag
-            val childIsProject = nodes(targetIdx).role == NodeRole.Project
-            val parentIsTag = nodes(sourceIdx).role == NodeRole.Tag
-            val parentIsStage = nodes(sourceIdx).role == NodeRole.Stage
-            parentsIdxBuilder.add(targetIdx, sourceIdx)
-            parentEdgeIdxBuilder.add(targetIdx, edgeIdx)
-            childrenIdxBuilder.add(sourceIdx, targetIdx)
-            childEdgeIdxBuilder.add(sourceIdx, edgeIdx)
-
-            if (childIsProject) projectChildrenIdxBuilder.add(sourceIdx, targetIdx)
-            if (childIsMessage) messageChildrenIdxBuilder.add(sourceIdx, targetIdx)
-            if (childIsTask) taskChildrenIdxBuilder.add(sourceIdx, targetIdx)
-            if (childIsNote) noteChildrenIdxBuilder.add(sourceIdx, targetIdx)
-
-            e.data.deletedAt match {
-              case None =>
-                if (childIsTag) tagChildrenIdxBuilder.add(sourceIdx, targetIdx)
-                if (parentIsTag) tagParentsIdxBuilder.add(targetIdx, sourceIdx)
-                if (parentIsStage) stageParentsIdxBuilder.add(targetIdx, sourceIdx)
-                notDeletedParentsIdxBuilder.add(targetIdx, sourceIdx)
-                notDeletedChildrenIdxBuilder.add(sourceIdx, targetIdx)
-              case Some(deletedAt) =>
-                if (deletedAt isAfter buildNow) { // in the future
-                  if (childIsTag) tagChildrenIdxBuilder.add(sourceIdx, targetIdx)
-                  if (parentIsTag) tagParentsIdxBuilder.add(targetIdx, sourceIdx)
-                  if (parentIsStage) stageParentsIdxBuilder.add(targetIdx, sourceIdx)
-                  notDeletedParentsIdxBuilder.add(targetIdx, sourceIdx)
-                  notDeletedChildrenIdxBuilder.add(sourceIdx, targetIdx)
-                }
-                // TODO everything deleted further in the past should already be filtered in backend
-                // BUT received on request
-            }
-          }
-        })
-
-        graph.lookup.copy(
-          parentsIdx = parentsIdxBuilder.result(),
-          parentEdgeIdx = parentEdgeIdxBuilder.result(),
-          childrenIdx = childrenIdxBuilder.result(),
-          childEdgeIdx = childEdgeIdxBuilder.result(),
-          messageChildrenIdx = messageChildrenIdxBuilder.result(),
-          taskChildrenIdx = taskChildrenIdxBuilder.result(),
-          noteChildrenIdx = noteChildrenIdxBuilder.result(),
-          projectChildrenIdx = projectChildrenIdxBuilder.result(),
-          tagChildrenIdx = tagChildrenIdxBuilder.result(),
-          tagParentsIdx = tagParentsIdxBuilder.result(),
-          stageParentsIdx = stageParentsIdxBuilder.result(),
-          notDeletedParentsIdx = notDeletedParentsIdxBuilder.result(),
-          notDeletedChildrenIdx = notDeletedChildrenIdxBuilder.result(),
-        )
-
-      case None => graph.lookup
-    }
-  }
-
   def withNodeKnowledge(
     graph: Graph,
     idToIdxMap: mutable.Map[NodeId, Int]
@@ -1300,6 +1153,126 @@ object GraphLookup {
       buildNow = buildNow
     )
   }
+}
+
+class FilteredGraph(
+  val parentsIdx: NestedArrayInt,
+  val parentEdgeIdx: NestedArrayInt,
+  val childrenIdx: NestedArrayInt,
+  val childEdgeIdx: NestedArrayInt,
+  val messageChildrenIdx: NestedArrayInt,
+  val taskChildrenIdx: NestedArrayInt,
+  val noteChildrenIdx: NestedArrayInt,
+  val tagChildrenIdx: NestedArrayInt,
+  val projectChildrenIdx: NestedArrayInt,
+  val tagParentsIdx: NestedArrayInt,
+  val stageParentsIdx: NestedArrayInt,
+)
+object FilteredGraph {
+  def apply(
+    graph: Graph,
+    childFilter: Option[(Edge.Child, Int) => Boolean] = None
+  ): FilteredGraph = {
+
+    val n = graph.nodes.length
+    import graph.{nodes, edges}, graph.lookup.buildNow
+
+    //TODO: we do not need this arrayset if childFilter = None
+    val filteredChildEdges = ArraySet.create(graph.edges.length)
+
+    val parentsDegree = new Array[Int](n)
+    val childrenDegree = new Array[Int](n)
+    val messageChildrenDegree = new Array[Int](n)
+    val taskChildrenDegree = new Array[Int](n)
+    val noteChildrenDegree = new Array[Int](n)
+    val projectChildrenDegree = new Array[Int](n)
+    val tagChildrenDegree = new Array[Int](n)
+    val tagParentsDegree = new Array[Int](n)
+    val stageParentsDegree = new Array[Int](n)
+
+    graph.lookup.parentEdgeIdx.foreach(_.foreach { edgeIdx =>
+      val e = graph.lookup.edges(edgeIdx).as[Edge.Child]
+      if (childFilter.forall(_(e, edgeIdx))) {
+        val sourceIdx = graph.lookup.edgesIdx.a(edgeIdx)
+        val targetIdx = graph.lookup.edgesIdx.b(edgeIdx)
+
+        val childIsMessage = nodes(targetIdx).role == NodeRole.Message
+        val childIsTask = nodes(targetIdx).role == NodeRole.Task
+        val childIsNote = nodes(targetIdx).role == NodeRole.Note
+        val childIsProject = nodes(targetIdx).role == NodeRole.Project
+        val childIsTag = nodes(targetIdx).role == NodeRole.Tag
+        val parentIsTag = nodes(sourceIdx).role == NodeRole.Tag
+        val parentIsStage = nodes(sourceIdx).role == NodeRole.Stage
+        parentsDegree(targetIdx) += 1
+        childrenDegree(sourceIdx) += 1
+
+        if (childIsProject) projectChildrenDegree(sourceIdx) += 1
+        if (childIsMessage) messageChildrenDegree(sourceIdx) += 1
+        if (childIsTask) taskChildrenDegree(sourceIdx) += 1
+        if (childIsNote) noteChildrenDegree(sourceIdx) += 1
+        if (childIsTag) tagChildrenDegree(sourceIdx) += 1
+        if (parentIsTag) tagParentsDegree(targetIdx) += 1
+        if (parentIsStage) stageParentsDegree(targetIdx) += 1
+
+        filteredChildEdges += edgeIdx
+      }
+    })
+
+    val parentsIdxBuilder = NestedArrayInt.builder(parentsDegree)
+    val parentEdgeIdxBuilder = NestedArrayInt.builder(parentsDegree)
+    val childrenIdxBuilder = NestedArrayInt.builder(childrenDegree)
+    val childEdgeIdxBuilder = NestedArrayInt.builder(childrenDegree)
+    val messageChildrenIdxBuilder = NestedArrayInt.builder(messageChildrenDegree)
+    val taskChildrenIdxBuilder = NestedArrayInt.builder(taskChildrenDegree)
+    val noteChildrenIdxBuilder = NestedArrayInt.builder(noteChildrenDegree)
+    val projectChildrenIdxBuilder = NestedArrayInt.builder(projectChildrenDegree)
+    val tagChildrenIdxBuilder = NestedArrayInt.builder(tagChildrenDegree)
+    val tagParentsIdxBuilder = NestedArrayInt.builder(tagParentsDegree)
+    val stageParentsIdxBuilder = NestedArrayInt.builder(stageParentsDegree)
+
+    graph.lookup.parentEdgeIdx.foreach(_.foreach { edgeIdx =>
+      if (filteredChildEdges.contains(edgeIdx)) {
+        val e = graph.lookup.edges(edgeIdx).as[Edge.Child]
+        val sourceIdx = graph.lookup.edgesIdx.a(edgeIdx)
+        val targetIdx = graph.lookup.edgesIdx.b(edgeIdx)
+
+        val childIsMessage = nodes(targetIdx).role == NodeRole.Message
+        val childIsTask = nodes(targetIdx).role == NodeRole.Task
+        val childIsNote = nodes(targetIdx).role == NodeRole.Note
+        val childIsTag = nodes(targetIdx).role == NodeRole.Tag
+        val childIsProject = nodes(targetIdx).role == NodeRole.Project
+        val parentIsTag = nodes(sourceIdx).role == NodeRole.Tag
+        val parentIsStage = nodes(sourceIdx).role == NodeRole.Stage
+        parentsIdxBuilder.add(targetIdx, sourceIdx)
+        parentEdgeIdxBuilder.add(targetIdx, edgeIdx)
+        childrenIdxBuilder.add(sourceIdx, targetIdx)
+        childEdgeIdxBuilder.add(sourceIdx, edgeIdx)
+
+        if (childIsProject) projectChildrenIdxBuilder.add(sourceIdx, targetIdx)
+        if (childIsMessage) messageChildrenIdxBuilder.add(sourceIdx, targetIdx)
+        if (childIsTask) taskChildrenIdxBuilder.add(sourceIdx, targetIdx)
+        if (childIsNote) noteChildrenIdxBuilder.add(sourceIdx, targetIdx)
+        if (childIsTag) tagChildrenIdxBuilder.add(sourceIdx, targetIdx)
+        if (parentIsTag) tagParentsIdxBuilder.add(targetIdx, sourceIdx)
+        if (parentIsStage) stageParentsIdxBuilder.add(targetIdx, sourceIdx)
+      }
+    })
+
+    new FilteredGraph(
+      parentsIdx = parentsIdxBuilder.result(),
+      parentEdgeIdx = parentEdgeIdxBuilder.result(),
+      childrenIdx = childrenIdxBuilder.result(),
+      childEdgeIdx = childEdgeIdxBuilder.result(),
+      messageChildrenIdx = messageChildrenIdxBuilder.result(),
+      taskChildrenIdx = taskChildrenIdxBuilder.result(),
+      noteChildrenIdx = noteChildrenIdxBuilder.result(),
+      projectChildrenIdx = projectChildrenIdxBuilder.result(),
+      tagChildrenIdx = tagChildrenIdxBuilder.result(),
+      tagParentsIdx = tagParentsIdxBuilder.result(),
+      stageParentsIdx = stageParentsIdxBuilder.result(),
+    )
+  }
+
 }
 
 sealed trait Tree {

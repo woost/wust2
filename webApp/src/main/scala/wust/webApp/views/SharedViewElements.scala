@@ -442,7 +442,9 @@ object SharedViewElements {
   def renderExpandCollapseButton(nodeId: NodeId, isExpanded: Rx[Boolean], alwaysShow: Boolean = false)(implicit ctx: Ctx.Owner) = {
     val childrenSize = Rx {
       val graph = GlobalState.graph()
-      graph.messageChildrenIdx.sliceLength(graph.idToIdxOrThrow(nodeId)) + graph.taskChildrenIdx.sliceLength(graph.idToIdxOrThrow(nodeId))
+      val filtered = GlobalState.filteredGraph()
+      val nodeIdx = graph.idToIdxOrThrow(nodeId)
+      filtered.messageChildrenIdx.sliceLength(nodeIdx) + filtered.taskChildrenIdx.sliceLength(nodeIdx)
     }
     Rx {
       if(isExpanded()) {

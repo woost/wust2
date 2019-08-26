@@ -6,7 +6,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.css.Styles
-import wust.graph.{Edge, Graph, GraphChanges, Node}
+import wust.graph.{Edge, Graph, GraphChanges, Node, FilteredGraph}
 import wust.ids._
 import wust.webApp.dragdrop.{DragContainer, DragItem}
 import wust.webApp.state.{FocusState, GlobalState, GraphChangesAutomation, Placeholder}
@@ -33,12 +33,13 @@ object TableView {
 
       Rx {
         val graph = GlobalState.graph()
-        table( graph, focusState.focusedId, roles, sort, viewRender)
+        val filtered = GlobalState.filteredGraph()
+        table( graph, filtered, focusState.focusedId, roles, sort, viewRender)
       }
     )
   }
 
-  def table(graph: Graph, focusedId: NodeId, roles: List[NodeRole], sort: Var[Option[UI.ColumnSort]], viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VDomModifier = {
+  def table(graph: Graph, filtered: FilteredGraph, focusedId: NodeId, roles: List[NodeRole], sort: Var[Option[UI.ColumnSort]], viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VDomModifier = {
     val focusedIdx = graph.idToIdxOrThrow(focusedId)
 
     val globalEditMode = Var(Option.empty[(String, Seq[Edge.LabeledProperty])])
@@ -109,7 +110,7 @@ object TableView {
     }
 
     val childrenIdxs: Array[Int] = {
-      val arr = graph.childrenIdx(focusedIdx).toArray
+      val arr = filtered.childrenIdx(focusedIdx).toArray
       if (roles.isEmpty) arr else arr.filter { childrenIdx =>
         val node = graph.nodes(childrenIdx)
         roles.contains(node.role)

@@ -68,10 +68,10 @@ object NodeDetails {
   }
 
   object ChildStats {
-    def from(nodeIdx: Int, graph: Graph): ChildStats = {
-      val messageChildrenCount = graph.messageChildrenIdx.sliceLength(nodeIdx)
+    def from(nodeIdx: Int, graph: Graph, filtered: FilteredGraph): ChildStats = {
+      val messageChildrenCount = filtered.messageChildrenIdx.sliceLength(nodeIdx)
 
-      val taskChildren = graph.taskChildrenIdx(nodeIdx)
+      val taskChildren = filtered.taskChildrenIdx(nodeIdx)
       val taskChildrenCount = taskChildren.length
 
       val taskDoneCount = taskChildren.fold(0) { (count, childIdx) =>
@@ -79,9 +79,9 @@ object NodeDetails {
         else count
       }
 
-      val noteChildrenCount = graph.noteChildrenIdx.sliceLength(nodeIdx)
+      val noteChildrenCount = filtered.noteChildrenIdx.sliceLength(nodeIdx)
       val propertiesCount = graph.propertiesEdgeIdx.sliceLength(nodeIdx)
-      val projectChildrenCount = graph.projectChildrenIdx.sliceLength(nodeIdx)
+      val projectChildrenCount = filtered.projectChildrenIdx.sliceLength(nodeIdx)
 
       ChildStats(messageChildrenCount, taskChildrenCount, noteChildrenCount, taskDoneCount, propertiesCount, projectChildrenCount)
     }

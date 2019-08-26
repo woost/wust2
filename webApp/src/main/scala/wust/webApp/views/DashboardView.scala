@@ -22,9 +22,9 @@ import wust.webApp.views.DragComponents.registerDragContainer
 // - activity
 object DashboardView {
 
-  private def getProjectList(graph: Graph, focusedId: NodeId): Seq[Node] = {
+  private def getProjectList(graph: Graph, filtered: FilteredGraph, focusedId: NodeId): Seq[Node] = {
     val pageParentIdx = graph.idToIdxOrThrow(focusedId)
-    val directSubProjects = graph.projectChildrenIdx(pageParentIdx)
+    val directSubProjects = filtered.projectChildrenIdx(pageParentIdx)
     directSubProjects.viewMap(graph.nodes).sortBy(n => EmojiReplacer.emojiAtBeginningRegex.replaceFirstIn(n.str, ""))
   }
 
@@ -39,7 +39,7 @@ object DashboardView {
       UI.segment("Views", ViewModificationMenu.selectForm(focusState.focusedId)).apply(Styles.flexStatic, segmentMod),
     )
 
-    val projectNodes = Rx { getProjectList(GlobalState.graph(), focusState.focusedId) }
+    val projectNodes = Rx { getProjectList(GlobalState.graph(), GlobalState.filteredGraph(), focusState.focusedId) }
 
     val detailWidgets = VDomModifier(
       Styles.flex,
@@ -88,7 +88,8 @@ object DashboardView {
 
     val projectNodes = Rx {
       val graph = GlobalState.graph()
-      getProjectList(graph, focusState.focusedId).partition(node => graph.isDeletedNow(node.id, focusState.focusedId))
+      val filtered = GlobalState.filteredGraph()
+      getProjectList(graph, filtered, focusState.focusedId).partition(node => graph.isDeletedNow(node.id, focusState.focusedId))
     }
 
     div(
