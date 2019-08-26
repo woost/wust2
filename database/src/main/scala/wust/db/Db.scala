@@ -71,8 +71,8 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
             where node.id = ANY(${lift(mentionedNodeIds)} :: uuid[]) and node.data->>'type' = 'User' and node_can_access(${lift(canAccessNodeId)}, node.id)
           ) UNION ALL (
             select node.* from node as initial
-            join edge on edge.sourceid = initial.id and edge.data->>'type' = 'Member'
-            join node on edge.targetid = node.id and node.data->>'type' = 'User' and node_can_access(${lift(canAccessNodeId)}, node.id)
+            join memberedge on memberedge.sourceid = initial.id
+            join node on memberedge.targetid = node.id and node.data->>'type' = 'User' and node_can_access(${lift(canAccessNodeId)}, node.id)
             where initial.id = ANY(${lift(mentionedNodeIds)} :: uuid[]) and initial.data->>'type' <> 'User'
           )
         """.as[Query[User]]
@@ -102,15 +102,9 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     }
 
     def getAccessibleWorkspaces(userId: UserId, nodeId: NodeId)(implicit ec: ExecutionContext): Future[List[NodeId]] = {
-      val workspaceRoles = List(NodeRole.Task, NodeRole.Project, NodeRole.Note, NodeRole.Message, NodeRole.Neutral)
-      ctx.run(
-        for {
-          parentId <- query[Edge]
-            .filter(e => e.data.jsonType == lift(EdgeData.Child.tpe) && e.targetId == lift(nodeId) && canAccess(e.sourceId, lift(userId)))
-            .map(_.sourceId)
-          node <- query[Node].filter(node => node.id == parentId && liftQuery(workspaceRoles).contains(node.role))
-        } yield node.id
-      )
+      ctx.run(quote{
+        infix"select node.id from childedge inner join node on node.id = childedge.sourceid where (node.role->>'type' = 'Task' or node.role->>'type' = 'Message' or node.role->>'type' = 'Neutral' or node.role->>'type' = 'Note' or node.role->>'type' = 'Project') and node_can_access(childedge.sourceid, ${lift(userId)})".as[Query[NodeId]]
+      })
     }
 
     def getFileNodes(keys: scala.collection.Seq[String])(implicit ec: ExecutionContext): Future[Seq[(NodeId, NodeData.File)]] = {
@@ -121,22 +115,10 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       }.map(_.map(n => n.id -> n.data.asInstanceOf[NodeData.File]))
     }
 
-    def getMembers(nodeId: NodeId)(implicit ec: ExecutionContext): Future[List[User]] = {
-      ctx.run {
-        for {
-          membershipConnection <- query[MemberEdge].filter(c =>
-            //TODO call-site inline to have constant string instead of param for member.tpe
-            c.sourceId == lift(nodeId) && c.data.jsonType == lift(EdgeData.Member.tpe)
-          )
-          userNode <- queryUser.filter(_.id == membershipConnection.targetId)
-        } yield userNode
-      }
-    }
-
     def addMemberIfNodeIsPublic(nodeId: NodeId, userId: UserId)(implicit ec: ExecutionContext): Future[Boolean] = {
       val insertMembership = quote { (nodeId: NodeId, userId: UserId) =>
         infix"""
-          insert into edge(sourceid, data, targetid)
+          insert into memberedge(sourceid, data, targetid)
           select ${nodeId}, jsonb_build_object('type', 'Member', 'level', 'readwrite'::accesslevel), ${userId}
           where exists(select 1 from node where id = ${nodeId} and accesslevel = 'readwrite')
           ON CONFLICT DO NOTHING
@@ -149,7 +131,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     def addMember(nodeIds: Seq[NodeId], userId: UserId, accessLevel: AccessLevel)(implicit ec: ExecutionContext): Future[Seq[NodeId]] = {
       val insertMembership = quote { nodeId: NodeId =>
         infix"""
-          insert into edge(sourceid, data, targetid) values
+          insert into memberedge(sourceid, data, targetid) values
           (${nodeId}, jsonb_build_object('type', 'Member', 'level', ${lift(accessLevel)}::accesslevel), ${lift(userId)})
           ON CONFLICT(sourceid,(data->>'type'),coalesce(data->>'key', ''),targetid) WHERE data->>'type' <> 'Author' DO UPDATE set data = EXCLUDED.data
         """.as[Insert[Edge]].returning(_.sourceId)
@@ -158,12 +140,6 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
         //FIXME doesn't this always return nodeIds?
         assert(x.size == nodeIds.size)
         x
-      }
-    }
-
-    def removeMember(nodeId: NodeId, userId: UserId)(implicit ec: TransactionalExecutionContext): Future[Boolean] = {
-      ctx.run(query[Edge].filter(e => e.sourceId == lift(nodeId) && e.targetId == lift(userId) && e.data.jsonType == lift(EdgeData.Member.tpe)).delete).flatMap { touched =>
-        checkUnexpected(touched <= 1, success = touched == 1, s"Unexpected number of edge deletes: $touched <= 1")
       }
     }
   }
@@ -297,7 +273,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       val q = quote {
         infix"""
         with insert_user as (insert into node (id,data,accesslevel) values(${lift(user.id)}, ${lift(user.data)}, ${lift(user.accessLevel)})),
-             insert_user_member as (insert into edge (sourceid, data, targetid) values(${lift(userId)}, ${lift(membership)}, ${lift(userId)})),
+             insert_user_member as (insert into memberedge (sourceid, data, targetid) values(${lift(userId)}, ${lift(membership)}, ${lift(userId)})),
              insert_user_detail as (insert into userdetail (userid, email, verified) values(${lift(userId)}, ${lift(email)}, ${lift(false)}))
              insert into password(userid, digest) VALUES(${lift(userId)}, ${lift(passwordDigest)})
       """.as[Insert[Node]]
@@ -317,7 +293,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       val q = quote {
         infix"""
         with insert_user as (insert into node (id,data,accesslevel) values(${lift(user.id)}, ${lift(user.data)}, ${lift(user.accessLevel)}))
-             insert into edge (sourceid, data, targetId) values(${lift(userId)}, ${lift(membership)}, ${lift(userId)})
+             insert into memberedge (sourceid, data, targetid) values(${lift(userId)}, ${lift(membership)}, ${lift(userId)})
        """.as[Insert[Node]]
       }
 
