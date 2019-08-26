@@ -7,6 +7,7 @@ import scala.scalajs.js
 object MainTutorial extends Tutorial {
   val tourId = "tour-introduction"
   val tourSteps:js.Array[Step] = js.Array(
+    step.unregistredInfo,
     step.projectIntro,
     step.createProject,
     step.explainViews,
@@ -15,6 +16,15 @@ object MainTutorial extends Tutorial {
   )
 
   object step {
+    val unregistredInfo = new Step {
+      title ="You can use Woost without registration."
+      content = "Everything you create is private (unless you share it). Whenever you want to access your data from another device, just sign up."
+      var target = "tutorial-welcome-authcontrols"
+      var placement = "left"
+      showCTAButton = false
+      showNextButton = true
+    }
+
     val projectIntro = new Step {
       title = "Let's get started."
       content = "In Woost, everything starts with a Project. In a Project you can invite other people to collaborate. You can also add different tools, like a Checklist, a Kanban Board or a Chat.<br/><br/><b>Continue by creating a Project.</b>"
@@ -25,8 +35,8 @@ object MainTutorial extends Tutorial {
     }
 
     val createProject = new Step {
-      title = "Type Project Name, Select View"
-      content = "Frist, give this project a name.<br/>For example <b>Shopping List</b>. Then select the <b>Checklist</b> view and click create."
+      title = "Enter Project Name, then select a View"
+      content = "First, enter a name for this project.<br/>For example <b>Shopping List</b>. Then select the <b>Checklist</b> view and click <b>Create</b>."
       var target = "tutorial-modal-inputfield"
       var placement = "right"
       delay = 200
