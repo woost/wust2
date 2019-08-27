@@ -70,37 +70,43 @@ object LeftSidebar {
               ),
             ),
 
-            UI.accordion(
-              content = Seq(
-                accordionEntry(
-                  "Tags",
-                  TagList.body(ViewRender),
-                  active = false
-                ),
-                accordionEntry(
-                  "Filters & Deleted Items",
-                  FilterWindow.body(Styles.flexStatic),
-                  active = false
+            Rx {
+              val viewIsContent = GlobalState.viewIsContent()
+
+              UI.accordion(
+                content = Seq.empty ++
+                (if(viewIsContent) Seq(
+                  accordionEntry(
+                    "Tags",
+                    TagList.body(ViewRender),
+                    active = false
+                  ),
+                  accordionEntry(
+                    "Filters & Deleted Items",
+                    FilterWindow.body(Styles.flexStatic),
+                    active = false
+                  )
+                ) else Seq.empty) ++
+                StagingOnly(
+                  accordionEntry(
+                    FeatureExplorer.toggleButton.apply(marginBottom := "10px"),
+                    FeatureExplorer(),
+                    active = false
+                  )).toSeq,
+                styles = "styled fluid",
+                exclusive = true,
+              ).apply(
+                  Styles.flexStatic,
+                  marginTop.auto,
+                  maxHeight := "70%",
+                  Styles.flex,
+                  flexDirection.column,
+                  justifyContent.flexStart,
+                  fontSize := "12px",
+                  boxShadow := "none", //explicitly overwrite boxshadow from accordion.
+                  onMouseDown.stopPropagation.discard, // prevent rightsidebar from closing
                 )
-              ) ++ StagingOnly(
-                accordionEntry(
-                  FeatureExplorer.toggleButton.apply(marginBottom := "10px"),
-                  FeatureExplorer(),
-                  active = false
-                )).toSeq,
-              styles = "styled fluid",
-              exclusive = true,
-            ).apply(
-                Styles.flexStatic,
-                marginTop.auto,
-                maxHeight := "70%",
-                Styles.flex,
-                flexDirection.column,
-                justifyContent.flexStart,
-                fontSize := "12px",
-                boxShadow := "none", //explicitly overwrite boxshadow from accordion.
-                onMouseDown.stopPropagation.discard, // prevent rightsidebar from closing
-              ),
+            },
             beforeInstallPrompt(buttonModifier = VDomModifier(
               marginBottom := "15px"
             )).apply(Styles.flexStatic, alignSelf.center),
