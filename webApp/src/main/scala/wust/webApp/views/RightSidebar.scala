@@ -358,20 +358,21 @@ object RightSidebar {
   private def nodeAuthor(nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = {
     val authorship = Rx {
       val graph = GlobalState.graph()
-      val idx = graph.idToIdxOrThrow(nodeId)
-      val author = graph.nodeCreator(idx)
-      val creationEpochMillis = graph.nodeCreated(idx)
-      (author, creationEpochMillis)
+      graph.idToIdxMap(nodeId) { idx =>
+        val author = graph.nodeCreator(idx)
+        val creationEpochMillis = graph.nodeCreated(idx)
+        (author, creationEpochMillis)
+      }
     }
 
     div(
       Styles.flex,
       justifyContent.flexEnd,
 
-      authorship.map {
+      authorship.map(_.map {
         case (author, creationEpochMillis) =>
           chatMessageHeader(author, creationEpochMillis, nodeId, author.map(smallAuthorAvatar)).apply(marginRight := "5px")
-      },
+      }),
     )
   }
 
@@ -379,8 +380,9 @@ object RightSidebar {
 
     val propertySingle = Rx {
       val graph = GlobalState.rawGraph()
-      val nodeIdx = graph.idToIdxOrThrow(focusPref.nodeId)
-      PropertyData.Single(graph, nodeIdx)
+      graph.idToIdxMap(focusPref.nodeId) { nodeIdx =>
+        PropertyData.Single(graph, nodeIdx)
+      }
     }
     def renderSplit(left: VDomModifier, right: VDomModifier) = div(
       Styles.flex,
@@ -423,8 +425,9 @@ object RightSidebar {
 
     val selfOrParentIsAutomationTemplate = Rx {
       val graph = GlobalState.rawGraph()
-      val nodeIdx = graph.idToIdxOrThrow(focusPref.nodeId)
-      graph.selfOrParentIsAutomationTemplate(nodeIdx)
+      graph.idToIdxFold(focusPref.nodeId)(false) { nodeIdx =>
+        graph.selfOrParentIsAutomationTemplate(nodeIdx)
+      }
     }
 
     val isCreateReference = Var(false)
@@ -472,24 +475,27 @@ object RightSidebar {
           cls := "ui form",
           marginTop := "10px",
           Rx {
-            VDomModifier(
-              propertySingle().properties.map { property =>
-                Components.removablePropertySection(property.key, property.values, parentIdAction)
-              },
+            propertySingle().map { propertySingle =>
 
-              VDomModifier.ifTrue(propertySingle().info.reverseProperties.nonEmpty)(div(
-                Styles.flex,
-                flexWrap.wrap,
-                fontSize.small,
-                span("Backlinks: ", color.gray),
-                propertySingle().info.reverseProperties.map { node =>
-                  Components.nodeCard(node, maxLength = Some(50)).apply(
-                    margin := "3px",
-                    Components.sidebarNodeFocusClickMod(Var(Some(focusPref)), pref => parentIdAction(pref.map(_.nodeId)), node.id)
-                  )
-                }
-              ))
-            )
+              VDomModifier(
+                propertySingle.properties.map { property =>
+                  Components.removablePropertySection(property.key, property.values, parentIdAction)
+                },
+
+                VDomModifier.ifTrue(propertySingle.info.reverseProperties.nonEmpty)(div(
+                  Styles.flex,
+                  flexWrap.wrap,
+                  fontSize.small,
+                  span("Backlinks: ", color.gray),
+                  propertySingle.info.reverseProperties.map { node =>
+                    Components.nodeCard(node, maxLength = Some(50)).apply(
+                      margin := "3px",
+                      Components.sidebarNodeFocusClickMod(Var(Some(focusPref)), pref => parentIdAction(pref.map(_.nodeId)), node.id)
+                    )
+                  }
+                ))
+              )
+            }
           }
         ),
         div(
@@ -527,8 +533,9 @@ object RightSidebar {
             case true =>
               val referenceEdges = Rx {
                 val graph = GlobalState.rawGraph()
-                val nodeIdx = graph.idToIdxOrThrow(focusPref.nodeId)
-                graph.referencesTemplateEdgeIdx(nodeIdx)
+                graph.idToIdxFold[flatland.ArraySliceInt](focusPref.nodeId)(flatland.ArraySliceInt.empty) { nodeIdx =>
+                  graph.referencesTemplateEdgeIdx(nodeIdx)
+                }
               }
 
               def addButton = VDomModifier(
@@ -585,9 +592,9 @@ object RightSidebar {
             alignItems.center,
             flexWrap.wrap,
             Rx {
-              propertySingle().info.tags.map { tag =>
+              propertySingle().map(_.info.tags.map { tag =>
                 Components.removableNodeTag(tag, taggedNodeId = focusPref.nodeId)
-              }
+              })
             }
           ),
         ).apply(marginTop := "10px"),
@@ -602,9 +609,9 @@ object RightSidebar {
             alignItems.center,
             flexWrap.wrap,
             Rx {
-              propertySingle().info.assignedUsers.map { user =>
+              propertySingle().map(_.info.assignedUsers.map { user =>
                 Components.removableAssignedUser(user, focusPref.nodeId)
-              }
+              })
             }
           )
         ).apply(marginTop := "10px"),
