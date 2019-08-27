@@ -46,7 +46,7 @@ object MainTutorial extends Tutorial {
 
     val explainViews = new Step {
       title = "Project Views"
-      content = "All views will be here. Click tabs to switch. Click + to add or remove views."
+      content = "Every Project can have several views. Click the tabs to switch. Click <b>+</b> to add or remove views."
       var target = "tutorial-pageheader-viewswitcher"
       var placement = "bottom"
       showCTAButton = false
