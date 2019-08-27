@@ -158,17 +158,17 @@ object FeatureState {
             UI.toast(feature.toString)
 
             if (Feature.selfLoops.nonEmpty)
-              UI.toast("selfLoops: " + Feature.selfLoops.toList, title = "FeatureState", level = ToastLevel.Error, autoclose = false)
+              UI.toast("selfLoops: " + Feature.selfLoops.toList, title = "FeatureState", level = ToastLevel.Error, autoclose = true)
             if (Feature.unreachable.nonEmpty)
-              UI.toast("unreachable: " + Feature.unreachable, title = "FeatureState", level = ToastLevel.Error, autoclose = false)
+              UI.toast("unreachable: " + Feature.unreachable, title = "FeatureState", level = ToastLevel.Error, autoclose = true)
             if (recentlyUsed.now.length > recentlyUsedLimit)
-              UI.toast("recentlyUsed has too many elements: " + recentlyUsed.now.length + "/" + recentlyUsedLimit, title = "FeatureState", level = ToastLevel.Error, autoclose = false)
+              UI.toast("recentlyUsed has too many elements: " + recentlyUsed.now.length + "/" + recentlyUsedLimit, title = "FeatureState", level = ToastLevel.Error, autoclose = true)
             if (recentlyUsed.now != recentlyUsed.now.distinct)
-              UI.toast("recentlyUsed is not distinct: " + recentlyUsed.now, title = "FeatureState", level = ToastLevel.Error, autoclose = false)
+              UI.toast("recentlyUsed is not distinct: " + recentlyUsed.now, title = "FeatureState", level = ToastLevel.Error, autoclose = true)
             if (!(next.now == next.now.distinct))
-              UI.toast("next is not distinct: Next:" + next.now, title = "FeatureState", level = ToastLevel.Error, autoclose = false)
+              UI.toast("next is not distinct: Next:" + next.now, title = "FeatureState", level = ToastLevel.Error, autoclose = true)
             if (!(next.now.toSet subsetOf nextCandidates.now.toSet))
-              UI.toast("next is not subset of nextCandidates: Next:" + next.now + " / Candidates:" + nextCandidates.now.toSet, title = "FeatureState", level = ToastLevel.Error, autoclose = false)
+              UI.toast("next is not subset of nextCandidates: Next:" + next.now + " / Candidates:" + nextCandidates.now.toSet, title = "FeatureState", level = ToastLevel.Error, autoclose = true)
           }
         }
       }
