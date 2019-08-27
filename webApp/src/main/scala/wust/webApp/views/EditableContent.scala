@@ -226,15 +226,21 @@ object EditableContent {
   private def editOrRender[T](current: T, editMode: Var[Boolean], renderFn: Ctx.Owner => T => VDomModifier, inputFn: Ctx.Owner => Handler[EditInteraction[T]] => VDomModifier)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VDomModifier] = EmitterBuilder.ofModifier { action =>
     val currentVar = Handler.unsafe[EditInteraction[T]]
 
-    editMode.foreach { currentlyEditingSubject.onNext(_) }
-
     VDomModifier(
       emitter(currentVar) --> action,
 
       Rx {
         //components are keyed, becasue otherwise setting editMode to false does not reliably cancel editRender (happens in table with search-and-select of reference node)
-        if(editMode()) VDomModifier(inputFn(ctx)(currentVar), keyed)
-        else VDomModifier(currentVar.collect { case EditInteraction.Input(current) => renderFn(ctx)(current) }.prepend(renderFn(ctx)(current)), keyed)
+        if(editMode()) VDomModifier(
+          keyed,
+          inputFn(ctx)(currentVar),
+          onDomMount(true) --> currentlyEditingSubject,
+          onDomUnmount(false) --> currentlyEditingSubject,
+        )
+        else VDomModifier(
+          keyed,
+          currentVar.collect { case EditInteraction.Input(current) => renderFn(ctx)(current) }.prepend(renderFn(ctx)(current)),
+        )
       },
     )
   }
