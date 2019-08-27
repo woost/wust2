@@ -91,7 +91,13 @@ function db() {
         openreq.onupgradeneeded = () => {
             openreq.result.createObjectStore('auth');
         };
-        _db = requestPromise(openreq).then(r => r, err => null);
+        _db = requestPromise(openreq).then(
+            db => {
+                db.addEventListener("close", () => _db = null); // retry on close
+                return db;
+            },
+            err => _db = null // retry on error
+        )
     }
     return _db;
 }
@@ -105,7 +111,10 @@ function dbAuthStore(access) {
 var _userAuth;
 function userAuth() {
     if (!_userAuth) {
-        _userAuth = dbAuthStore("readonly").then(store => requestPromise(store.get(0)));
+        _userAuth = dbAuthStore("readonly").then(
+            store => requestPromise(store.get(0)),
+            err => _userAuth = null // retry on error
+        );
     }
     return _userAuth;
 }
