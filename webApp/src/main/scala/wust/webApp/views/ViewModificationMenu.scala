@@ -49,7 +49,7 @@ object ViewModificationMenu {
       val node = nodeRx()
       node.fold(List.empty[View.Visible]) { node =>
         node.views match {
-          case None        => ViewHeuristic.bestView(GlobalState.graph(), node, GlobalState.user().id).toList
+          case None        => ViewHeuristic.bestView(GlobalState.graph(), node, GlobalState.userId()).toList
           case Some(views) => views
         }
       }

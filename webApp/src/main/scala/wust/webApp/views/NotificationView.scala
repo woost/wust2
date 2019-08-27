@@ -63,7 +63,7 @@ object NotificationView {
 
         Rx {
           val graph = GlobalState.graph()
-          val userId = GlobalState.user().id
+          val userId = GlobalState.userId()
           val page = GlobalState.page()
 
           val unreadTree: Option[UnreadNode] = for {
