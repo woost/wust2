@@ -127,7 +127,7 @@ object FeedbackForm {
       div(
         activeDisplay,
         width := "280px",
-        position.fixed, top := "35px", right <-- Rx{ if (GlobalState.screenSize() == ScreenSize.Small) "0px" else "100px" },
+        position.fixed, bottom := "35px", left := "20px",
         zIndex := ZIndex.formOverlay,
         padding := "10px",
         borderRadius := "5px",
