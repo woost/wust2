@@ -246,7 +246,7 @@ object UnreadComponents {
     val channelNotification = Rx {
       VDomModifier.ifTrue(haveUnreadNotifications())(
         button(
-          cls := "ui mini compact button",
+          cls := "ui mini inverted compact button",
           Icons.notifications,
           onClick.stopPropagation(View.Notifications) --> sink,
         )
@@ -254,13 +254,13 @@ object UnreadComponents {
     }
 
     val activityStream = button(
-      cls := "ui mini compact button",
+      cls := "ui mini inverted compact button",
       Icons.activityStream,
       onClick.stopPropagation(View.ActivityStream) --> sink,
     )
 
     div(
-      cls := "ui mini basic compact buttons",
+      cls := "ui mini compact buttons",
       channelNotification,
       activityStream,
       modifiers
