@@ -122,7 +122,6 @@ object Feature {
   case object EditTaskInRightSidebar extends Category.Basics with Category.Item.Task { override def requiresAll = Array(OpenTaskInRightSidebar); override def requiresAny = Array(CreateTaskInChecklist, CreateTaskInKanban) }
   case object EditMessageInRightSidebar extends Category.Basics with Category.Item.Message { override def requiresAll = Array(OpenMessageInRightSidebar) }
   // case object EditNoteInRightSidebar extends Category.Basics with Category.Item.Note { override def requiresAll = Array(OpenNoteInRightSidebar) }
-  case object EditNote extends Category.Basics with Category.Item.Note { override def requiresAll = Array(CreateNoteInNotes) }
 
   case object ZoomIntoProject extends Category.Basics with Category.Item.Project { override def requiresAny = Array(CreateProject, CreateProjectFromCollapsedLeftSidebar, CreateProjectFromExpandedLeftSidebar, CreateProjectFromWelcomeView, CreateSubProjectFromDashboard); override def next = Array(BookmarkProject) }
   case object ZoomIntoTask extends Category.Basics with Category.Item.Task { override def requiresAny = Array(CreateTaskInChecklist, CreateTaskInKanban); override def next = Array(BookmarkTask) }
@@ -182,7 +181,8 @@ object Feature {
 
   // Notes
   case object AddNotesView extends Category.View { override def next = Array(CreateNoteInNotes) }
-  case object CreateNoteInNotes extends Category.View.Notes with Category.Item.Note { override def requiresAll = Array(AddNotesView); override def next = Array(ZoomIntoNote, TagNoteByDragging) }
+  case object CreateNoteInNotes extends Category.View.Notes with Category.Item.Note { override def requiresAll = Array(AddNotesView); override def next = Array(ZoomIntoNote, EditNote, TagNoteByDragging) }
+  case object EditNote extends Category.Basics with Category.Item.Note { override def requiresAll = Array(CreateNoteInNotes) }
 
   // Filters
   case object FilterOnlyDeleted extends Category.Filter.GraphTransformation { override def requiresAny = Array(DeleteTaskInChecklist); override def next = Array(ResetFilters) }
