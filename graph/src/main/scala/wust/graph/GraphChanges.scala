@@ -151,7 +151,26 @@ final case class GraphChanges(
 }
 object GraphChanges {
 
-  final case class Import(changes: GraphChanges, topLevelNodeIds: Seq[NodeId], focusNodeId: Option[NodeId])
+  final case class Import(changes: GraphChanges, topLevelNodeIds: Seq[NodeId], focusNodeId: Option[NodeId]) {
+    def resolve(graph: Graph, parentId: NodeId): GraphChanges = {
+      val addToParentChanges =
+        if(topLevelNodeIds.isEmpty) GraphChanges.empty
+        else if(topLevelNodeIds.size == 1) GraphChanges.addToParent(topLevelNodeIds.map(ChildId(_)), ParentId(parentId))
+        else {
+          //TODO: fix ordering...
+          val focusedIdx = graph.idToIdxOrThrow(parentId)
+          val children = graph.childEdgeIdx(focusedIdx)
+          val minOrderingNum: BigDecimal = if(children.isEmpty) BigDecimal(EpochMilli.now) else children.minBy[BigDecimal](edgeIdx => graph.edges(edgeIdx).as[Edge.Child].data.ordering) - 1
+          GraphChanges(
+            addEdges = topLevelNodeIds.mapWithIndex { (idx, nodeId) =>
+              Edge.Child(ParentId(parentId), EdgeData.Child(ordering = minOrderingNum - idx), ChildId(nodeId))
+            }(breakOut)
+          )
+        }
+
+      changes merge addToParentChanges
+    }
+  }
 
   val empty = new GraphChanges()
 

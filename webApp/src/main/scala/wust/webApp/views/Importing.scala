@@ -2,7 +2,7 @@ package wust.webApp.views
 
 import cats.effect.IO
 import fontAwesome.freeSolid
-import monix.reactive.Observable
+import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
 import org.scalajs.dom.experimental._
 import outwatch.dom._
@@ -290,7 +290,7 @@ object Importing {
     )
   }
 
-  private def renderSource(source: Source, importToChanges: (Graph, GraphChanges.Import) => GraphChanges)(implicit ctx: Ctx.Owner): EmitterBuilder[Option[Source], VDomModifier] = EmitterBuilder.ofModifier { sink =>
+  private def renderSource(source: Source, changesObserver: Observer[GraphChanges.Import])(implicit ctx: Ctx.Owner): EmitterBuilder[Option[Source], VDomModifier] = EmitterBuilder.ofModifier { sink =>
     val importers = Importer.fromSource(source)
     div(
       Styles.flex,
@@ -313,21 +313,13 @@ object Importing {
           val field = importerForm(importer).transform(_.flatMap { result =>
             Observable.from(result).flatMap {
               case Right(importChanges) =>
-                val changes: GraphChanges = importToChanges(GlobalState.graph.now, importChanges)
                 UI.toast("Successfully imported Project")
-
-                //TODO: do not sideeffect with state changes here...
-                importChanges.focusNodeId.foreach { focusNodeId =>
-                  GlobalState.urlConfig.update(_.focus(Page(focusNodeId), needsGet = false))
-                }
-                GlobalState.uiModalClose.onNext(())
-
-                Observable(changes)
+                Observable(importChanges)
               case Left(error)     =>
                 UI.toast(s"${StringOps.trimToMaxLength(error, 200)}", title = "Failed to import Project", level = UI.ToastLevel.Error)
                 Observable.empty
             }
-          }) --> GlobalState.eventProcessor.changes
+          }) --> changesObserver
 
           if(prev.isEmpty) Seq(field) else prev ++ Seq(importerSeparator, field) // TODO: proper with css?
         }
@@ -335,57 +327,54 @@ object Importing {
     )
   }
 
-  private def importChangesToGraphChanges(graph: Graph, focusedId: NodeId, importChanges: GraphChanges.Import) = {
-    val addToParentChanges =
-      if(importChanges.topLevelNodeIds.isEmpty) GraphChanges.empty
-      else if(importChanges.topLevelNodeIds.size == 1) GraphChanges.addToParent(importChanges.topLevelNodeIds.map(ChildId(_)), ParentId(focusedId))
-      else {
-        //TODO: fix ordering...
-        val focusedIdx = graph.idToIdxOrThrow(focusedId)
-        val children = graph.childEdgeIdx(focusedIdx)
-        val minOrderingNum: BigDecimal = if(children.isEmpty) BigDecimal(EpochMilli.now) else children.minBy[BigDecimal](edgeIdx => graph.edges(edgeIdx).as[Edge.Child].data.ordering) - 1
-        GraphChanges(
-          addEdges = importChanges.topLevelNodeIds.mapWithIndex { (idx, nodeId) =>
-            Edge.Child(ParentId(focusedId), EdgeData.Child(ordering = minOrderingNum - idx), ChildId(nodeId))
-          }(breakOut)
-        )
-      }
+  private def renderSourceHeader(source: Option[Source]) = source match {
 
-    val changes = importChanges.changes merge addToParentChanges
-    changes
+    case Some(source) => VDomModifier(
+      span(
+        Styles.flex,
+        alignItems.center,
+        padding := "6px",
+        backgroundColor := "white",
+        source.icon(height := "1em", Styles.flexStatic),
+        marginRight := "10px"
+      ),
+      span(s"Import from ${source.description}", marginRight := "10px")
+    )
+
+    case None => span("Import your data", marginRight := "10px")
+
   }
+
+  private def renderSourceBody(source: Option[Source], changesObserver: Observer[GraphChanges.Import], allSources: List[Source])(implicit ctx: Ctx.Owner) = source match {
+    case Some(source) => renderSource(source, changesObserver)
+    case None => selectSource(allSources)
+  }
+
   // returns the modal config for rendering a modal for making an import
   def modalConfig(focusedId: NodeId)(implicit ctx: Ctx.Owner): ModalConfig = {
     val selectedSource = Var[Option[Source]](None)
     val allSources = Source.all
 
-    val headerText = Rx {
-      selectedSource() match {
-        case Some(source) => VDomModifier(
-          span(
-            Styles.flex,
-            alignItems.center,
-            padding := "6px",
-            backgroundColor := "white",
-            source.icon(height := "1em", Styles.flexStatic),
-            marginRight := "10px"
-          ),
-          span(s"Import from ${source.description}", marginRight := "10px")
-        )
-        case None => span("Import your data", marginRight := "10px")
+    val changesObserver = GlobalState.eventProcessor.changes.contramap[GraphChanges.Import] { importChanges =>
+      //TODO: do not sideeffect with state changes here...
+      importChanges.focusNodeId.foreach { focusNodeId =>
+        GlobalState.urlConfig.update(_.focus(Page(focusNodeId), needsGet = false))
       }
+
+      GlobalState.uiModalClose.onNext(())
+
+      importChanges.resolve(GlobalState.graph.now, focusedId)
     }
 
     val modalHeader: VDomModifier = Rx {
       GlobalState.rawGraph().nodesById(focusedId).map { node =>
         Modal.defaultHeader(
-          
           node,
           modalHeader = div(
             Styles.flex,
             flexWrap.wrap,
             alignItems.center,
-            headerText,
+            selectedSource.map(renderSourceHeader),
             Components.experimentalSign(color = "white").apply(fontSize.xSmall)
           ),
           icon = Icons.`import`
@@ -394,10 +383,7 @@ object Importing {
     }
 
     val modalDescription: VDomModifier = div(
-      selectedSource.map {
-        case Some(source) => renderSource( source, importChangesToGraphChanges(_, focusedId, _)) --> selectedSource
-        case None => selectSource(allSources) --> selectedSource
-      }
+      selectedSource.map(renderSourceBody(_, changesObserver, allSources) --> selectedSource)
     )
 
     ModalConfig(header = modalHeader, description = modalDescription, contentModifier = VDomModifier(styleAttr := "padding : 0px !important")) // overwrite padding of modal
@@ -411,7 +397,7 @@ object Importing {
       span("Import"),
 
       dsl.cursor.pointer,
-      onClick(Ownable(implicit ctx => modalConfig( focusedId))) --> GlobalState.uiModalConfig
+      onClick(Ownable(implicit ctx => modalConfig(focusedId))) --> GlobalState.uiModalConfig
     )
   }
 }
