@@ -3,9 +3,9 @@ package wust.webApp.state
 import acyclic.file
 import wust.api.Authentication
 import wust.graph.Page
-import wust.ids.View
+import wust.ids.{View, NodeId}
 
-final case class UrlConfig(view: Option[View], pageChange: PageChange, redirectTo: Option[View], shareOptions: Option[ShareOptions], invitation: Option[Authentication.Token]) {
+final case class UrlConfig(view: Option[View], pageChange: PageChange, redirectTo: Option[View], shareOptions: Option[ShareOptions], invitation: Option[Authentication.Token], focusId: Option[NodeId]) {
   private val canRedirectTo: View => Boolean = {
     case View.Login | View.Signup => false
     case _ => true
@@ -23,5 +23,5 @@ final case class UrlConfig(view: Option[View], pageChange: PageChange, redirectT
 }
 
 object UrlConfig {
-  val default = UrlConfig(view = None, PageChange(Page.empty), None, None, None)
+  val default = UrlConfig(view = None, pageChange = PageChange(Page.empty), redirectTo = None, shareOptions = None, invitation = None, focusId = None)
 }

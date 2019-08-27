@@ -110,6 +110,21 @@ private object UrlOption {
         config.copy(invitation = Some(Authentication.Token(invitation)))
       }
   }
+
+  object focusId extends UrlOption {
+    val key = "focus"
+
+    val regex = Regex[String](rx"^(\w+)$$")
+      .map(_.flatMap { focusId =>
+        Cuid.fromBase58String(focusId).map(id => NodeId(id))
+          .left.map(DecodeError.TypeError(_))
+      })
+
+    def update(config: UrlConfig, text: String): DecodeResult[UrlConfig] =
+      parseSingle(regex, text).map { focusId =>
+        config.copy(focusId = Some(focusId))
+      }
+  }
 }
 
 object UrlConfigParser {
@@ -120,6 +135,7 @@ object UrlConfigParser {
     UrlOption.page.key -> UrlOption.page,
     UrlOption.redirectTo.key -> UrlOption.redirectTo,
     UrlOption.invitation.key -> UrlOption.invitation,
+    UrlOption.focusId.key -> UrlOption.focusId,
   )
 
   def parse(route: UrlRoute): UrlConfig = {
@@ -174,6 +190,7 @@ object UrlConfigWriter {
     val redirectToString =
       cfg.redirectTo.map(view => UrlOption.redirectTo.key + "=" + view.viewKey)
     val hash = List(viewString, pageString, redirectToString).flatten.mkString("&")
+    // we do not write invitation and focusId: this only reading on url change.
     UrlRoute(search = None, hash = Some(hash))
   }
   @inline def toUrlRoute(config: UrlConfig): UrlRoute = UrlConfigWriter.write(config)

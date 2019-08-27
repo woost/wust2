@@ -372,6 +372,8 @@ self.addEventListener('notificationclick', e => {
                 const client = windowClients[index];
                 const url = client.url;
 
+                const urlOptions = `/#page=${subscribedId}&focus=${messageId}`
+
                 if (url.indexOf(subscribedId) !== -1 || url.indexOf(messageId) !== -1) {
                     log("Found window that is already including node.");
 
@@ -379,15 +381,15 @@ self.addEventListener('notificationclick', e => {
                 } else if (url.indexOf(baseLocation) !== -1) {
                     log("Found woost window => opening node.");
 
-                    const exp = /(?!(page=))((([a-zA-z0-9]{22})[,:]?)+)/
-                    const newLocation = (url.search(exp) !== -1) ? url.replace(exp, subscribedId) : ("/#page=" + subscribedId);
+                    const urlOptionsExp = /\/#.*/
+                    const newLocation = (url.search(urlOptionsExp) !== -1) ? url.replace(urlOptionsExp, urlOptions) : urlOptions
                     return client.focus().then(function (client) { client.navigate(newLocation); });
                 }
             }
 
             log("No matching client found. Opening new window.");
 
-            return self.clients.openWindow("/#page=" + subscribedId).then(function (client) { client.focus(); });
+            return self.clients.openWindow(urlOptions).then(function (client) { client.focus(); });
 
         })
     );

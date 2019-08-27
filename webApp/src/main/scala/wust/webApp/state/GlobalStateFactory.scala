@@ -81,10 +81,11 @@ object GlobalStateFactory {
     def closeAllOverlays(): Unit = {
       uiSidebarClose.onNext(())
       uiModalClose.onNext(())
-      rightSidebarNode() = None
+
+      if (urlConfig.now.focusId.isEmpty) rightSidebarNode() = None // keep sidebar for urlconfig with focus
     }
 
-    page.triggerLater {
+    urlConfig.map(_.pageChange.page).triggerLater {
       closeAllOverlays()
       graphTransformations() = defaultTransformations
       GlobalState.clearSelectedNodes()
@@ -134,8 +135,9 @@ object GlobalStateFactory {
 
     // if we have a invitation token, we merge this invited user into our account and get the graph again.
     urlConfig.foreach { viewConfig =>
-      viewConfig.invitation match {
-        case Some(inviteToken) => Client.auth.acceptInvitation(inviteToken).foreach {
+      // handle invittation token
+      viewConfig.invitation foreach { inviteToken =>
+        Client.auth.acceptInvitation(inviteToken).foreach {
           case () =>
             //clear the invitation from the viewconfig and url
             urlConfig.update(_.copy(invitation = None))
@@ -146,7 +148,12 @@ object GlobalStateFactory {
             }
         }
         //TODO: signal status of invitation to user in UI
-        case None => ()
+      }
+
+      // handle focus id
+      viewConfig.focusId foreach { focusId =>
+        //TODO better way to focus a single node in a page. for now just rightsidebar
+        rightSidebarNode() = Some(FocusPreference(focusId))
       }
     }
 
