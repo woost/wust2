@@ -13,6 +13,8 @@ object Icons {
   val plugin: IconDefinition = freeSolid.faPuzzlePiece
   val slack: IconDefinition  = freeBrands.faSlack
   val csv: IconDefinition  = freeRegular.faFileExcel
+  val bookmark: IconDefinition = freeSolid.faBookmark
+  val unbookmark: IconDefinition = freeRegular.faBookmark
 
   val zoom: IconDefinition = freeSolid.faSearchPlus
   val edit: IconDefinition = freeRegular.faEdit

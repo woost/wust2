@@ -267,11 +267,6 @@ object LeftSidebar {
     }
 
     div(
-      isPinned map {
-        case true => VDomModifier.empty
-        case false => VDomModifier(opacity := 0.5)
-      },
-
       Styles.flex,
       alignItems.center,
       expandToggleButton( nodeId, userId, expanded).apply(
@@ -280,6 +275,11 @@ object LeftSidebar {
         }
       ),
       a(
+        isPinned map {
+          case true => VDomModifier.empty
+          case false => VDomModifier(opacity := 0.5)
+        },
+
         href <-- nodeUrl(nodeId),
         cls := "channel-line",
         Rx {
@@ -306,6 +306,15 @@ object LeftSidebar {
         channelModifier
       ),
 
+      isPinned map {
+        case false => button(
+          marginLeft := "auto",
+          freeSolid.faBookmark,
+          cls := "ui button mini compact basic",
+          onClickDefault.mapTo(GraphChanges.pin(nodeId, GlobalState.userId.now)) --> GlobalState.eventProcessor.changes
+        )
+        case true => VDomModifier.empty
+      },
     )
   }
 
