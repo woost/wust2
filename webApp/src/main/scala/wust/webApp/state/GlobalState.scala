@@ -170,6 +170,7 @@ object GlobalState {
   }
 
   val view: Rx[View.Visible] = viewConfig.map(_.view)
+  val viewIsContent: Rx[Boolean] = view.map(_.isContent)
 
   val urlPage = urlConfig.map(_.pageChange.page)
   val page: Rx[Page] = viewConfig.map(_.page)

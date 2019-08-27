@@ -324,7 +324,7 @@ object LeftSidebar {
 
   def channelLine(traverseState: TraverseState, userId: UserId, expanded: Rx[Boolean], hasChildren: Rx[Boolean], depth:Int = 0, channelModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
     val nodeId = traverseState.parentId
-    val selected = Rx { (GlobalState.page().parentId contains nodeId) && GlobalState.view().isContent }
+    val selected = Rx { (GlobalState.page().parentId contains nodeId) && GlobalState.viewIsContent() }
     val nodeIdx = Rx { GlobalState.rawGraph().idToIdx(nodeId) }
     val isPinned = Rx { nodeIdx().exists(nodeIdx => GlobalState.rawGraph().isPinned(nodeIdx, userIdx = GlobalState.rawGraph().idToIdxOrThrow(userId))) }
     val node = Rx { nodeIdx().map(nodeIdx => GlobalState.rawGraph().nodes(nodeIdx)) }
@@ -528,7 +528,7 @@ object LeftSidebar {
 
     def renderChannel(traverseState: TraverseState, userId: UserId, depth: Int, expanded: Rx[Boolean], hasChildren: Rx[Boolean])(implicit ctx: Ctx.Owner) = {
       val nodeId = traverseState.parentId
-      val selected = Rx { (GlobalState.page().parentId contains nodeId) && GlobalState.view().isContent }
+      val selected = Rx { (GlobalState.page().parentId contains nodeId) && GlobalState.viewIsContent() }
       val node = Rx {
         GlobalState.rawGraph().nodesByIdOrThrow(nodeId)
       }

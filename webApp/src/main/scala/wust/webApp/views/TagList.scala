@@ -65,7 +65,7 @@ object TagList {
       Rx {
         val page = GlobalState.page()
         val graph = GlobalState.rawGraph()
-        VDomModifier.ifTrue(GlobalState.view().isContent)(
+        VDomModifier.ifTrue(GlobalState.viewIsContent())(
           page.parentId.map { pageParentId =>
             val pageParentIdx = graph.idToIdxOrThrow(pageParentId)
             val workspaces = graph.workspacesForParent(pageParentIdx)
