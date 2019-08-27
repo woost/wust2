@@ -70,7 +70,7 @@ object FeatureExplorer {
       Rx{
         VDomModifier.ifTrue(FeatureState.next().nonEmpty)(
           div("Things to try next:"),
-          FeatureState.next().map { feature =>
+          FeatureState.next().filter(FeatureDetails.hasDetails).map { feature =>
             val details = FeatureDetails(feature)
             val showDescription = Var(false)
             div(
@@ -104,7 +104,7 @@ object FeatureExplorer {
     val recentFirstTimeList = div(
       "Recent:",
       Rx{
-        FeatureState.recentFirstTimeUsed().take(5).map { feature =>
+        FeatureState.recentFirstTimeUsed().filter(FeatureDetails.hasDetails).take(5).map { feature =>
           val details = FeatureDetails(feature)
           div(
             div(

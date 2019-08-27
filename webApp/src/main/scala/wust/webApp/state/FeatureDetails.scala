@@ -325,6 +325,8 @@ object FeatureDetails {
 
   private val liftedMapping = mapping.lift
 
+  def hasDetails(feature: Feature) = mapping.isDefinedAt(feature)
+
   def apply(feature: Feature): FeatureDetails = {
     liftedMapping(feature).getOrElse(FeatureDetails(title = feature.toString))
   }
