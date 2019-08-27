@@ -363,7 +363,7 @@ object Importing {
 
       GlobalState.uiModalClose.onNext(())
 
-      importChanges.resolve(GlobalState.graph.now, focusedId)
+      importChanges.resolve(GlobalState.rawGraph.now, focusedId)
     }
 
     val modalHeader: VDomModifier = Rx {
@@ -398,6 +398,22 @@ object Importing {
 
       dsl.cursor.pointer,
       onClick(Ownable(implicit ctx => modalConfig(focusedId))) --> GlobalState.uiModalConfig
+    )
+  }
+
+  // returns the modal config for rendering a modal for making an import
+  def inlineConfig(implicit ctx: Ctx.Owner) = EmitterBuilder.ofModifier[GraphChanges.Import] { changesObserver =>
+    val selectedSource = Var[Option[Source]](None)
+    val allSources = Source.all
+
+    val header = selectedSource.map(renderSourceHeader)
+
+    val description = selectedSource.map(renderSourceBody(_, changesObserver, allSources) --> selectedSource)
+
+
+    div(
+      header,
+      description
     )
   }
 }

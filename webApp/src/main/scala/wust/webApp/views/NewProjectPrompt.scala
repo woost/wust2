@@ -41,10 +41,12 @@ object NewProjectPrompt {
   def newProjectButton(label: String = newProjectText, focusNewProject: Boolean = true, buttonClass: String = "", extraChanges: NodeId => GraphChanges = _ => GraphChanges.empty): VNode = {
     val selectedViews = Var[Seq[View.Visible]](Seq.empty)
     val triggerSubmit = PublishSubject[Unit]
+    val importChanges = Var(Option.empty[GraphChanges.Import])
     def body(implicit ctx: Ctx.Owner) = div(
       color := "#333",
       div("Emojis at the beginning of the name become the Project's icon. For Example ", b(":tomato: Shopping List")),
       viewCheckboxes --> selectedViews,
+      // projectImporter.map(Some(_)) --> importChanges,
       div("After creating, you can invite participants by clicking ", Icons.menu, " at the top right and then clicking ",  b("Members"), "."),
       div(
         marginTop := "20px",
@@ -83,9 +85,21 @@ object NewProjectPrompt {
         placeholder = Placeholder("Name of the Project"),
         showSubmitIcon = false,
         triggerSubmit = triggerSubmit,
+        additionalChanges = nodeId => importChanges.now.fold(GraphChanges.empty)(_.resolve(GlobalState.rawGraph.now, nodeId)),
         enableEmojiPicker = true
       ).foreach(newProject(_)),
       onClick.stopPropagation foreach { ev => ev.target.asInstanceOf[dom.html.Element].blur() },
+    )
+  }
+
+  def projectImporter(implicit ctx: Ctx.Owner) = EmitterBuilder.ofModifier[GraphChanges.Import] { changesObserver =>
+    val showForm = Var(false)
+
+    div(
+      showForm.map {
+        case true => Importing.inlineConfig --> changesObserver
+        case false => button(cls := "ui button mini compact", onClickDefault.foreach(showForm.update(!_)), "Import")
+      }
     )
   }
 
