@@ -328,7 +328,7 @@ object TableView {
   def exportToCsvButton(node: Node, propertyGroup: PropertyData.Group) = {
 
     button(
-      renderFontAwesomeIcon(freeRegular.faFileExcel).apply(marginRight := "4px"),
+      renderFontAwesomeIcon(Icons.csv).apply(marginRight := "4px"),
       "Export to CSV",
       cls := "ui mini compact button basic",
       cursor.pointer,

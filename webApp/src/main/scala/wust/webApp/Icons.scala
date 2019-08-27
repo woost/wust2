@@ -12,6 +12,7 @@ object Icons {
   val resync: IconDefinition = freeSolid.faRetweet
   val plugin: IconDefinition = freeSolid.faPuzzlePiece
   val slack: IconDefinition  = freeBrands.faSlack
+  val csv: IconDefinition  = freeRegular.faFileExcel
 
   val zoom: IconDefinition = freeSolid.faSearchPlus
   val edit: IconDefinition = freeRegular.faEdit

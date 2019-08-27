@@ -131,6 +131,19 @@ object Importing {
             focusNodeId = None
           ))
         },
+      ),
+
+      Source(
+        icon = Icons.csv,
+        title = "CSV",
+        description = "Table in CSV format",
+        inputs = List(
+          Input.FromText(s"Enter a table in CSV format (including a header line)."),
+          Input.FromFile(s"Upload csv file with a table in CSV format (including a header line).", Some("application/csv")),
+        ),
+        parser = str => IO {
+          CsvHelper.csvToChanges(str)
+        },
       )
     )
   }
