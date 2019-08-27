@@ -104,7 +104,13 @@ class EventProcessor private (
         val (lastGraph, _) = lastGraphWithLastEvents
         val localEvents = LocalGraphUpdateEvent.deconstruct(lastGraph, events)
         val newGraph = localEvents match {
-          case LocalGraphUpdateEvent.NewGraph(graph)     => graph
+          case LocalGraphUpdateEvent.NewGraph(graph)     =>
+            //TODO just to be sure if stopEventProcessing was not realiably reset.
+            // we force set stopEventProcessing to false when a new graph arrives
+            stopEventProcessing.onNext(false)
+
+            graph
+
           case LocalGraphUpdateEvent.NewChanges(changes) => lastGraph applyChanges changes
         }
         (newGraph, localEvents)
