@@ -67,7 +67,7 @@ object PageHeader {
     )
 
     val channelNotification = UnreadComponents
-      .notificationsButton(pageNodeId, modifiers = VDomModifier(marginLeft := "5px"))
+      .activityButtons(pageNodeId, modifiers = VDomModifier(marginLeft := "5px"))
       .foreach(view => GlobalState.urlConfig.update(_.focus(view)))
 
     val channelMembersList = Rx {
