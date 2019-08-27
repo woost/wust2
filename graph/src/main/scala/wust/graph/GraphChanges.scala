@@ -158,8 +158,7 @@ object GraphChanges {
         else if(topLevelNodeIds.size == 1) GraphChanges.addToParent(topLevelNodeIds.map(ChildId(_)), ParentId(parentId))
         else {
           //TODO: fix ordering...
-          val focusedIdx = graph.idToIdxOrThrow(parentId)
-          val children = graph.childEdgeIdx(focusedIdx)
+          val children = graph.idToIdxFold[flatland.ArraySliceInt](parentId)(flatland.ArraySliceInt.empty) { focusedIdx => graph.childEdgeIdx(focusedIdx) }
           val minOrderingNum: BigDecimal = if(children.isEmpty) BigDecimal(EpochMilli.now) else children.minBy[BigDecimal](edgeIdx => graph.edges(edgeIdx).as[Edge.Child].data.ordering) - 1
           GraphChanges(
             addEdges = topLevelNodeIds.mapWithIndex { (idx, nodeId) =>
