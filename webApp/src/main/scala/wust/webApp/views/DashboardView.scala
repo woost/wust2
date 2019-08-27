@@ -129,29 +129,34 @@ object DashboardView {
   private def renderSubproject(graph: Graph, focusState: FocusState, project: Node, isDeleted: Boolean)(implicit ctx: Ctx.Owner): VNode = {
     val isDeleted = graph.isDeletedNow(project.id, focusState.focusedId)
     val dispatch = GlobalState.submitChanges _
-    val buttons = if (isDeleted) {
-      button(
-        marginLeft := "10px",
-        "Restore",
-        cls := "ui button mini compact basic",
-        cursor.pointer,
-        onClick.stopPropagation(GraphChanges.connect(Edge.Child)(ParentId(focusState.focusedId), ChildId(project.id))) --> GlobalState.eventProcessor.changes
+    val (headButton, tailButton) = if (isDeleted) {
+      (
+        VDomModifier.empty,
+          button(
+          marginLeft := "10px",
+          "Restore",
+          cls := "ui button mini compact basic",
+          cursor.pointer,
+          onClick.stopPropagation(GraphChanges.connect(Edge.Child)(ParentId(focusState.focusedId), ChildId(project.id))) --> GlobalState.eventProcessor.changes
+        )
       )
     } else {
       val isPinned = Rx { graph.idToIdxFold(project.id)(false)(graph.isPinned(_, userIdx = graph.idToIdxOrThrow(GlobalState.userId()))) }
 
-      button(
-        marginLeft := "10px",
-        UI.tooltip := "Add a Bookmark in the left Sidebar",
-        cls := "ui button mini compact basic",
-        cursor.pointer,
-        isPinned.map[VDomModifier] {
-          case false => Icons.bookmark
-          case true => Icons.unbookmark
-        },
-        onClick.stopPropagation.mapTo(
-          if (isPinned.now) GraphChanges.unpin(project.id, GlobalState.userId.now) else GraphChanges.pin(project.id, GlobalState.userId.now)
-        ) --> GlobalState.eventProcessor.changes
+      (
+        button(
+          marginRight := "10px",
+          cls := "ui button mini compact basic",
+          cursor.pointer,
+          isPinned.map[VDomModifier] {
+            case false => Icons.bookmark
+            case true => Icons.unbookmark
+          },
+          onClick.stopPropagation.mapTo(
+            if (isPinned.now) GraphChanges.unpin(project.id, GlobalState.userId.now) else GraphChanges.pin(project.id, GlobalState.userId.now)
+          ) --> GlobalState.eventProcessor.changes
+        ),
+        VDomModifier.empty
       )
     }
 
@@ -165,6 +170,9 @@ object DashboardView {
       cls := "node channel-line",
 
       DragComponents.drag(DragItem.Project(project.id)),
+
+      headButton,
+
       renderProject(project, renderNode = node => renderAsOneLineText(node).apply(cls := "channel-name"), withIcon = true),
 
       cursor.pointer,
@@ -175,7 +183,7 @@ object DashboardView {
 
       permissionLevel.map(Permission.permissionIndicatorIfPublic(_, VDomModifier(fontSize := "0.7em", color.gray))),
 
-      buttons,
+      tailButton,
 
       VDomModifier.ifTrue(isDeleted)(cls := "node-deleted"),
     )
