@@ -46,6 +46,7 @@ object InputRow {
     preFillByShareApi: Boolean = false,
     submitOnEnter: Boolean = !BrowserDetect.isMobile,
     triggerSubmit: Observable[Unit] = Observable.empty,
+    additionalChanges:NodeId => GraphChanges = _ => GraphChanges.empty,
     submitIcon: VDomModifier = freeRegular.faPaperPlane,
     showSubmitIcon: Boolean = BrowserDetect.isMobile,
     textAreaModifiers: VDomModifier = VDomModifier.empty,
@@ -102,7 +103,7 @@ object InputRow {
           stringMentions.flatMap(str => collectedMentions.get(str).map(str -> _))
         }
         def extraChanges(nodeId: NodeId): GraphChanges = {
-          GraphChanges(
+          additionalChanges(nodeId) merge GraphChanges(
             addEdges = actualMentions.map { case (mentionName, mentionedNode) =>
               Edge.Mention(nodeId, EdgeData.Mention(mentionName), mentionedNode.id)
             }(breakOut)
@@ -119,11 +120,15 @@ object InputRow {
         GlobalState.askedForUnregisteredUserName() = true
         GlobalState.user.now match {
           case user: AuthUser.Implicit if user.name.isEmpty =>
+
             val sink = GlobalState.eventProcessor.changes.redirectMapMaybe[Submission] { sub =>
               val userNode = user.toNode
               userNode.data.updateName(sub.text).map(data => GraphChanges.addNode(userNode.copy(data = data)) merge sub.changes(userNode.id))
             }
-            GlobalState.uiModalConfig.onNext(Ownable(implicit ctx => newNamePromptModalConfig( sink, "Give yourself a name so others can recognize you.", placeholder = Placeholder(Components.implicitUserName), onClose = () => { handle(); true }, enableMentions = false)))
+
+            GlobalState.uiModalConfig.onNext(Ownable(implicit ctx =>
+                newNamePromptModalConfig( sink, "Give yourself a name so others can recognize you.", placeholder = Placeholder(Components.implicitUserName), onClose = () => { handle(); true }, enableMentions = false)
+            ))
           case _ => handle()
         }
       } else {

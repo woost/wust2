@@ -473,7 +473,8 @@ object SharedViewElements {
     enableMentions: Boolean = true,
     enableEmojiPicker: Boolean = false,
     showSubmitIcon:Boolean = true,
-    triggerSubmit:Observable[Unit] = Observable.empty
+    triggerSubmit:Observable[Unit] = Observable.empty,
+    additionalChanges: NodeId => GraphChanges = _ => GraphChanges.empty,
   )(implicit ctx: Ctx.Owner) = {
     ModalConfig(
       header = header,
@@ -511,6 +512,7 @@ object SharedViewElements {
     placeholder: Placeholder = Placeholder.empty,
     showSubmitIcon:Boolean = true,
     triggerSubmit:Observable[Unit] = Observable.empty,
+    additionalChanges: NodeId => GraphChanges = _ => GraphChanges.empty,
     enableMentions: Boolean = true,
     enableEmojiPicker: Boolean = false,
   ) = EmitterBuilder.ofModifier[InputRow.Submission] { sink =>
@@ -524,7 +526,8 @@ object SharedViewElements {
           showSubmitIcon = showSubmitIcon,
           enableMentions = enableMentions,
           enableEmojiPicker = enableEmojiPicker,
-          triggerSubmit = triggerSubmit
+          triggerSubmit = triggerSubmit,
+          additionalChanges = additionalChanges
         )
       }) --> GlobalState.uiModalConfig,
       cursor.pointer
