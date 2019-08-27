@@ -232,7 +232,7 @@ object RightSidebar {
         alignItems.center,
 
         ViewSwitcher(focusPref.nodeId, viewSwitcherVar, focusPref.view.flatMap(ViewHeuristic.visibleView(graph, focusPref.nodeId, _))),
-        UnreadComponents.notificationsButton(focusPref.nodeId, modifiers = marginLeft := "10px") --> currentView,
+        UnreadComponents.activityButtons(focusPref.nodeId, modifiers = marginLeft := "10px") --> currentView,
       ),
 
       Rx {
