@@ -10,7 +10,7 @@ import wust.css.Styles
 import wust.graph._
 import wust.ids._
 import wust.util.collection._
-import wust.webApp.Permission
+import wust.webApp.{Permission, Icons}
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.state.{ FocusState, GlobalState, Placeholder, EmojiReplacer, FeatureState }
 import wust.webApp.views.Components._
@@ -139,18 +139,19 @@ object DashboardView {
       )
     } else {
       val isPinned = Rx { graph.idToIdxFold(project.id)(false)(graph.isPinned(_, userIdx = graph.idToIdxOrThrow(GlobalState.userId()))) }
-      VDomModifier(
-        isPinned.map {
-          case false => button(
-            marginLeft := "10px",
-            freeSolid.faBookmark,
-            UI.tooltip := "Add a Bookmark in the left Sidebar",
-            cls := "ui button mini compact basic",
-            cursor.pointer,
-            onClick.stopPropagation.mapTo(GraphChanges.pin(project.id, GlobalState.userId.now)) --> GlobalState.eventProcessor.changes
-          )
-          case true => VDomModifier.empty
-        }
+
+      button(
+        marginLeft := "10px",
+        UI.tooltip := "Add a Bookmark in the left Sidebar",
+        cls := "ui button mini compact basic",
+        cursor.pointer,
+        isPinned.map[VDomModifier] {
+          case false => Icons.bookmark
+          case true => Icons.unbookmark
+        },
+        onClick.stopPropagation.mapTo(
+          if (isPinned.now) GraphChanges.unpin(project.id, GlobalState.userId.now) else GraphChanges.pin(project.id, GlobalState.userId.now)
+        ) --> GlobalState.eventProcessor.changes
       )
     }
 
