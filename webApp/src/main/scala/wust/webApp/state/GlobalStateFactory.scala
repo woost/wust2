@@ -90,7 +90,7 @@ object GlobalStateFactory {
       graphTransformations() = defaultTransformations
       GlobalState.clearSelectedNodes()
     }
-    view.map(_.isContent).triggerLater { isContent =>
+    viewIsContent.triggerLater { isContent =>
       if (!isContent) {
         closeAllOverlays()
       }
@@ -246,7 +246,7 @@ object GlobalStateFactory {
     val titleSuffix = if (DevOnly.isTrue) "dev" else "Woost"
     // switch to View name in title if view switches to non-content
     Rx {
-      if (view().isContent) {
+      if (viewIsContent()) {
         val channelName = page().parentId.flatMap(id => graph().nodesById(id).map(n => StringOps.trimToMaxLength(n.str, 30))).map(EmojiTitleConverter.emojiTitleConvertor.replace_colons_safe)
         window.document.title = channelName.fold(titleSuffix)(name => s"${if (name.contains("unregistered-user")) "Unregistered User" else name} - $titleSuffix")
       } else {
