@@ -98,28 +98,22 @@ object PageHeader {
       )
     )
 
-    def breadCrumbs: Rx[VDomModifier] = {
-      Rx{
-        VDomModifier.ifTrue(GlobalState.pageHasNotDeletedParents())(
-          div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
-            VDomModifier(
-              Rx {
-                val page = GlobalState.page()
-                val graph = GlobalState.rawGraph()
+    def breadCrumbs: Rx[VDomModifier] = Rx{
+      VDomModifier.ifTrue(GlobalState.pageHasNotDeletedParents()) {
+        val page = GlobalState.page()
+        val graph = GlobalState.rawGraph()
 
-                page.parentId.map { parentId =>
-                  BreadCrumbs.modifier(
-                    graph,
-                    start = BreadCrumbs.EndPoint.None,
-                    end = BreadCrumbs.EndPoint.Node(parentId),
-                    clickAction = nid => GlobalState.focus(nid)
-                  )
-                }
-              },
-              flexShrink := 1,
-              marginRight := "10px"
+        div(
+          page.parentId.map { parentId =>
+            BreadCrumbs.modifier(
+              graph,
+              start = BreadCrumbs.EndPoint.None,
+              end = BreadCrumbs.EndPoint.Node(parentId),
+              clickAction = nid => GlobalState.focus(nid)
             )
-          })
+          },
+          flexShrink := 1,
+          marginRight := "10px"
         )
       }
     }
