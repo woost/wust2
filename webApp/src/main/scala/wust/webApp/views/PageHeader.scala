@@ -70,12 +70,8 @@ object PageHeader {
       .notificationsButton(pageNodeId, modifiers = VDomModifier(marginLeft := "5px"))
       .foreach(view => GlobalState.urlConfig.update(_.focus(view)))
 
-    val hasBigScreen = Rx {
-      GlobalState.screenSize() != ScreenSize.Small
-    }
-
     val channelMembersList = Rx {
-      VDomModifier.ifTrue(hasBigScreen())(
+      VDomModifier.ifTrue(GlobalState.screenSize() != ScreenSize.Small)(
         // line-height:0 fixes vertical alignment, minimum fit one member
         SharedViewElements.channelMembers(pageNodeId).apply(marginLeft := "5px", marginRight := "5px", lineHeight := "0", maxWidth := "200px")
       )
@@ -83,30 +79,6 @@ object PageHeader {
 
     val permissionLevel = Rx {
       Permission.resolveInherited(GlobalState.rawGraph(), pageNodeId)
-    }
-
-    def filterControls = VDomModifier(
-      ViewFilter.filterBySearchInputWithIcon.apply(marginLeft.auto),
-    )
-
-    def breadCrumbs: Rx[VDomModifier] = Rx{
-      VDomModifier.ifTrue(GlobalState.pageHasNotDeletedParents()) {
-        val page = GlobalState.page()
-        val graph = GlobalState.rawGraph()
-
-        div(
-          page.parentId.map { parentId =>
-            BreadCrumbs.modifier(
-              graph,
-              start = BreadCrumbs.EndPoint.None,
-              end = BreadCrumbs.EndPoint.Node(parentId),
-              clickAction = nid => GlobalState.focus(nid)
-            )
-          },
-          flexShrink := 1,
-          marginRight := "10px"
-        )
-      }
     }
 
     VDomModifier(
@@ -121,6 +93,7 @@ object PageHeader {
           VDomModifier(
             VDomModifier.ifTrue(GlobalState.screenSize() != ScreenSize.Small)(
               breadCrumbs,
+              bookmarkButton(pageNodeId),
               AuthControls.authStatusOnColoredBackground.map(_(Styles.flexStatic, marginLeft.auto))
             )
           )
@@ -151,51 +124,67 @@ object PageHeader {
           },
         div(
           Styles.flex,
-          justifyContent.spaceBetween,
-          flexGrow := 1,
-          flexShrink := 2,
-          div(
-            Styles.flex,
-            alignItems.center,
-            flexShrink := 3,
-            marginLeft.auto,
+          alignItems.center,
+          marginLeft.auto,
 
-            permissionLevel.map(Permission.permissionIndicator(_, marginRight := "5px")),
-            channelTitle,
-            channelMembersList,
-            channelNotification,
-            id := "tutorial-pageheader-title",
-            marginBottom := "2px", // else nodecards in title overlap
-          ),
+          permissionLevel.map(Permission.permissionIndicator(_, marginRight := "5px")),
+          channelTitle,
+          channelNotification,
+          channelMembersList,
+          id := "tutorial-pageheader-title",
+          marginBottom := "2px", // else nodecards in title overlap
+
+          marginRight.auto,
+        ),
+        div(
+          Styles.flex,
+          alignItems.center,
+          justifyContent.flexEnd,
+
           Rx{
             VDomModifier.ifTrue(GlobalState.screenSize() != ScreenSize.Small)(
-              filterControls
+              ViewFilter.filterBySearchInputWithIcon.apply(marginRight := "5px")
             )
           },
-          div(
-            Styles.flex,
-            alignItems.center,
-
-            menuItems(pageNodeId)
-          )
-        ),
+          PageSettingsMenu(pageNodeId).apply(fontSize := "20px"),
+        )
       )
     )
   }
 
-  private def menuItems(channelId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = {
+  def breadCrumbs(implicit ctx: Ctx.Owner): Rx[VDomModifier] = Rx{
+    VDomModifier.ifTrue(GlobalState.pageHasNotDeletedParents()) {
+      val page = GlobalState.page()
+      val graph = GlobalState.rawGraph()
+
+      div(
+        page.parentId.map { parentId =>
+          BreadCrumbs.modifier(
+            graph,
+            start = BreadCrumbs.EndPoint.None,
+            end = BreadCrumbs.EndPoint.Node(parentId),
+            clickAction = nid => GlobalState.focus(nid)
+          )
+        },
+        flexShrink := 1,
+        marginRight := "10px"
+      )
+    }
+  }
+
+  private def bookmarkButton(pageNodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = {
     val isSpecialNode = Rx {
       //TODO we should use the permission system here and/or share code with the settings menu function
-      channelId == GlobalState.userId()
+      pageNodeId == GlobalState.userId()
     }
-    val isBookmarked = PageSettingsMenu.nodeIsBookmarked(channelId)
+    val isBookmarked = PageSettingsMenu.nodeIsBookmarked(pageNodeId)
     val showBookmarkButton = Rx{ !isSpecialNode() && !isBookmarked() }
 
     val buttonStyle = VDomModifier(Styles.flexStatic, cursor.pointer)
 
-    val bookmarkButton = Rx {
+    val button = Rx {
       VDomModifier.ifTrue(showBookmarkButton())(
-        PageSettingsMenu.addToChannelsButton(channelId).apply(
+        PageSettingsMenu.addToChannelsButton(pageNodeId).apply(
           cls := "mini",
           buttonStyle,
           marginRight := "5px"
@@ -203,10 +192,7 @@ object PageHeader {
       )
     }
 
-    VDomModifier(
-      bookmarkButton,
-      PageSettingsMenu(channelId).apply(buttonStyle, fontSize := "20px"),
-    )
+    button
   }
 
 }
