@@ -54,14 +54,20 @@ object LeftSidebar {
           ),
           openModifier = VDomModifier(
             header.apply(Styles.flexStatic),
-            channels(filteredToplevelChannels, sidebarWithProjects, sidebarFilter),
-            invitations( invites).apply(Styles.flexStatic),
-            newProjectButton().apply(
-              cls := "newChannelButton-large " + buttonStyles,
-              onClick foreach { 
-                FeatureState.use(Feature.CreateProjectFromExpandedLeftSidebar)
-              },
-              marginBottom := "15px"
+            div(
+              Styles.flex,
+              flexDirection.column,
+              minHeight := "100px",
+              channels(filteredToplevelChannels, sidebarWithProjects, sidebarFilter).append(),
+              invitations( invites).apply(Styles.flexStatic),
+              newProjectButton().apply(
+                Styles.flexStatic,
+                cls := "newChannelButton-large " + buttonStyles,
+                onClick foreach { 
+                  FeatureState.use(Feature.CreateProjectFromExpandedLeftSidebar)
+                },
+                marginBottom := "15px"
+              ),
             ),
 
             UI.accordion(
@@ -83,13 +89,15 @@ object LeftSidebar {
                   active = false
                 )).toSeq,
               styles = "styled fluid",
-              exclusive = true, //BrowserDetect.isMobile
+              exclusive = true,
             ).apply(
-                fontSize := "12px",
+                Styles.flexStatic,
                 marginTop.auto,
+                maxHeight := "70%",
                 Styles.flex,
                 flexDirection.column,
                 justifyContent.flexStart,
+                fontSize := "12px",
                 boxShadow := "none", //explicitly overwrite boxshadow from accordion.
                 onMouseDown.stopPropagation.discard, // prevent rightsidebar from closing
               ),
@@ -381,7 +389,7 @@ object LeftSidebar {
     if (filterString.isEmpty) _ => true else _.str.toLowerCase.contains(filterString.toLowerCase)
   }
 
-  private def channels(toplevelChannels: Rx[Seq[NodeId]], sidebarWithProjects: Var[Boolean], sidebarFilter: Var[String]): VDomModifier = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
+  private def channels(toplevelChannels: Rx[Seq[NodeId]], sidebarWithProjects: Var[Boolean], sidebarFilter: Var[String]): VNode = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
 
     def channelList(traverseState: TraverseState, userId: UserId, depth: Int = 0)(implicit ctx: Ctx.Owner): VNode = {
       div.thunk(traverseState.parentId.toStringFast)(depth)(Ownable { implicit ctx =>
