@@ -40,23 +40,23 @@ object PageHeader {
     }
 
     val channelTitle = div(
-        backgroundColor := pageStyle.pageBgColor,
+      backgroundColor := pageStyle.pageBgColor,
       cls := "pageheader-channeltitle",
 
       Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, pageNodeId),
       Components.showHoveredNode(pageNodeId),
-        registerDragContainer,
+      registerDragContainer,
       Rx {
         val node = pageNode()
 
         VDomModifier(
           Components.renderNodeCardMod(node, Components.renderAsOneLineText(_), projectWithIcon = false),
-        DragItem.fromNodeRole(node.id, node.role).map(DragComponents.drag(_)),
+          DragItem.fromNodeRole(node.id, node.role).map(DragComponents.drag(_)),
         )
       },
 
-        div(
-          UnreadComponents.readObserver(
+      div(
+        UnreadComponents.readObserver(
           pageNodeId,
           labelModifier = border := s"1px solid ${Colors.unreadBorder}" // light border has better contrast on colored pageheader background
         ),
@@ -189,20 +189,22 @@ object PageHeader {
       channelId == GlobalState.userId()
     }
     val isBookmarked = PageSettingsMenu.nodeIsBookmarked(channelId)
+    val showBookmarkButton = Rx{ !isSpecialNode() && !isBookmarked() }
 
     val buttonStyle = VDomModifier(Styles.flexStatic, cursor.pointer)
 
-    val pinButton = Rx {
-      val hideBookmarkButton = isSpecialNode() || isBookmarked()
-      hideBookmarkButton.ifFalse[VDomModifier](PageSettingsMenu.addToChannelsButton(channelId).apply(
-        cls := "mini",
-        buttonStyle,
-        marginRight := "5px"
-      ))
+    val bookmarkButton = Rx {
+      VDomModifier.ifTrue(showBookmarkButton())(
+        PageSettingsMenu.addToChannelsButton(channelId).apply(
+          cls := "mini",
+          buttonStyle,
+          marginRight := "5px"
+        )
+      )
     }
 
     VDomModifier(
-      pinButton,
+      bookmarkButton,
       PageSettingsMenu(channelId).apply(buttonStyle, fontSize := "20px"),
     )
   }
