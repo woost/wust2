@@ -248,6 +248,7 @@ object UnreadComponents {
         button(
           cls := "ui mini inverted compact button",
           Icons.notifications,
+          UI.tooltip("bottom center") := "Unread Items",
           onClick.stopPropagation(View.Notifications) --> sink,
         )
       )
@@ -256,6 +257,7 @@ object UnreadComponents {
     val activityStream = button(
       cls := "ui mini inverted compact button",
       Icons.activityStream,
+      UI.tooltip("bottom center") := "Activity Stream",
       onClick.stopPropagation(View.ActivityStream) --> sink,
     )
 
