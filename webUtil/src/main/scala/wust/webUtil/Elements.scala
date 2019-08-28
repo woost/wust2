@@ -443,6 +443,7 @@ object Elements {
   }
 
   // create a canvas with a chart using chart.js
+  //TODO how to update data efficiently
   // Example:
   // Elements.chartCanvas {
   //   import typings.chartDotJs.chartDotJsMod._
