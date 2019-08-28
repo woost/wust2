@@ -94,7 +94,7 @@ object PageHeader {
             VDomModifier.ifTrue(GlobalState.screenSize() != ScreenSize.Small)(
               breadCrumbs,
               bookmarkButton(pageNodeId),
-              AuthControls.authStatusOnColoredBackground.map(_(Styles.flexStatic, marginLeft.auto))
+              AuthControls.authStatusOnColoredBackground.map(_(Styles.flexStatic, marginLeft.auto, marginTop := "3px"))
             )
           )
         },
