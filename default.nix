@@ -20,7 +20,8 @@ in
       phantomjs
       # Dev tools
       #jetbrains.idea-community
-      pgadmin
+      # pgadmin -> does not compile in nixos-unstable
+      pgmanage
       pgcli
       # redis-dump
       visualvm
