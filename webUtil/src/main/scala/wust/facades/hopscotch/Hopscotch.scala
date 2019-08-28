@@ -41,5 +41,6 @@ trait Step extends js.Object {
 }
 
 trait I18n extends js.Object {
+  var nextBtn: js.UndefOr[String] = js.undefined
   var doneBtn: js.UndefOr[String] = js.undefined
 }
