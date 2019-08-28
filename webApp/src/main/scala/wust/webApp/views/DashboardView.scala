@@ -144,13 +144,13 @@ object DashboardView {
       val isPinned = Rx { graph.idToIdxFold(project.id)(false)(graph.isPinned(_, userIdx = graph.idToIdxOrThrow(GlobalState.userId()))) }
 
       (
-        button(
-          marginRight := "10px",
-          cls := "ui button mini compact basic",
+        div(
+          marginRight := "15px",
           cursor.pointer,
+          fontSize.small,
           isPinned.map[VDomModifier] {
-            case false => Icons.bookmark
-            case true => Icons.unbookmark
+            case true => Icons.bookmark
+            case false => Icons.unbookmark
           },
           onClick.stopPropagation.mapTo(
             if (isPinned.now) GraphChanges.unpin(project.id, GlobalState.userId.now) else GraphChanges.pin(project.id, GlobalState.userId.now)
