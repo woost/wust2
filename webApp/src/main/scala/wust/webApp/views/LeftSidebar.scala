@@ -306,15 +306,15 @@ object LeftSidebar {
         channelModifier
       ),
 
-      isPinned map {
-        case false => button(
-          marginLeft := "auto",
-          freeSolid.faBookmark,
-          cls := "ui button mini compact basic",
-          onClickDefault.mapTo(GraphChanges.pin(nodeId, GlobalState.userId.now)) --> GlobalState.eventProcessor.changes
-        )
-        case true => VDomModifier.empty
-      },
+      // isPinned map {
+      //   case false => button(
+      //     marginLeft := "auto",
+      //     freeSolid.faBookmark,
+      //     cls := "ui button mini compact basic",
+      //     onClickDefault.mapTo(GraphChanges.pin(nodeId, GlobalState.userId.now)) --> GlobalState.eventProcessor.changes
+      //   )
+      //   case true => VDomModifier.empty
+      // },
     )
   }
 
