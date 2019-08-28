@@ -68,7 +68,6 @@ object DragContainer {
     final case class ColumnArea(parentId: NodeId, items: Seq[NodeId]) extends AreaForColumns { override def toString = s"ColumnArea(${parentId.shortHumanReadable})" }
     final case class Inbox(parentId: NodeId, items: Seq[NodeId]) extends AreaForCards with Workspace { override def toString = s"Inbox(${parentId.shortHumanReadable})" }
     final case class Card(parentId: NodeId, items: Seq[NodeId]) extends AreaForCards with Workspace { override def toString = s"Card(${parentId.shortHumanReadable})" }
-    case object Background extends DragContainer
   }
 
   // Fixme: items workaround. Differentiate what is parent and what are the items
@@ -76,7 +75,6 @@ object DragContainer {
 
   case object Sidebar extends DragContainer
   case object Chat extends DragContainer
-  case object Checklist extends DragContainer
 
   val propName = "_wust_dragcontainer"
 }
