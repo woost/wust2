@@ -1542,6 +1542,15 @@ object CommonStyles extends StyleSheet.Standalone
     top(50%%),
     transform := "translate(-50%, -50%)",
   )
+
+
+  // hopscotch tutorial
+  ".hopscotch-bubble .hopscotch-nav-button.next" - (
+    // make buttons look flat
+    (backgroundImage := "none").important,
+    (border.none).important,
+    (textShadow := "none").important,
+  )
 }
 
 object StyleRendering {
