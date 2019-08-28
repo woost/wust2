@@ -68,12 +68,12 @@ object PageSettingsMenu {
         cls := "item",
         cursor.pointer,
         if (isBookmarked()) VDomModifier(
-          Elements.icon(Icons.signOut),
+          Elements.icon(Icons.unbookmark),
           span("Remove Bookmark"),
           onClick.stopPropagation.mapTo(GraphChanges.disconnect(Edge.Pinned)(channelId, GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes
         ) else VDomModifier(
-          Elements.icon(Icons.pin),
-          span(bookmarkText),
+          Elements.icon(Icons.bookmark),
+          span("Bookmark"),
           onClick.stopPropagation.mapTo(GraphChanges(addEdges = Array(Edge.Pinned(channelId, GlobalState.user.now.id), Edge.Notify(channelId, GlobalState.user.now.id)), delEdges = Array(Edge.Invite(channelId, GlobalState.user.now.id)))) --> GlobalState.eventProcessor.changes
         )
       ))
@@ -229,11 +229,11 @@ object PageSettingsMenu {
     )
   }
 
-  val bookmarkText = "Bookmark"
   def addToChannelsButton(channelId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
     button(
       cls := "ui compact inverted button",
-      bookmarkText,
+      UI.tooltip("left center") := "Bookmark in left Sidebar",
+      Icons.bookmark,
       onClick.mapTo(GraphChanges(addEdges = Array(Edge.Pinned(channelId, GlobalState.user.now.id), Edge.Notify(channelId, GlobalState.user.now.id)), delEdges = Array(Edge.Invite(channelId, GlobalState.user.now.id)))) --> GlobalState.eventProcessor.changes,
       onClick foreach { 
         GlobalState.graph.now.nodesById(channelId).foreach { node => 
@@ -248,5 +248,4 @@ object PageSettingsMenu {
       }
     )
   }
-
 }

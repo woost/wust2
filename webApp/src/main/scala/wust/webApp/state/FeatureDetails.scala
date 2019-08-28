@@ -262,19 +262,19 @@ object FeatureDetails {
       // Bookmark
       case BookmarkTask => FeatureDetails (
         title = "Bookmark a Task",
-        description = VDomModifier("Zoom into a task, then click ", em(PageSettingsMenu.bookmarkText), ". Or: drag a task into the left sidebar.")
+        description = VDomModifier("Zoom into a task, then click ", em(Icons.bookmark), ". Or: drag a task into the left sidebar.")
       )
       case BookmarkMessage => FeatureDetails (
         title = "Bookmark a Message",
-        description = VDomModifier("Zoom into a message, then click ", em(PageSettingsMenu.bookmarkText), ". Or: drag a message into the left sidebar.")
+        description = VDomModifier("Zoom into a message, then click ", em(Icons.bookmark), ". Or: drag a message into the left sidebar.")
       )
       case BookmarkNote => FeatureDetails (
         title = "Bookmark a Note",
-        description = VDomModifier("Zoom into a note, then click ", em(PageSettingsMenu.bookmarkText), ". Or: drag a note into the left sidebar.")
+        description = VDomModifier("Zoom into a note, then click ", em(Icons.bookmark), ". Or: drag a note into the left sidebar.")
       )
       case BookmarkProject => FeatureDetails (
         title = "Bookmark a Project",
-        description = VDomModifier("Zoom into a project, then click ", em(PageSettingsMenu.bookmarkText), ". Or: drag a project into the left sidebar.")
+        description = VDomModifier("Zoom into a project, then click ", em(Icons.bookmark), ". Or: drag a project into the left sidebar.")
       )
 
       case AddChatView => FeatureDetails.addView(
