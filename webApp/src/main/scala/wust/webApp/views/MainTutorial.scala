@@ -55,7 +55,7 @@ object MainTutorial extends Tutorial {
 
     val explainTitle = new Step {
       title = "Project Title"
-      content = "Click the title to edit or show more options."
+      content = "Click the title to open it in the right sidebar. In fact you can click any task or message to open it in the right sidebar. There you can edit, zoom in, add custom fields, write comments or add subtasks."
       var target = "tutorial-pageheader-title"
       var placement = "bottom"
       showCTAButton = false
@@ -64,7 +64,7 @@ object MainTutorial extends Tutorial {
 
     val featureExplorer = new Step {
       title = "Discover new features"
-      content = "Based on what you have already tried, new features will be suggested here. Click to expand and see the suggestions."
+      content = "Based on what you have already tried, new features will be suggested here. Click to expand and see the suggestions.<br/><br/>That's it, we just covered the basics. Now go on and explore Woost the way you like. If you have any questions or ideas, don't hesitate to click <b>Feedback/Support</b> below and open the support chat. We'll be happy to talk to you.<br/><br/>Have a great day!"
       var target = "tutorial-feature-explorer"
       var placement = "top"
       showCTAButton = false
