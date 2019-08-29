@@ -54,6 +54,10 @@ trait Tutorial {
     hopscotch.startTour(tour, tour.steps.indexOf(startStep))
   }
 
+  def endTour() = {
+    hopscotch.endTour()
+  }
+
   private def showStep(step: Step) = {
     hopscotch.showStep(tour.steps.indexOf(step))
   }

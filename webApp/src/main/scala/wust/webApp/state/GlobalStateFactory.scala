@@ -2,6 +2,8 @@ package wust.webApp.state
 
 import java.util.concurrent.TimeUnit
 
+import wust.webApp.views.MainTutorial
+
 import wust.facades.googleanalytics.Analytics
 import wust.facades.hotjar
 import monix.eval.Task
@@ -89,6 +91,7 @@ object GlobalStateFactory {
       closeAllOverlays()
       graphTransformations() = defaultTransformations
       GlobalState.clearSelectedNodes()
+      MainTutorial.endTour()
     }
     viewIsContent.triggerLater { isContent =>
       if (!isContent) {
