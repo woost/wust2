@@ -22,6 +22,11 @@ object MainView {
 
   def apply(implicit ctx: Ctx.Owner): VNode = {
     div(
+      cls <-- GlobalState.screenSize.map {
+        case ScreenSize.Small  => "screensize-small"
+        case ScreenSize.Middle => "screensize-middle"
+        case ScreenSize.Large  => "screensize-large"
+      },
       // DevOnly {
       //   featureConsistencyChecks,
       // },
@@ -130,7 +135,7 @@ object MainView {
                 flexGrow := 1
               ).prepend(
                   overflow.visible, // we set a default overflow. we cannot just set it from outside, because every view might have a differnt nested area that is scrollable. Example: Chat which has an input at the bottom and the above history is only scrollable.
-              )
+                )
             }
           },
         ),
@@ -174,24 +179,24 @@ object MainView {
 
   private def featureConsistencyChecks = {
     VDomModifier.ifTrue(Feature.unreachable.nonEmpty || FeatureDetails.missingDetails.nonEmpty)(
-    div(
-      overflow.auto,
-      Styles.flex,
-      height := "150px",
-      Styles.flexStatic,
-      // runtime consistency checks for features
       div(
-        h3("Features not reachable by suggestions (",Feature.unreachable.size,"):"),
-        UI.progress(Feature.allWithoutSecrets.size - Feature.unreachable.size, Feature.allWithoutSecrets.size, classes = "indicating"),
-        Feature.unreachable.map(feature => div(feature.toString)),
-      ),
-      div(
-        h3("Missing feature details (",FeatureDetails.missingDetails.size,"):"),
-        UI.progress(Feature.all.size - FeatureDetails.missingDetails.size, Feature.all.size, classes = "indicating"),
-        marginLeft := "20px",
-        FeatureDetails.missingDetails.sortBy(_.toString).map(feature => div(feature.toString)),
-      ),
+        overflow.auto,
+        Styles.flex,
+        height := "150px",
+        Styles.flexStatic,
+        // runtime consistency checks for features
+        div(
+          h3("Features not reachable by suggestions (", Feature.unreachable.size, "):"),
+          UI.progress(Feature.allWithoutSecrets.size - Feature.unreachable.size, Feature.allWithoutSecrets.size, classes = "indicating"),
+          Feature.unreachable.map(feature => div(feature.toString)),
+        ),
+        div(
+          h3("Missing feature details (", FeatureDetails.missingDetails.size, "):"),
+          UI.progress(Feature.all.size - FeatureDetails.missingDetails.size, Feature.all.size, classes = "indicating"),
+          marginLeft := "20px",
+          FeatureDetails.missingDetails.sortBy(_.toString).map(feature => div(feature.toString)),
+        ),
+      )
     )
-  )
   }
 }
