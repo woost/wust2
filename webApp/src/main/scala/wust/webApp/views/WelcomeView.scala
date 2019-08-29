@@ -73,7 +73,7 @@ object WelcomeView {
   def welcomeMessage = div(
     cls := "ui segment",
     maxWidth := "80ex",
-    h3("Welcome to Woost."),
+    h3(replaceEmoji("Welcome to Woost. :heart:")),
     p("If you are new to Woost, start by creating a Project."),
     p("In a ", b("Project"), " you can invite other people to collaborate. You can also add different tools, like a ", b("Checklist"), ", a ", b("Kanban Board"), " or a ", b("Chat."))
   )
@@ -82,13 +82,13 @@ object WelcomeView {
     cls := "ui segment",
     maxWidth := "80ex",
     p(
-      "We're different from other collaboration tools in some really special ways. So we'd like to take you through them."
+      replaceEmoji("We're different from other collaboration tools in some really special ways :rocket:. So we'd like to take you through them.")
     ),
     div(
       Styles.flex,
       justifyContent.center,
       button(
-        cls := "ui pink basic button", "Show me the basics",
+        cls := "ui pink basic button", replaceEmoji(":baby_chick: Show me the basics "),
         onClick.stopPropagation.foreach {
           MainTutorial.startTour()
         },
@@ -96,7 +96,7 @@ object WelcomeView {
       )
     ),
     p(
-      "If you want to explore yourself, take a look at ", b("Explored Features"), " in the left sidebar. It will track your progress and suggest things you should try next."
+      "If you want to explore yourself, take a look at ", b("Explored Features"), replaceEmoji(" in the left sidebar. It will track your progress and suggest things you should try next. :bulb:")
     ),
   )
 
