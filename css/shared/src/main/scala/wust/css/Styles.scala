@@ -129,6 +129,7 @@ object Styles extends StyleSheet.Inline {
 object CommonStyles extends StyleSheet.Standalone
   with NotesView 
   with BreadCrumbs
+  with Hopscotch
   {
 
   import dsl._
@@ -1541,15 +1542,6 @@ object CommonStyles extends StyleSheet.Standalone
     position.fixed,
     top(50%%),
     transform := "translate(-50%, -50%)",
-  )
-
-
-  // hopscotch tutorial
-  ".hopscotch-bubble .hopscotch-nav-button.next" - (
-    // make buttons look flat
-    (backgroundImage := "none").important,
-    (border.none).important,
-    (textShadow := "none").important,
   )
 }
 

@@ -38,9 +38,11 @@ trait Step extends js.Object {
   var onNext: js.UndefOr[js.Function0[Unit]] = js.undefined
   var onCTA: js.UndefOr[js.Function0[Unit]] = js.undefined
   var nextOnTargetClick:js.UndefOr[Boolean] = js.undefined
+  var zIndex: js.UndefOr[Int] = js.undefined
 }
 
 trait I18n extends js.Object {
   var nextBtn: js.UndefOr[String] = js.undefined
   var doneBtn: js.UndefOr[String] = js.undefined
+  var stepNums: js.UndefOr[js.Array[String]] = js.undefined
 }

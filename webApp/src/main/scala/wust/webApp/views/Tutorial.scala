@@ -1,17 +1,25 @@
 package wust.webApp.views
 
 import outwatch.dom.dsl._
-import wust.facades.hopscotch.{Step, Tour, hopscotch}
+import wust.facades.hopscotch.{Step, Tour, hopscotch, I18n}
 
 import scala.scalajs.js
+import scala.scalajs.js.JSConverters._
 
 trait Tutorial {
   val tourId: String
   val tourSteps: js.Array[Step]
 
+  private def stepNumsTotal(n:Int):js.Array[String] = {
+    Array.tabulate(n)(i => s"${i+1}/$n").toJSArray
+  }
+
   lazy val tour: Tour = new Tour {
     var id = tourId
     var steps = tourSteps
+    i18n = new I18n {
+      stepNums = stepNumsTotal(steps.size)
+    }
   }
 
   def waitForNextStep() = {
