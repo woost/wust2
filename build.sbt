@@ -215,7 +215,7 @@ lazy val root = project
     publishLocal := {},
     addCommandAlias(
       "wc",
-      "; webApp/clean; webUtil/clean; webUtilMacro/clean"
+      "; webApp/clean; webUtil/clean; webUtilMacro/clean; cssJS/clean"
     ),
     addCommandAlias(
       "devslack",
