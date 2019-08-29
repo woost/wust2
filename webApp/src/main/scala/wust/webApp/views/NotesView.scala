@@ -26,13 +26,9 @@ object NotesView {
       Styles.growFull,
       overflow.auto,
 
-      Styles.flex,
-      justifyContent.center,
+      cls := "notesview",
       div(
-        padding := "20px",
-
-        maxWidth := "980px", // like github readme
-        width := "100%",
+        cls := "notesview-container",
 
         Rx {
           val graph = GlobalState.graph()
@@ -90,10 +86,7 @@ object NotesView {
       cls := "ui segment",
       cls := "note",
       div(
-
-        // readability like github readme:
-        padding := "48px",
-        fontSize := "16px",
+        cls := "notesview-note",
         cls := "enable-text-selection",
 
         Components.editableNode(node, editMode = editMode, config = EditableContent.Config.cancelOnError.copy(submitOnEnter = false)).append(

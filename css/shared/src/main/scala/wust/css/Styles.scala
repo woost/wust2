@@ -126,7 +126,9 @@ object Styles extends StyleSheet.Inline {
 }
 
 //TODO: port over to Style as inline and reference class via Styles
-object CommonStyles extends StyleSheet.Standalone {
+object CommonStyles extends StyleSheet.Standalone
+  with NotesView {
+
   import dsl._
 
   ".ui.message.warning" - (
@@ -762,12 +764,6 @@ object CommonStyles extends StyleSheet.Standalone {
     Styles.wordWrap,
     padding(2 px),
     minHeight(1 em).important, // height when card is empty. important, because it may be overwritten by Styles.flex which sets minHeight to 0.
-  )
-
-  ".note" - (
-    &(".markdown") - (
-      Styles.wordWrap,
-    )  
   )
 
   ".activity-stream-view" - (
