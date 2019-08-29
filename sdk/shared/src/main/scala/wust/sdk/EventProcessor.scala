@@ -167,7 +167,8 @@ class EventProcessor private (
       case (graph, auth @ Authentication.Verified(user: AuthUser.Persisted, _, _)) =>
         graph.nodesById(user.id).asInstanceOf[Option[Node.User]].fold[Future[Ack]](Ack.Continue) { userNode =>
           val newName = userNode.data.name
-          if (newName != user.name) currentAuthUpdate.onNext(auth.copy(user = user.updateName(name = newName)))
+          val newImageFile = userNode.data.imageFile
+          if (newName != user.name || newImageFile != user.imageFile) currentAuthUpdate.onNext(auth.copy(user = user.update(name = newName, imageFile = newImageFile)))
           else Ack.Continue
         }
       case _ => Ack.Continue
