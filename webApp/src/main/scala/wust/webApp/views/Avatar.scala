@@ -21,10 +21,10 @@ object Avatar {
       case n:Node.User => user(n.id)
     }
   }
-  val node = Memo.mutableHashMapMemo { nodeId: NodeId =>
+  def node(nodeId: NodeId) = {
     twoMirror(nodeId, 8)
   }
-  val user = Memo.mutableHashMapMemo { userId: UserId =>
+  def user(userId: UserId) = {
     verticalMirror(userId, 5)
   }
 
