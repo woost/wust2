@@ -127,7 +127,9 @@ object Styles extends StyleSheet.Inline {
 
 //TODO: port over to Style as inline and reference class via Styles
 object CommonStyles extends StyleSheet.Standalone
-  with NotesView {
+  with NotesView 
+  with BreadCrumbs
+  {
 
   import dsl._
 
@@ -854,35 +856,6 @@ object CommonStyles extends StyleSheet.Standalone
   )
 
 
-  // -- breadcrumb --
-  ".breadcrumbs" - (
-    padding(2 px, 2 px), // some padding is needed to display the box-shadow
-
-    Styles.flex,
-    alignItems.center,
-    overflow.hidden,
-
-    &(".cycle-indicator") - (
-      verticalAlign.middle,
-      margin(1.px),
-      width(0.8.em)
-    ),
-
-    &(".divider") - (
-      marginLeft(3 px),
-      marginRight(3 px),
-      color(c"rgba(255, 255, 255, 0.78)"),
-      fontSize(18 px),
-    ),
-
-    &(".nodecard") - (
-      padding(1 px, 3 px),
-      &(".nodecard-content") - (
-        padding(0 px, 2 px)
-      )
-    )
-  )
-
   ".pageheader" - (
     &(".breadcrumb") - (
       // pageheader has a colored background. No shadow needed.
@@ -926,25 +899,6 @@ object CommonStyles extends StyleSheet.Standalone
       ),
     ),
   )
-
-  ".breadcrumb" - (
-    minWidth(2 em).important, // to leave at least the icon when shrinking, important to overwrite min-width:0 of Styles-flex
-  )
-
-  ".breadcrumb," +
-  ".breadcrumb *:not(.emoji-outer):not(.emoji-sizer):not(.emoji-inner)" - (
-    fontSize(13 px),
-  )
-
-  // first/last breadcrumb should not have any margin.
-  // this way e.g. the cycle shape is closer to the cycle
-  ".breadcrumb:first-of-type" - (
-    marginLeft(0 px),
-    )
-  ".breadcrumb:last-of-type" - (
-    marginRight(0 px),
-    )
-
 
   ".unread-label" - (
     // important to overwrite "ui label"
