@@ -335,7 +335,7 @@ object Components {
   def removableUserAvatar(userNode: Node.User, targetNodeId: NodeId): VNode = {
     div(
       Styles.flexStatic,
-      Avatar.user(userNode.id)(
+      Avatar(userNode)(
         marginRight := "2px",
         width := "22px",
         height := "22px",
@@ -376,7 +376,7 @@ object Components {
         color.black,
         Styles.flex,
         alignItems.center,
-        Avatar.user(user.id)(height := s"${size}px"),
+        Avatar(user)(height := s"${size}px"),
         div(marginLeft := "5px", displayUserName(user.data), Styles.wordWrap),
       )
     }

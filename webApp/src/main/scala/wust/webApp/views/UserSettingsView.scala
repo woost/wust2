@@ -12,6 +12,7 @@ import wust.api._
 import wust.css.Styles
 import wust.facades.googleanalytics.Analytics
 import wust.ids._
+import wust.graph._
 import wust.webApp._
 import wust.webApp.jsdom.FormValidator
 import wust.webApp.state.GlobalState
@@ -309,6 +310,7 @@ object UserSettingsView {
     form(
       onDomMount.foreach(e => element = e.asInstanceOf[dom.html.Form]),
       onSubmit.foreach(_.preventDefault()),
+
       div(
         emitter(clearHandler) --> password,
         cls := "ui fluid input",
@@ -320,6 +322,7 @@ object UserSettingsView {
           onChange.value --> password,
           onEnter.value foreach actionSink)
       ),
+
       errorHandler.map {
         case None => VDomModifier.empty
         case Some(problem) => div(
@@ -327,6 +330,7 @@ object UserSettingsView {
           div(cls := "header", problem)
         )
       },
+
       button(
         "Change password",
         cls := "ui fluid primary button",
@@ -342,23 +346,51 @@ object UserSettingsView {
   }
 
   private def header(user: AuthUser)(implicit ctx: Ctx.Owner): VNode = {
+    val nodeUser = user.toNode
     val editMode = Var(false)
     div(
       Styles.flex,
       alignItems.center,
-      Avatar.user(user.id)(
+      Avatar(nodeUser)(
         cls := "avatar",
         Styles.flexStatic,
         width := "50px",
         height := "50px",
         padding := "4px",
       ),
-      editableNode( user.toNode, editMode).apply(marginLeft := "20px", marginBottom := "0px", fontSize := "30px", alignItems.center, cls := "enable-text-selection"),
+      editableNode(nodeUser, editMode).apply(marginLeft := "20px", marginBottom := "0px", fontSize := "30px", alignItems.center, cls := "enable-text-selection"),
       button(
         cls := "ui button primary tiny",
         marginLeft := "20px",
         "Edit username",
         onClick(true) --> editMode
+      ),
+
+      div(
+        marginLeft := "20px",
+
+        Styles.flex,
+        alignItems.center,
+
+        div(
+          marginRight := "10px",
+
+          div("Upload your own Avatar"),
+
+          nodeUser.data.imageFile.map { _ =>
+            div(
+              "Or reset your Avatar",
+              textDecoration.underline,
+              onClickDefault.mapTo(GraphChanges(addNodes = Array(nodeUser.copy(data = nodeUser.data.copy(imageFile = None))))) --> GlobalState.eventProcessor.changes
+            )
+          }
+        ),
+
+        div(
+          UploadComponents.uploadField(acceptType = Some("image/*")).transform(_.concatMap(file => Observable.from(file.uploadKey).collect { case Some(key) =>
+            GraphChanges(addNodes = Array(nodeUser.copy(data = nodeUser.data.copy(imageFile = Some(key)))))
+          })) --> GlobalState.eventProcessor.changes,
+        )
       )
     )
   }

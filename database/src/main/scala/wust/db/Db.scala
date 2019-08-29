@@ -290,7 +290,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
 
     // TODO share code with createimplicit?
     def create(userId: UserId, name: String, email: String, passwordDigest: Array[Byte])(implicit ec: TransactionalExecutionContext): Future[User] = {
-      val userData = NodeData.User(name = name, isImplicit = false, revision = 0)
+      val userData = NodeData.User(name = name, isImplicit = false, revision = 0, imageFile = None)
       val user = User(userId, userData, NodeAccess.Level(AccessLevel.Restricted))
       val membership: EdgeData = EdgeData.Member(AccessLevel.ReadWrite)
 
@@ -310,7 +310,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     }
 
     def createImplicitUser(userId: UserId, name: String)(implicit ec: TransactionalExecutionContext): Future[User] = {
-      val userData = NodeData.User(name = name, isImplicit = true, revision = 0)
+      val userData = NodeData.User(name = name, isImplicit = true, revision = 0, imageFile = None)
       val user = User(userId, userData, NodeAccess.Level(AccessLevel.Restricted))
       val membership: EdgeData = EdgeData.Member(AccessLevel.ReadWrite)
 

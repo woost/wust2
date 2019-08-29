@@ -551,7 +551,7 @@ object SharedViewElements {
         val members = graph.membersByIndex(nodeIdx)
 
         members.map(user => div(
-          Avatar.user(user.id)(
+          Avatar(user)(
             marginLeft := s"${marginLeftPx}px",
             width := s"${sizePx}px",
             height := s"${sizePx}px",

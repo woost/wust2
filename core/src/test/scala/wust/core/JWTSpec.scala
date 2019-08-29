@@ -12,7 +12,7 @@ import scala.concurrent.duration._
 class JWTSpec extends FreeSpec with MustMatchers {
   val jwt = new JWT("secret", 1 hours)
 
-  def User(name: String): AuthUser.Persisted = new AuthUser.Real(UserId.fresh, name, 0)
+  def User(name: String): AuthUser.Persisted = new AuthUser.Real(UserId.fresh, name, 0, None)
 
   "generate valid auth for user" in {
     val user = User("Biermann")

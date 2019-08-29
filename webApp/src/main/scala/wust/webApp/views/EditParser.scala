@@ -1,6 +1,8 @@
 package wust.webApp.views
 
 import monix.eval.Task
+import wust.webUtil.UI
+import monix.reactive.Observable
 import org.scalajs.dom
 import outwatch.ProHandler
 import outwatch.dom._
@@ -174,7 +176,7 @@ object EditElementParser {
 
   final case class Config(
     inputEmitter: EmitterBuilder[Any, VDomModifier], // emitter to be applied to an input element. but can be overwritten by element parser if not applicable. e.g. for file input only onChange/onInput makes sense.
-    inputModifier: VDomModifier, // modifiers to be applied to an input element. but can be overwritten by element parser if not applicable. e.g.  for file input additional modifiers make no sense>
+    inputModifier: VDomModifier, // modifiers to be applied to an input element. but can be overwritten by element parser if not applicable.
     blurEmitter: EmitterBuilder[Any, VDomModifier], // emitter for blur event, if enabled, it may be used by the edit element
     emitter: EmitterBuilder[Any, VDomModifier], // mandatory emitter for any edit element. when this trigger we expect to parse and emit the current value.
     modifier: VDomModifier, // mandatory modifiers for any edit element. we expect this to be applied to the main edit element.
@@ -302,6 +304,7 @@ object EditElementParser {
         config.modifier,
 
         input(
+          config.inputModifier,
           display.none, id := randomId, Elements.fileInputMod,
           onChange.map(e => parse(e.target.asInstanceOf[dom.html.Input])) --> handler,
           handler.map {
@@ -309,7 +312,7 @@ object EditElementParser {
             case _ => VDomModifier.empty
           }
         ),
-        UploadComponents.uploadFieldModifier(handler.map(_.toOption), randomId)
+        EditHelper.uploadFieldModifier(handler.map(_.toOption), randomId)
       )
     }
   }
@@ -386,6 +389,56 @@ object EditInteraction {
 }
 
 object EditHelper {
+
+  def uploadFieldModifier(selected: Observable[Option[dom.File]], fileInputId: String, tooltipDirection: String = "top left")(implicit ctx: Ctx.Owner): VDomModifier = {
+
+    val iconAndPopup: Observable[(VNode, Option[VNode])] = selected.prepend(None).map {
+      case None =>
+        (span(Icons.fileUpload), None)
+      case Some(file) =>
+        val popupNode = file.`type` match {
+          case t if t.startsWith("image/") =>
+            val dataUrl = dom.URL.createObjectURL(file)
+            img(src := dataUrl, height := "100px", maxWidth := "400px") //TODO: proper scaling and size restriction
+          case _ => div(file.name)
+        }
+        val icon = VDomModifier(
+          Icons.fileUpload,
+          color := "orange",
+        )
+
+        (span(icon), Some(popupNode))
+    }
+
+    val onDragOverModifier = Handler.unsafe[VDomModifier]
+
+    VDomModifier(
+      label(
+        forId := fileInputId, // label for input will trigger input element on click.
+
+        iconAndPopup.map {
+          case (icon, popup) =>
+            VDomModifier(
+              popup.map(UI.popupHtml(tooltipDirection) := _),
+              div(icon, cls := "icon")
+            )
+        },
+        cls := "ui circular basic icon button",
+        fontSize := "1.1em", // same size as submit-button in Chat/InputRow
+      ),
+
+      onDragOverModifier,
+      onDragEnter.preventDefault(opacity := 0.5) --> onDragOverModifier,
+      onDragLeave.preventDefault.onlyOwnEvents(VDomModifier.empty) --> onDragOverModifier,
+      onDragOver.preventDefault.discard,
+
+      onDrop.preventDefault.foreach { ev =>
+        val elem = dom.window.document.getElementById(fileInputId).asInstanceOf[dom.html.Input]
+        elem.files = ev.dataTransfer.files
+      },
+    )
+  }
+
 
   def valueParsingModifier[T: ValueStringifier, Elem >: Null <: dom.html.Element](
     initial: Task[Option[T]],

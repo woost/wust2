@@ -138,7 +138,10 @@ object AssignedTasksView  {
     val close = PublishSubject[Unit]
     div(
       Rx {
-        Avatar.user(selectedUserId()).apply(height := "20px")
+        val userId = selectedUserId()
+        users().find(_.id == userId).map { user =>
+          Avatar(user).apply(height := "20px")
+        }
       },
       i(cls := "dropdown icon"),
       UI.dropdownMenu(

@@ -4,6 +4,7 @@ import java.lang.Math._
 
 import colorado.HCL
 import outwatch.dom.{VNode, _}
+import wust.webApp.Client
 import wust.webUtil.outwatchHelpers._
 import wust.graph.Node
 import wust.ids._
@@ -18,13 +19,16 @@ object Avatar {
   def apply(n:Node): VNode = {
     n match {
       case n:Node.Content => node(n.id)
-      case n:Node.User => user(n.id)
+      case n:Node.User => n.data.imageFile match {
+        case None => user(n.id)
+        case Some(key) => dsl.img(Client.wustFilesUrl.map(url => dsl.src := url + "/" + key))
+      }
     }
   }
-  def node(nodeId: NodeId) = {
+  private def node(nodeId: NodeId) = {
     twoMirror(nodeId, 8)
   }
-  def user(userId: UserId) = {
+  private def user(userId: UserId) = {
     verticalMirror(userId, 5)
   }
 

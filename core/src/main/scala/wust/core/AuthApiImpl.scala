@@ -43,7 +43,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow, oAut
     if (isValidEmail(email)) {
       val digest = passwordDigest(password)
       state.auth.map(_.user) match {
-        case Some(AuthUser.Implicit(prevUserId, _, _)) =>
+        case Some(AuthUser.Implicit(prevUserId, _, _, _)) =>
           val user = db.ctx.transaction { implicit ec =>
             db.user.activateImplicitUser(prevUserId, name = name, email = email, passwordDigest = digest)
           }.recover { case NonFatal(t) => None }
@@ -67,7 +67,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow, oAut
     db.user.getUserAndDigestByEmail(email).flatMap {
       case Some((user, userDigest)) if (digest.hash = userDigest) =>
         state.auth.flatMap(_.dbUserOpt) match {
-          case Some(AuthUser.Implicit(prevUserId, _, _)) =>
+          case Some(AuthUser.Implicit(prevUserId, _, _, _)) =>
             db.ctx.transaction { implicit ec =>
               db.user.mergeImplicitUser(prevUserId, user.id).map {
                 case true =>
@@ -94,7 +94,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow, oAut
     db.user.getUserAndDigestByEmail(email).flatMap {
       case Some((user, userDigest)) if (digest.hash = userDigest) =>
         state.auth.flatMap(_.dbUserOpt) match {
-          case Some(AuthUser.Implicit(prevUserId, _, _)) =>
+          case Some(AuthUser.Implicit(prevUserId, _, _, _)) =>
             db.ctx.transaction { implicit ec =>
               db.user.mergeImplicitUser(prevUserId, user.id).map {
                 case true =>

@@ -198,7 +198,7 @@ object FeatureDetails {
       )
       case AssignTaskByDragging => FeatureDetails (
         title = "Assign Task (Drag&Drop)",
-        description = VDomModifier("Drag a user avatar ", Avatar.user(GlobalState.user.now.id)(height := "20px", marginBottom := "-5px", cls := "avatar"), " from the members list (next to the project title) onto a task.")
+        description = VDomModifier("Drag a user avatar ", Avatar(GlobalState.user.now.toNode)(height := "20px", marginBottom := "-5px", cls := "avatar"), " from the members list (next to the project title) onto a task.")
       )
       case AddCustomFieldToTask => FeatureDetails (
         title = "Add Custom Field to Task",

@@ -6,7 +6,7 @@ import org.scalajs.dom
 import org.scalajs.dom.document
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.dom.helpers.AttributeBuilder
+import outwatch.dom.helpers.{AttributeBuilder, EmitterBuilder}
 import rx._
 import wust.css.Styles
 import wust.graph._
@@ -105,57 +105,17 @@ object UploadComponents {
     fileUploadHandler
   }
 
-  def uploadFieldModifier(selected: Observable[Option[dom.File]], fileInputId: String, tooltipDirection: String = "top left")(implicit ctx: Ctx.Owner): VDomModifier = {
-
-    val iconAndPopup: Observable[(VNode, Option[VNode])] = selected.prepend(None).map {
-      case None =>
-        (span(Icons.fileUpload), None)
-      case Some(file) =>
-        val popupNode = file.`type` match {
-          case t if t.startsWith("image/") =>
-            val dataUrl = dom.URL.createObjectURL(file)
-            img(src := dataUrl, height := "100px", maxWidth := "400px") //TODO: proper scaling and size restriction
-          case _ => div(file.name)
-        }
-        val icon = VDomModifier(
-          Icons.fileUpload,
-          color := "orange",
-        )
-
-        (span(icon), Some(popupNode))
-    }
-
-    val onDragOverModifier = Handler.unsafe[VDomModifier]
-
-    VDomModifier(
-      label(
-        forId := fileInputId, // label for input will trigger input element on click.
-
-        iconAndPopup.map {
-          case (icon, popup) =>
-            VDomModifier(
-              popup.map(UI.popupHtml(tooltipDirection) := _),
-              div(icon, cls := "icon")
-            )
-        },
-        cls := "ui circular basic icon button",
-        fontSize := "1.1em", // same size as submit-button in Chat/InputRow
-      ),
-
-      onDragOverModifier,
-      onDragEnter.preventDefault(opacity := 0.5) --> onDragOverModifier,
-      onDragLeave.preventDefault.onlyOwnEvents(VDomModifier.empty) --> onDragOverModifier,
-      onDragOver.preventDefault.discard,
-
-      onDrop.preventDefault.foreach { ev =>
-        val elem = document.getElementById(fileInputId).asInstanceOf[dom.html.Input]
-        elem.files = ev.dataTransfer.files
-      },
-    )
+  def uploadField(acceptType: Option[String] = None)(implicit ctx: Ctx.Owner): EmitterBuilder[AWS.UploadableFile, VNode] = {
+    EditableContent.editor[AWS.UploadableFile](config = EditableContent.Config(
+      inputModifier = acceptType.map(accept := _),
+      errorMode = EditableContent.ErrorMode.ShowToast,
+      submitMode = EditableContent.SubmitMode.Off
+    )).editValue.mapResult(_.apply(marginLeft := "3px"))
   }
 
-  def uploadField(selected: Var[Option[AWS.UploadableFile]])(implicit ctx: Ctx.Owner): VNode = {
+  def uploadFieldRx(selected: Var[Option[AWS.UploadableFile]], acceptType: Option[String] = None)(implicit ctx: Ctx.Owner): VNode = {
     EditableContent.editorRx[AWS.UploadableFile](selected, config = EditableContent.Config(
+      inputModifier = acceptType.map(accept := _),
       errorMode = EditableContent.ErrorMode.ShowToast,
       submitMode = EditableContent.SubmitMode.Off
     )).apply(marginLeft := "3px")

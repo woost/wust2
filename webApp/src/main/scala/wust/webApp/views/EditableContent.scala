@@ -50,6 +50,7 @@ object EditableContent {
 
   final case class Config(
     modifier: VDomModifier = VDomModifier.empty,
+    inputModifier: VDomModifier = VDomModifier.empty,
     submitMode: SubmitMode = SubmitMode.Explicit,
     submitOnEnter: Boolean = !BrowserDetect.isMobile,
     errorMode: ErrorMode = ErrorMode.ShowInline,
@@ -346,6 +347,7 @@ object EditableContent {
   )
 
   private def inputModifiers[T](config: Config, handler: Handler[EditInteraction[T]]) = VDomModifier(
+    config.inputModifier,
     VDomModifier.ifTrue(config.selectTextOnFocus)(
       onFocus foreach { e => dom.document.execCommand("selectAll", false, null) }, // select text on focus
     ),

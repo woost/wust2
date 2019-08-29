@@ -345,7 +345,7 @@ object InputRow {
         ),
         markdownHelp,
       ),
-      fileUploadHandler.map(UploadComponents.uploadField( _).apply(Styles.flexStatic, width := "unset")), // unsetting width:100% from commonedithandler
+      fileUploadHandler.map(UploadComponents.uploadFieldRx( _).apply(Styles.flexStatic, width := "unset")), // unsetting width:100% from commonedithandler
       VDomModifier.ifTrue(showSubmitIcon)(submitButton.apply(Styles.flexStatic)),
       onClick.stopPropagation.discard, // prevents globalClick trigger (which e.g. closes emojiPicker - it doesn't even open it in the first place)
     )

@@ -224,7 +224,7 @@ object AuthView {
     Rx {
       GlobalState.user() match {
         // User.Implicit user means, that the user already created content, else it would be User.Assumed.
-        case AuthUser.Implicit(_, name, _) => UI.message(
+        case AuthUser.Implicit(_, name, _, _) => UI.message(
           // msgType = "warning",
           header = Some("Discard created content?"),
           content = Some(VDomModifier(
