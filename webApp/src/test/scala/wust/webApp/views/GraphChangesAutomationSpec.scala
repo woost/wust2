@@ -17,7 +17,7 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
   def copyNodeId(nodeId: NodeId) = NodeId(Cuid(nodeId.right, nodeId.left))
   def copyNode(node: Node.Content) = node.copy(id = copyNodeId(node.id))
   def newNodeContent(str: String, role: NodeRole) = Node.Content(freshNodeId(), NodeData.Markdown(str), role)
-  def newNodeUser(str: String) = Node.User(UserId(freshNodeId()), NodeData.User(str, false, 0), NodeMeta.User)
+  def newNodeUser(str: String) = Node.User(UserId(freshNodeId()), NodeData.User(str, false, 0, None), NodeMeta.User)
   val copyTime = EpochMilli.now
 
   val defaultChildData = EdgeData.Child(deletedAt = None, ordering = BigDecimal(0))
