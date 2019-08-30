@@ -93,12 +93,16 @@ object NotesView {
           width := "100%",
         ),
       ),
+      div(
+        alignItems.center,
+        NodeDetails.tagsPropertiesAssignments(node.id)
+      ),
 
       Rx {
         VDomModifier.ifNot(editMode())(
           DragComponents.dragWithHandle(DragItem.Note(node.id)),
           cursor.auto, // overwrite drag cursor
-          )
+        )
       },
 
       controls (node.id, parentId, editMode, isDeleted)
@@ -108,7 +112,7 @@ object NotesView {
           right := "10px",
           Styles.flexStatic,
           marginLeft := "26px",
-        )
+        ),
     )
   }
 
