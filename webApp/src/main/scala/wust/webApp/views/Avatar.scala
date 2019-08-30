@@ -18,16 +18,14 @@ object Avatar {
 
   def apply(n:Node): VNode = {
     n match {
-      case n:Node.Content => node(n.id)
+      case n:Node.Content => ???
       case n:Node.User => n.data.imageFile match {
         case None => user(n.id)
         case Some(key) => dsl.img(Client.wustFilesUrl.map(url => dsl.src := url + "/" + key))
       }
     }
   }
-  private def node(nodeId: NodeId) = {
-    twoMirror(nodeId, 8)
-  }
+
   private def user(userId: UserId) = {
     verticalMirror(userId, 5)
   }
@@ -150,59 +148,4 @@ object Avatar {
     }
   }
 
-  def twoMirror(seed: Any, n: Int): VNode = {
-    import outwatch.dom.dsl.svg.svg
-
-    svg.thunkStatic(uniqueKey(seed.toString)) {
-      val rnd = new scala.util.Random(new scala.util.Random(seed.hashCode).nextLong()) // else nextDouble is too predictable
-
-      val half = (n / 2) + (n % 2)
-
-      val pixels = new js.Array[VNode]
-      val colors = accentColorSelection(genericHue(seed), rnd)
-      @inline def rndColor() = randomElement(colors, rnd)
-
-      if (rnd.nextBoolean()) {
-        // mirror on x and y axis
-        var x = 0
-        var y = 0
-        while (y < half) {
-          x = 0
-          while (x < half) {
-            if (rnd.nextBoolean()) {
-              val color = rndColor()
-              addPixel(pixels, x, y, color)
-              addPixel(pixels, x, n - y - 1, color)
-              addPixel(pixels, n - x - 1, y, color)
-              addPixel(pixels, n - x - 1, n - y - 1, color)
-            }
-            x += 1
-          }
-          y += 1
-        }
-      } else {
-        // mirror on diagonals
-        var x = 0
-        var y = 0
-        var startx = 0
-        while (y < half) {
-          x = startx
-          while (x < n - startx) {
-            if (rnd.nextBoolean()) {
-              val c = rndColor()
-              addPixel(pixels, x, y, c)
-              addPixel(pixels, y, x, c)
-              addPixel(pixels, n - y - 1, n - x - 1, c)
-              addPixel(pixels, n - x - 1, n - y - 1, c)
-            }
-            x += 1
-          }
-          startx += 1
-          y += 1
-        }
-      }
-
-      renderSvg(n, pixels)
-    }
-  }
 }

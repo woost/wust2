@@ -42,25 +42,6 @@ object AvatarView {
             )
           ),
         },
-        (8 to 10).map { res =>
-          div(
-            Styles.flex,
-            flexWrap.wrap,
-            List.tabulate(n){
-              i =>
-                val nodeId = NodeId(Cuid(0,i))
-                div(
-                  width := s"${size}px",
-                  height := s"${size}px",
-                  padding := "4px",
-                  borderRadius := "2px",
-                  marginBottom := "10px",
-                  marginRight := "10px",
-                  Avatar.twoMirror(i, res)
-                )
-            }
-          ),
-        },
         // List.tabulate(n)(i => Avatar(i, 10, false)(width := s"${size}px", height := s"${size}px")  ),
         // div(),
         // List.tabulate(n)(i => Avatar(i, 11, false)(width := s"${size}px", height := s"${size}px")  ),
@@ -73,7 +54,7 @@ object AvatarView {
         {
           // to measure, disable the static rendering in Avatar
           val sw = new StopWatch()
-          sw.benchmark(200000)(Avatar.twoMirror(scala.util.Random.nextInt(), 10))
+          sw.benchmark(200000)(Avatar.verticalMirror(scala.util.Random.nextInt(), 10))
           sw.readMicros
         }
       )
