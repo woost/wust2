@@ -351,11 +351,8 @@ object UserSettingsView {
     div(
       Styles.flex,
       alignItems.center,
-      Avatar(nodeUser)(
-        cls := "avatar",
+      Avatar.user(nodeUser, size = "50px", enableDrag = false)(
         Styles.flexStatic,
-        width := "50px",
-        height := "50px",
         padding := "4px",
       ),
       editableNode(nodeUser, editMode).apply(marginLeft := "20px", marginBottom := "0px", fontSize := "30px", alignItems.center, cls := "enable-text-selection"),

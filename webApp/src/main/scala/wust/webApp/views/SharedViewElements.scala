@@ -120,16 +120,16 @@ object SharedViewElements {
   )
 
 
-  def authorAvatar(author: Node.User, avatarSize: Int, avatarPadding: Int): VNode = {
-    div(Avatar(author)(cls := "avatar",width := s"${avatarSize}px", padding := s"${avatarPadding}px"), marginRight := "5px")
+  def authorAvatar(author: Node.User, avatarSize: String, avatarPadding: Int): VNode = {
+    div(Avatar.user(author, size = avatarSize)(padding := s"${avatarPadding}px"), marginRight := "5px")
   }
 
   @inline def smallAuthorAvatar(author: Node.User): VNode = {
-    authorAvatar(author, avatarSize = 15, avatarPadding = 2)
+    authorAvatar(author, avatarSize = "15px", avatarPadding = 2)
   }
 
   @inline def bigAuthorAvatar(author: Node.User): VNode = {
-    authorAvatar(author, avatarSize = 40, avatarPadding = 3)
+    authorAvatar(author, avatarSize = "40px", avatarPadding = 3)
   }
 
   def authorName(author: Node.User): VNode = {
@@ -551,20 +551,15 @@ object SharedViewElements {
         val members = graph.membersByIndex(nodeIdx)
 
         members.map(user => div(
-          Avatar(user)(
+          Avatar.user(user, size = s"${sizePx}px")(
             marginLeft := s"${marginLeftPx}px",
-            width := s"${sizePx}px",
-            height := s"${sizePx}px",
-            cls := "avatar",
             marginTop := "1px",
             marginBottom := "1px",
           ),
           Styles.flexStatic,
           cursor.grab,
           UI.popup("bottom center") := Components.displayUserName(user.data)
-        )(
-            drag(payload = DragItem.User(user.id)),
-          ))(breakOut): js.Array[VNode]
+        ))(breakOut): js.Array[VNode]
       }
     )
   }

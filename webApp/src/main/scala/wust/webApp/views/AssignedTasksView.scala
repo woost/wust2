@@ -140,7 +140,7 @@ object AssignedTasksView  {
       Rx {
         val userId = selectedUserId()
         users().find(_.id == userId).map { user =>
-          Avatar(user).apply(height := "20px")
+          Avatar.user(user, size = "20px", enableDrag = false)
         }
       },
       i(cls := "dropdown icon"),
@@ -150,7 +150,7 @@ object AssignedTasksView  {
           users.map(_.map { user =>
             div(
               cls := "item",
-              Components.renderUser(user).apply(
+              Components.renderUser(user, enableDrag = false).apply(
                 backgroundColor := "transparent", // overwrite white background
                 cursor.pointer,
                 onClick.stopPropagation foreach {

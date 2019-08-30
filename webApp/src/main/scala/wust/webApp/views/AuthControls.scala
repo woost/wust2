@@ -30,7 +30,7 @@ object AuthControls {
         div(
           Styles.flex,
           alignItems.center,
-          Avatar(user.toNode)(width := "20px", cls := "avatar", drag(payload = DragItem.User(user.id))),
+          Avatar.user(user.toNode, size = "20px"),
           span(
             user.name,
             padding := "0 5px",

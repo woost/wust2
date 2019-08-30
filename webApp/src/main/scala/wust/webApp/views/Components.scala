@@ -335,17 +335,13 @@ object Components {
   def removableUserAvatar(userNode: Node.User, targetNodeId: NodeId): VNode = {
     div(
       Styles.flexStatic,
-      Avatar(userNode)(
+      Avatar.user(userNode, size = "22px")(
         marginRight := "2px",
-        width := "22px",
-        height := "22px",
-        cls := "avatar",
       ),
       keyed(userNode.id),
       UI.tooltip("left center") := s"${displayUserName(userNode.data)}. Click to unassign.",
       cursor.pointer,
       onClick.stopPropagation(GraphChanges.disconnect(Edge.Assigned)(targetNodeId, userNode.id)) --> GlobalState.eventProcessor.changes,
-      DragComponents.drag(DragItem.User(userNode.id), target = DragItem.DisableDrag),
     )
   }
 
@@ -368,7 +364,7 @@ object Components {
       )
     }
 
-    def renderUser(user: Node.User, size:Int = 20): VNode = {
+    def renderUser(user: Node.User, size:String = "20px", enableDrag:Boolean = true): VNode = {
       div(
         padding := "2px",
         borderRadius := "3px",
@@ -376,7 +372,7 @@ object Components {
         color.black,
         Styles.flex,
         alignItems.center,
-        Avatar(user)(height := s"${size}px"),
+        Avatar.user(user, size = size, enableDrag = enableDrag),
         div(marginLeft := "5px", displayUserName(user.data), Styles.wordWrap),
       )
     }
@@ -449,7 +445,7 @@ object Components {
 
       VDomModifier(
         node match {
-          case user: Node.User => renderUser(user, size = 14)
+          case user: Node.User => renderUser(user, size = "14px")
           case node if node.role == NodeRole.Project => VDomModifier(
             cls := "project",
             cls := "nodecard",
@@ -592,13 +588,6 @@ object Components {
         Styles.flex,
         alignItems.flexStart,
         taskCheckbox( node, directParentIds)
-      )
-    }
-
-  def nodeAvatar(node: Node, size: Int): VNode = {
-      Avatar(node)(
-        width := s"${ size }px",
-        height := s"${ size }px"
       )
     }
 

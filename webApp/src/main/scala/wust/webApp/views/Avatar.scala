@@ -3,31 +3,40 @@ package wust.webApp.views
 import java.lang.Math._
 
 import colorado.HCL
-import outwatch.dom.{VNode, _}
+import outwatch.dom.{ VNode, _ }
 import wust.webApp.Client
 import wust.webUtil.outwatchHelpers._
 import wust.graph.Node
 import wust.ids._
 import wust.sdk.NodeColor.genericHue
 import wust.util.Memo
+import wust.webApp.views.DragComponents.{ drag }
+import wust.webApp.dragdrop.{ DragItem }
 
 import scala.scalajs.js
 
 object Avatar {
+  import dsl._
   //TODO: less-angry rainbow? https://bl.ocks.org/mbostock/310c99e53880faec2434
 
-  def apply(n:Node): VNode = {
-    n match {
-      case n:Node.Content => ???
-      case n:Node.User => n.data.imageFile match {
-        case None => user(n.id)
-        case Some(key) => dsl.img(Client.wustFilesUrl.map(url => dsl.src := url + "/" + key))
-      }
+  def user(user: Node.User, size: String, enableDrag: Boolean = true) = {
+    val vnode = user.data.imageFile match {
+      case None => verticalMirror(user.id, 5)
+      case Some(key) =>
+        val url = Client.wustFilesUrl.map(url => url + "/" + key)
+        div(
+          backgroundImage := s"url($url)", //TODO: sanitive images?
+          backgroundSize.cover,
+          display.inlineBlock,
+        )
     }
-  }
 
-  private def user(userId: UserId) = {
-    verticalMirror(userId, 5)
+    vnode.append(
+      cls := "avatar",
+      width := size,
+      height := size,
+      VDomModifier.ifTrue(enableDrag)(drag(payload = DragItem.User(user.id)))
+    )
   }
 
   val PI2 = PI * 2
@@ -47,9 +56,9 @@ object Avatar {
 
     val lowerBound = hue1 + padding
     val upperBound = hue1 - padding + PI2
-//    assert(lowerBound > 0)
-//    assert(upperBound > 0)
-//    assert(upperBound > lowerBound)
+    //    assert(lowerBound > 0)
+    //    assert(upperBound > 0)
+    //    assert(upperBound > lowerBound)
     val range = upperBound - lowerBound
     val hue2 = lowerBound + rnd.nextDouble() * range
 
@@ -73,12 +82,12 @@ object Avatar {
       if (rand < rangeLeft) lowerBound2Left + rand
       else lowerBound2Right + (rand - rangeLeft)
 
-//    assert((hue1 - hue2).abs >= padding)
-//    assert((hue1 - hue3).abs >= padding)
-//    assert((hue2 - hue3).abs >= padding)
-//    assert((hue1 - (hue2 - PI2)).abs >= padding)
-//    assert((hue1 - (hue3 - PI2)).abs >= padding)
-//    assert((hue2 - (hue3 - PI2)).abs >= padding)
+    //    assert((hue1 - hue2).abs >= padding)
+    //    assert((hue1 - hue3).abs >= padding)
+    //    assert((hue2 - hue3).abs >= padding)
+    //    assert((hue1 - (hue2 - PI2)).abs >= padding)
+    //    assert((hue1 - (hue3 - PI2)).abs >= padding)
+    //    assert((hue2 - (hue3 - PI2)).abs >= padding)
 
     @inline def c = 60
     @inline def l = 70
@@ -96,18 +105,18 @@ object Avatar {
   private def addPixel(pixels: js.Array[VNode], x: Int, y: Int, color: String): Unit = {
     import outwatch.dom.dsl.svg
     pixels push svg.circle(
-      dsl.svg.cx := (x+0.5).toString,
-      dsl.svg.cy := (y+0.5).toString,
+      dsl.svg.cx := (x + 0.5).toString,
+      dsl.svg.cy := (y + 0.5).toString,
       dsl.svg.r := "0.5",
       // svgWidthOne,
       // svgHeightOne,
       svg.fill := color
-      // svg.stroke := color,
-      // svg.strokeWidth := "2"
+    // svg.stroke := color,
+    // svg.strokeWidth := "2"
     )
   }
 
-  @inline def renderSvg(n:Int, pixels: js.Array[VNode]): VDomModifier = {
+  @inline def renderSvg(n: Int, pixels: js.Array[VNode]): VDomModifier = {
     import outwatch.dom.dsl.svg.viewBox
     VDomModifier(
       viewBox := s"0 0 $n $n",

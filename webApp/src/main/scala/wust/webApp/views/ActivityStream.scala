@@ -189,7 +189,7 @@ object ActivityStream {
 
       doAuthor match {
         case Some(author) => VDomModifier(
-          Components.nodeAvatar(author, size = 16).apply(Styles.flexStatic),
+          Avatar.user(author, size = "16px").apply(Styles.flexStatic),
           Components.displayUserName(author.data)
         )
         case None => VDomModifier.empty

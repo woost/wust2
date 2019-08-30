@@ -339,7 +339,7 @@ object NotificationView {
           fontWeight.bold,
           Styles.flex,
           alignItems.center,
-          Components.nodeAvatar(author, size = 12).apply(Styles.flexStatic, marginRight := "3px"),
+          Avatar.user(author, size = "12px").apply(Styles.flexStatic, marginRight := "3px"),
           Components.displayUserName(author.data),
         )
       }
