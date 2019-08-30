@@ -93,6 +93,7 @@ object NotesView {
     div(
       cls := "ui segment",
       cls := "note",
+      Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, node.id),
       div(
         cls := "notesview-note",
         cls := "enable-text-selection",
@@ -133,7 +134,6 @@ object NotesView {
 
     color := "#666",
     editButton(editMode),
-    zoomButton(nodeId),
     deleteButton(nodeId, parentId, isDeleted),
     dragHandle,
   )
@@ -147,14 +147,6 @@ object NotesView {
       editMode() = !editMode.now
       if (editMode.now)
         FeatureState.use(Feature.EditNote)
-    }
-  )
-
-  private def zoomButton(nodeId: NodeId) = Components.zoomButton(nodeId)(
-    cls := "fa-fw",
-    margin := "5px",
-    onClick.stopPropagation.foreach {
-      FeatureState.use(Feature.ZoomIntoNote)
     }
   )
 

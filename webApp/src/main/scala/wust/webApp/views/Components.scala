@@ -968,20 +968,30 @@ object Components {
   def sidebarNodeFocusClickMod(sidebarNode: Var[Option[FocusPreference]], nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = sidebarNodeFocusClickMod(sidebarNode, sidebarNode() = _, nodeId)
 
   def sidebarNodeFocusClickMod(sidebarNode: Rx[Option[FocusPreference]], onSidebarNode: Option[FocusPreference] => Unit, nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = {
+    import vectory._
     val sidebarNodeOpenDelay = {
       import concurrent.duration._
       200 milliseconds
     }
+
+    val dragTolerance = 5.0
     var dblClicked = false
+    var mouseDownPos = Vec2(0,0)
     VDomModifier(
       cursor.pointer,
-      onMouseDown.stopPropagation.discard, // don't globally close sidebar by clicking here. Instead onClick toggles the sidebar directly
-      onClick.stopPropagation.transform(_.delayOnNext(sidebarNodeOpenDelay)).foreach {
+      onMouseDown.stopPropagation.foreach { e =>
+        // stopPropagition: don't globally close sidebar by clicking here. Instead onClick toggles the sidebar directly
+        mouseDownPos = Vec2(e.clientX, e.clientY)
+      }, 
+      onClick.stopPropagation.transform(_.delayOnNext(sidebarNodeOpenDelay)).foreach { e =>
         // opening right sidebar is delayed to not interfere with double click
         if(dblClicked) dblClicked = false
         else {
-          val nextNode = if (sidebarNode.now.exists(_.nodeId == nodeId)) None else Some(FocusPreference(nodeId))
-          onSidebarNode(nextNode)
+          val mouseUpPos = Vec2(e.clientX, e.clientY)
+          if((mouseUpPos - mouseDownPos).length < dragTolerance) {
+            val nextNode = if (sidebarNode.now.exists(_.nodeId == nodeId)) None else Some(FocusPreference(nodeId))
+            onSidebarNode(nextNode)
+          }
         }
       },
       onDblClick.stopPropagation.foreach{ _ =>
