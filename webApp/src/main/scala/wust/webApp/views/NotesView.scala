@@ -71,8 +71,16 @@ object NotesView {
   }
 
   private def renderNote(node: Node, parentId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
+    val nodeIdx = GlobalState.graph.map(_.idToIdxOrThrow(node.id))
+    val parentIdx = GlobalState.graph.map(_.idToIdxOrThrow(parentId))
+
+    val isExpanded = Rx {
+      GlobalState.graph().isExpanded(GlobalState.userId(), nodeIdx()).getOrElse(false)
+    }
+    val childStats = Rx { NodeDetails.ChildStats.from(nodeIdx(), GlobalState.graph()) }
+
     val isDeleted = Rx {
-      GlobalState.graph().isDeletedNow(node.id, parentId = parentId)
+      GlobalState.graph().isDeletedNowIdx(nodeIdx(), parentIdx())
     }
 
     val propertySingle = Rx {
@@ -97,6 +105,7 @@ object NotesView {
         alignItems.center,
         NodeDetails.tagsPropertiesAssignments(node.id)
       ),
+      NodeDetails.cardFooter(node.id, childStats, isExpanded),
 
       Rx {
         VDomModifier.ifNot(editMode())(

@@ -1158,8 +1158,7 @@ object CommonStyles extends StyleSheet.Standalone
   )
 
 
-  // Childstats
-  ".nodecard .childstats" - (
+  ".childstats" - (
     color.gray,
   )
 
