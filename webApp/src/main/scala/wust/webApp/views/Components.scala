@@ -42,7 +42,7 @@ import state.FeatureState
 object Components {
   val implicitUserName = "Unregistered User"
 
-  def woostEmailLink(prefix:String = "team") = 
+  def woostEmailLink(prefix:String = "team") =
     VDomModifier(
       cls := "enable-text-selection",
       a(href := s"mailto:$prefix@woost.space", s"$prefix@woost.space", Elements.safeTargetBlank)
@@ -109,7 +109,7 @@ object Components {
     markdownVNode(node.id, firstLine).apply(
       // 3. overwrite font styles via css
       // 4. crop via overflow ellipsis
-      cls := "oneline" 
+      cls := "oneline"
     )
   }
 
@@ -217,7 +217,6 @@ object Components {
   }
 
   def removablePropertySection(
-    
     key: String,
     properties: Seq[PropertyData.PropertyValue],
     parentIdAction: Option[NodeId] => Unit,
@@ -295,7 +294,6 @@ object Components {
 
 
   def nodeCardProperty(
-    
     key: Edge.LabeledProperty,
     property: Node,
     pageOnClick: Boolean = false,
@@ -415,7 +413,7 @@ object Components {
             replaceEmoji(emoji)
           case _ if openFolder   =>
             span(freeSolid.faFolderOpen)
-          case _ => 
+          case _ =>
             span(
               freeSolid.faFolder,
               color := BaseColors.pageBg.copy(h = NodeColor.hue(node.id)).toHex
@@ -982,7 +980,7 @@ object Components {
       onMouseDown.stopPropagation.foreach { e =>
         // stopPropagition: don't globally close sidebar by clicking here. Instead onClick toggles the sidebar directly
         mouseDownPos = Vec2(e.clientX, e.clientY)
-      }, 
+      },
       onClick.stopPropagation.transform(_.delayOnNext(sidebarNodeOpenDelay)).foreach { e =>
         // opening right sidebar is delayed to not interfere with double click
         if(dblClicked) dblClicked = false
@@ -1002,10 +1000,9 @@ object Components {
             case NodeRole.Task => FeatureState.use(Feature.ZoomIntoTask)
             case NodeRole.Message => FeatureState.use(Feature.ZoomIntoMessage)
             case NodeRole.Note => FeatureState.use(Feature.ZoomIntoNote)
-            case _ => 
+            case _ =>
           }
         }
-        
       },
     )
   }
