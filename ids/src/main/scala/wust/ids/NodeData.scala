@@ -24,6 +24,8 @@ object NodeData {
 
   final case class File(key: String, fileName: String, contentType: String) extends Named with Content {
     def str = fileName
+
+    def isImage = contentType.startsWith("image/")
   }
   object File extends Named
 

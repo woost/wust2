@@ -26,11 +26,10 @@ object UploadComponents {
 
     val downloadUrl: Option[String] = Client.wustFilesUrl.map(_ + "/" + key)
     def preview(dataUrl: String): VDomModifier = {
-      file.contentType match {
-        case t if t.startsWith("image/") => img(height := maxImageHeight, src := dataUrl)
-        case _                           => VDomModifier(height := "150px", width := "300px")
-      }
+      if (file.isImage) img(height := maxImageHeight, src := dataUrl)
+      else VDomModifier(height := "150px", width := "300px")
     }
+
     def centerStyle = VDomModifier(
       Styles.flex,
       Styles.flexStatic,
