@@ -29,7 +29,7 @@ object GraphOperation {
           (_, edgeIdx) =>
             val childIdx = graph.edgesIdx.b(edgeIdx)
             val node = graph.nodes(childIdx)
-            !InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task)(node.role) ||
+            !InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task, NodeRole.Note)(node.role) ||
               graph.tagParentsIdx.contains(childIdx)(tagIdx) ||
               graph.descendantsIdxExists(tagIdx)(_ == childIdx)
         }
