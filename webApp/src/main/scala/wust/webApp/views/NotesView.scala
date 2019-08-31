@@ -34,12 +34,12 @@ object NotesView {
           val graph = GlobalState.graph()
           val nodeIdx = graph.idToIdxOrThrow(focusState.focusedId)
 
-          val childNodes = graph.childrenIdx.map(nodeIdx) { childIdx =>
+          val childNodes = graph.noteChildrenIdx.map(nodeIdx) { childIdx =>
             graph.nodes(childIdx)
           }.sortBy(_.id)
 
           childNodes.map { node =>
-            VDomModifier.ifTrue(node.role == NodeRole.Note)(renderNote(node, parentId = focusState.focusedId))
+            renderNote(node, parentId = focusState.focusedId)
           }
         },
         registerDragContainer,
