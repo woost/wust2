@@ -25,7 +25,7 @@ object Avatar {
       case Some(key) =>
         val url = Client.wustFilesUrl.map(url => url + "/" + key)
         div(
-          backgroundImage := s"url($url)", //TODO: sanitive images?
+          url.map(url => backgroundImage := s"url($url)"), //TODO: sanitive images?
           backgroundSize.cover,
           display.inlineBlock,
         )
