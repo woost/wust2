@@ -14,13 +14,13 @@ trait NotesView extends StyleSheet.Standalone {
     Styles.flex,
     justifyContent.center,
     &(".notesview-container") - (
-      padding := "20px",
-      maxWidth := "980px", // like github readme
-      width := "100%",
+      padding(20 px),
+      maxWidth(980 px), // like github readme
+      width(100 %%),
       &(".notesview-note") - (
         // readability like github readme:
-        padding := "48px",
-        fontSize := "16px",
+        padding(48 px),
+        fontSize(16 px),
       ),
     )
   )
