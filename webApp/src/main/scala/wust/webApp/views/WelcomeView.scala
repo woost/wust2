@@ -31,17 +31,12 @@ object WelcomeView {
           flexDirection.column,
           alignItems.center,
           Rx{ welcomeTitle(GlobalState.user().toNode).append(Styles.flexStatic) },
-          welcomeMessage(Styles.flexStatic, marginBottom := "50px"),
-          newProjectButton(Styles.flexStatic),
           Rx {
             (GlobalState.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](
-              tutorialMessage(
-                Styles.flexStatic,
-                marginTop := "50px",
-                marginBottom := "50px",
-              )
+              welcomeMessage(Styles.flexStatic, marginBottom := "50px"),
             )
           },
+          newProjectButton(Styles.flexStatic),
           div (width := "1px", height := "1px", Styles.flexStatic), // margin bottom hack for flexbox
         )
       ),
@@ -72,31 +67,27 @@ object WelcomeView {
 
   def welcomeMessage = div(
     cls := "ui segment",
-    maxWidth := "80ex",
-    h3(replaceEmoji("Welcome to Woost. :heart:")),
-    p("If you are new to Woost, start by creating a Project."),
-    p("In a ", b("Project"), " you can invite other people to collaborate. You can also add different tools, like a ", b("Checklist"), ", a ", b("Kanban Board"), " or a ", b("Chat."))
-  )
-
-  def tutorialMessage = div(
-    cls := "ui segment",
-    maxWidth := "80ex",
+    maxWidth := "60ex",
+    h3(replaceEmoji("Welcome to Woost. :wave:")),
     p(
       replaceEmoji("We're different from other collaboration tools in some really special ways :rocket:. So we'd like to take you through them.")
     ),
     div(
       Styles.flex,
-      justifyContent.center,
+      alignItems.center,
+      flexDirection.column,
       button(
-        cls := "ui pink basic button", replaceEmoji(":baby_chick: Show me the basics "),
+        marginTop := "20px",
+        cls := "ui pink basic button", replaceEmoji(" Show me the basics :baby_chick:"),
         onClick.stopPropagation.foreach {
           MainTutorial.startTour()
         },
-        marginBottom := "20px"
-      )
+      ),
+      div(fontSize := "10px", color.gray, "(you can re-start the tutorial anytime)"),
+      marginBottom := "40px",
     ),
     p(
-      "If you want to explore yourself, take a look at ", b("Explored Features"), replaceEmoji(" in the left sidebar. It will track your progress and suggest things you should try next. :bulb:")
+      "If you want to explore the possibilities yourself, take a look at ", b("Explored Features"), replaceEmoji(" in the left sidebar. It will track your progress and suggest things you can try next. :bulb:")
     ),
   )
 
