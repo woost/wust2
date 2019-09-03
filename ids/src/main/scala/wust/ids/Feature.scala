@@ -228,8 +228,10 @@ object Feature {
   val all = SubObjects.all[Feature]
   val startingPoints = SubObjects.all[Category.StartingPoint].sortBy(-_.next.length)
   val secrets = SubObjects.all[Category.Secret]
+  val secretsSet:Set[Feature] = secrets.toSet
   val power = SubObjects.all[Category.Power]
   val allWithoutSecrets = all diff secrets
+  val allWithoutSecretsSet = allWithoutSecrets.toSet
 
   def reachable: Set[Feature] = {
     var visited = Set.empty[Feature]

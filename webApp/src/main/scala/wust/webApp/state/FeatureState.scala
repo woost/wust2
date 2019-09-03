@@ -61,7 +61,7 @@ object FeatureState {
 
   val nextCandidates: Rx[Set[Feature]] = Rx {
     @inline def isUsed(f: Feature) = firstTimeUsed().isDefinedAt(f)
-    var candidates = Feature.all.filterNot(f => isUsed(f) || Feature.secrets.contains(f)).toSet
+    var candidates = Feature.all.filterNot(f => isUsed(f) || Feature.secretsSet.contains(f)).toSet
 
     // remove features where requirements are not fulfilled
     candidates.foreach { nextFeature =>
@@ -146,7 +146,7 @@ object FeatureState {
             val timestamp = EpochMilli.now
             firstTimeUsed.update(_ + (feature -> timestamp))
             persistFirstTimeUsage(feature, timestamp)
-            usedNewFeatureTrigger.onNext(())
+            if(Feature.allWithoutSecretsSet.contains(feature)) usedNewFeatureTrigger.onNext(())
             Analytics.sendEvent("first-time-feature", feature.toString)
             //TODO: add tags corresponding to features / categories to hotjar
           }

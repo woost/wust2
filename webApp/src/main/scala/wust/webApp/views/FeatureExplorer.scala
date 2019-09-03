@@ -3,7 +3,7 @@ package wust.webApp.views
 import acyclic.file
 import wust.facades.crisp._
 import wust.facades.googleanalytics.Analytics
-import wust.webApp.{DeployedOnly, StagingOnly}
+import wust.webApp.{ DeployedOnly, StagingOnly }
 import scala.scalajs.js
 import scala.util.Try
 import wust.webApp.{ DevOnly, DebugOnly }
@@ -41,7 +41,7 @@ object FeatureExplorer {
           fontSize := "20px",
           marginLeft := "15px",
           padding := "6px",
-          Rx{ FeatureState.firstTimeUsed().size }
+          Rx{ score() }
         ),
       ),
       div(
@@ -104,7 +104,7 @@ object FeatureExplorer {
     val recentFirstTimeList = div(
       "Recent:",
       Rx{
-        FeatureState.recentFirstTimeUsed().filter(FeatureDetails.hasDetails).take(5).map { feature =>
+        recentFeatures().map { feature =>
           val details = FeatureDetails(feature)
           div(
             div(
@@ -152,7 +152,7 @@ object FeatureExplorer {
       tryNextList(marginTop := "30px"),
       DebugOnly(Rx{ recentList(marginTop := "30px") }),
       Rx{
-        VDomModifier.ifTrue(FeatureState.recentFirstTimeUsed().nonEmpty)(
+        VDomModifier.ifTrue(recentFeatures().nonEmpty)(
           recentFirstTimeList(marginTop := "20px")
         )
       },
@@ -162,15 +162,20 @@ object FeatureExplorer {
     )
   }
 
+  val score = Rx { (FeatureState.firstTimeUsed() -- Feature.secrets).size }
+  val recentFeatures = Rx {
+    FeatureState.recentFirstTimeUsed().filter(f => Feature.allWithoutSecretsSet.contains(f) && FeatureDetails.hasDetails(f)).take(5)
+  }
+
+
   val progress: Rx[String] = Rx {
     val total = Feature.allWithoutSecrets.length
-    val used = (FeatureState.firstTimeUsed() -- Feature.secrets).size
-    val ratio = Math.ceil(used.toDouble / total.toDouble * 100).min(100.0) // everything greater 0 is at least 1%
+    val ratio = Math.ceil(score().toDouble / total.toDouble * 100).min(100.0) // everything greater 0 is at least 1%
     f"${ratio}%0.0f"
   }
 
   val progressBar = div(
-    Rx{ VDomModifier.ifTrue(FeatureState.firstTimeUsed().isEmpty)(visibility.hidden) },
+    Rx{ VDomModifier.ifTrue(recentFeatures().isEmpty)(visibility.hidden) },
     backgroundColor := "rgba(95, 186, 125, 0.2)",
     div(
       width <-- progress.map(p => s"$p%"),
