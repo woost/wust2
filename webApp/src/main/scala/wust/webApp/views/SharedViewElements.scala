@@ -516,6 +516,7 @@ object SharedViewElements {
     additionalChanges: NodeId => GraphChanges = _ => GraphChanges.empty,
     enableMentions: Boolean = true,
     enableEmojiPicker: Boolean = false,
+    onClose: () => Boolean = () => true,
   ) = EmitterBuilder.ofModifier[InputRow.Submission] { sink =>
     VDomModifier(
       onClick.stopPropagation(Ownable { implicit ctx => 
@@ -528,7 +529,8 @@ object SharedViewElements {
           enableMentions = enableMentions,
           enableEmojiPicker = enableEmojiPicker,
           triggerSubmit = triggerSubmit,
-          additionalChanges = additionalChanges
+          additionalChanges = additionalChanges,
+          onClose = onClose,
         )
       }) --> GlobalState.uiModalConfig,
       cursor.pointer
