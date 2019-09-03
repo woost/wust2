@@ -55,7 +55,7 @@ object NewProjectPrompt {
         button(
           "Create",
           cls := "ui violet button",
-          onClick.stopPropagation(()) --> triggerSubmit
+          onClick.stopPropagation(()) --> triggerSubmit,
         )
       ),
       MainTutorial.onDomMountContinue,
@@ -91,7 +91,10 @@ object NewProjectPrompt {
         enableEmojiPicker = true,
         onClose = () => {MainTutorial.endTour(); true}
       ).foreach(newProject(_)),
-      onClick.stopPropagation foreach { ev => ev.target.asInstanceOf[dom.html.Element].blur() },
+      onClick.stopPropagation foreach { ev => 
+        ev.target.asInstanceOf[dom.html.Element].blur()
+        MainTutorial.waitForNextStep()
+      },
     )
   }
 

@@ -54,7 +54,6 @@ object WelcomeView {
     id := "tutorial-newprojectbutton",
     onClick.stopPropagation.foreach {
       FeatureState.use(Feature.CreateProjectFromWelcomeView)
-      MainTutorial.waitForNextStep()
     }
   )
 
