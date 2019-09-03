@@ -436,8 +436,8 @@ object CommonStyles extends StyleSheet.Standalone
   )
 
   ".expanded-left-sidebar > .sidebar-open" - (
-    maxWidth(202.px),
-    width(202.px),
+    maxWidth(222.px),
+    width(222.px),
   )
 
   ".expanded-right-sidebar > .sidebar-open" - (
