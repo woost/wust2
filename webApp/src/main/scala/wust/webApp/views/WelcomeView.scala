@@ -66,11 +66,12 @@ object WelcomeView {
   )
 
   def welcomeMessage = div(
+    textAlign.center,
     cls := "ui segment",
     maxWidth := "60ex",
     h3(replaceEmoji("Welcome to Woost. :wave:")),
     p(
-      replaceEmoji("We're different from other collaboration tools in some really special ways :rocket:. So we'd like to take you through them.")
+      replaceEmoji("We're different from other collaboration tools in some really special ways. We'd like to take you through them. :rocket:")
     ),
     div(
       Styles.flex,
@@ -78,7 +79,7 @@ object WelcomeView {
       flexDirection.column,
       button(
         marginTop := "20px",
-        cls := "ui pink basic button", replaceEmoji(" Show me the basics :baby_chick:"),
+        cls := "ui pink basic button", replaceEmoji(" Show me the basics"),
         onClick.stopPropagation.foreach {
           MainTutorial.startTour()
         },
