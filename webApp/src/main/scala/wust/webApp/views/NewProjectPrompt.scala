@@ -8,24 +8,24 @@ import monix.reactive.Observer
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import outwatch.dom._
-import outwatch.dom.dsl.{label, _}
+import outwatch.dom.dsl.{ label, _ }
 import outwatch.dom.helpers.EmitterBuilder
 import rx._
 import wust.css.Styles
 import wust.graph._
-import wust.ids.{Feature, _}
+import wust.ids.{ Feature, _ }
 import wust.sdk.NodeColor
 import wust.util._
 import wust.webApp._
 import wust.webApp.dragdrop.DragItem.DisableDrag
-import wust.webApp.dragdrop.{DragItem, DragPayload, DragTarget}
+import wust.webApp.dragdrop.{ DragItem, DragPayload, DragTarget }
 import wust.webApp.state._
 import wust.webApp.views.Components._
-import wust.webApp.views.DragComponents.{drag, dragWithHandle}
+import wust.webApp.views.DragComponents.{ drag, dragWithHandle }
 import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{BrowserDetect, Elements, ModalConfig, Ownable, UI}
-import wust.webApp.views.DragComponents.{drag, registerDragContainer}
+import wust.webUtil.{ BrowserDetect, Elements, ModalConfig, Ownable, UI }
+import wust.webApp.views.DragComponents.{ drag, registerDragContainer }
 import GlobalState.SelectedNode
 
 import scala.collection.breakOut
@@ -47,7 +47,7 @@ object NewProjectPrompt {
       div("Emojis at the beginning of the name become the Project's icon. For Example ", b(":tomato: Shopping List")),
       viewCheckboxes --> selectedViews,
       // projectImporter.map(Some(_)) --> importChanges,
-      div("After creating, you can invite participants by clicking ", Icons.menu, " at the top right and then clicking ",  b("Members"), "."),
+      div("After creating, you can invite participants by clicking ", Icons.menu, " at the top right and then clicking ", b("Members"), "."),
       div(
         marginTop := "20px",
         Styles.flex,
@@ -71,7 +71,7 @@ object NewProjectPrompt {
       if (focusNewProject) GlobalState.urlConfig.update(_.focus(Page(nodeId), needsGet = false))
 
       FeatureState.use(Feature.CreateProject)
-      selectedViews.now.foreach ( ViewModificationMenu.trackAddViewFeature)
+      selectedViews.now.foreach (ViewModificationMenu.trackAddViewFeature)
 
       selectedViews() = Seq.empty
 
@@ -89,11 +89,15 @@ object NewProjectPrompt {
         triggerSubmit = triggerSubmit,
         additionalChanges = nodeId => importChanges.now.fold(GraphChanges.empty)(_.resolve(GlobalState.rawGraph.now, nodeId)),
         enableEmojiPicker = true,
-        onClose = () => {MainTutorial.endTour(); true}
+        onClose = () => { MainTutorial.endTour(); true }
       ).foreach(newProject(_)),
-      onClick.stopPropagation foreach { ev => 
+      onClick.stopPropagation foreach { ev =>
         ev.target.asInstanceOf[dom.html.Element].blur()
-        MainTutorial.waitForNextStep()
+        MainTutorial.ifActive{ _ =>
+          // jump to step before createProject and wait until Modal opens
+          MainTutorial.jumpTo(MainTutorial.tourSteps(MainTutorial.tourSteps.indexOf(MainTutorial.step.createProject) - 1))
+          MainTutorial.waitForNextStep()
+        }
       },
     )
   }
@@ -103,12 +107,11 @@ object NewProjectPrompt {
 
     div(
       showForm.map {
-        case true => Importing.inlineConfig --> changesObserver
+        case true  => Importing.inlineConfig --> changesObserver
         case false => button(cls := "ui button mini compact", onClickDefault.foreach(showForm.update(!_)), "Import")
       }
     )
   }
-
 
   def viewCheckboxes = multiCheckbox[View.Visible](
     View.selectableList,

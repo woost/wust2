@@ -30,7 +30,7 @@ trait Tutorial {
   def ifActive(f: Tour => Unit) = {
     hopscotch.getCurrTour.foreach {
       Option(_).foreach { tour =>
-        println(s"tour: ${tour.id}[${hopscotch.getCurrStepNum}]")
+        scribe.debug(s"tour: ${tour.id}[${hopscotch.getCurrStepNum}]")
         tour.id match {
           case `tourId` => f(tour)
         }
@@ -40,7 +40,6 @@ trait Tutorial {
 
   val onDomMountContinue = {
     onDomMount.async.foreach {
-      println("continue")
       if (waitingForNextStepActivation) {
         ifActive{ _ =>
           hopscotch.nextStep()
