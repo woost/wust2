@@ -69,7 +69,7 @@ object Modal {
               .modal(new ModalOptions {
                 onHide = { () =>
                   globalClose.onNext(())
-                  config.onClose()
+                  config.onHide()
                 }: js.Function0[Boolean]
               })
               .modal("show")

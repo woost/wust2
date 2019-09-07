@@ -89,7 +89,7 @@ object NewProjectPrompt {
         triggerSubmit = triggerSubmit,
         additionalChanges = nodeId => importChanges.now.fold(GraphChanges.empty)(_.resolve(GlobalState.rawGraph.now, nodeId)),
         enableEmojiPicker = true,
-        onClose = () => { MainTutorial.endTour(); true }
+        // onCloseOrClickOutside = () => { MainTutorial.endTour() } //TODO
       ).foreach(newProject(_)),
       onClick.stopPropagation foreach { ev =>
         ev.target.asInstanceOf[dom.html.Element].blur()

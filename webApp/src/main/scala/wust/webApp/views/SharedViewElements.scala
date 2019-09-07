@@ -469,7 +469,7 @@ object SharedViewElements {
     header: VDomModifier,
     body: VDomModifier = VDomModifier.empty,
     placeholder: Placeholder = Placeholder.empty,
-    onClose: () => Boolean = () => true,
+    onHide: () => Boolean = () => true,
     enableMentions: Boolean = true,
     enableEmojiPicker: Boolean = false,
     showSubmitIcon:Boolean = true,
@@ -503,7 +503,7 @@ object SharedViewElements {
         maxWidth := "400px",
         cls := "create-new-prompt",
       ),
-      onClose = onClose
+      onHide = onHide
     )
   }
 
@@ -516,7 +516,7 @@ object SharedViewElements {
     additionalChanges: NodeId => GraphChanges = _ => GraphChanges.empty,
     enableMentions: Boolean = true,
     enableEmojiPicker: Boolean = false,
-    onClose: () => Boolean = () => true,
+    onHide: () => Boolean = () => true,
   ) = EmitterBuilder.ofModifier[InputRow.Submission] { sink =>
     VDomModifier(
       onClick.stopPropagation(Ownable { implicit ctx => 
@@ -530,7 +530,7 @@ object SharedViewElements {
           enableEmojiPicker = enableEmojiPicker,
           triggerSubmit = triggerSubmit,
           additionalChanges = additionalChanges,
-          onClose = onClose,
+          onHide = onHide,
         )
       }) --> GlobalState.uiModalConfig,
       cursor.pointer
