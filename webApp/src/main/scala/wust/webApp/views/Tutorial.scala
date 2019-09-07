@@ -75,4 +75,12 @@ trait Tutorial {
       }
     }
   }
+
+  def jumpBefore(step:Step) = {
+    jumpTo(tourSteps(tourSteps.indexOf(step) - 1))
+  }
+
+  def currentStep:Option[Step] = {
+    hopscotch.getCurrStepNum.map(tourSteps).toOption
+  }
 }

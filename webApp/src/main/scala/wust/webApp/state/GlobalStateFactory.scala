@@ -91,7 +91,10 @@ object GlobalStateFactory {
       closeAllOverlays()
       graphTransformations() = defaultTransformations
       GlobalState.clearSelectedNodes()
-      MainTutorial.endTour()
+      // The current step is createProject, because the page change happens before the viewswitcher is rendered. The rendering of the viewswitcher causes the tutoraial to advance to the next step via onDomMountContinue.
+      if(!MainTutorial.currentStep.contains(MainTutorial.step.createProject)) {
+        MainTutorial.endTour()
+      }
     }
     viewIsContent.triggerLater { isContent =>
       if (!isContent) {

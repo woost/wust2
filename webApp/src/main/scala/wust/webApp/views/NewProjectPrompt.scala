@@ -94,8 +94,7 @@ object NewProjectPrompt {
       onClick.stopPropagation foreach { ev =>
         ev.target.asInstanceOf[dom.html.Element].blur()
         MainTutorial.ifActive{ _ =>
-          // jump to step before createProject and wait until Modal opens
-          MainTutorial.jumpTo(MainTutorial.tourSteps(MainTutorial.tourSteps.indexOf(MainTutorial.step.createProject) - 1))
+          MainTutorial.jumpBefore(MainTutorial.step.createProject)
           MainTutorial.waitForNextStep()
         }
       },
