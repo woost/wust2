@@ -130,6 +130,8 @@ object CommonStyles extends StyleSheet.Standalone
   with NotesView 
   with BreadCrumbs
   with Hopscotch
+  with TaskList
+  with PageHeader
   {
 
   import dsl._
@@ -276,33 +278,6 @@ object CommonStyles extends StyleSheet.Standalone
       borderTopLeftRadius(3 px),
       borderTopRightRadius(3 px),
   )
-  )
-
-  ".pageheader" - (
-    color.white,
-    padding(0 px, 5 px),
-  )
-
-  ".pageheader-channeltitle" - (
-    fontSize(20 px),
-    minWidth(30 px), // min-width and height help to edit if channel name is empty
-    lineHeight(1.4285 em), // semantic ui default line height
-    marginBottom(0 px), // remove margin when title is in <p> (rendered my markdown)
-    Styles.flex, // for notification count
-    color.white.important // overwriting .nodecard.node color
-  )
-
-  ".pageheader-channeltitle.nodecard" - (
-    paddingTop(0 px),
-    paddingBottom(0 px),
-    (boxShadow := "none").important,
-  )
-  ".pageheader-channeltitle.nodecard.project" - (
-    // backgroundcolor set in code dynamically to node color
-    color.white,
-  )
-  ".pageheader-channeltitle.nodecard .nodecard-content" - (
-    padding(2 px),
   )
 
   ".avatar" - (
@@ -857,18 +832,6 @@ object CommonStyles extends StyleSheet.Standalone
   )
 
 
-  ".pageheader" - (
-    &(".breadcrumb") - (
-      // pageheader has a colored background. No shadow needed.
-      (boxShadow := s"none").important, // overwrite nodecard shadow
-      maxWidth(10 em),
-    ),
-
-    &(".breadcrumb.nodecard.project") - (
-      paddingLeft(0.5.em),
-    )
-  )
-
   ".feature-explorer" - (
     &("em") - (
       backgroundColor(c"#f3f5f7"),
@@ -899,7 +862,7 @@ object CommonStyles extends StyleSheet.Standalone
     marginRight(5 px).important,
 
     color.white.important,
-    (fontSize := "x-small").important,
+    (fontSize := "x-small").important, //TODO: fix in scalaCSS
     backgroundColor(Color(Colors.unread)).important,
   )
 
@@ -945,62 +908,11 @@ object CommonStyles extends StyleSheet.Standalone
   )
 
 
-  val tagMarginPx = 2
-  val tagMargin = tagMarginPx.px
-  val listViewLeftMargin = 4.px
-  val taskPaddingPx = 8
-  val taskPadding = taskPaddingPx.px
-  val taskPaddingCompactPx = 4
-  val taskPaddingCompact = taskPaddingCompactPx.px
-
   ".kanbancolumnchildren > .nodecard > .nodecard-content" - (
     padding(taskPadding),
   )
 
-  ".tasklist" - (
-    paddingTop(1 px), // space for nodecard shadow
-    minHeight(20 px).important, // enough vertical space to drop tasks, important overwrites Styles.flex minheight
 
-    Styles.flex,
-    flexDirection.column, // make task margin work correctly
-
-
-    &(".nodecard") - (
-      margin(2 px, listViewLeftMargin),
-
-      &(".nodecard-content") - (
-        padding(taskPadding, taskPadding, (taskPaddingPx - tagMarginPx).px, taskPadding),// we substract tagMargin to achieve a consistent height of node-cards with and without tags in the same line
-      ),
-
-      &(".nodecard-content > .markdown") - (
-        marginBottom(tagMargin), // to achieve a consistent height of node-cards with and without tags
-      )
-    ),
-
-    &(".nodecard > .checkbox") - (
-      marginTop((taskPaddingPx + 1) px),
-      marginLeft((taskPaddingPx + 1) px),
-    ),
-  )
-
-  ".tasklist.compact" - (
-    &(".nodecard") - (
-      &(".nodecard-content") - (
-        padding(taskPaddingCompact, taskPaddingCompact, (taskPaddingCompactPx - tagMarginPx).px, taskPaddingCompact),// we substract tagMargin to achieve a consistent height of node-cards with and without tags
-      ),
-    ),
-
-    &(".nodecard > .checkbox") - (
-      marginTop((taskPaddingCompactPx + 1) px),
-      marginLeft((taskPaddingCompactPx + 1) px),
-    ),
-  )
-
-  ".tasklist-header" - (
-    fontSize(15 px),
-    marginBottom(0 px),
-    marginLeft(listViewLeftMargin),
-  )
 
   ".nodecard-content pre" - (
     whiteSpace.preWrap
