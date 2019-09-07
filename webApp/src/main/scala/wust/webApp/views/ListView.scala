@@ -138,7 +138,6 @@ object ListView {
     nodeRole match {
       case NodeRole.Task =>
         renderNodeCard(
-
           focusState,
           traverseState,
           nodeId = nodeId,
@@ -148,7 +147,6 @@ object ListView {
         )
       case NodeRole.Stage =>
         renderColumn(
-
           focusState,
           traverseState,
           nodeId = nodeId,
@@ -160,7 +158,6 @@ object ListView {
   }
 
   private def renderColumn(
-
     focusState: FocusState,
     traverseState: TraverseState,
     nodeId: NodeId,
@@ -190,9 +187,7 @@ object ListView {
       }
 
       val expandCollapseStage = div(
-        fontSize.larger,
-        paddingLeft := "5px",
-        opacity := 0.6,
+        cls := "listview-expand-collapse-stage",
         renderExpandCollapseButton( nodeId, isExpanded, alwaysShow = true).map(_.apply(
             Styles.flex,
             alignItems.center,
@@ -269,7 +264,7 @@ object ListView {
             // in the current implementation this case wouldn't happen,
             // since kanban columns have their own input field.
             // ListView is not used for Columns, only inside expanded tasks.
-            FeatureState.use(Feature.CreateTaskInKanban) 
+            FeatureState.use(Feature.CreateTaskInKanban)
           }
 
         case _ =>

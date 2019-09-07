@@ -912,6 +912,19 @@ object CommonStyles extends StyleSheet.Standalone
     padding(taskPadding),
   )
 
+  ".listview-expand-collapse-stage" - (
+    fontSize.larger,
+    paddingLeft(5 px),
+    opacity(0.6),
+  )
+
+  ".nodecard" - (
+    &(".listview-expand-collapse-stage") - (
+      &(".expand-collapsebutton") - (
+        fontSize.medium,
+      )
+    )
+  )
 
 
   ".nodecard-content pre" - (
