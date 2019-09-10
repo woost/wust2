@@ -2279,8 +2279,6 @@ COPY public.edge (sourceid, targetid, data) FROM stdin;
 247fde2e-90ea-9401-4107-c68110e68c92	247fe3c7-6d89-2900-1531-1b012f3f05b9	{"type": "Pinned"}
 246ded7f-ae61-db00-0beb-c341f9e67fd0	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1565876869699}
 246ded7f-ae61-db00-0beb-c341f9e67fd0	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1565876869885}
-246ded7f-ae61-db00-0beb-c341f9e67fd0	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1565876869885}
-246ded7f-ae61-db00-0beb-c341f9e67fd0	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
 247fe499-013f-9100-1531-1bf25ba12bee	247fe499-013f-9100-1531-1bf25ba12bee	{"type": "Member", "level": "readwrite"}
 247fde2e-90ea-9401-4107-c68110e68c92	247fe499-013f-9100-1531-1bf25ba12bee	{"type": "Read", "timestamp": 1565877011713}
 247fde2e-90ea-9401-4107-c68110e68c92	247fe499-013f-9100-1531-1bf25ba12bee	{"type": "Notify"}
@@ -2324,6 +2322,11 @@ COPY public.edge (sourceid, targetid, data) FROM stdin;
 247fe066-c5fa-7e12-4107-c7ee3ad94efa	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1566229764304}
 247fe066-c5fa-7e12-4107-c7ee3ad94efa	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1566229764304}
 247fe066-c5fa-7e12-4107-c7ee3ad94efa	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+247fde4c-521b-8a06-4107-c61c216403e3	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Assigned"}
+246ded7f-ae61-db00-0beb-c341f9e67fd0	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1568122707710}
+246ded7f-ae61-db00-0beb-c341f9e67fd0	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1568122707861}
+246ded7f-ae61-db00-0beb-c341f9e67fd0	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1568122707861}
+246ded7f-ae61-db00-0beb-c341f9e67fd0	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
 \.
 
 
@@ -2650,7 +2653,6 @@ COPY public.node (id, data, accesslevel, role, views) FROM stdin;
 247fe206-0192-430f-4107-c7a480550d5b	{"type": "Markdown", "content": "Zusammenfassung der MS1 Ergebnisse"}	\N	{"type": "Task"}	\N
 247fe3ab-444d-fe00-1531-1aba7f4ff6f2	{"name": "", "type": "User", "revision": 0, "isImplicit": true}	restricted	{"type": "Message"}	\N
 247fe3c7-6d89-2900-1531-1b012f3f05b9	{"name": "Juliane", "type": "User", "revision": 1, "isImplicit": false}	restricted	{"type": "Message"}	\N
-246ded7f-ae61-db00-0beb-c341f9e67fd0	{"name": "Andi (Manager)", "type": "User", "revision": 0, "isImplicit": false}	restricted	{"type": "Message"}	\N
 247fe499-013f-9100-1531-1bf25ba12bee	{"name": "Daniel", "type": "User", "revision": 1, "isImplicit": false}	restricted	{"type": "Message"}	\N
 247fe03e-e576-ec11-4107-c803db410fc0	{"type": "Markdown", "content": "Hey ${woost.parent.reverseField.field.Ansprechpartner} :wave:\\n\\nIch bin ${woost.parent.reverseField.assignee}, euer Coach für die nächsten 5 Wochen. Hier ist euer persönlicher Arbeitsbereich. Im Kanban Board habe ich eure Aufgaben für die Vorbereitung angelegt.\\n\\nAlle relevanten Informationen findet ihr in den Notizen (der dritte Tab).\\n\\nIhr könnt mir sonst auch jederzeit hier Fragen stellen.\\n\\nCheers\\n${woost.parent.reverseField.assignee}"}	\N	{"type": "Message"}	\N
 247fe011-7658-9810-4107-c8227f4c6905	{"type": "Markdown", "content": "Woostspace ${woost.original}"}	\N	{"type": "Task"}	{"{\\"type\\": \\"Chat\\"}","{\\"type\\": \\"Kanban\\"}","{\\"type\\": \\"Content\\"}"}
@@ -2661,6 +2663,7 @@ COPY public.node (id, data, accesslevel, role, views) FROM stdin;
 246e617e-84c3-cf04-3f11-24ca856b8dc8	{"type": "Markdown", "content": "Done"}	\N	{"type": "Stage"}	\N
 246e61a5-505d-d314-3f11-25160bc7db52	{"type": "Markdown", "content": "Done"}	\N	{"type": "Stage"}	\N
 247fe121-c144-5302-4107-c80d5cce3ad7	{"type": "Markdown", "content": "Done"}	\N	{"type": "Stage"}	\N
+246ded7f-ae61-db00-0beb-c341f9e67fd0	{"name": "Julius", "type": "User", "revision": 0, "imageFile": null, "isImplicit": false}	restricted	{"type": "Message"}	\N
 \.
 
 
@@ -3171,7 +3174,6 @@ COPY public.node_can_access_mat (nodeid, userid, complete) FROM stdin;
 247fe22e-a84f-1113-4107-c6e3d4b4ba33	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
 247fe22e-a84f-1113-4107-c6e3d4b4ba33	247fe3c7-6d89-2900-1531-1b012f3f05b9	t
 247fe3c7-6d89-2900-1531-1b012f3f05b9	247fe3c7-6d89-2900-1531-1b012f3f05b9	t
-246ded7f-ae61-db00-0beb-c341f9e67fd0	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
 247fde2e-90ea-9401-4107-c68110e68c92	247fe3c7-6d89-2900-1531-1b012f3f05b9	t
 247fde2e-90ea-9401-4107-c68110e68c92	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
 247fde63-757d-090a-4107-c6c3456ebfd9	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
@@ -3245,6 +3247,7 @@ COPY public.node_can_access_mat (nodeid, userid, complete) FROM stdin;
 247fe066-c5fa-7e12-4107-c7ee3ad94efa	247fe499-013f-9100-1531-1bf25ba12bee	t
 247fe066-c5fa-7e12-4107-c7ee3ad94efa	247fe3c7-6d89-2900-1531-1b012f3f05b9	t
 247fe066-c5fa-7e12-4107-c7ee3ad94efa	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246ded7f-ae61-db00-0beb-c341f9e67fd0	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
 \.
 
 
