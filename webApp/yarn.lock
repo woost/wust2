@@ -3188,9 +3188,9 @@ exif-js@^2.1.1:
   resolved "https://registry.yarnpkg.com/exif-js/-/exif-js-2.3.0.tgz#9d10819bf571f873813e7640241255ab9ce1a814"
   integrity sha1-nRCBm/Vx+HOBPnZAJBJVq5zhqBQ=
 
-"exif-js@git+https://git@github.com/fdietze/exif-js.git#7d4f2119a91480b51a23eb2681c6562572e7c731":
+"exif-js@git+https://git@github.com/fdietze/exif-js.git#da3116c":
   version "2.3.0"
-  resolved "git+https://git@github.com/fdietze/exif-js.git#7d4f2119a91480b51a23eb2681c6562572e7c731"
+  resolved "git+https://git@github.com/fdietze/exif-js.git#da3116ce3e3a32955e0319dfdd3f7a27e25cfe5f"
 
 exit-hook@^1.0.0:
   version "1.1.1"
