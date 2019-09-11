@@ -566,6 +566,7 @@ lazy val webApp = project
       Deps.npm.tribute ::
       Deps.npm.autoresizeTextarea ::
       Deps.npm.chartJs ::
+      Deps.npm.blueimpLoadImage ::
       Deps.npm.hopscotch ::
       Nil,
 

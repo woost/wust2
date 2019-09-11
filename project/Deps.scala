@@ -156,6 +156,7 @@ object Deps {
     val tribute = "tributejs" -> "3.7.1"
     val autoresizeTextarea = "autoresize-textarea" -> "git://github.com/cornerman/autoresize-textarea.git#d197ddc"
     val chartJs = "chart.js" -> "2.8.0"
+    val blueimpLoadImage = "blueimp-load-image" -> "2.23.0" // rotate jpegs using exif orientation data
     val hopscotch = "hopscotch" -> "0.3.1"
 
     val webpackDependencies =

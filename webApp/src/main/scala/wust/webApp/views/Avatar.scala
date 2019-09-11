@@ -6,6 +6,7 @@ import colorado.HCL
 import outwatch.dom.{ VNode, _ }
 import wust.webApp.Client
 import wust.webUtil.outwatchHelpers._
+import wust.webUtil.ImageLoader
 import wust.graph.Node
 import wust.ids._
 import wust.sdk.NodeColor.genericHue
@@ -20,16 +21,19 @@ object Avatar {
   //TODO: less-angry rainbow? https://bl.ocks.org/mbostock/310c99e53880faec2434
 
   def user(user: Node.User, size: String, enableDrag: Boolean = true) = {
-    val vnode = user.data.imageFile match {
-      case None => verticalMirror(user.id, 5)
-      case Some(key) =>
-        val url = Client.wustFilesUrl.map(url => url + "/" + key)
-        div(
-          url.map(url => backgroundImage := s"url($url)"), //TODO: sanitive images?
-          backgroundSize.cover,
-          display.inlineBlock,
-        )
-    }
+    // val vnode = user.data.imageFile match {
+    //   case None => verticalMirror(user.id, 5)
+    //   case Some(key) =>
+    //     // val url = Client.wustFilesUrl.map(url => url + "/" + key)
+    //     val url = "/../../../../assets/avatar.jpg"
+    //     // div(
+    //     //   url.map(url => backgroundImage := s"url($url)"), //TODO: sanitive images?
+    //     //   backgroundSize.cover,
+    //     //   display.inlineBlock,
+    //     // )
+    //     div(url.map(ImageLoader.apply))
+    // }
+    val vnode = div(ImageLoader.apply("/_/_/_/_/assets/avatar.jpg", 40))
 
     vnode.append(
       cls := "avatar",
