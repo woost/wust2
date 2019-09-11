@@ -6,7 +6,7 @@ import scala.concurrent.{Future, Promise}
 
 object FileReaderOps {
 
-  def readAsText(file: dom.File): Future[String] = {
+  def readAsText(file: dom.Blob): Future[String] = {
     val promise = Promise[String]
     val fileReader = new dom.FileReader()
     fileReader.onload = { e =>

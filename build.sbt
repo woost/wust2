@@ -567,6 +567,7 @@ lazy val webApp = project
       Deps.npm.autoresizeTextarea ::
       Deps.npm.chartJs ::
       Deps.npm.hopscotch ::
+      Deps.npm.canvasImageUploader ::
       Nil,
 
       /* wartremoverWarnings ++= Warts.allBut( */
