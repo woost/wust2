@@ -14,6 +14,7 @@ import wust.ids._
 import wust.webApp.Client
 import wust.webApp.jsdom.FileReaderOps
 import wust.webApp.state.{GlobalState, UploadingFile}
+import wust.webApp.StagingOnly
 
 import scala.concurrent.{Future, Promise}
 import scala.util.{Failure, Success}
@@ -57,7 +58,7 @@ object AWS {
     val uploadedKey = Task.deferFuture {
       val resultFile:Future[dom.Blob] = if(originalFile.`type` == "image/jpeg") rotateImageByExifOrientation(originalFile) else Future.successful(originalFile)
       resultFile.flatMap {file =>
-        // dom.console.log(dom.URL.createObjectURL(file))
+        StagingOnly{dom.console.log(dom.URL.createObjectURL(file))} //TODO: remove when it works reliably
         val config = for {
           fileContent <- FileReaderOps.readAsText(file) // TODO: is that even correct for the content of binary files?
           fileContentDigest = Sha256.sha256(fileContent)

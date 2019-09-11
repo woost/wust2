@@ -568,6 +568,7 @@ lazy val webApp = project
       Deps.npm.chartJs ::
       Deps.npm.hopscotch ::
       Deps.npm.canvasImageUploader ::
+      Deps.npm.exifJS ::
       Nil,
 
       /* wartremoverWarnings ++= Warts.allBut( */
