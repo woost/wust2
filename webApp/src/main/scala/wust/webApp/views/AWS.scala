@@ -58,7 +58,7 @@ object AWS {
     val uploadedKey = Task.deferFuture {
       val resultFile:Future[dom.Blob] = if(originalFile.`type` == "image/jpeg") rotateImageByExifOrientation(originalFile) else Future.successful(originalFile)
       resultFile.flatMap {file =>
-        StagingOnly{dom.console.log(dom.URL.createObjectURL(file))} //TODO: remove when it works reliably
+        DebugOnly{dom.console.log(dom.URL.createObjectURL(file))}
         val config = for {
           fileContent <- FileReaderOps.readAsText(file) // TODO: is that even correct for the content of binary files?
           fileContentDigest = Sha256.sha256(fileContent)
