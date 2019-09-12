@@ -6,6 +6,7 @@ import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.ext.monix._
 import rx._
 import wust.graph._
 import wust.webApp._
@@ -37,8 +38,8 @@ object SearchModal {
           cursor.pointer,
           padding := "3px",
           Components.nodeCard( nodeRes._1),
-          onClick.stopPropagation.mapTo(GlobalState.urlConfig.now.focus(Page(nodeRes._1.id))) --> GlobalState.urlConfig,
-          onClick.stopPropagation(()) --> GlobalState.uiModalClose
+          onClick.stopPropagation.useLazy(GlobalState.urlConfig.now.focus(Page(nodeRes._1.id))) --> GlobalState.urlConfig,
+          onClick.stopPropagation.use(()) --> GlobalState.uiModalClose
         )
       }
 

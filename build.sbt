@@ -492,7 +492,7 @@ lazy val webUtilMacro = project
     libraryDependencies ++=
       Deps.scalaJsDom.value ::
       Deps.scalarx.value ::
-      Deps.outwatch.value ::
+      Deps.outwatch.core.value ::
       Nil
   )
 
@@ -505,7 +505,8 @@ lazy val webUtil = project
       Deps.scalaJsDom.value ::
       Deps.scalacss.value ::
       Deps.scalarx.value ::
-      Deps.outwatch.value ::
+      Deps.outwatch.core.value ::
+      Deps.outwatch.monix.value ::
       Deps.monocle.value ::
       Deps.vectory.value ::
       Deps.d3v4.value ::
@@ -545,7 +546,7 @@ lazy val webApp = project
     npmDependencies in Compile ++=
       Deps.npm.defaultPassiveEvents ::
       Deps.npm.intersectionObserver ::
-      Deps.npm.immediate ::
+      Deps.npm.setimmediate ::
       Deps.npm.marked ::
       Deps.npm.dompurify ::
       Deps.npm.dateFns ::

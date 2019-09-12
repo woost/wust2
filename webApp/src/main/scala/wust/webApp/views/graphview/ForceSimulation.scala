@@ -10,6 +10,7 @@ import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.{CanvasRenderingContext2D, html}
 import outwatch.dom._
 import outwatch.dom.dsl.events
+import outwatch.ext.monix._
 import rx._
 import vectory._
 import wust.webUtil.BrowserDetect
@@ -215,7 +216,7 @@ class ForceSimulation(
       )
     cancelable += Cancelable(() => background.on("click", null:ListenerFunction0))
 
-    cancelable += Observable(events.window.onResize, GlobalState.rightSidebarNode.map(_.isDefined).toLazyTailObservable).merge.foreach { _ =>
+    cancelable += Observable(events.window.onResize.lift[Observable], GlobalState.rightSidebarNode.map(_.isDefined).toLazyTailObservable).merge.foreach { _ =>
       // TODO: detect element resize instead: https://www.npmjs.com/package/element-resize-detector
       resized()
       startAnimated()
@@ -312,7 +313,7 @@ class ForceSimulation(
     def nodeOnClick(node: Node, i: Int): Unit = {
 
       scribe.info(s"clicked node[$i]")
-      d3.event.stopPropagation() // prevent click from bubbling to background
+      d3.event.stopPropagation // prevent click from bubbling to background
 
       if (InlineList.contains[NodeRole](NodeRole.Task, NodeRole.Message, NodeRole.Note)(node.role)) {
         val nextNode = if (GlobalState.rightSidebarNode.now.exists(_.nodeId == node.id)) None else Some(FocusPreference(node.id))

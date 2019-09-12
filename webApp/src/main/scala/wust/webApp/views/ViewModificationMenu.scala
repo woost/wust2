@@ -5,6 +5,7 @@ import flatland._
 import fontAwesome._
 import monix.reactive.Observer
 import monix.reactive.subjects.PublishSubject
+import outwatch.reactive._
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
@@ -110,7 +111,7 @@ object ViewModificationMenu {
         Rx {
           val currentViews = existingViews()
           if (currentViews.isEmpty) div("Nothing, yet.")
-          else Components.removeableList(currentViews, removeSink = Sink.fromFunction(removeView(currentView, done, nodeRx, _))) { view =>
+          else Components.removeableList(currentViews, removeSink = SinkObserver.create(removeView(currentView, done, nodeRx, _))) { view =>
             val info = ViewSwitcher.viewToTabInfo(view, 0, 0, 0)
             VDomModifier(
               marginTop := "8px",

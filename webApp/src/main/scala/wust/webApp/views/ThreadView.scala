@@ -9,6 +9,7 @@ import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom.window
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.ext.monix._
 import rx._
 import wust.css.Styles
 import wust.graph._

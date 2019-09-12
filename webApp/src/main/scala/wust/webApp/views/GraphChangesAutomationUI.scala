@@ -2,8 +2,11 @@ package wust.webApp.views
 
 import wust.css.ZIndex
 import outwatch.dom.helpers.EmitterBuilder
+import outwatch.reactive._
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.ext.monix._
+import outwatch.ext.monix.handler._
 import monix.reactive.Observer
 import rx.{Ctx, Rx, Var}
 import wust.webUtil.outwatchHelpers._
@@ -73,7 +76,7 @@ object GraphChangesAutomationUI {
       justifyContent.spaceBetween,
 
       height := "600px",
-      onClick(false) --> showHelp,
+      onClick.use(false) --> showHelp,
       position.relative,
 
       Rx {
@@ -167,8 +170,8 @@ object GraphChangesAutomationUI {
 
             Components.removeableList[Node](
               templates,
-              multiObserver[Node](
-                GlobalState.eventProcessor.changes.redirectMap { templateNode =>
+              SinkObserver.combine(
+                SinkObserver.lift(GlobalState.eventProcessor.changes.redirectMap[Node] { templateNode =>
                   val g = GlobalState.rawGraph.now
                   val existingParent = g.parentEdgeIdx(g.idToIdxOrThrow(templateNode.id)).find { edgeIdx =>
                     val edge = graph.edges(edgeIdx).as[Edge.Child]
@@ -182,8 +185,8 @@ object GraphChangesAutomationUI {
                     }.toArray,
                     delEdges = Array(Edge.Automated(focusedId, TemplateId(templateNode.id)))
                   )
-                },
-                Sink.fromFunction(templateNode => GlobalState.rightSidebarNode.update(_.filter(_.nodeId != templateNode.id)))
+                }),
+                SinkObserver.create[Node](templateNode => GlobalState.rightSidebarNode.update(_.filter(_.nodeId != templateNode.id)))
               )
             )({ templateNode =>
                 val propertySingle = PropertyData.Single(graph, graph.idToIdxOrThrow(templateNode.id))
@@ -290,7 +293,7 @@ object GraphChangesAutomationUI {
       i(cls := "fa-fw", Icons.automate),
 
       cursor.pointer,
-      onClick(Ownable(implicit ctx => modalConfig( focusedId, viewRender))) --> GlobalState.uiModalConfig,
+      onClick.use(Ownable(implicit ctx => modalConfig( focusedId, viewRender))) --> GlobalState.uiModalConfig,
 
       Rx {
         if (hasTemplates()) VDomModifier(

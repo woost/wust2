@@ -1,5 +1,6 @@
 package wust.webApp
 
+import cats.effect.IO
 import wust.facades.wdtEmojiBundle._
 import colorado.HCL
 import wust.facades.defaultPassiveEvents.DefaultPassiveEvents
@@ -8,7 +9,6 @@ import wust.facades.intersectionObserver.IntersectionObserver
 import wust.facades.emojijs.EmojiConvertor
 import wust.facades.fomanticui.SearchResults
 import wust.facades.highlightjs.Highlight
-import wust.facades.immediate.immediate
 import wust.facades.jquery.JQuery
 import wust.facades.marked.{Marked, MarkedOptions, Renderer}
 import monix.reactive.Observable
@@ -44,11 +44,15 @@ object Main {
 
     // render main content
     import GlobalState.ctx
-    OutWatch.renderReplace("#container", MainView.apply).unsafeRunSync()
-    // render single modal instance for the whole page that can be configured via GlobalState.uiModalConfig
-    OutWatch.renderReplace("#modal-placeholder", Modal.modal(GlobalState.uiModalConfig, GlobalState.uiModalClose)).unsafeRunSync()
-    // render single sidebar instance for the whole page that can be configured via GlobalState.uiSidebarConfig
-    OutWatch.renderReplace("#sidebar-placeholder", GenericSidebar.sidebar(GlobalState.uiSidebarConfig, GlobalState.uiSidebarClose, targetSelector = Some(".main-viewrender"))).unsafeRunSync()
+    val app = for {
+      _ <- OutWatch.renderReplace[IO]("#container", MainView.apply)
+      // render single modal instance for the whole page that can be configured via GlobalState.uiModalConfig
+      _ <- OutWatch.renderReplace[IO]("#modal-placeholder", Modal.modal(GlobalState.uiModalConfig, GlobalState.uiModalClose))
+      // render single sidebar instance for the whole page that can be configured via GlobalState.uiSidebarConfig
+      _ <- OutWatch.renderReplace[IO]("#sidebar-placeholder", GenericSidebar.sidebar(GlobalState.uiSidebarConfig, GlobalState.uiSidebarClose, targetSelector = Some(".main-viewrender")))
+    } yield ()
+
+    app.unsafeRunSync()
   }
 
   @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
@@ -78,7 +82,6 @@ object Main {
   private def setupDom(): Unit = {
     setupDefaultPassiveEvents()
     setupIntersectionObserverPolyfill()
-    setupSetImmediatePolyfill()
     setupDomPurify()
     setupMarked()
     setupEmojis()
@@ -200,18 +203,8 @@ object Main {
   private def setupSnabbdomDebugging():Unit = {
     // debug snabbdom patching in outwatch
     helpers.OutwatchTracing.patch.zipWithIndex.foreach { case (proxy, index) =>
-      org.scalajs.dom.console.log(s"Snabbdom patch ($index)!", JSON.parse(JSON.stringify(proxy)), proxy)
-    }
-  }
-
-  private def setupSetImmediatePolyfill():Unit = {
-    // Add polyfill for setImmediate
-    // https://developer.mozilla.org/en-US/docs/Web/API/Window/setImmediate
-    // Api explanation: https://jphpsf.github.io/setImmediate-shim-demo
-    // this will be automatically picked up by monix and used instead of
-    // setTimeout( ... , 0)
-    // This reduces latency for the async scheduler
-    js.Dynamic.global.setImmediate = immediate
+       org.scalajs.dom.console.log(s"Snabbdom patch ($index)!", JSON.parse(JSON.stringify(proxy)), proxy)
+     }
   }
 
   private def setupDefaultPassiveEvents():Unit = {

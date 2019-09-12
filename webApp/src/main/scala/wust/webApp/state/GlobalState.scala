@@ -26,6 +26,8 @@ import org.scalajs.dom
 import org.scalajs.dom.window
 import rx._
 import outwatch.dom.dsl.events
+import outwatch.reactive._
+import outwatch.ext.monix._
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{ BrowserDetect, UI }
 import wust.api.ApiEvent.ReplaceGraph
@@ -45,10 +47,10 @@ import scala.collection.{ breakOut, mutable }
 object GlobalState {
   implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
 
-  val isClientOnlineObservable = Observable(Client.observable.connected.map(_ => true), Client.observable.closed.map(_ => false)).merge
+  val isClientOnlineObservable = SourceStream.merge(Client.observable.connected.map(_ => true), Client.observable.closed.map(_ => false))
   val isClientOnline = isClientOnlineObservable.unsafeToRx(true)
   //TODO: is browser does not trigger?!
-  val isBrowserOnlineObservable: Observable[Boolean] = Observable(events.window.onOffline.map(_ => false), events.window.onOnline.map(_ => true)).merge
+  val isBrowserOnlineObservable = SourceStream.merge(events.window.onOffline.map(_ => false), events.window.onOnline.map(_ => true))
   val isBrowserOnline = isBrowserOnlineObservable.unsafeToRx(true)
 
   // register the serviceworker and get an update observable when serviceworker updates are available.

@@ -4,6 +4,7 @@ import acyclic.file
 import fontAwesome.freeSolid
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.ext.monix._
 import rx._
 import wust.css.Styles
 import wust.graph._
@@ -81,7 +82,7 @@ object RightSidebar {
           cls := "fa-fw",
           fontSize.xLarge,
           cursor.pointer,
-          onClick(None).foreach(parentIdAction)
+          onClick.use(None).foreach(parentIdAction)
         ),
         div(
           marginLeft := "5px",
@@ -330,7 +331,7 @@ object RightSidebar {
           margin := "3px 3px 3px 3px",
           Styles.wordWrap,
           cls := "enable-text-selection",
-          onClick.stopPropagation(true) --> editMode,
+          onClick.stopPropagation.use(true) --> editMode,
 
           UnreadComponents.readObserver(node.id)
         )
@@ -433,7 +434,7 @@ object RightSidebar {
     val isCreateReference = Var(false)
     val isRenameReference = Var(false)
 
-    addFieldMode.map {
+    addFieldMode.map[VDomModifier] {
       case AddProperty.CustomField =>
         ItemProperties.managePropertiesInline(
           ItemProperties.Target.Node(focusPref.nodeId)
@@ -507,7 +508,7 @@ object RightSidebar {
               cls := "ui compact basic primary button mini",
               "+ Add Due Date",
               cursor.pointer,
-              onClick.stopPropagation(AddProperty.DefinedField("Add Due Date", EdgeData.LabeledProperty.dueDate.key, NodeData.DateTime.tpe)) --> addFieldMode
+              onClick.stopPropagation.use(AddProperty.DefinedField("Add Due Date", EdgeData.LabeledProperty.dueDate.key, NodeData.DateTime.tpe)) --> addFieldMode
             ),
 
             selfOrParentIsAutomationTemplate.map {
@@ -516,7 +517,7 @@ object RightSidebar {
                 cls := "ui compact basic primary button mini",
                 "+ Add Relative Due Date",
                 cursor.pointer,
-                onClick.stopPropagation(AddProperty.DefinedField("Add Relative Due Date", EdgeData.LabeledProperty.dueDate.key, NodeData.RelativeDate.tpe)) --> addFieldMode
+                onClick.stopPropagation.use(AddProperty.DefinedField("Add Relative Due Date", EdgeData.LabeledProperty.dueDate.key, NodeData.RelativeDate.tpe)) --> addFieldMode
               )
             },
 
@@ -524,7 +525,7 @@ object RightSidebar {
               cls := "ui compact basic button mini",
               s"+ $addCustomFieldText",
               cursor.pointer,
-              onClick.stopPropagation(AddProperty.CustomField) --> addFieldMode
+              onClick.stopPropagation.use(AddProperty.CustomField) --> addFieldMode
             )
           ),
 
@@ -540,12 +541,12 @@ object RightSidebar {
 
               def addButton = VDomModifier(
                 cursor.pointer,
-                onClick.stopPropagation.mapTo(AddProperty.EdgeReference("Add Reference Template", (sourceId, targetId) => Edge.ReferencesTemplate(sourceId, EdgeData.ReferencesTemplate(isCreate = isCreateReference.now, isRename = isRenameReference.now), TemplateId(targetId)))) --> addFieldMode
+                onClick.stopPropagation.useLazy(AddProperty.EdgeReference("Add Reference Template", (sourceId, targetId) => Edge.ReferencesTemplate(sourceId, EdgeData.ReferencesTemplate(isCreate = isCreateReference.now, isRename = isRenameReference.now), TemplateId(targetId)))) --> addFieldMode
               )
               def deleteButton(referenceNodeId: NodeId) = VDomModifier(
                 cursor.pointer,
                 //TODO: just delete correct edge...
-                onClick.stopPropagation(GraphChanges(delEdges = Array(Edge.ReferencesTemplate(focusPref.nodeId, EdgeData.ReferencesTemplate(isCreate = false), TemplateId(referenceNodeId)), Edge.ReferencesTemplate(focusPref.nodeId, EdgeData.ReferencesTemplate(isCreate = true), TemplateId(referenceNodeId))))) --> GlobalState.eventProcessor.changes
+                onClick.stopPropagation.useLazy(GraphChanges(delEdges = Array(Edge.ReferencesTemplate(focusPref.nodeId, EdgeData.ReferencesTemplate(isCreate = false), TemplateId(referenceNodeId)), Edge.ReferencesTemplate(focusPref.nodeId, EdgeData.ReferencesTemplate(isCreate = true), TemplateId(referenceNodeId))))) --> GlobalState.eventProcessor.changes
               )
 
               div(

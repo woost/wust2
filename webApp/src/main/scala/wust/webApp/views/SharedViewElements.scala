@@ -9,6 +9,8 @@ import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl.{label, _}
 import outwatch.dom.helpers.EmitterBuilder
+import outwatch.reactive.handler._
+import outwatch.ext.monix._
 import rx._
 import wust.css.Styles
 import wust.graph._
@@ -312,7 +314,7 @@ object SharedViewElements {
           cls := "chatmsg-controls",
           if(isDeletedNow()) {
             ifCanWrite(undeleteButton(
-              onClick(GraphChanges.undelete(ChildId(nodeId), directParentIds)) --> GlobalState.eventProcessor.changes,
+              onClick.useLazy(GraphChanges.undelete(ChildId(nodeId), directParentIds)) --> GlobalState.eventProcessor.changes,
             ))
           }
           else VDomModifier(
@@ -434,7 +436,7 @@ object SharedViewElements {
 
         cursor.pointer,
         UI.popup := "Click to collapse", // we use the js-popup here, since it it always spawns at a visible position
-        onClick.mapTo(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(false), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes
+        onClick.useLazy(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(false), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes
       )
     )
   }
@@ -449,7 +451,7 @@ object SharedViewElements {
         div(
           cls := "expand-collapsebutton",
           div(freeSolid.faAngleDown, cls := "fa-fw"),
-          onClick.mapTo(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(false), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes,
+          onClick.useLazy(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(false), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes,
           cursor.pointer,
         )
       } else {
@@ -457,7 +459,7 @@ object SharedViewElements {
           cls := "expand-collapsebutton",
           div(freeSolid.faAngleRight, cls := "fa-fw"),
           VDomModifier.ifTrue(!alwaysShow && childrenSize() == 0)(visibility.hidden),
-          onClick.mapTo(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(true), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes,
+          onClick.useLazy(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(true), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes,
           cursor.pointer,
         )
       }
@@ -519,9 +521,9 @@ object SharedViewElements {
     onHide: () => Boolean = () => true,
   ) = EmitterBuilder.ofModifier[InputRow.Submission] { sink =>
     VDomModifier(
-      onClick.stopPropagation(Ownable { implicit ctx => 
+      onClick.stopPropagation.use(Ownable { implicit ctx => 
         newNamePromptModalConfig(
-          sink,
+          sink.lift[Observer],
           header,
           body(ctx),
           placeholder,

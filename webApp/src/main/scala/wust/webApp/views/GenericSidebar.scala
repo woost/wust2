@@ -6,6 +6,7 @@ import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.ext.monix._
 import rx._
 import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
@@ -22,8 +23,8 @@ object GenericSidebar {
   def right(sidebarOpen: Var[Boolean], isFullscreen: Var[Boolean], config: Ownable[Config]): VNode = apply(isRight = true, sidebarOpen = sidebarOpen, isFullscreen = isFullscreen, config = config)
 
   private def apply(isRight: Boolean, sidebarOpen: Var[Boolean], isFullscreen: Var[Boolean], config: Ownable[Config]): VNode = {
-    def openSwipe = (if (isRight) onSwipeLeft(true) else onSwipeRight(true)) --> sidebarOpen
-    def closeSwipe = (if (isRight) onSwipeRight(false) else onSwipeLeft(false)) --> sidebarOpen
+    def openSwipe = (if (isRight) onSwipeLeft.use(true) else onSwipeRight.use(true)) --> sidebarOpen
+    def closeSwipe = (if (isRight) onSwipeRight.use(false) else onSwipeLeft.use(false)) --> sidebarOpen
     def directionOverlayModifier = if (isRight) cls := "overlay-right-sidebar" else cls := "overlay-left-sidebar"
     def directionExpandedModifier = if (isRight) cls := "expanded-right-sidebar" else cls := "expanded-left-sidebar"
 
@@ -45,7 +46,7 @@ object GenericSidebar {
     def overlayOpenSidebar(config: Config) = VDomModifier(
       cls := "overlay-sidebar",
       directionOverlayModifier,
-      onClick.onlyOwnEvents(false) --> sidebarOpen,
+      onClick.onlyOwnEvents.use(false) --> sidebarOpen,
       VDomModifier.ifTrue(BrowserDetect.isMobile)(closeSwipe),
 
       div(
@@ -104,7 +105,7 @@ object GenericSidebar {
       config.map[VDomModifier] { config =>
         config.flatMap[VDomModifier](config => Ownable { implicit ctx =>
           VDomModifier(
-            emitter(globalClose.take(1)).useLatest(onDomMount.asJquery).foreach { e =>
+            emitter(globalClose.take(1)).useLatestEmitter(onDomMount.asJquery).foreach { e =>
               e.sidebar("hide")
               // TODO: remove this node from the dom whenever it is hidden (make this thing an observable[option[ownable[sidebarconfig]]]
               // workaround: kill the ctx owner, so we stop updating this node when it is closed.

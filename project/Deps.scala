@@ -55,8 +55,12 @@ object Deps {
   // val scalarx = dep("com.lihaoyi" %%% "scalarx" % "0.4.0")
   val scalarx = dep("com.github.fdietze.duality" %%% "scalarx" % "fc761c9")
   // val scalarx = dep("com.github.fdietze.duality" %%% "scalarx" % "94c6d80") // jitpack cannot handle the . in repo name scala.rx
-  val outwatch = dep("com.github.outwatch" % "outwatch" % "5be1e2b")
-  // val outwatch = dep("io.github.outwatch" %%% "outwatch" % "0.11.1-SNAPSHOT")
+  val outwatch = new {
+    private val version = "c13ab9bd"
+    // val core = dep("io.github.outwatch" %%% "outwatch" % "0.11.1-SNAPSHOT")
+    val core = dep("com.github.cornerman.outwatch" %%% "outwatch" % version)
+    val monix = dep("com.github.cornerman.outwatch" %%% "outwatch-monix" % version)
+  }
   val bench = dep("com.github.fdietze.bench" %%% "bench" % "e66a721")
   // val bench = dep("com.github.fdietze" %%% "bench" % "master-SNAPSHOT")
 
@@ -146,7 +150,7 @@ object Deps {
     val emojiDatasourceTwitter = "emoji-datasource-twitter" -> "4.1.0"
     val hammerjs = "hammerjs" -> "2.0.8"
     val propagatingHammerjs = "propagating-hammerjs" -> "1.4.6"
-    val immediate = "immediate" -> "3.2.3"
+    val setimmediate = "setimmediate" -> "1.0.5"
     val mobileDetect = "mobile-detect" -> "1.4.3"
     val jsSha256 = "js-sha256" -> "0.9.0"
     val clipboardjs = "clipboard" -> "2.0.4"

@@ -3,6 +3,8 @@ package wust.webApp.views
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import outwatch.dom._
+import outwatch.ext.monix._
+import outwatch.ext.monix.handler._
 import outwatch.dom.dsl._
 import rx._
 import wust.webUtil.{Elements, ModalConfig}
@@ -117,13 +119,13 @@ object MembersModal {
                   }
                 ),
               ),
-              a(href := "#", padding := "5px", onClick.stopPropagation.preventDefault(false) --> showEmailInvite, "Invite user by username")
+              a(href := "#", padding := "5px", onClick.stopPropagation.preventDefault.use(false) --> showEmailInvite, "Invite user by username")
             )
             case false => VDomModifier(
               searchInGraph(GlobalState.rawGraph, "Invite by username", filter = u => u.isInstanceOf[Node.User] && !GlobalState.graph.now.members(node.id).exists(_.id == u.id), inputModifiers = inputSizeMods).foreach { userId =>
                 addUserMember(UserId(userId))
               },
-              a(href := "#", padding := "5px", onClick.stopPropagation.preventDefault(true) --> showEmailInvite, "Invite user by email address")
+              a(href := "#", padding := "5px", onClick.stopPropagation.preventDefault.use(true) --> showEmailInvite, "Invite user by email address")
             )
           },
           statusMessageHandler.map {
@@ -149,7 +151,7 @@ object MembersModal {
                     cls := "ui tiny compact negative basic button",
                     marginLeft := "10px",
                     "Remove",
-                    onClick.stopPropagation(membership).foreach(handleRemoveMember(_))
+                    onClick.stopPropagation.use(membership).foreach(handleRemoveMember(_))
                   )
                 )
               }: VDomModifier

@@ -7,6 +7,7 @@ import org.scalajs.dom
 import org.scalajs.dom.experimental._
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.ext.monix._
 import outwatch.dom.helpers.EmitterBuilder
 import rx.{Ctx, Rx, Var}
 import wust.webUtil.outwatchHelpers._
@@ -234,7 +235,7 @@ object Importing {
         dsl.cursor.pointer,
         "Import",
         disabled <-- importer.result.map(_.isEmpty),
-        onClick.mapTo(importer.result.now).collect { case Some(r) => r } --> sink
+        onClick.useLazy(importer.result.now).collect { case Some(r) => r } --> sink
       )
     )
   }
@@ -283,7 +284,7 @@ object Importing {
             source.icon(height := "2em"),
             div(source.description, paddingTop := "3px"),
             cursor.pointer,
-            onClick.stopPropagation(Some(source)) --> sink
+            onClick.stopPropagation.use(Some(source)) --> sink
           )
         }
       )
@@ -297,7 +298,7 @@ object Importing {
       flexDirection.column,
       alignItems.center,
 
-      div(padding := "10px", alignSelf.flexStart, freeSolid.faArrowLeft, cursor.pointer, onClick(None) --> sink),
+      div(padding := "10px", alignSelf.flexStart, freeSolid.faArrowLeft, cursor.pointer, onClick.use(None) --> sink),
 
       source.form,
 
@@ -310,7 +311,7 @@ object Importing {
         overflow.auto,
 
         importers.foldLeft(Seq.empty[VDomModifier]) { (prev, importer) =>
-          val field = importerForm(importer).transform(_.flatMap { result =>
+          val field = importerForm(importer).transform(_.lift[Observable].flatMap { result =>
             Observable.from(result).flatMap {
               case Right(importChanges) =>
                 UI.toast("Successfully imported Project")
@@ -321,7 +322,7 @@ object Importing {
             }
           }) --> changesObserver
 
-          if(prev.isEmpty) Seq(field) else prev ++ Seq(importerSeparator, field) // TODO: proper with css?
+          if(prev.isEmpty) Seq(field) else prev ++ Seq[VDomModifier](importerSeparator, field) // TODO: proper with css?
         }
       ),
     )
@@ -397,7 +398,7 @@ object Importing {
       span("Import"),
 
       dsl.cursor.pointer,
-      onClick(Ownable(implicit ctx => modalConfig(focusedId))) --> GlobalState.uiModalConfig
+      onClick.use(Ownable(implicit ctx => modalConfig(focusedId))) --> GlobalState.uiModalConfig
     )
   }
 
@@ -408,7 +409,7 @@ object Importing {
 
     val header = selectedSource.map(renderSourceHeader)
 
-    val description = selectedSource.map(renderSourceBody(_, changesObserver, allSources) --> selectedSource)
+    val description = selectedSource.map(renderSourceBody(_, changesObserver.lift[Observer], allSources) --> selectedSource)
 
 
     div(

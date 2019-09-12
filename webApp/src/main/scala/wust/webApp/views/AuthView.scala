@@ -7,6 +7,8 @@ import monix.reactive.Observer
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.reactive.handler._
+import outwatch.ext.monix._
 import rx._
 import wust.webUtil.Elements._
 import wust.webUtil.UI
@@ -100,7 +102,7 @@ object AuthView {
               display.block,
               margin := "auto",
               onInput.value foreach { str => userValue.update(_.copy(username = str.trim)) },
-              onDomMount.asHtml --> inNextAnimationFrame { e => if(userValue.now.username.isEmpty) e.focus() }
+              onDomMount.asHtml --> inNextAnimationFrame[dom.html.Element] { e => if(userValue.now.username.isEmpty) e.focus() }
             )
           )),
 
@@ -116,7 +118,7 @@ object AuthView {
               display.block,
               margin := "auto",
               onInput.value foreach { str => userValue.update(_.copy(email = str)) },
-              onDomMount.asHtml --> inNextAnimationFrame { e => if(!needUserName || userValue.now.username.nonEmpty) e.focus() }
+              onDomMount.asHtml --> inNextAnimationFrame[dom.html.Element] { e => if(!needUserName || userValue.now.username.nonEmpty) e.focus() }
             )
           ),
 
@@ -129,7 +131,7 @@ object AuthView {
                 cls := "ui button",
                 s"Go back to $submitText",
                 cursor.pointer,
-                onClick.stopPropagation(false) --> forgotPasswordMode
+                onClick.stopPropagation.use(false) --> forgotPasswordMode
               ),
               div(
                 disabled <-- userValue.map(_.email.isEmpty),
@@ -163,7 +165,7 @@ object AuthView {
                   margin := "auto",
                   onInput.value foreach { str => userValue.update(_.copy(password = str)) },
                   onEnter foreach actionSink(),
-                  onDomMount.asHtml --> inNextAnimationFrame { e => if((!needUserName || userValue.now.username.nonEmpty) && userValue.now.email.nonEmpty) e.focus() }
+                  onDomMount.asHtml --> inNextAnimationFrame[dom.html.Element] { e => if((!needUserName || userValue.now.username.nonEmpty) && userValue.now.email.nonEmpty) e.focus() }
                 )
               ),
               discardContentMessage,
@@ -181,7 +183,7 @@ object AuthView {
                 textDecoration := "underline",
                 "Forgot password?",
                 cursor.pointer,
-                onClick.stopPropagation(true) --> forgotPasswordMode
+                onClick.stopPropagation.use(true) --> forgotPasswordMode
               )),
             )
           },
@@ -203,7 +205,7 @@ object AuthView {
           h3(alternativeHeader, textAlign := "center"),
           GlobalState.urlConfig.map { cfg =>
             div(
-              onClick(cfg.focus(alternativeView)) --> GlobalState.urlConfig,
+              onClick.use(cfg.focus(alternativeView)) --> GlobalState.urlConfig,
               cls := "ui fluid button",
               alternativeText,
               display.block,

@@ -4,6 +4,8 @@ import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.ext.monix._
+import outwatch.ext.monix.handler._
 import outwatch.dom.helpers.EmitterBuilder
 import rx._
 import wust.webUtil.outwatchHelpers._
@@ -166,7 +168,7 @@ object ItemProperties {
                   )).apply(editModifier)
                 }
               case NodeTypeSelection.Ref => Some(
-                Components.searchAndSelectNodeApplied(propertyValueInput.imap[Option[NodeId]](_.collect { case ValueSelection.Ref(data) => data })(_.map(ValueSelection.Ref(_))), filter = config.filterRefCompletion).apply(
+               Components.searchAndSelectNodeApplied(propertyValueInput.imap[Option[NodeId]](_.collect { case ValueSelection.Ref(data) => data })(_.map(ValueSelection.Ref(_))), filter = config.filterRefCompletion).apply(
                   width := "100%",
                   marginTop := "4px",
                 )
@@ -196,7 +198,7 @@ object ItemProperties {
           VDomModifier.ifTrue(enableCancelButton)(div(
             cls := "ui button fluid approve",
             "Cancel",
-            onClick.stopPropagation(()) --> sink
+            onClick.stopPropagation.use(()) --> sink
           )),
 
           div(

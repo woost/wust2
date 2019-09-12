@@ -3,8 +3,6 @@ package wust.webApp
 import wust.facades.googleanalytics.Analytics
 import fontAwesome._
 import org.scalajs.dom.experimental.permissions.PermissionState
-import outwatch.dom._
-import outwatch.dom.dsl._
 import rx.{Ctx, Rx}
 import wust.graph.Node.User
 import wust.graph._
@@ -15,6 +13,10 @@ import wust.webApp.views._
 import wust.webUtil.Elements
 import wust.webUtil.outwatchHelpers._
 import wust.ids.Feature
+
+import outwatch.dom._
+import outwatch.dom.dsl._
+import outwatch.ext.monix._
 
 final case class NotificationState(
   permissionState: PermissionState,
@@ -64,7 +66,7 @@ object WoostNotification {
         case PermissionState.granted            => VDomModifier(
           Elements.icon(notification.icon),
           title := notification.description,
-          onClick(notification.changes) --> GlobalState.eventProcessor.changes
+          onClick.use(notification.changes) --> GlobalState.eventProcessor.changes
         )
         case PermissionState.prompt | `default` => VDomModifier(
           Elements.icon(Elements.iconWithIndicator(notification.icon, freeRegular.faQuestionCircle, "black")),
@@ -78,7 +80,7 @@ object WoostNotification {
         case PermissionState.denied             => VDomModifier(
           Elements.icon(Elements.iconWithIndicator(notification.icon, freeRegular.faTimesCircle, "tomato")),
           title := s"${notification.description} (Notifications are blocked by your browser. Please reconfigure your browser settings for this site.)",
-          onClick(notification.changes) --> GlobalState.eventProcessor.changes
+          onClick.use(notification.changes) --> GlobalState.eventProcessor.changes
         )
       },
       span(text),
@@ -156,7 +158,7 @@ object WoostNotification {
 
         div(
           freeSolid.faTimes,
-          onClick.stopPropagation(true) --> GlobalState.askedForNotifications,
+          onClick.stopPropagation.use(true) --> GlobalState.askedForNotifications,
           marginLeft.auto,
           marginRight := "10px"
         )

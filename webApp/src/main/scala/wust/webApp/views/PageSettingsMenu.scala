@@ -4,6 +4,7 @@ import wust.facades.googleanalytics.Analytics
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.ext.monix._
 import rx._
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{BrowserDetect, Elements, Ownable, UI}
@@ -70,11 +71,11 @@ object PageSettingsMenu {
         if (isBookmarked()) VDomModifier(
           Elements.icon(Icons.unbookmark),
           span("Remove Bookmark"),
-          onClick.stopPropagation.mapTo(GraphChanges.disconnect(Edge.Pinned)(channelId, GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes
+          onClick.stopPropagation.useLazy(GraphChanges.disconnect(Edge.Pinned)(channelId, GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes
         ) else VDomModifier(
           Elements.icon(Icons.bookmark),
           span("Bookmark"),
-          onClick.stopPropagation.mapTo(GraphChanges(addEdges = Array(Edge.Pinned(channelId, GlobalState.user.now.id), Edge.Notify(channelId, GlobalState.user.now.id)), delEdges = Array(Edge.Invite(channelId, GlobalState.user.now.id)))) --> GlobalState.eventProcessor.changes
+          onClick.stopPropagation.useLazy(GraphChanges(addEdges = Array(Edge.Pinned(channelId, GlobalState.user.now.id), Edge.Notify(channelId, GlobalState.user.now.id)), delEdges = Array(Edge.Invite(channelId, GlobalState.user.now.id)))) --> GlobalState.eventProcessor.changes
         )
       ))
     }
@@ -182,7 +183,7 @@ object PageSettingsMenu {
       cls := "item",
       Elements.icon(Icons.share),
       dsl.span("Share Link"),
-      onClick.transform(_.delayOnNext(200 millis)).foreach { // delay, otherwise the assurePublic changes update interferes with clipboard js
+      onClick.transform(_.delay(200 millis)).foreach { // delay, otherwise the assurePublic changes update interferes with clipboard js
         assurePublic()
         FeatureState.use(Feature.ShareLink)
       },
@@ -214,7 +215,7 @@ object PageSettingsMenu {
 
   private def searchModalButton(node: Node)(implicit ctx: Ctx.Owner): VNode = {
     SharedViewElements.searchButtonWithIcon(
-      onClick.stopPropagation(Ownable(implicit ctx => SearchModal.config( node))) --> GlobalState.uiModalConfig
+      onClick.stopPropagation.use(Ownable(implicit ctx => SearchModal.config( node))) --> GlobalState.uiModalConfig
     )
   }
 
@@ -225,7 +226,7 @@ object PageSettingsMenu {
       Elements.icon(Icons.users),
       span("Members"),
 
-      onClick.stopPropagation(Ownable(implicit ctx => MembersModal.config( node))) --> GlobalState.uiModalConfig
+      onClick.stopPropagation.use(Ownable(implicit ctx => MembersModal.config( node))) --> GlobalState.uiModalConfig
     )
   }
 
@@ -234,7 +235,7 @@ object PageSettingsMenu {
       cls := "ui compact inverted button",
       UI.tooltip("left center") := "Bookmark in left Sidebar",
       Icons.bookmark,
-      onClick.mapTo(GraphChanges(addEdges = Array(Edge.Pinned(channelId, GlobalState.user.now.id), Edge.Notify(channelId, GlobalState.user.now.id)), delEdges = Array(Edge.Invite(channelId, GlobalState.user.now.id)))) --> GlobalState.eventProcessor.changes,
+      onClick.useLazy(GraphChanges(addEdges = Array(Edge.Pinned(channelId, GlobalState.user.now.id), Edge.Notify(channelId, GlobalState.user.now.id)), delEdges = Array(Edge.Invite(channelId, GlobalState.user.now.id)))) --> GlobalState.eventProcessor.changes,
       onClick foreach { 
         GlobalState.graph.now.nodesById(channelId).foreach { node => 
           node.role match {

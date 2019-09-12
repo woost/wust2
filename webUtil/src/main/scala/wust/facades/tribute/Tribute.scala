@@ -17,25 +17,24 @@ class Tribute[Value](collection: TributeCollection[Value]) extends js.Object {
   def appendCurrent(values: js.Array[Value]): Unit = js.native
 }
 object Tribute {
-  import outwatch.AsVDomModifier
   import outwatch.dom._
+  import outwatch.reactive._
   import outwatch.dom.helpers.EmitterBuilder
-  import monix.execution.Cancelable
 
-  implicit def render[Value]: AsVDomModifier[Tribute[Value]] = { tribute =>
+  implicit def render[Value]: Render[Tribute[Value]] = { tribute =>
     VDomModifier(
       snabbdom.VNodeProxy.repairDomBeforePatch, // the emoji-picker modifies the dom
       managedElement.asHtml { element =>
         tribute.attach(element)
-        Cancelable { () =>
+        Subscription { () =>
           tribute.detach(element)
         }
       }
     )
   }
 
-  def replacedEvent[Value] = EmitterBuilder[TributeReplacedEvent[Value]]("tribute-replaced")
-  def noMatchEvent[Value] = EmitterBuilder[TributeNoMatchEvent]("tribute-no-match")
+  def replacedEvent[Value] = EmitterBuilder.fromEvent[TributeReplacedEvent[Value]]("tribute-replaced")
+  def noMatchEvent[Value] = EmitterBuilder.fromEvent[TributeNoMatchEvent]("tribute-no-match")
 }
 
 @js.native

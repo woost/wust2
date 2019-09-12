@@ -3,7 +3,8 @@ package wust.webApp.views
 import monix.execution.Cancelable
 import monix.reactive.{Observable, Observer}
 import outwatch.dom.dsl._
-import outwatch.dom.{VDomModifier, _}
+import outwatch.dom._
+import outwatch.ext.monix._
 import rx._
 import wust.css.Styles
 import wust.facades.fomanticui.ModalOptions
@@ -58,7 +59,7 @@ object Modal {
           key := scala.util.Random.nextInt, // force new elem on every render. fixes slowly rendering modal in firefox
           config.modalModifier,
 
-          emitter(globalClose.take(1)).useLatest(onDomMount.asJquery).foreach { e =>
+          emitter(globalClose.take(1)).useLatestEmitter(onDomMount.asJquery).foreach { e =>
             e.modal("hide")
             // TODO: remove this node from the dom whenever it is hidden (make this thing an observable[option[ownable[modalconfig]]]
             // workaround: kill the ctx owner, so we stop updating this node when it is closed.

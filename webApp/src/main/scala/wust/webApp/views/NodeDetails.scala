@@ -4,6 +4,7 @@ import wust.webApp.state.FeatureState
 import monix.reactive.Observer
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.ext.monix._
 import rx._
 import wust.css.{ CommonStyles, Styles }
 import wust.graph._
@@ -125,7 +126,7 @@ object NodeDetails {
             ),
             NodeDetails.renderTaskProgress(taskStats()).apply(alignSelf.center),
 
-            onClick.stopPropagation.mapTo {
+            onClick.stopPropagation.useLazy {
               val edge = Edge.Expanded(nodeId, EdgeData.Expanded(!isExpanded()), GlobalState.user.now.id)
               GraphChanges(addEdges = Array(edge))
             } --> GlobalState.eventProcessor.changes,
@@ -137,7 +138,7 @@ object NodeDetails {
           renderNotesCount(
             taskStats().noteChildrenCount,
             UI.tooltip("left center") := "Show notes",
-            onClick.stopPropagation(Some(FocusPreference(nodeId, Some(View.Content)))) --> GlobalState.rightSidebarNode,
+            onClick.stopPropagation.use(Some(FocusPreference(nodeId, Some(View.Content)))) --> GlobalState.rightSidebarNode,
             cursor.pointer,
           ),
         ),
@@ -145,7 +146,7 @@ object NodeDetails {
           renderMessageCount(
             taskStats().messageChildrenCount,
             UI.tooltip("left center") := "Show comments",
-            onClick.stopPropagation(Some(FocusPreference(nodeId, Some(View.Conversation)))) --> GlobalState.rightSidebarNode,
+            onClick.stopPropagation.use(Some(FocusPreference(nodeId, Some(View.Conversation)))) --> GlobalState.rightSidebarNode,
             cursor.pointer,
           ),
         ),
@@ -153,7 +154,7 @@ object NodeDetails {
           renderProjectsCount(
             taskStats().projectChildrenCount,
             UI.tooltip("left center") := "Show Projects",
-            onClick.stopPropagation(Some(FocusPreference(nodeId, Some(View.Dashboard)))) --> GlobalState.rightSidebarNode,
+            onClick.stopPropagation.use(Some(FocusPreference(nodeId, Some(View.Dashboard)))) --> GlobalState.rightSidebarNode,
             cursor.pointer,
           ),
         ),

@@ -10,6 +10,7 @@ import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl.{ label, _ }
 import outwatch.dom.helpers.EmitterBuilder
+import outwatch.ext.monix._
 import rx._
 import wust.css.Styles
 import wust.graph._
@@ -55,7 +56,7 @@ object NewProjectPrompt {
         button(
           "Create",
           cls := "ui violet button",
-          onClick.stopPropagation(()) --> triggerSubmit,
+          onClick.stopPropagation.use(()) --> triggerSubmit,
         )
       ),
       MainTutorial.onDomMountContinue,
@@ -105,7 +106,7 @@ object NewProjectPrompt {
     val showForm = Var(false)
 
     div(
-      showForm.map {
+      showForm.map[VDomModifier] {
         case true  => Importing.inlineConfig --> changesObserver
         case false => button(cls := "ui button mini compact", onClickDefault.foreach(showForm.update(!_)), "Import")
       }
