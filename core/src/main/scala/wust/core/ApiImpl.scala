@@ -149,8 +149,7 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], serve
               case Some((nodeId, data)) => Some(UploadedFile(nodeId, file.getSize, data))
               case None =>
                 // Somehow we do not have a node for this upload, we just delete it. Seems, as if it is not needed
-                scribe.warn(s"Found uploaded file with key '${file.getKey}' without any corresponding node. Will delete this file.")
-                fileUploader.deleteKeyInS3Bucket(file.getKey).runAsyncAndForget
+                // Should we do some garbage-collection? These files could also be profile-pictures of users.
                 None
             }
           }.sortBy(_.nodeId).reverse
