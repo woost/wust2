@@ -4,6 +4,7 @@ import d3v4.d3
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.dsl.styles.extra._
+import outwatch.reactive.handler._
 import rx._
 import vectory._
 import wust.webUtil.Elements._
@@ -54,7 +55,7 @@ object PostCreationMenu {
       top := "0",
       left := "0",
       //TODO: prevent drag events to bubble to background
-      onClick foreach(_.stopPropagation()), // prevent click from bubbling to background
+      onClick.stopPropagation.discard, // prevent click from bubbling to background
       transform <-- transformStyle,
       width := "300px",
       div(

@@ -6,6 +6,7 @@ import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.ext.monix._
 import rx._
 import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
@@ -65,7 +66,7 @@ object ChatView {
           shouldLoadInfinite,
         ),
       ),
-      onGlobalEscape(Set.empty[NodeId]) --> currentReply,
+      onGlobalEscape.use(Set.empty[NodeId]) --> currentReply,
       renderCurrentReply( focusState, inputFieldFocusTrigger, currentReply, pinReply),
       chatInput( focusState, currentReply, pinReply, scrollHandler, inputFieldFocusTrigger)
     )

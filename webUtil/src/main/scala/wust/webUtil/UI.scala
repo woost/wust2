@@ -7,12 +7,15 @@ import monix.execution.Cancelable
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
-import outwatch.dom._
-import outwatch.dom.dsl.{data, _}
-import outwatch.dom.helpers._
 import rx._
 import wust.webUtil.outwatchHelpers._
 import wust.util.collection._
+
+import outwatch.dom._
+import outwatch.dom.dsl._
+import outwatch.dom.helpers._
+import outwatch.reactive.handler._
+import outwatch.ext.monix._
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
@@ -33,9 +36,9 @@ object UI {
     )
   }
 
-  @inline def checkbox(labelText:VDomModifier, isChecked: Var[Boolean]):VNode = checkboxEmitter(labelText, isChecked) --> isChecked
+  @inline def checkbox(labelText:VDomModifier, isChecked: Var[Boolean]): VDomModifier = checkboxEmitter(labelText, isChecked) --> isChecked
   @inline def checkboxEmitter(labelText:VDomModifier, isChecked: Boolean): EmitterBuilder[Boolean, VNode] = checkboxEmitter(labelText, Var(isChecked))
-  def checkboxEmitter(labelText:VDomModifier, isChecked: Rx[Boolean]): EmitterBuilder[Boolean, VNode] = EmitterBuilder.ofNode[Boolean]{sink =>
+  def checkboxEmitter(labelText:VDomModifier, isChecked: Rx[Boolean]): EmitterBuilder[Boolean, VNode] = EmitterBuilder.ofNode {sink =>
     val inputId = scala.util.Random.nextInt.toString
     div(
       cls := "ui checkbox",
@@ -50,7 +53,7 @@ object UI {
       label(labelText, forId := inputId, cursor.pointer)
     )}
 
-  @inline def toggle(labelText:VDomModifier, isChecked: Var[Boolean]):VNode = toggleEmitter(labelText, isChecked) --> isChecked
+  @inline def toggle(labelText:VDomModifier, isChecked: Var[Boolean]): VNode = toggleEmitter(labelText, isChecked) --> isChecked
   @inline def toggleEmitter(labelText:VDomModifier, isChecked: Boolean): EmitterBuilder[Boolean, VNode] = toggleEmitter(labelText, Var(isChecked))
   def toggleEmitter(labelText:VDomModifier, isChecked: Rx[Boolean]): EmitterBuilder[Boolean, VNode] = checkboxEmitter(labelText, isChecked).mapResult(_(cls := "toggle"))
 
@@ -76,7 +79,7 @@ object UI {
   }
 
   def dropdown(options: DropdownEntry*): EmitterBuilder[String, VDomModifier] = dropdown(VDomModifier.empty, options: _*)
-  def dropdown(modifier: VDomModifier, options: DropdownEntry*): EmitterBuilder[String, VDomModifier] = EmitterBuilder.ofModifier { sink =>
+  def dropdown(modifier: VDomModifier, options: DropdownEntry*): EmitterBuilder[String, VNode] = EmitterBuilder.ofNode { sink =>
     div(
       modifier,
       cls := "ui selection dropdown",
@@ -163,7 +166,7 @@ object UI {
     cls := "ui pointing link inline dropdown",
     dropdownModifier,
     Elements.withoutDefaultPassiveEvents, // revert default passive events, else dropdown is not working
-    emitter(close).useLatest(onDomMount.asJquery).foreach(_.dropdown("hide")),
+    emitter(close).useLatestEmitter(onDomMount.asJquery).foreach(_.dropdown("hide")),
     managedElement.asJquery { elem =>
       elem
         .dropdown(new DropdownOptions {

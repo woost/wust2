@@ -1,9 +1,11 @@
 package wust.webApp.views
 
 import cats.effect.IO
-import monix.execution.Cancelable
+import outwatch.reactive._
+import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.ext.monix._
 import outwatch.dom.helpers.EmitterBuilder
 import rx.{Ctx, Rx}
 import wust.webUtil.outwatchHelpers._
@@ -37,7 +39,7 @@ object InfiniteScroll {
 
           observer.observe(elem)
 
-          Cancelable { () =>
+          Subscription { () =>
             observer.unobserve(elem)
             observer.disconnect()
           }
@@ -80,7 +82,7 @@ object InfiniteScroll {
             onDomPreUpdate.asHtml.foreach { elem =>
               lastScrollTop = elem.scrollTop
             },
-            onDomUpdate.asHtml --> inNextAnimationFrame { elem =>
+            onDomUpdate.asHtml --> inNextAnimationFrame[dom.html.Element] { elem =>
               if (elem.scrollHeight > lastHeight) {
                 val diff = elem.scrollHeight - lastHeight
                 lastHeight = elem.scrollHeight

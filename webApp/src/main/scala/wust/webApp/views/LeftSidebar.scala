@@ -9,6 +9,7 @@ import org.scalajs.dom
 import org.scalajs.dom.window
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.ext.monix._
 import rx._
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{Ownable, UI}
@@ -124,7 +125,7 @@ object LeftSidebar {
           overlayOpenModifier = VDomModifier(
             authStatus,
             Components.reloadButton(fontSize.small, margin := "15px auto 0px auto"),
-            onClick(false) --> GlobalState.leftSidebarOpen
+            onClick.use(false) --> GlobalState.leftSidebarOpen
           ),
           expandedOpenModifier = VDomModifier.empty,
           closedModifier = Some(VDomModifier(
@@ -190,7 +191,7 @@ object LeftSidebar {
       marginRight := "3px"
     ),
     div("Woost", marginRight := "5px"),
-    onClick(UrlConfig.default) --> GlobalState.urlConfig,
+    onClick.use(UrlConfig.default) --> GlobalState.urlConfig,
     onClick foreach {
       FeatureState.use(Feature.ClickLogo)
     },
@@ -269,7 +270,7 @@ object LeftSidebar {
         (GlobalState.isClientOnline(), GlobalState.isSynced() && !GlobalState.isLoading())
       }
       //TODO: scala.rx debounce is not working correctly
-      ValueObservable(rx.toTailObservable.debounce(300 milliseconds), rx.now)
+      rx.toTailObservable.debounce(300 milliseconds).prepend(rx.now)
     }
 
     val syncStatusIcon = status.map { status =>
@@ -322,7 +323,7 @@ object LeftSidebar {
         else
           VDomModifier(freeSolid.faAngleRight, color := "#a9a9a9")
       },
-      onClick.stopPropagation.mapTo(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(!expanded.now), userId)) --> GlobalState.eventProcessor.changes
+      onClick.stopPropagation.useLazy(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(!expanded.now), userId)) --> GlobalState.eventProcessor.changes
     )
   }
 
@@ -384,7 +385,7 @@ object LeftSidebar {
       //     marginLeft := "auto",
       //     freeSolid.faBookmark,
       //     cls := "ui button mini compact basic",
-      //     onClickDefault.mapTo(GraphChanges.pin(nodeId, GlobalState.userId.now)) --> GlobalState.eventProcessor.changes
+      //     onClickDefault.useLazy(GraphChanges.pin(nodeId, GlobalState.userId.now)) --> GlobalState.eventProcessor.changes
       //   )
       //   case true => VDomModifier.empty
       // },

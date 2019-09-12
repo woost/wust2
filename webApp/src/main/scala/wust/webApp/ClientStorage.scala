@@ -1,11 +1,14 @@
 package wust.webApp
 
+import cats.effect.SyncIO
 import wust.facades.googleanalytics.Analytics
 import io.circe._
 import io.circe.parser._
 import io.circe.syntax._
 import outwatch.dom._
-import outwatch.util.LocalStorage
+import outwatch.ext.monix._
+import outwatch.ext.monix.handler._
+import outwatch.ext.monix.util.LocalStorage
 import rx._
 import wust.webUtil.outwatchHelpers._
 import wust.api.Authentication
@@ -48,7 +51,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
   val auth: Var[Option[Authentication]] = {
     if(canAccessLs) {
       LocalStorage
-        .handlerWithoutEvents(keys.auth)
+        .handlerWithoutEvents[SyncIO](keys.auth)
         .unsafeRunSync()
         .mapHandler[Option[Authentication]](auth => Option(toJson(auth)))(_.flatMap(fromJson[Authentication]))
         .unsafeToVar(internal(keys.auth).flatMap(fromJson[Authentication]))
@@ -59,7 +62,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
   val graphChanges: Handler[List[GraphChanges]] = {
     if(canAccessLs) {
       LocalStorage
-        .handlerWithoutEvents(keys.graphChanges)
+        .handlerWithoutEvents[SyncIO](keys.graphChanges)
         .unsafeRunSync()
         .mapHandler[List[GraphChanges]](changes => Option(toJson(changes)))(_.flatMap(fromJson[List[GraphChanges]]).getOrElse(Nil))
     } else Handler.unsafe[List[GraphChanges]]
@@ -68,7 +71,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
   val sidebarOpen: Var[Option[Boolean]] = {
     if(canAccessLs) {
       LocalStorage
-        .handlerWithoutEvents(keys.sidebarOpen)
+        .handlerWithoutEvents[SyncIO](keys.sidebarOpen)
         .unsafeRunSync()
         .mapHandler[Option[Boolean]](open => Option(toJson(open)))(_.flatMap(fromJson[Boolean]))
         .unsafeToVar(internal(keys.sidebarOpen).flatMap(fromJson[Boolean]))
@@ -78,7 +81,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
   val sidebarWithProjects: Var[Option[Boolean]] = {
     if(canAccessLs) {
       LocalStorage
-        .handlerWithoutEvents(keys.sidebarWithProjects)
+        .handlerWithoutEvents[SyncIO](keys.sidebarWithProjects)
         .unsafeRunSync()
         .mapHandler[Option[Boolean]](open => Option(toJson(open)))(_.flatMap(fromJson[Boolean]))
         .unsafeToVar(internal(keys.sidebarWithProjects).flatMap(fromJson[Boolean]))
@@ -88,7 +91,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
   val taglistOpen: Var[Option[Boolean]] = {
     if(canAccessLs) {
       LocalStorage
-        .handlerWithoutEvents(keys.taglistOpen)
+        .handlerWithoutEvents[SyncIO](keys.taglistOpen)
         .unsafeRunSync()
         .mapHandler[Option[Boolean]](open => Option(toJson(open)))(_.flatMap(fromJson[Boolean]))
         .unsafeToVar(internal(keys.taglistOpen).flatMap(fromJson[Boolean]))
@@ -98,7 +101,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
   val filterlistOpen: Var[Option[Boolean]] = {
     if(canAccessLs) {
       LocalStorage
-        .handlerWithoutEvents(keys.filterlistOpen)
+        .handlerWithoutEvents[SyncIO](keys.filterlistOpen)
         .unsafeRunSync()
         .mapHandler[Option[Boolean]](open => Option(toJson(open)))(_.flatMap(fromJson[Boolean]))
         .unsafeToVar(internal(keys.filterlistOpen).flatMap(fromJson[Boolean]))
@@ -108,7 +111,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
   val backendTimeDelta: Var[Long] = {
     if(canAccessLs) {
       LocalStorage
-        .handlerWithoutEvents(keys.backendTimeDelta)
+        .handlerWithoutEvents[SyncIO](keys.backendTimeDelta)
         .unsafeRunSync()
         .mapHandler[Long](delta => Option(toJson(delta)))(_.flatMap(fromJson[Long]).getOrElse(0L))
         .unsafeToVar(internal(keys.backendTimeDelta).flatMap(fromJson[Long]).getOrElse(0L))

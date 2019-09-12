@@ -92,7 +92,7 @@ object FilterWindow {
         cursor.pointer,
         Elements.icon(Icons.noFilter),
         span(resetAllFiltersText),
-        onClick.stopPropagation(GlobalState.defaultTransformations) --> GlobalState.graphTransformations,
+        onClick.stopPropagation.use(GlobalState.defaultTransformations) --> GlobalState.graphTransformations,
         onClick.stopPropagation foreach { FeatureState.use(Feature.ResetFilters) },
       )
     )

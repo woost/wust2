@@ -9,6 +9,7 @@ import monix.execution.Ack
 import monix.reactive.Observable
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.ext.monix._
 import rx._
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{ ModalConfig, Ownable, UI }
@@ -148,7 +149,7 @@ object CreateNewPrompt {
           cls := "ui button",
           icon, " ", title,
           (nodeRole() == role).ifTrue[VDomModifier](cls := "active"),
-          onClick(role) --> nodeRole
+          onClick.use(role) --> nodeRole
         )
         VDomModifier(
           roleButton("Task", Icons.task, Task),
@@ -164,7 +165,7 @@ object CreateNewPrompt {
       button(
         "Create",
         cls := "ui violet button",
-        onClick.stopPropagation(()) --> triggerSubmit
+        onClick.stopPropagation.use(()) --> triggerSubmit
       )
     )
 
@@ -231,7 +232,7 @@ object CreateNewPrompt {
                     Styles.flex,
                     flexDirection.row,
                     justifyContent.spaceBetween,
-                    span(freeSolid.faTimes, cursor.pointer, onClick.mapTo(childNodes.now.filterNot(_ == node.id)) --> childNodes, opacity := 0.4, paddingLeft := "10px")
+                    span(freeSolid.faTimes, cursor.pointer, onClick.useLazy(childNodes.now.filterNot(_ == node.id)) --> childNodes, opacity := 0.4, paddingLeft := "10px")
                   ),
                   maxLength = Some(20),
                   projectWithIcon = true,

@@ -1,8 +1,8 @@
 package wust.webApp.views
 
 import d3v4._
-import monix.execution.Cancelable
 import org.scalajs.dom
+import outwatch.reactive._
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.dsl.styles.extra.transform
@@ -144,7 +144,7 @@ object GanttView {
       })
 
       selection.call(zoom)
-      Cancelable(() => selection.on("zoom", null: ListenerFunction0))
+      Subscription(() => selection.on("zoom", null: ListenerFunction0))
     }
   }
 

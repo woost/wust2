@@ -27,6 +27,7 @@ import scala.collection.mutable
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 import monix.reactive.subjects.PublishSubject
+import outwatch.ext.monix._
 
 import wust.webApp.state.InputMention._
 
@@ -197,8 +198,8 @@ object InputRow {
     val placeholderString = if (BrowserDetect.isMobile || GlobalState.screenSize.now == ScreenSize.Small) placeholder.short else placeholder.long
 
     val immediatelyFocus = {
-      autoFocus.ifTrue(
-        onDomMount.asHtml --> inNextAnimationFrame(_.focus())
+      autoFocus.ifTrue[VDomModifier](
+        onDomMount.asHtml --> inNextAnimationFrame[dom.html.Element](_.focus())
       )
     }
 
@@ -272,7 +273,7 @@ object InputRow {
           boxShadow := "0 0 3px 0 rgba(0,0,0,0.32)",
           div(
             alignSelf.flexEnd,
-            i(cls := "icon fa-fw", freeSolid.faTimes, cursor.pointer, onClick.stopPropagation(false) --> markdownHelpOpened),
+            i(cls := "icon fa-fw", freeSolid.faTimes, cursor.pointer, onClick.stopPropagation.use(false) --> markdownHelpOpened),
           ),
           div(
             Elements.innerHTML := Elements.UnsafeHTML(markdownExampleTableHtml)

@@ -6,7 +6,6 @@ import fontAwesome.{IconLookup, Params, Transform, fontawesome, freeSolid}
 import wust.facades.fomanticui.AutoResizeConfig
 import wust.facades.dateFns.DateFns
 import wust.facades.hammerjs
-import wust.facades.immediate.immediate
 import monix.execution.Cancelable
 import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
@@ -14,10 +13,6 @@ import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.raw.{HTMLElement, HTMLInputElement}
 import org.scalajs.dom.window.{clearTimeout, setTimeout}
 import org.scalajs.dom.{KeyboardEvent, MouseEvent}
-import outwatch.ProHandler
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.dom.helpers.{CustomEmitterBuilder, EmitterBuilder, PropBuilder, SyncEmitterBuilder}
 import rx._
 import wust.facades.emojijs.EmojiConvertor
 import wust.facades.marked.Marked
@@ -25,6 +20,12 @@ import wust.facades.dompurify.DOMPurify
 import wust.webUtil.outwatchHelpers._
 import wust.ids.EpochMilli
 import wust.util._
+
+import outwatch.dom._
+import outwatch.dom.dsl._
+import outwatch.ext.monix.handler._
+import outwatch.ext.monix._
+import outwatch.dom.helpers.{EmitterBuilder, PropBuilder}
 
 import scala.concurrent.duration._
 import scala.scalajs.js
@@ -85,32 +86,32 @@ object Elements {
   }
 
 
-  val onEnter: SyncEmitterBuilder[dom.KeyboardEvent, VDomModifier] =
+  val onEnter: EmitterBuilder.Sync[dom.KeyboardEvent, VDomModifier] =
     onKeyDown
       .filter(e => e.keyCode == KeyCode.Enter && !e.shiftKey)
       .preventDefault
 
-  val onCtrlEnter: SyncEmitterBuilder[dom.KeyboardEvent, VDomModifier] =
+  val onCtrlEnter: EmitterBuilder.Sync[dom.KeyboardEvent, VDomModifier] =
     onKeyDown
       .filter(e => e.keyCode == KeyCode.Enter && e.ctrlKey && !e.shiftKey)
       .preventDefault
 
-  val onEscape: SyncEmitterBuilder[dom.KeyboardEvent, VDomModifier] =
+  val onEscape: EmitterBuilder.Sync[dom.KeyboardEvent, VDomModifier] =
     onKeyDown
       .filter(_.keyCode == KeyCode.Escape)
       .preventDefault
 
   val onGlobalEscape: EmitterBuilder[KeyboardEvent, VDomModifier] =
-    if (BrowserDetect.isMobile) EmitterBuilder.empty else EmitterBuilder.fromObservable(events.document.onKeyDown.filter(e => e.keyCode == KeyCode.Escape))
+    if (BrowserDetect.isMobile) EmitterBuilder.empty else EmitterBuilder.fromSource(events.document.onKeyDown.filter(e => e.keyCode == KeyCode.Escape))
 
-  val onGlobalClick: EmitterBuilder[MouseEvent, VDomModifier] =
-    EmitterBuilder.fromObservable(events.document.onClick)
+  val onGlobalClick: helpers.EmitterBuilderExecution[MouseEvent, VDomModifier, helpers.EmitterBuilder.Execution] =
+    EmitterBuilder.fromSource(events.document.onClick)
 
   val onGlobalMouseDown: EmitterBuilder[MouseEvent, VDomModifier] =
-    EmitterBuilder.fromObservable(events.document.onMouseDown)
+    EmitterBuilder.fromSource(events.document.onMouseDown)
 
-  val onClickOrLongPress: CustomEmitterBuilder[Boolean, VDomModifier] =
-    EmitterBuilder.ofModifier[Boolean] { sink => IO {
+  val onClickOrLongPress: EmitterBuilder.Sync[Boolean, VDomModifier] =
+    EmitterBuilder[Boolean, VDomModifier] { sink => IO {
       // https://stackoverflow.com/a/27413909
       val duration = 251
       val distanceToleranceSq = 5*5
@@ -187,9 +188,9 @@ object Elements {
     }
   }
 
-  def onHammer(events: String):CustomEmitterBuilder[hammerjs.Event, VDomModifier] = {
+  def onHammer(events: String):EmitterBuilder.Sync[hammerjs.Event, VDomModifier] = {
     import wust.facades.hammerjs.{CssProps, Hammer, Options, propagating}
-    EmitterBuilder.ofModifier[hammerjs.Event] { sink =>
+    EmitterBuilder[hammerjs.Event, VDomModifier] { sink =>
       managedElement.asHtml { elem =>
         elem.asInstanceOf[js.Dynamic].hammer = js.undefined
         var hammertime = new Hammer[hammerjs.Event](elem, new Options { cssProps = new CssProps { userSelect = "auto"}} )
@@ -219,10 +220,10 @@ object Elements {
     )
   }
 
-  val onTap: CustomEmitterBuilder[hammerjs.Event, VDomModifier] = onHammer("tap")
-  val onPress: CustomEmitterBuilder[hammerjs.Event, VDomModifier] = onHammer("press")
-  val onSwipeRight: CustomEmitterBuilder[hammerjs.Event, VDomModifier] = onHammer("swiperight")
-  val onSwipeLeft: CustomEmitterBuilder[hammerjs.Event, VDomModifier] = onHammer("swipeleft")
+  val onTap: EmitterBuilder.Sync[hammerjs.Event, VDomModifier] = onHammer("tap")
+  val onPress: EmitterBuilder.Sync[hammerjs.Event, VDomModifier] = onHammer("press")
+  val onSwipeRight: EmitterBuilder.Sync[hammerjs.Event, VDomModifier] = onHammer("swiperight")
+  val onSwipeLeft: EmitterBuilder.Sync[hammerjs.Event, VDomModifier] = onHammer("swipeleft")
 
   def readPropertyFromElement[T](elem: dom.html.Element, propName: String): js.UndefOr[T] = {
     for {
@@ -236,8 +237,8 @@ object Elements {
   }
 
   @inline def defer(code: => Unit): Unit = {
-//    dom.window.setTimeout(() => code, timeout = 0)
-    immediate(() => code)
+    // dom.window.asInstanceOf[js.Dynamic].setImmediate(() => code)
+    dom.window.setTimeout(() => code, timeout = 0)
   }
 
   // https://github.com/zzarcon/default-passive-events#is-there-a-possibility-to-bring-default-addeventlistener-method-back-for-chosen-elementsglobally-eg-for-time-of-running-some-of-the-code
@@ -250,7 +251,7 @@ object Elements {
     }
   }
 
-  final class ValueWithEnter(overrideValue: Observable[String] = Observable.empty, clearValue: Boolean = true, eventHandler: SyncEmitterBuilder[dom.KeyboardEvent, VDomModifier] = onEnter) {
+  final class ValueWithEnter(overrideValue: Observable[String] = Observable.empty, clearValue: Boolean = true, eventHandler: EmitterBuilder.Sync[dom.KeyboardEvent, VDomModifier] = onEnter) {
     private var elem:HTMLInputElement = _
 
     private val userInput = Handler.unsafe[String]
@@ -265,7 +266,7 @@ object Elements {
       }
     }
 
-    val emitterBuilder: CustomEmitterBuilder[String, VDomModifier] = EmitterBuilder.ofModifier[String] { sink =>
+    val emitterBuilder: EmitterBuilder.Sync[String, VDomModifier] = EmitterBuilder[String, VDomModifier] { sink =>
       VDomModifier(
         onDomMount.asHtml.foreach { textAreaElem =>
           elem = textAreaElem.asInstanceOf[HTMLInputElement]
@@ -334,11 +335,11 @@ object Elements {
     )
   }
 
-  def valueWithEnter: CustomEmitterBuilder[String, VDomModifier] = valueWithEnter(true)
-  def valueWithCtrlEnter: CustomEmitterBuilder[String, VDomModifier] = valueWithCtrlEnter(true)
-  def valueWithEnter(clearValue: Boolean, filterEvent: () => Boolean = () => true): CustomEmitterBuilder[String, VDomModifier] = (new ValueWithEnter(clearValue = clearValue, eventHandler = onEnter.filter(_ => filterEvent()))).emitterBuilder
-  def valueWithCtrlEnter(clearValue: Boolean, filterEvent: () => Boolean = () => true): CustomEmitterBuilder[String, VDomModifier] = (new ValueWithEnter(clearValue = clearValue, eventHandler = onCtrlEnter.filter(_ => filterEvent()))).emitterBuilder
-  def valueWithEnterWithInitial(overrideValue: Observable[String], clearValue: Boolean = true, filterEvent: () => Boolean = () => true): CustomEmitterBuilder[String, VDomModifier] = {
+  def valueWithEnter: EmitterBuilder.Sync[String, VDomModifier] = valueWithEnter(true)
+  def valueWithCtrlEnter: EmitterBuilder.Sync[String, VDomModifier] = valueWithCtrlEnter(true)
+  def valueWithEnter(clearValue: Boolean, filterEvent: () => Boolean = () => true): EmitterBuilder.Sync[String, VDomModifier] = (new ValueWithEnter(clearValue = clearValue, eventHandler = onEnter.filter(_ => filterEvent()))).emitterBuilder
+  def valueWithCtrlEnter(clearValue: Boolean, filterEvent: () => Boolean = () => true): EmitterBuilder.Sync[String, VDomModifier] = (new ValueWithEnter(clearValue = clearValue, eventHandler = onCtrlEnter.filter(_ => filterEvent()))).emitterBuilder
+  def valueWithEnterWithInitial(overrideValue: Observable[String], clearValue: Boolean = true, filterEvent: () => Boolean = () => true): EmitterBuilder.Sync[String, VDomModifier] = {
     new ValueWithEnter(
       overrideValue = overrideValue,
       clearValue = clearValue,
@@ -346,7 +347,7 @@ object Elements {
     ).emitterBuilder 
   }
 
-  def valueWithCtrlEnterWithInitial(overrideValue: Observable[String], clearValue: Boolean = true, filterEvent: () => Boolean = () => true): CustomEmitterBuilder[String, VDomModifier] = {
+  def valueWithCtrlEnterWithInitial(overrideValue: Observable[String], clearValue: Boolean = true, filterEvent: () => Boolean = () => true): EmitterBuilder.Sync[String, VDomModifier] = {
     new ValueWithEnter(
       overrideValue = overrideValue,
       clearValue = clearValue,
@@ -362,7 +363,7 @@ object Elements {
     wrap.innerHTML
   }
 
-  def onClickN(desiredClicks: Int) = EmitterBuilder.ofModifier[Unit] { sink =>
+  def onClickN(desiredClicks: Int) = EmitterBuilder[Unit, VDomModifier] { sink =>
     import scala.concurrent.duration._
 
     IO {
@@ -381,7 +382,7 @@ object Elements {
     }
   }
 
-  def onClickDefault:SyncEmitterBuilder[com.raquo.domtypes.jsdom.defs.events.TypedTargetMouseEvent[org.scalajs.dom.Element],outwatch.dom.VDomModifier] = onClick.stopPropagation.mapResult(mod => VDomModifier(mod, cursor.pointer))
+  def onClickDefault:EmitterBuilder.Sync[com.raquo.domtypes.jsdom.defs.events.TypedTargetMouseEvent[org.scalajs.dom.Element],outwatch.dom.VDomModifier] = onClick.stopPropagation.mapResult(mod => VDomModifier(mod, cursor.pointer))
   val safeRelForTargetBlank = "noopener noreferrer"
 
   // https://www.jitbit.com/alexblog/256-targetblank---the-most-underestimated-vulnerability-ever/

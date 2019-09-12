@@ -1,5 +1,6 @@
 package wust.webUtil
 
+import cats.effect.SyncIO
 import scala.scalajs.js.JSConverters._
 import cats.Functor
 import fontAwesome.{ AbstractElement, FontawesomeObject, IconLookup, fontawesome }
@@ -10,12 +11,15 @@ import monix.reactive.OverflowStrategy.Unbounded
 import monix.reactive.{ Observable, Observer }
 import org.scalajs.dom
 import org.scalajs.dom.{ console, document }
-import outwatch.ProHandler
-import outwatch.dom._
-import outwatch.dom.helpers.EmitterBuilder
 import rx._
 import wust.facades.jquery.JQuerySelection
 import wust.util.Empty
+
+import outwatch.dom._
+import outwatch.reactive._
+import outwatch.dom.helpers.EmitterBuilder
+import outwatch.ext.monix.handler._
+import outwatch.ext.monix._
 
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.scalajs.js
@@ -25,8 +29,8 @@ import scala.util.{ Failure, Success }
 package object outwatchHelpers extends KeyHash with RxInstances {
   //TODO: it is not so great to have a monix scheduler and execution context everywhere, move to main.scala and pass through
   implicit val monixScheduler: Scheduler =
-    //    Scheduler.trampoline(executionModel = monix.execution.ExecutionModel.SynchronousExecution)
-    Scheduler.global
+       Scheduler.trampoline(executionModel = monix.execution.ExecutionModel.SynchronousExecution)
+    // Scheduler.global
   //    Scheduler.trampoline(executionModel=AlwaysAsyncExecution)
 
   implicit object EmptyVDM extends Empty[VDomModifier] {
@@ -119,11 +123,6 @@ package object outwatchHelpers extends KeyHash with RxInstances {
       }
     }
 
-    def toValueObservable: ValueObservable[T] = new ValueObservable[T] {
-      override def observable: Observable[T] = rx.toTailObservable
-      override def value: Option[T] = Some(rx.now)
-    }
-
     def toObservable: Observable[T] = Observable.create[T](Unbounded) { observer =>
       // transfer ownership from scala.rx to Monix. now Monix decides when the rx is killed.
       implicit val ctx = Ctx.Owner.Unsafe
@@ -172,20 +171,22 @@ package object outwatchHelpers extends KeyHash with RxInstances {
     VDomModifier(f(ctx), dsl.onDomUnmount foreach { ctx.contextualRx.kill() })
   }
 
-  @inline implicit def obsToCancelable(obs: Obs): Cancelable = {
-    Cancelable(() => obs.kill())
+  implicit object obsCancelSubscription extends CancelSubscription[Obs] {
+    def cancel(obs: Obs) = obs.kill()
   }
 
-  implicit def RxAsValueObservable: AsValueObservable[Rx] = new AsValueObservable[Rx] {
-    @inline override def as[T](stream: Rx[T]): ValueObservable[T] = stream.toValueObservable
+  implicit object RxSource extends Source[Rx] {
+    @inline def subscribe[G[_] : Sink, A](stream: Rx[A])(sink: G[_ >: A]): Subscription = {
+      implicit val ctx = Ctx.Owner.Unsafe
+      Sink[G].onNext(sink)(stream.now)
+      val obs = stream.triggerLater(Sink[G].onNext(sink)(_))
+      Subscription(() => obs.kill())
+    }
   }
 
-  implicit object VarAsObserver extends AsObserver[Var] {
-    @inline override def as[T](stream: Var[_ >: T]): Observer[T] = stream.toObserver
-  }
-
-  implicit class RichVar[T](val rxVar: Var[T]) extends AnyVal {
-    @inline def toObserver: Observer[T] = new VarObserver(rxVar)
+  implicit object VarSink extends Sink[Var] {
+    @inline override def onNext[A](sink: Var[A])(value: A): Unit = sink() = value
+    @inline override def onError[A](sink: Var[A])(ex: Throwable): Unit = throw ex //TODO notify somebody
   }
 
   implicit class TypedElementsWithJquery[O <: dom.Element, R](val builder: EmitterBuilder[O, R]) extends AnyVal {
@@ -203,12 +204,11 @@ package object outwatchHelpers extends KeyHash with RxInstances {
   }
 
   implicit class RichVNode(val vNode: VNode) extends AnyVal {
-    def render: org.scalajs.dom.Element = {
-      val proxy = OutWatch.toSnabbdom(vNode).unsafeRunSync()
+    def render: org.scalajs.dom.Element = (for {
+      proxy <- OutWatch.toSnabbdom[SyncIO](vNode)
       //TODO outwatch: allow to render a VNodeProxy directly.
-      OutWatch.renderReplace(document.createElement("div"), dsl.div(VNodeProxyNode(proxy))).unsafeRunSync()
-      proxy.elm.get
-    }
+      _ <- OutWatch.renderReplace[SyncIO](document.createElement("div"), dsl.div(VNodeProxyNode(proxy)))
+    } yield proxy.elm.get).unsafeRunSync() // TODO 
 
     @inline def append(m: VDomModifier*) = vNode.apply(m: _*)
   }
@@ -229,7 +229,6 @@ package object outwatchHelpers extends KeyHash with RxInstances {
       rx
     }
 
-    //TODO: helper in outwatch monixops
     @inline def transformObserverWith[R](f: Observer[T] => Observer[R]): ProHandler[R, T] = ProHandler(f(o), o)
   }
 
@@ -241,6 +240,12 @@ package object outwatchHelpers extends KeyHash with RxInstances {
       override def onError(ex: Throwable): Unit = o.onError(ex)
       override def onComplete(): Unit = o.onComplete()
     }
+  }
+
+  implicit class WustRichSourceStream[T](val o: SourceStream[T]) extends AnyVal {
+    //This is unsafe, as we leak the subscription here, this should only be done
+    //for rx that are created only once in the app lifetime (e.g. in globalState)
+    def unsafeToRx(seed: T): rx.Rx[T] = Rx.create(seed) { o.subscribe(_) }
   }
 
   implicit class WustRichObservable[T](val o: Observable[T]) extends AnyVal {
@@ -260,8 +265,8 @@ package object outwatchHelpers extends KeyHash with RxInstances {
 
   //TODO: Outwatch observable for specific key is pressed Observable[Boolean]
   def keyDown(keyCode: Int): Observable[Boolean] = Observable(
-    outwatch.dom.dsl.events.document.onKeyDown.collect { case e if e.keyCode == keyCode => true },
-    outwatch.dom.dsl.events.document.onKeyUp.collect { case e if e.keyCode == keyCode => false },
+    outwatch.dom.dsl.events.document.onKeyDown.collect { case e if e.keyCode == keyCode => true }.lift[Observable],
+    outwatch.dom.dsl.events.document.onKeyUp.collect { case e if e.keyCode == keyCode => false }.lift[Observable],
   ).merge.startWith(false :: Nil)
 
   @inline def multiObserver[T](observers: Observer[T]*): Observer[T] = new CombinedObserver[T](observers)
@@ -296,20 +301,8 @@ package object outwatchHelpers extends KeyHash with RxInstances {
     override def onComplete(): Unit = ()
   }
 
-  //TODO AsEmitterBuilder type class in outwatch?
-  @inline def emitterRx[T](rx: Rx[T]): EmitterBuilder[T, VDomModifier] = new RxEmitterBuilder[T](rx)
-
-  implicit class RichEmitterBuilderFactory(val factory: EmitterBuilder.type) extends AnyVal {
-    @inline def combine[T](others: EmitterBuilder[T, VDomModifier]*): EmitterBuilder[T, VDomModifier] = combineSeq(others)
-    def combineSeq[T](others: Seq[EmitterBuilder[T, VDomModifier]]): EmitterBuilder[T, VDomModifier] = EmitterBuilder.ofModifier[T] { sink =>
-      others.map(_ --> sink)
-    }
-  }
   implicit class RichEmitterBuilderEvent[R](val builder: EmitterBuilder[dom.Event, R]) extends AnyVal {
     def onlyOwnEvents: EmitterBuilder[dom.Event, R] = builder.filter(ev => ev.currentTarget == ev.target)
-  }
-  implicit class RichEmitterBuilder[E, R](val builder: EmitterBuilder[E, R]) extends AnyVal {
-    def discard: R = builder --> Observer.empty
   }
 
   def abstractTreeToVNodeRoot(key: String, tree: AbstractElement): VNode = {

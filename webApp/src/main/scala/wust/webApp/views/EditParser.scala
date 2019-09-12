@@ -4,9 +4,10 @@ import monix.eval.Task
 import wust.webUtil.UI
 import monix.reactive.Observable
 import org.scalajs.dom
-import outwatch.ProHandler
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.ext.monix._
+import outwatch.ext.monix.handler._
 import outwatch.dom.helpers.EmitterBuilder
 import rx._
 import wust.webUtil.Elements
@@ -162,7 +163,12 @@ trait EditElementParser[T] { self =>
   }
   @inline final def mapEval[R](f: T => Task[R])(g: R => Task[T]): EditElementParser[R] = flatMapEval[R](t => f(t).map(EditInteraction.Input(_)))(r => g(r).map(EditInteraction.Input(_)))
   final def flatMapEval[R](f: T => Task[EditInteraction[R]])(g: R => Task[EditInteraction[T]]): EditElementParser[R] = new EditElementParser[R] {
-    def render(config: Config, initial: Task[Option[R]], handler: Handler[EditInteraction[R]])(implicit ctx: Ctx.Owner) = self.render(config, initial.flatMap(_.fold[Task[Option[T]]](Task.pure(None))(g(_).map(_.toOption))), ProHandler(handler.redirectEval(_.toEither.fold(Task.pure(_), f)), handler.mapEval(_.toEither.fold(Task.pure(_), g))))
+    def render(config: Config, initial: Task[Option[R]], handler: Handler[EditInteraction[R]])(implicit ctx: Ctx.Owner) =
+      self.render(
+        config,
+        initial.flatMap(_.fold[Task[Option[T]]](Task.pure(None))(g(_).map(_.toOption))),
+        ProHandler(handler.redirectEval[EditInteraction[T]](_.toEither.fold(Task.pure(_), f)), handler.mapEval(_.toEither.fold(Task.pure(_), g)))
+      )
   }
   @inline final def mapEditInteraction[R](f: EditInteraction[T] => R)(g: EditInteraction[R] => EditInteraction[T]): EditElementParser[R] = flatMapEditInteraction[R](t => EditInteraction.Input(f(t)))(g)
   final def flatMapEditInteraction[R](f: EditInteraction[T] => EditInteraction[R])(g: EditInteraction[R] => EditInteraction[T]): EditElementParser[R] = new EditElementParser[R] {
@@ -202,7 +208,7 @@ object EditElementParser {
   implicit object EditDouble extends EditElementParser[Double] {
     def render(config: Config, initial: Task[Option[Double]], handler: Handler[EditInteraction[Double]])(implicit ctx: Ctx.Owner) = renderSimpleInput(
       initial, handler, EmitterBuilder.combine(config.emitter, config.inputEmitter, config.blurEmitter), VDomModifier(config.inputModifier, config.modifier, Elements.decimalInputMod),
-      elem => Task.pure(EditInteraction.fromEither(util.Try(elem.valueAsNumber).toOption.toRight("Not a Double Number")))
+      elem => Task.pure(EditInteraction.fromEither(Try(elem.valueAsNumber).toOption.toRight("Not a Double Number")))
     )
   }
   implicit object EditDateMilli extends EditElementParser[DateMilli] {
@@ -428,8 +434,8 @@ object EditHelper {
       ),
 
       onDragOverModifier,
-      onDragEnter.preventDefault(opacity := 0.5) --> onDragOverModifier,
-      onDragLeave.preventDefault.onlyOwnEvents(VDomModifier.empty) --> onDragOverModifier,
+      onDragEnter.preventDefault.use(opacity := 0.5) --> onDragOverModifier,
+      onDragLeave.preventDefault.onlyOwnEvents.use(VDomModifier.empty) --> onDragOverModifier,
       onDragOver.preventDefault.discard,
 
       onDrop.preventDefault.foreach { ev =>
@@ -464,7 +470,7 @@ object EditHelper {
         case _ =>
       }: EditInteraction[T] => Unit),
 
-      inputEmitter.transform(_.mapEval[EditInteraction[T]] { _ =>
+      inputEmitter.transform(_.concatMapAsync { _ =>
         val str = valueGetter(elem)
         valueHandler() = str
         parse(elem).map {

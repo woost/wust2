@@ -63,6 +63,7 @@ files.vendor = {
         Path.join(__dirname, 'node_modules/wdt-emoji-bundle/wdt-emoji-bundle.js'),
         Path.join(__dirname, 'node_modules/autoresize-textarea/dist/autoresize-textarea.js'),
         Path.join(__dirname, 'node_modules/hopscotch/dist/js/hopscotch.min.js'),
+        Path.join(__dirname, 'node_modules/setimmediate/setImmediate.js'),
     ],
     workbox: glob.sync(Path.join(dirs.workbox, '**', '*')) // workbox is required by serviceworker and there is no real dependency to require...
 };

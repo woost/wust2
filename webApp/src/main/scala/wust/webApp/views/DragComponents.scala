@@ -6,6 +6,7 @@ import monix.reactive.Observer
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.ext.monix._
 import outwatch.dom.helpers.EmitterBuilder
 import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
@@ -35,7 +36,7 @@ object DragComponents {
       snabbdom.VNodeProxy.repairDomBeforePatch, // draggable modifies the dom, but snabbdom assumes that the dom corresponds to its last vdom representation. So Before patch
 
       DomMountHook { proxy = _ },
-      managed(() => container.triggerRepair.foreach { _ =>
+      managedFunction(() => container.triggerRepair.foreach { _ =>
         if(proxy != null) VNodeProxy.repairDom(proxy)
       }),
 

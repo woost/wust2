@@ -5,6 +5,7 @@ import fontAwesome.freeSolid
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.ext.monix._
 import rx._
 import wust.webUtil.BrowserDetect
 import wust.webUtil.outwatchHelpers._
@@ -46,17 +47,17 @@ object MainView {
 
         position.relative, // needed for mobile expanded sidebars
 
-        onMouseDown(()) --> GlobalState.mouseClickInMainView,
+        onMouseDown.use(()) --> GlobalState.mouseClickInMainView,
 
         LeftSidebar.apply(
-          onMouseDown(None) --> GlobalState.rightSidebarNode,
+          onMouseDown.use(None) --> GlobalState.rightSidebarNode,
         ),
 
         div(
           Styles.flex,
           Styles.growFull,
           flexDirection.column,
-          onMouseDown(None) --> GlobalState.rightSidebarNode,
+          onMouseDown.use(None) --> GlobalState.rightSidebarNode,
 
           //      DevOnly { DevView },
           topBannerContainer,

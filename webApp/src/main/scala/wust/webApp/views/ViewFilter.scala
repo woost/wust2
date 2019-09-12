@@ -3,6 +3,8 @@ package wust.webApp.views
 import flatland.ArraySet
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.ext.monix._
+import outwatch.ext.monix.handler._
 import rx._
 import wust.facades.googleanalytics.Analytics
 import wust.graph.{ Edge, Graph, GraphChanges }
@@ -80,8 +82,8 @@ object ViewFilter {
           `type` := "text",
           placeholder := "Filter",
           value <-- clearOnPageSwitch,
-          onFocus(true) --> focused,
-          onBlur(false) --> focused,
+          onFocus.use(true) --> focused,
+          onBlur.use(false) --> focused,
           onInput.value.debounce(500 milliseconds).map{ needle =>
             val baseTransform = GlobalState.graphTransformations.now.filterNot(_.isInstanceOf[GraphOperation.ContentContains])
             if (needle.length < 1) baseTransform

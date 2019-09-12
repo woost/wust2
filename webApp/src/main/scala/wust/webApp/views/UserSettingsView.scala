@@ -7,6 +7,8 @@ import monix.reactive.Observable
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.ext.monix._
+import outwatch.ext.monix.handler._
 import rx._
 import wust.api._
 import wust.css.Styles
@@ -360,7 +362,7 @@ object UserSettingsView {
         cls := "ui button primary tiny",
         marginLeft := "20px",
         "Edit username",
-        onClick(true) --> editMode
+        onClick.use(true) --> editMode
       ),
 
       div(
@@ -378,15 +380,15 @@ object UserSettingsView {
             div(
               "Or reset your Avatar",
               textDecoration.underline,
-              onClickDefault.mapTo(GraphChanges(addNodes = Array(nodeUser.copy(data = nodeUser.data.copy(imageFile = None))))) --> GlobalState.eventProcessor.changes
+              onClickDefault.useLazy(GraphChanges(addNodes = Array(nodeUser.copy(data = nodeUser.data.copy(imageFile = None))))) --> GlobalState.eventProcessor.changes
             )
           }
         ),
 
         div(
-          UploadComponents.uploadField(acceptType = Some("image/*")).transform(_.concatMap(file => Observable.from(file.uploadKey).collect { case Some(key) =>
+          UploadComponents.uploadField(acceptType = Some("image/*")).transform(_.concatMapAsync(file => file.uploadKey).collect { case Some(key) =>
             GraphChanges(addNodes = Array(nodeUser.copy(data = nodeUser.data.copy(imageFile = Some(key)))))
-          })) --> GlobalState.eventProcessor.changes,
+          }) --> GlobalState.eventProcessor.changes,
         )
       )
     )
@@ -402,14 +404,14 @@ object UserSettingsView {
   private def genConnectButton(icon: IconDefinition, platformName: String)(isActive: Boolean) = {
 
     val modifiers = if(isActive){
-      List(
+      List[VDomModifier](
         cls := "ui button green",
         div(s"Synchronized with $platformName"),
         onClick foreach(linkWithSlack()),
 //        onClick foreach(showPluginAuth()),
       )
     } else {
-      List(
+      List[VDomModifier](
         cls := "ui button",
         div(s"Sync with $platformName now"),
         onClick foreach(linkWithSlack()),

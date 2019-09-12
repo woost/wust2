@@ -4,6 +4,7 @@ import wust.webApp.state.FeatureState
 import monix.reactive.Observer
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.ext.monix._
 import rx._
 import wust.css.{CommonStyles, Styles}
 import wust.graph._
@@ -114,7 +115,7 @@ object TaskNodeCard {
 
       def collapse = menuItem(
         "Collapse", "Collapse", Icons.collapse,
-        onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(false), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes)
+        onClick.stopPropagation.useLazy(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(false), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes)
       def toggleExpand = Rx {
         @inline def largerOnMobile = VDomModifier.ifTrue(BrowserDetect.isMobile)(fontSize := "24px", paddingTop := "5px", color := "#D9D9D9", backgroundColor := Colors.nodecardBg)
         (if (isExpanded()) collapse else expand).apply(largerOnMobile)

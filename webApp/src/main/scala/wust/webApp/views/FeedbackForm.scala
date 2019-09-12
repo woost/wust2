@@ -10,6 +10,8 @@ import org.scalajs.dom.window
 import org.scalajs.dom.window.{ clearTimeout, navigator, setTimeout }
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.ext.monix._
+import outwatch.ext.monix.handler._
 import rx._
 import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
@@ -117,8 +119,8 @@ object FeedbackForm {
       onClick.stopPropagation foreach {
         showPopup.update(!_)
       },
-      onGlobalEscape(false) --> showPopup,
-      onGlobalClick(false) --> showPopup,
+      onGlobalEscape.use(false) --> showPopup,
+      onGlobalClick.use(false) --> showPopup,
     )
 
     div(

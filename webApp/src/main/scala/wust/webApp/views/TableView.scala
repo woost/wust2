@@ -4,6 +4,7 @@ import fontAwesome._
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.ext.monix._
 import rx._
 import wust.css.Styles
 import wust.graph.{Edge, Graph, GraphChanges, Node}
@@ -101,7 +102,7 @@ object TableView {
           case false => miniButton(
             paddingLeft := "5px",
             Icons.edit,
-            onClick.stopPropagation(true) --> editMode
+            onClick.stopPropagation.use(true) --> editMode
           )
           case true => VDomModifier.empty
         }

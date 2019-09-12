@@ -11,6 +11,7 @@ import fontAwesome._
 import monix.reactive.Observable
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.ext.monix._
 import rx._
 import wust.css.{ Styles, ZIndex }
 import wust.ids.Feature

@@ -10,6 +10,7 @@ import monix.eval.Task
 import monix.reactive.Observable
 import org.scalajs.dom
 import org.scalajs.dom.window
+import outwatch.ext.monix._
 import outwatch.dom.helpers.OutwatchTracing
 import rx._
 import wust.webUtil.outwatchHelpers._
@@ -264,6 +265,7 @@ object GlobalStateFactory {
     // every update bumps the version of the endpoint url: core-v1_2-3.app.woost.space.
     //TODO with is browseronline: isBrowserOnlineObservable
     isClientOnlineObservable
+      .lift[Observable]
       .throttleLast(2.minutes)
       .foreach { isOnline =>
         if (!isOnline) {

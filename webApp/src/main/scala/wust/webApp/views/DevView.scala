@@ -62,12 +62,12 @@ object DevView {
         transformOrigin := "100% 0",
         cursor.pointer,
         borderBottom := "none", //TODO: this is not recognized. outwatch-bug?
-        onClick(true) --> show
+        onClick.use(true) --> show
       ),
       baseDiv(
         minWidth := "200px",
         activeDisplay,
-        div("×", cursor.pointer, float.right, onClick(false) --> show),
+        div("×", cursor.pointer, float.right, onClick.use(false) --> show),
         DevView( additions),
         borderRight := "none",
       )

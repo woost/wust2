@@ -9,9 +9,8 @@ import wust.facades.fomanticui.{SearchOptions, SearchSourceEntry}
 import wust.facades.jquery.JQuerySelection
 import wust.facades.marked.Marked
 import fontAwesome._
-import monix.execution.Cancelable
-import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
+import outwatch.reactive._
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
@@ -220,7 +219,7 @@ object UnreadComponents {
 
             observer.observe(elem)
 
-            Cancelable { () =>
+            Subscription { () =>
               observer.unobserve(elem)
               observer.disconnect()
             }
@@ -249,7 +248,7 @@ object UnreadComponents {
           cls := "ui mini inverted compact button",
           Icons.notifications,
           UI.tooltip("bottom center") := "Unread Items",
-          onClick.stopPropagation(View.Notifications) --> sink,
+          onClick.stopPropagation.use(View.Notifications) --> sink,
         )
       )
     }
@@ -258,7 +257,7 @@ object UnreadComponents {
       cls := "ui mini inverted compact button",
       Icons.activityStream,
       UI.tooltip("bottom center") := "Activity Stream",
-      onClick.stopPropagation(View.ActivityStream) --> sink,
+      onClick.stopPropagation.use(View.ActivityStream) --> sink,
     )
 
     div(

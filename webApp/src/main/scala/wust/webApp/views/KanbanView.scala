@@ -3,6 +3,7 @@ package wust.webApp.views
 import acyclic.file
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.ext.monix._
 import rx._
 import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
@@ -188,12 +189,12 @@ object KanbanView {
               cls := "fa-fw",
               if (isExpanded()) Icons.collapse else Icons.expand
             ),
-            onClick.stopPropagation.mapTo(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(!isExpanded.now), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes,
+            onClick.stopPropagation.useLazy(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(!isExpanded.now), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes,
             cursor.pointer,
             UI.tooltip("bottom center") := "Collapse"
           ),
           VDomModifier.ifTrue(canWrite())(
-            div(div(cls := "fa-fw", Icons.edit), onClick.stopPropagation(true) --> editable, cursor.pointer, UI.tooltip("bottom center") := "Edit"),
+            div(div(cls := "fa-fw", Icons.edit), onClick.stopPropagation.use(true) --> editable, cursor.pointer, UI.tooltip("bottom center") := "Edit"),
             div(
               div(cls := "fa-fw", if (isDeletedNow()) Icons.undelete else Icons.delete),
               onClick.stopPropagation foreach {
@@ -205,7 +206,7 @@ object KanbanView {
               UI.tooltip("bottom center") := (if (isDeletedNow()) "Recover" else "Archive")
             )
           ),
-          //          div(div(cls := "fa-fw", Icons.zoom), onClick.stopPropagation(Page(nodeId)) --> GlobalState.page, cursor.pointer, UI.tooltip("bottom center") := "Zoom in"),
+          //          div(div(cls := "fa-fw", Icons.zoom), onClick.stopPropagation.use(Page(nodeId)) --> GlobalState.page, cursor.pointer, UI.tooltip("bottom center") := "Zoom in"),
         )
       },
 
@@ -260,7 +261,7 @@ object KanbanView {
               Styles.flex,
               justifyContent.center,
               div(cls := "fa-fw", Icons.expand, UI.tooltip("bottom center") := "Expand"),
-              onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(true), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes,
+              onClick.stopPropagation.use(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(true), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes,
               cursor.pointer,
               paddingBottom := "7px",
             ),
@@ -327,7 +328,7 @@ object KanbanView {
             cls := "kanbanaddnodefieldtext",
             s"+ $addCardText",
             color := "rgba(0,0,0,0.62)",
-            onClick.stopPropagation(true) --> active
+            onClick.stopPropagation.use(true) --> active
           )
       }
     )
@@ -371,7 +372,7 @@ object KanbanView {
             showMarkdownHelp = false
           )
         } else div(
-          onClick.stopPropagation(true) --> fieldActive,
+          onClick.stopPropagation.use(true) --> fieldActive,
           cls := "kanbanaddnodefieldtext",
           paddingTop := "10px",
           color := "rgba(0,0,0,0.62)",

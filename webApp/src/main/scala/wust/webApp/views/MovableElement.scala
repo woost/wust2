@@ -5,6 +5,7 @@ import monix.reactive.Observable
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.ext.monix._
 import rx._
 import wust.webUtil.Ownable
 import wust.webUtil.outwatchHelpers._
@@ -51,7 +52,7 @@ object MovableElement {
                     window.isVisible -> !window.isVisible.now
                   ) else window.isVisible() = !window.isVisible.now
                 },
-                onClick(index) --> activeWindow,
+                onClick.use(index) --> activeWindow,
                 window.isVisible.map {
                   case true => VDomModifier.empty
                   case false => opacity := 0.5
@@ -104,12 +105,12 @@ object MovableElement {
             if (activeWindow == index) ZIndex.overlayLow + 1 else ZIndex.overlayLow
           },
 
-          onMouseDown.stopPropagation(index) --> activeWindow,
+          onMouseDown.stopPropagation.use(index) --> activeWindow,
 
           div(
             cls := "movable-window-title",
             title,
-            div(cls := "fa-fw", freeSolid.faTimes, cursor.pointer, onClick(false) --> isVisible),
+            div(cls := "fa-fw", freeSolid.faTimes, cursor.pointer, onClick.use(false) --> isVisible),
 
             onMouseDown.stopPropagation.foreach { ev =>
               mouseDownOffset = Some(LeftPosition(left = domElem.offsetLeft - ev.clientX, top = domElem.offsetTop - ev.clientY))
@@ -128,7 +129,7 @@ object MovableElement {
           ),
 
           div(
-            onMouseDown.stopPropagation(index) --> activeWindow, // in case other mouseDown events are stopped
+            onMouseDown.stopPropagation.use(index) --> activeWindow, // in case other mouseDown events are stopped
             Styles.growFull,
             bodyModifier,
             onDomMount.asHtml.foreach(domElemBody = _),

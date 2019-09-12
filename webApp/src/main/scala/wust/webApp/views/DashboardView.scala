@@ -3,6 +3,7 @@ package wust.webApp.views
 import fontAwesome.freeSolid
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.ext.monix._
 import rx._
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{ BrowserDetect, Elements, UI }
@@ -137,7 +138,7 @@ object DashboardView {
           "Restore",
           cls := "ui button mini compact basic",
           cursor.pointer,
-          onClick.stopPropagation(GraphChanges.connect(Edge.Child)(ParentId(focusState.focusedId), ChildId(project.id))) --> GlobalState.eventProcessor.changes
+          onClick.stopPropagation.useLazy(GraphChanges.connect(Edge.Child)(ParentId(focusState.focusedId), ChildId(project.id))) --> GlobalState.eventProcessor.changes
         )
       )
     } else {
@@ -152,7 +153,7 @@ object DashboardView {
             case true => Icons.bookmark
             case false => Icons.unbookmark
           },
-          onClick.stopPropagation.mapTo(
+          onClick.stopPropagation.useLazy(
             if (isPinned.now) GraphChanges.unpin(project.id, GlobalState.userId.now) else GraphChanges.pin(project.id, GlobalState.userId.now)
           ) --> GlobalState.eventProcessor.changes
         ),

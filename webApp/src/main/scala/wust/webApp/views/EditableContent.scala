@@ -6,6 +6,8 @@ import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl.{emitter, _}
+import outwatch.ext.monix._
+import outwatch.ext.monix.handler._
 import outwatch.dom.helpers.EmitterBuilder
 import rx._
 import wust.webUtil.Elements._
@@ -153,7 +155,7 @@ object EditableContent {
       elements.map { case (title, element) =>
         option(value := ValueStringifier[T].stringify(element), title, selected <-- activeElement.map(_ contains element)),
       },
-      onInput.transform(_.mapEval(e => EditStringParser[T].parse(stringFromSelect(e.currentTarget.asInstanceOf[dom.html.Select])))).editValueOption --> activeElement,
+      onInput.transform(_.concatMapAsync(e => EditStringParser[T].parse(stringFromSelect(e.currentTarget.asInstanceOf[dom.html.Select])))).editValueOption --> activeElement,
     )
   }
 
@@ -167,7 +169,7 @@ object EditableContent {
     flexShrink := 0,
     fontSize.xSmall,
     styleAttr := "cursor: pointer !important", // overwrite style from semantic ui with important
-    onClick.stopPropagation(EditInteraction.Cancel) --> current
+    onClick.stopPropagation.use(EditInteraction.Cancel) --> current
   )
   private def saveButton(current: Observer[Unit]) = dsl.span(
     "Save",
@@ -177,12 +179,12 @@ object EditableContent {
     flexShrink := 0,
     fontSize.xSmall,
     styleAttr := "cursor: pointer !important", // overwrite style from semantic ui with important
-    onClick.stopPropagation(()) --> current
+    onClick.stopPropagation.use(()) --> current
   )
 
   final case class CommonEditHandler[T](edit: Handler[EditInteraction[T]], save: Observable[Unit])
   private def commonEditStructure[T](initial: Option[T], current: Handler[EditInteraction[T]], config: Config, handle: EditInteraction[T] => EditInteraction[T])(modifier: CommonEditHandler[T] => VDomModifier) = {
-    val handledCurrent = current
+    val handledCurrent: Handler[EditInteraction[T]] = current
       .transformObserverWith(_.redirectMap(handleEditInteraction[T](initial, config) andThen handle))
       .transformObservable(_.filter(uniqueEditInteraction[T](initial)))
 
@@ -216,7 +218,7 @@ object EditableContent {
       ),
 
       config.submitMode match {
-        case SubmitMode.Explicit => VDomModifier.ifNot(BrowserDetect.isMobile)(onGlobalEscape(EditInteraction.Cancel) --> handledCurrent)
+        case SubmitMode.Explicit => VDomModifier.ifNot(BrowserDetect.isMobile)(onGlobalEscape.use(EditInteraction.Cancel) --> handledCurrent)
         case _ => VDomModifier.empty
       },
 
@@ -235,8 +237,8 @@ object EditableContent {
         if(editMode()) VDomModifier(
           keyed,
           inputFn(ctx)(currentVar),
-          onDomMount(true) --> currentlyEditingSubject,
-          onDomUnmount(false) --> currentlyEditingSubject,
+          onDomMount.use(true) --> currentlyEditingSubject,
+          onDomUnmount.use(false) --> currentlyEditingSubject,
         )
         else VDomModifier(
           keyed,
@@ -353,13 +355,13 @@ object EditableContent {
     ),
     whiteSpace.preWrap, // preserve white space in Markdown code
     onClick.stopPropagation.discard, // prevent e.g. selecting node, but only when editing
-    onDomMount.asHtml --> inNextAnimationFrame { elem => if (shouldFocusInput) elem.focus() },
-    onDomUpdate.asHtml --> inNextAnimationFrame { elem => if (shouldFocusInput) elem.focus() },
+    onDomMount.asHtml --> inNextAnimationFrame[dom.html.Element] { elem => if (shouldFocusInput) elem.focus() },
+    onDomUpdate.asHtml --> inNextAnimationFrame[dom.html.Element] { elem => if (shouldFocusInput) elem.focus() },
   )
 
   private def blurEmitter(config: Config): EmitterBuilder[Any, VDomModifier] = {
     config.submitMode match {
-      case SubmitMode.Explicit => onBlur.transform(_.delayOnNext(200 millis))
+      case SubmitMode.Explicit => onBlur.transform(_.delay(200 millis))
       case SubmitMode.Emitter(builders) => EmitterBuilder.empty
     }
   }

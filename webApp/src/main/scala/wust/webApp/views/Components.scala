@@ -11,8 +11,11 @@ import fontAwesome._
 import monix.execution.Cancelable
 import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
+import outwatch.reactive.SinkObserver
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.ext.monix.handler._
+import outwatch.ext.monix._
 import outwatch.dom.helpers.EmitterBuilder
 import rx._
 import wust.webUtil.Elements._
@@ -237,7 +240,7 @@ object Components {
           GraphChanges(addEdges = properties.map(p => p.edge.copy(data = p.edge.data.copy(key = newKey)))(breakOut), delEdges = properties.map(_.edge)(breakOut)),
         } --> GlobalState.eventProcessor.changes,
         cursor.pointer,
-        onClick.stopPropagation(true) --> editKey,
+        onClick.stopPropagation.use(true) --> editKey,
       ),
 
       div(
@@ -267,7 +270,7 @@ object Components {
               margin := "3px 0px",
 
               editablePropertyNode( property.node, property.edge, editMode = editValue,
-                nonPropertyModifier = VDomModifier(writeHoveredNode( property.node.id), cursor.pointer, onClick.stopPropagation(Some(property.node.id)).foreach(parentIdAction(_))),
+                nonPropertyModifier = VDomModifier(writeHoveredNode( property.node.id), cursor.pointer, onClick.stopPropagation.use(Some(property.node.id)).foreach(parentIdAction(_))),
                 maxLength = Some(100), config = EditableContent.Config.default,
               ),
 
@@ -277,11 +280,11 @@ object Components {
                 editValue.map {
                   case true => VDomModifier(
                     Icons.delete,
-                    onClick(GraphChanges(delEdges = Array(property.edge))) --> GlobalState.eventProcessor.changes
+                    onClick.useLazy(GraphChanges(delEdges = Array(property.edge))) --> GlobalState.eventProcessor.changes
                   )
                   case false => VDomModifier(
                     Icons.edit,
-                    onClick.stopPropagation(true) --> editValue
+                    onClick.stopPropagation.use(true) --> editValue
                   )
                 },
               )
@@ -339,7 +342,7 @@ object Components {
       keyed(userNode.id),
       UI.tooltip("left center") := s"${displayUserName(userNode.data)}. Click to unassign.",
       cursor.pointer,
-      onClick.stopPropagation(GraphChanges.disconnect(Edge.Assigned)(targetNodeId, userNode.id)) --> GlobalState.eventProcessor.changes,
+      onClick.stopPropagation.use(GraphChanges.disconnect(Edge.Assigned)(targetNodeId, userNode.id)) --> GlobalState.eventProcessor.changes,
     )
   }
 
@@ -795,7 +798,7 @@ object Components {
       )
     })
 
-  def removeableList[T](elements: Seq[T], removeSink: Observer[T], tooltip: Option[String] = None)(renderElement: T => VDomModifier): VNode = {
+  def removeableList[T](elements: Seq[T], removeSink: SinkObserver[T], tooltip: Option[String] = None)(renderElement: T => VDomModifier): VNode = {
     div(
       width := "100%",
       elements.map { element =>
@@ -812,7 +815,7 @@ object Components {
             cls := "ui mini compact negative basic button",
             marginLeft := "10px",
             "Remove",
-            onClick.stopPropagation(element) --> removeSink
+            onClick.stopPropagation.use(element) --> removeSink
           ),
         )
       }
@@ -981,7 +984,7 @@ object Components {
         // stopPropagition: don't globally close sidebar by clicking here. Instead onClick toggles the sidebar directly
         mouseDownPos = Vec2(e.clientX, e.clientY)
       },
-      onClick.stopPropagation.transform(_.delayOnNext(sidebarNodeOpenDelay)).foreach { e =>
+      onClick.stopPropagation.transform(_.delay(sidebarNodeOpenDelay)).foreach { e =>
         // opening right sidebar is delayed to not interfere with double click
         if(dblClicked) dblClicked = false
         else {
@@ -1025,8 +1028,8 @@ object Components {
     }
   )
   def writeHoveredNode(nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier.ifNot(BrowserDetect.isMobile)(
-    onMouseOver(Some(nodeId)) --> GlobalState.hoverNodeId,
-    onMouseOut(None) --> GlobalState.hoverNodeId,
+    onMouseOver.use(Some(nodeId)) --> GlobalState.hoverNodeId,
+    onMouseOut.use(None) --> GlobalState.hoverNodeId,
   )
 
   def maturityLabel(text: String, fgColor: String = "#95a90b", borderColor: String = "#d9e778") = {
