@@ -14,7 +14,7 @@ import wust.ids._
 import wust.webApp.Client
 import wust.webApp.jsdom.FileReaderOps
 import wust.webApp.state.{GlobalState, UploadingFile}
-import wust.webApp.StagingOnly
+import wust.webApp.DebugOnly
 
 import scala.concurrent.{Future, Promise}
 import scala.util.{Failure, Success}
