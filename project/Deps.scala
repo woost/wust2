@@ -21,7 +21,7 @@ object Deps {
     val kittens = dep("org.typelevel" %%% "kittens" % "1.2.1")
   }
   val akka = new {
-    private val version = "2.5.23"
+    private val version = "2.5.25"
     private val httpVersion = "10.1.9"
     val http = dep("com.typesafe.akka" %% "akka-http" % httpVersion)
     val httpCore = dep("com.typesafe.akka" %% "akka-http-core" % httpVersion)
