@@ -25,6 +25,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.scalajs.js
 import scala.util.control.NonFatal
 import scala.util.{ Failure, Success }
+import cats.effect.IO
 
 package object outwatchHelpers extends KeyHash with RxInstances {
   //TODO: it is not so great to have a monix scheduler and execution context everywhere, move to main.scala and pass through
@@ -32,6 +33,7 @@ package object outwatchHelpers extends KeyHash with RxInstances {
        Scheduler.trampoline(executionModel = monix.execution.ExecutionModel.SynchronousExecution)
     // Scheduler.global
   //    Scheduler.trampoline(executionModel=AlwaysAsyncExecution)
+  implicit val contextShift = IO.contextShift(monixScheduler)
 
   implicit object EmptyVDM extends Empty[VDomModifier] {
     @inline def empty: VDomModifier = VDomModifier.empty
