@@ -116,11 +116,11 @@ object Search {
     }
   }
 
-  def byString(needle: String, nodes: List[Node], num: Option[Int], boundary: Double = 0.0): List[(Node, Double)] = {
+  @inline def byString(needle: String, nodes: List[Node], num: Option[Int], boundary: Double = 0.0): List[(Node, Double)] = {
     wrapSearch(ratcliffObershelp, needle, nodes, num, boundary)
   }
 
-  def singleByString(needle: String, node: Node, boundary: Double = 0.0): Option[(Node, Double)] = {
+  @inline def singleByString(needle: String, node: Node, boundary: Double = 0.0): Option[(Node, Double)] = {
     singleSearch(ratcliffObershelp, needle, node, boundary)
   }
 
