@@ -123,7 +123,7 @@ object Deps {
   val gitterClient = dep("com.github.amatkivskiy" % "gitter.sdk.async" % "1.6.1")
   val slackClient = dep("com.github.GRBurst" % "slack-scala-client" % "65cd560") //b88f22e
   val javaMail = dep("com.sun.mail" % "javax.mail" % "1.6.2")
-  val guava = dep("com.google.guava" % "guava" % "28.0-jre") // TODO: needed for html escapers in AppEmailFlow
+  val guava = dep("com.google.guava" % "guava" % "28.1-jre") // TODO: needed for html escapers in AppEmailFlow
   val webPush = dep("nl.martijndwars" % "web-push" % "5.0.2")
   val awsSdk = new {
     //dep("software.amazon.awssdk" % "aws-sdk-java" % "2.1.3") // TODO: Does not work because of newer netty dependency than postgres-async => runtime error.
