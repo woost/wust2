@@ -27,6 +27,7 @@ object Avatar {
         div(
           url.map(url => backgroundImage := s"url($url)"), //TODO: sanitive images?
           backgroundSize.cover,
+          backgroundPosition := "center",
           display.inlineBlock,
         )
     }
