@@ -4,7 +4,7 @@ import org.scalajs.dom.console
 import scala.scalajs.js
 import wust.util.time.time
 import collection.mutable
-import wust.webApp.{ DevOnly, StagingOnly, DebugOnly }
+import wust.webApp.{ DevOnly, DebugOnly }
 import acyclic.file
 import rx._
 import wust.ids.{ Feature, _ }
@@ -53,7 +53,7 @@ object FeatureState {
           recentlyUsed() = recentFirstTimeUsed.now.distinct.take(recentlyUsedLimit).toVector
         }
       }
-    case assumedUser:AuthUser.Assumed =>
+    case assumedUser: AuthUser.Assumed =>
       firstTimeUsed() = Map.empty[Feature, EpochMilli]
       recentlyUsed() = Vector.empty
       currentUserId = assumedUser.id
@@ -138,38 +138,36 @@ object FeatureState {
   }
 
   def use(feature: Feature): Unit = {
-    StagingOnly {
-      defer {
-        time("Feature update") {
-          @inline def firstTimeUse = !firstTimeUsed.now.isDefinedAt(feature)
-          if (firstTimeUse) {
-            val timestamp = EpochMilli.now
-            firstTimeUsed.update(_ + (feature -> timestamp))
-            persistFirstTimeUsage(feature, timestamp)
-            if(Feature.allWithoutSecretsSet.contains(feature)) usedNewFeatureTrigger.onNext(())
-            Analytics.sendEvent("first-time-feature", feature.toString)
-            //TODO: add tags corresponding to features / categories to hotjar
-          }
-          recentlyUsed.update(recentlyUsed => (feature +: recentlyUsed).take(recentlyUsedLimit).distinct)
-          Analytics.sendEvent("feature", feature.toString)
+    defer {
+      time("Feature update") {
+        @inline def firstTimeUse = !firstTimeUsed.now.isDefinedAt(feature)
+        if (firstTimeUse) {
+          val timestamp = EpochMilli.now
+          firstTimeUsed.update(_ + (feature -> timestamp))
+          persistFirstTimeUsage(feature, timestamp)
+          if (Feature.allWithoutSecretsSet.contains(feature)) usedNewFeatureTrigger.onNext(())
+          Analytics.sendEvent("first-time-feature", feature.toString)
+          //TODO: add tags corresponding to features / categories to hotjar
+        }
+        recentlyUsed.update(recentlyUsed => (feature +: recentlyUsed).take(recentlyUsedLimit).distinct)
+        Analytics.sendEvent("feature", feature.toString)
 
-          scribe.debug("Used Feature: " + feature.toString)
-          DebugOnly {
-            UI.toast(feature.toString)
+        scribe.debug("Used Feature: " + feature.toString)
+        DebugOnly {
+          UI.toast(feature.toString)
 
-            if (Feature.selfLoops.nonEmpty)
-              UI.toast("selfLoops: " + Feature.selfLoops.toList, title = "FeatureState", level = ToastLevel.Error, autoclose = true)
-            if (Feature.unreachable.nonEmpty)
-              UI.toast("unreachable: " + Feature.unreachable, title = "FeatureState", level = ToastLevel.Error, autoclose = true)
-            if (recentlyUsed.now.length > recentlyUsedLimit)
-              UI.toast("recentlyUsed has too many elements: " + recentlyUsed.now.length + "/" + recentlyUsedLimit, title = "FeatureState", level = ToastLevel.Error, autoclose = true)
-            if (recentlyUsed.now != recentlyUsed.now.distinct)
-              UI.toast("recentlyUsed is not distinct: " + recentlyUsed.now, title = "FeatureState", level = ToastLevel.Error, autoclose = true)
-            if (!(next.now == next.now.distinct))
-              UI.toast("next is not distinct: Next:" + next.now, title = "FeatureState", level = ToastLevel.Error, autoclose = true)
-            if (!(next.now.toSet subsetOf nextCandidates.now.toSet))
-              UI.toast("next is not subset of nextCandidates: Next:" + next.now + " / Candidates:" + nextCandidates.now.toSet, title = "FeatureState", level = ToastLevel.Error, autoclose = true)
-          }
+          if (Feature.selfLoops.nonEmpty)
+            UI.toast("selfLoops: " + Feature.selfLoops.toList, title = "FeatureState", level = ToastLevel.Error, autoclose = true)
+          if (Feature.unreachable.nonEmpty)
+            UI.toast("unreachable: " + Feature.unreachable, title = "FeatureState", level = ToastLevel.Error, autoclose = true)
+          if (recentlyUsed.now.length > recentlyUsedLimit)
+            UI.toast("recentlyUsed has too many elements: " + recentlyUsed.now.length + "/" + recentlyUsedLimit, title = "FeatureState", level = ToastLevel.Error, autoclose = true)
+          if (recentlyUsed.now != recentlyUsed.now.distinct)
+            UI.toast("recentlyUsed is not distinct: " + recentlyUsed.now, title = "FeatureState", level = ToastLevel.Error, autoclose = true)
+          if (!(next.now == next.now.distinct))
+            UI.toast("next is not distinct: Next:" + next.now, title = "FeatureState", level = ToastLevel.Error, autoclose = true)
+          if (!(next.now.toSet subsetOf nextCandidates.now.toSet))
+            UI.toast("next is not subset of nextCandidates: Next:" + next.now + " / Candidates:" + nextCandidates.now.toSet, title = "FeatureState", level = ToastLevel.Error, autoclose = true)
         }
       }
     }

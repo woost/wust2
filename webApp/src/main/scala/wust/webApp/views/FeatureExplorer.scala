@@ -3,7 +3,7 @@ package wust.webApp.views
 import acyclic.file
 import wust.facades.crisp._
 import wust.facades.googleanalytics.Analytics
-import wust.webApp.{ DeployedOnly, StagingOnly }
+import wust.webApp.{ DeployedOnly}
 import scala.scalajs.js
 import scala.util.Try
 import wust.webApp.{ DevOnly, DebugOnly }
@@ -22,7 +22,7 @@ import wust.webUtil.UI
 
 object FeatureExplorer {
   //TODO: rating for completed features: "I liked it", "too complicated", "not useful"
-  def apply(extraMods: VDomModifier*)(implicit ctx: Ctx.Owner): VDomModifier = StagingOnly {
+  def apply(extraMods: VDomModifier*)(implicit ctx: Ctx.Owner): VDomModifier = {
     val showPopup = Var(true)
 
     val stats = div(
