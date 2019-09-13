@@ -145,4 +145,9 @@ package object ids {
 
   }
   type EpochMilli = EpochMilli.Type
+
+
+  @inline implicit class SafeAsInstanceOf[T](value: T) extends AnyVal {
+    @inline def narrow[X <: T]: X = value.asInstanceOf[X]
+  }
 }
