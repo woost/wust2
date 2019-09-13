@@ -56,7 +56,7 @@ object Deps {
   val scalarx = dep("com.github.fdietze.duality" %%% "scalarx" % "fc761c9")
   // val scalarx = dep("com.github.fdietze.duality" %%% "scalarx" % "94c6d80") // jitpack cannot handle the . in repo name scala.rx
   val outwatch = new {
-    private val version = "c13ab9bd"
+    private val version = "38797e0c"
     // val core = dep("io.github.outwatch" %%% "outwatch" % "0.11.1-SNAPSHOT")
     val core = dep("com.github.cornerman.outwatch" %%% "outwatch" % version)
     val monix = dep("com.github.cornerman.outwatch" %%% "outwatch-monix" % version)
