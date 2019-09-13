@@ -73,7 +73,7 @@ object Deps {
   val monocle = dep("com.github.julien-truffaut" %% "monocle-macro" % "1.6.0-M1")
   val monocleCore = dep("com.github.julien-truffaut" %% "monocle-core" % "1.6.0-M1")
   val sourcecode = dep("com.github.cornerman.sourcecode" %%% "sourcecode" % "998ee90c15")
-  val cuid = dep("io.github.cornerman.scala-cuid" %%% "scala-cuid" % "9589781")
+  val cuid = dep("io.github.cornerman.scala-cuid" %%% "scala-cuid" % "437a396")
   val base58s = dep("io.github.fdietze.base58s" %%% "base58s" % "fbedca4")
   val monix = dep("io.monix" %%% "monix" % "3.0.0")
   val taggedTypes = dep("org.rudogma" %%% "supertagged" % "1.4")
@@ -97,7 +97,7 @@ object Deps {
 
   // rpc
   val covenant = new {
-    private val version = "25b57dd"
+    private val version = "cf1114f"
     val core = dep("com.github.cornerman.covenant" %%% "covenant-core" % version)
     val ws = dep("com.github.cornerman.covenant" %%% "covenant-ws" % version)
     val http = dep("com.github.cornerman.covenant" %%% "covenant-http" % version)
