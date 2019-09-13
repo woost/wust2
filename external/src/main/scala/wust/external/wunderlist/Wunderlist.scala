@@ -93,14 +93,14 @@ object Wunderlist {
     val taskById = mutable.HashMap[Id, NodeInfo]()
 
     def getDoneNode(parentId: NodeId): NodeId = {
-      val doneNode = Node.Content(NodeId.fresh, NodeData.Markdown(Graph.doneText), NodeRole.Stage, NodeMeta.default, None)
+      val doneNode = Node.Content(NodeId.fresh, NodeData.Markdown(Graph.doneText), NodeRole.Stage, NodeMeta.default, NodeSchema.empty)
       addNodes += doneNode
       addEdges += Edge.Child(ParentId(parentId), ChildId(doneNode.id))
       doneNode.id
     }
 
     account.data.lists.foreach { list =>
-      val projectNode = Node.Content(NodeId.fresh, NodeData.Markdown(list.title), NodeRole.Project, NodeMeta.default, Some(View.List :: Nil))
+      val projectNode = Node.Content(NodeId.fresh, NodeData.Markdown(list.title), NodeRole.Project, NodeMeta.default, NodeSchema(Some(NodeView(View.List) :: Nil)))
       listById += list.id -> NodeInfo(projectNode.id, Eval.later(getDoneNode(projectNode.id)))
       topLevelNodeIds += projectNode.id
       addNodes += projectNode
@@ -113,7 +113,7 @@ object Wunderlist {
       ordering = taskPositionMap.getOrElse(task.id, 0)
     } {
       //TODO: define notes view if notes available on task
-      val taskNode = Node.Content(NodeId.fresh, NodeData.Markdown(task.title), NodeRole.Task, NodeMeta.default, Some(View.List :: View.Chat :: Nil))
+      val taskNode = Node.Content(NodeId.fresh, NodeData.Markdown(task.title), NodeRole.Task, NodeMeta.default, NodeSchema(Some((View.List :: View.Chat :: Nil).map(NodeView(_)))))
       taskById += task.id -> NodeInfo(taskNode.id, Eval.later(getDoneNode(taskNode.id)))
       addNodes += taskNode
       val childData = EdgeData.Child(ordering = BigDecimal(ordering))
@@ -122,7 +122,7 @@ object Wunderlist {
         addEdges += Edge.Child(ParentId(listInfo.doneStageId.value), childData, ChildId(taskNode.id))
       }
       task.due_date.foreach { date =>
-        val dateNode = Node.Content(NodeId.fresh, NodeData.DateTime(DateTimeMilli(date)), NodeRole.Neutral, NodeMeta.default, None)
+        val dateNode = Node.Content(NodeId.fresh, NodeData.DateTime(DateTimeMilli(date)), NodeRole.Neutral, NodeMeta.default, NodeSchema.empty)
         addNodes += dateNode
         addEdges += Edge.LabeledProperty(taskNode.id, EdgeData.LabeledProperty.dueDate, PropertyId(dateNode.id))
       }
@@ -134,7 +134,7 @@ object Wunderlist {
       taskInfo <- taskById.get(task.task_id)
       ordering = subTaskPositionMap.getOrElse(task.id, 0)
     } {
-      val taskNode = Node.Content(NodeId.fresh, NodeData.Markdown(task.title), NodeRole.Task, NodeMeta.default, Some(View.List :: View.Chat :: Nil))
+      val taskNode = Node.Content(NodeId.fresh, NodeData.Markdown(task.title), NodeRole.Task, NodeMeta.default, NodeSchema(Some((View.List :: View.Chat :: Nil).map(NodeView(_)))))
       addNodes += taskNode
       val childData = EdgeData.Child(ordering = BigDecimal(ordering))
       addEdges += Edge.Child(ParentId(taskInfo.nodeId), childData, ChildId(taskNode.id))
@@ -147,7 +147,7 @@ object Wunderlist {
       note <- account.data.notes
       taskInfo <- taskById.get(note.task_id)
     } {
-      val notesNode = Node.Content(NodeId.fresh, NodeData.Markdown(note.content), NodeRole.Note, NodeMeta.default, None)
+      val notesNode = Node.Content(NodeId.fresh, NodeData.Markdown(note.content), NodeRole.Note, NodeMeta.default, NodeSchema.empty)
       addNodes += notesNode
       addEdges += Edge.Child(ParentId(taskInfo.nodeId), ChildId(notesNode.id))
     }

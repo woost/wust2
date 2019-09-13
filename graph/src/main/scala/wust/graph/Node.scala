@@ -16,7 +16,10 @@ sealed trait Node {
   def data: NodeData
   def role: NodeRole
   def meta: NodeMeta
-  def views: Option[List[View.Visible]]
+  def schema: NodeSchema
+
+  def views = schema.views
+  def entities = schema.entities
 
   @inline def as[T <: Node]: T = asInstanceOf[T]
 
@@ -26,12 +29,12 @@ sealed trait Node {
 
 object Node {
   // TODO: we cannot set the nodemeta here, but there is changeable data in the db class
-  final case class User(id: UserId, data: NodeData.User, meta: NodeMeta, views: Option[List[View.Visible]] = None) extends Node {
+  final case class User(id: UserId, data: NodeData.User, meta: NodeMeta, schema: NodeSchema = NodeSchema.empty) extends Node {
     @inline def name: String = data.name
     def role: NodeRole = NodeRole.default
     override def toString = s"""User([${id.shortHumanReadable}]"$name"${if (data.isImplicit) ":implicit" else ""}${if (meta.accessLevel != NodeAccess.Restricted) s":$meta" else ""}  ${id.toBase58}  ${id.toUuid})"""
   }
-  final case class Content(id: NodeId, data: NodeData.Content, role: NodeRole, meta: NodeMeta, views: Option[List[View.Visible]] = None) extends Node
+  final case class Content(id: NodeId, data: NodeData.Content, role: NodeRole, meta: NodeMeta, schema: NodeSchema = NodeSchema.empty) extends Node
   object Content {
     @inline def apply(data: NodeData.Content, role: NodeRole, meta: NodeMeta): Content = {
       new Content(NodeId.fresh, data, role, meta)

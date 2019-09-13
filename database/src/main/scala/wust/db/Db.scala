@@ -23,7 +23,6 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
 
   // schema meta: we can define how a type corresponds to a db table
   private implicit val userSchema = schemaMeta[User]("node") // User type is stored in node table with same properties.
-  private implicit val nodeRawSchema = schemaMeta[NodeRaw]("node") // NodeRaw is just a raw representation of node
 
   // enforce check of json-type for extra safety. additional this makes sure that partial indices on user.data are used.
   private val queryUser = quote { query[User].filter(_.data.jsonType == lift(NodeData.User.tpe)) }
@@ -54,7 +53,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
             (node, excluded) => node.data -> excluded.data,
             (node, excluded) => node.role -> excluded.role,
             (node, excluded) => node.accessLevel -> excluded.accessLevel,
-            (node, excluded) => node.views -> excluded.views
+            (node, excluded) => node.schema -> excluded.schema
           )
       }).flatMap(touched => checkUnexpected(touched.forall(_ == 1), s"Unexpected number of node inserts: ${touched.sum} / ${nodes.size} = ${nodes.zip(touched)}"))
     }
@@ -83,10 +82,10 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
 
     def get(userId: UserId, nodeId: NodeId)(implicit ec: ExecutionContext): Future[Option[Node]] = {
       ctx.run {
-        query[NodeRaw].filter(accessedNode =>
+        query[Node].filter(accessedNode =>
           accessedNode.id == lift(nodeId) && canAccess(lift(nodeId), lift(userId))
         ).take(1)
-      }.map(_.headOption.map(_.toNode))
+      }.map(_.headOption)
     }
 
     def get(nodeIds: scala.collection.Seq[NodeId])(implicit ec: ExecutionContext): Future[List[Node]] = {
@@ -95,10 +94,10 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       val q = quote {
         infix"""
           select node.* from unnest(${lift(nodeIds)} :: uuid[]) inputNodeId join node on node.id = inputNodeId
-        """.as[Query[NodeRaw]]
+        """.as[Query[Node]]
       }
 
-      ctx.run(q).map(_.map(_.toNode))
+      ctx.run(q)
     }
 
     def getAccessibleWorkspaces(userId: UserId, nodeId: NodeId)(implicit ec: ExecutionContext): Future[List[NodeId]] = {
@@ -115,7 +114,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
 
     def getFileNodes(keys: scala.collection.Seq[String])(implicit ec: ExecutionContext): Future[Seq[(NodeId, NodeData.File)]] = {
       ctx.run {
-        query[NodeRaw].filter(node =>
+        query[Node].filter(node =>
           node.data.jsonType == lift(NodeData.File.tpe) && liftQuery(keys).contains(node.data->>"key")
         )
       }.map(_.map(n => n.id -> n.data.asInstanceOf[NodeData.File]))
@@ -270,23 +269,23 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
 
     def allMembershipConnections(userId: UserId): Quoted[Query[Edge]] = quote {
       for {
-        user <- query[NodeRaw].filter(_.id == lift(userId))
+        user <- query[Node].filter(_.id == lift(userId))
         membershipConnection <- query[Edge].filter(c =>
           c.targetId == user.id && c.data.jsonType == lift(EdgeData.Member.tpe)
         )
       } yield membershipConnection
     }
 
-    def allNodesQuery(userId: UserId): Quoted[Query[NodeRaw]] = quote {
+    def allNodesQuery(userId: UserId): Quoted[Query[Node]] = quote {
       for {
         c <- allMembershipConnections(userId)
-        p <- query[NodeRaw].join(p => p.id == c.sourceId)
+        p <- query[Node].join(p => p.id == c.sourceId)
       } yield p
     }
 
     def getAllNodes(userId: UserId)(implicit ec: ExecutionContext): Future[List[Node]] = ctx.run {
       allNodesQuery(userId)
-    }.map(_.map(_.toNode))
+    }
 
     // TODO share code with createimplicit?
     def create(userId: UserId, name: String, email: String, passwordDigest: Array[Byte])(implicit ec: TransactionalExecutionContext): Future[User] = {
@@ -296,7 +295,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
 
       val q = quote {
         infix"""
-        with insert_user as (insert into node (id,data,accesslevel) values(${lift(user.id)}, ${lift(user.data)}, ${lift(user.accessLevel)})),
+        with insert_user as (insert into node (id,data,accesslevel,schema) values(${lift(user.id)}, ${lift(user.data)}, ${lift(user.accessLevel)}, '{"views": null, "entities": {}}')),
              insert_user_member as (insert into edge (sourceid, data, targetid) values(${lift(userId)}, ${lift(membership)}, ${lift(userId)})),
              insert_user_detail as (insert into userdetail (userid, email, verified) values(${lift(userId)}, ${lift(email)}, ${lift(false)}))
              insert into password(userid, digest) VALUES(${lift(userId)}, ${lift(passwordDigest)})
@@ -316,7 +315,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
 
       val q = quote {
         infix"""
-        with insert_user as (insert into node (id,data,accesslevel) values(${lift(user.id)}, ${lift(user.data)}, ${lift(user.accessLevel)}))
+        with insert_user as (insert into node (id,data,accesslevel,schema) values(${lift(user.id)}, ${lift(user.data)}, ${lift(user.accessLevel)}, '{"views": null, "entities": {}}'))
              insert into edge (sourceid, data, targetId) values(${lift(userId)}, ${lift(membership)}, ${lift(userId)})
        """.as[Insert[Node]]
       }

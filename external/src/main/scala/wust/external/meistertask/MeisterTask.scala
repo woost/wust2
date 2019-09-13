@@ -51,12 +51,12 @@ object MeisterTask {
     val sectionsByName = BasicMap.ofString[NodeId]()
     val doneStageInSection = BasicMap.ofString[NodeId]()
 
-    val projectNode = Node.Content(NodeId.fresh, NodeData.Markdown(project.name), NodeRole.Project, NodeMeta.default, Some(View.Kanban :: Nil))
+    val projectNode = Node.Content(NodeId.fresh, NodeData.Markdown(project.name), NodeRole.Project, NodeMeta.default, NodeSchema(Some(NodeView(View.Kanban) :: Nil)))
     addNodes += projectNode
 
     project.tasks.foreach { task =>
       val views = if (task.notes.nonEmpty) View.List :: View.Chat :: View.Content :: Nil else View.List :: View.Chat :: Nil
-      val taskNode = Node.Content(NodeId.fresh, NodeData.Markdown(task.name), NodeRole.Task, NodeMeta.default, Some(views))
+      val taskNode = Node.Content(NodeId.fresh, NodeData.Markdown(task.name), NodeRole.Task, NodeMeta.default, NodeSchema(Some(views.map(NodeView(_)))))
       addNodes += taskNode
 
       // attach tags
@@ -64,7 +64,7 @@ object MeisterTask {
         val nodeIdTag = tagsByName.get(tag) match {
           case Some(nodeId) => nodeId
           case None =>
-            val tagNode = Node.Content(NodeId.fresh, NodeData.Markdown(tag), NodeRole.Tag, NodeMeta.default, None)
+            val tagNode = Node.Content(NodeId.fresh, NodeData.Markdown(tag), NodeRole.Tag, NodeMeta.default, NodeSchema.empty)
             addNodes += tagNode
             addEdges += Edge.Child(ParentId(projectNode.id), ChildId(tagNode.id))
             tagsByName += tag -> tagNode.id
@@ -76,21 +76,21 @@ object MeisterTask {
 
       // attach notes
       task.notes.foreach { notes =>
-        val notesNode = Node.Content(NodeId.fresh, NodeData.Markdown(notes), NodeRole.Note, NodeMeta.default, None)
+        val notesNode = Node.Content(NodeId.fresh, NodeData.Markdown(notes), NodeRole.Note, NodeMeta.default, NodeSchema.empty)
         addNodes += notesNode
         addEdges += Edge.Child(ParentId(taskNode.id), ChildId(notesNode.id))
       }
 
       // attach comments
       task.comments.foreach { comment =>
-        val commentNode = Node.Content(NodeId.fresh, NodeData.Markdown(comment.name), NodeRole.Message, NodeMeta.default, None)
+        val commentNode = Node.Content(NodeId.fresh, NodeData.Markdown(comment.name), NodeRole.Message, NodeMeta.default, NodeSchema.empty)
         addNodes += commentNode
         addEdges += Edge.Child(ParentId(taskNode.id), ChildId(commentNode.id))
       }
 
       // create done column in this checklist
       val doneNode = Eval.later {
-        val doneNode = Node.Content(NodeId.fresh, NodeData.Markdown(Graph.doneText), NodeRole.Stage, NodeMeta.default, None)
+        val doneNode = Node.Content(NodeId.fresh, NodeData.Markdown(Graph.doneText), NodeRole.Stage, NodeMeta.default, NodeSchema.empty)
         addNodes += doneNode
         addEdges += Edge.Child(ParentId(taskNode.id), ChildId(doneNode.id))
         doneNode
@@ -98,7 +98,7 @@ object MeisterTask {
 
       // attach checklist items
       task.checklists.foreach { checkItem =>
-        val checkItemNode = Node.Content(NodeId.fresh, NodeData.Markdown(checkItem.name), NodeRole.Task, NodeMeta.default, None)
+        val checkItemNode = Node.Content(NodeId.fresh, NodeData.Markdown(checkItem.name), NodeRole.Task, NodeMeta.default, NodeSchema.empty)
         addNodes += checkItemNode
         addEdges += Edge.Child(ParentId(taskNode.id), ChildId(checkItemNode.id))
         if (checkItem.checked) addEdges += Edge.Child(ParentId(doneNode.value.id), ChildId(checkItemNode.id))
@@ -110,7 +110,7 @@ object MeisterTask {
       }
 
       task.dueDate.foreach { date =>
-        val dateNode = Node.Content(NodeId.fresh, NodeData.DateTime(DateTimeMilli(date)), NodeRole.Neutral, NodeMeta.default, None)
+        val dateNode = Node.Content(NodeId.fresh, NodeData.DateTime(DateTimeMilli(date)), NodeRole.Neutral, NodeMeta.default, NodeSchema.empty)
         addNodes += dateNode
         addEdges += Edge.LabeledProperty(taskNode.id, EdgeData.LabeledProperty.dueDate, PropertyId(dateNode.id))
       }
@@ -123,7 +123,7 @@ object MeisterTask {
       val nodeIdSection = sectionsByName.get(task.section) match {
         case Some(nodeId) => nodeId
         case None =>
-          val sectionNode = Node.Content(NodeId.fresh, NodeData.Markdown(task.section), NodeRole.Stage, NodeMeta.default, None)
+          val sectionNode = Node.Content(NodeId.fresh, NodeData.Markdown(task.section), NodeRole.Stage, NodeMeta.default, NodeSchema.empty)
           addNodes += sectionNode
           addEdges += Edge.Child(ParentId(projectNode.id), ChildId(sectionNode.id))
           sectionsByName += task.section -> sectionNode.id
@@ -135,7 +135,7 @@ object MeisterTask {
           val doneStageId = doneStageInSection.get(task.section) match {
             case Some(nodeId) => nodeId
             case None =>
-              val doneNode = Node.Content(NodeId.fresh, NodeData.Markdown(Graph.doneText), NodeRole.Stage, NodeMeta.default, None)
+              val doneNode = Node.Content(NodeId.fresh, NodeData.Markdown(Graph.doneText), NodeRole.Stage, NodeMeta.default, NodeSchema.empty)
               addNodes += doneNode
               addEdges += Edge.Child(ParentId(nodeIdSection), ChildId(doneNode.id))
               doneStageInSection += task.section -> doneNode.id

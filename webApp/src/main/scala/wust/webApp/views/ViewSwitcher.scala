@@ -95,7 +95,7 @@ object ViewSwitcher {
         val channelNode = graph.nodesById(channelId)
         val user = GlobalState.user()
 
-        def bestView = graph.nodesById(channelId).flatMap(ViewHeuristic.bestView(graph, _, user.id)).getOrElse(View.Empty)
+        def bestView:View.Visible = graph.nodesById(channelId).flatMap(ViewHeuristic.bestView(graph, _, user.id)).getOrElse(View.Empty)
 
         val nodeIdx = graph.idToIdx(channelId)
         val (numMsg, numTasks, numFiles) = (for {
@@ -109,7 +109,7 @@ object ViewSwitcher {
         }) getOrElse ((0, 0, 0))
 
         VDomModifier(
-          channelNode.flatMap(_.views).getOrElse(bestView :: Nil).map { view =>
+          channelNode.flatMap(_.views.map(_.map(_.view))).getOrElse(bestView :: Nil).map { view =>
             singleTab(currentView, ViewSwitcher.viewToTabInfo(view, numMsg = numMsg, numTasks = numTasks, numFiles = numFiles))
           },
           addNewViewTab

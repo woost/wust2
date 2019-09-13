@@ -48,7 +48,7 @@ object CsvHelper {
           header.zip(row).foreachWithIndex { case (idx, (column, cell)) =>
             // always interpret the first column as the node name
             if (idx == 0) {
-              nodes += Node.Content(nodeId, NodeData.Markdown(cell), NodeRole.Task, NodeMeta.default, None)
+              nodes += Node.Content(nodeId, NodeData.Markdown(cell), NodeRole.Task, NodeMeta.default, NodeSchema.empty)
               topLevelNodeIds += nodeId
             } else {
               column match {
@@ -64,7 +64,7 @@ object CsvHelper {
                 case propertyName =>
                   if (cell.nonEmpty) {
                     val propertyId = PropertyId(NodeId.fresh)
-                    nodes += Node.Content(propertyId, NodeData.Markdown(cell), NodeRole.Neutral, NodeMeta.default, None)
+                    nodes += Node.Content(propertyId, NodeData.Markdown(cell), NodeRole.Neutral, NodeMeta.default, NodeSchema.empty)
                     edges += Edge.LabeledProperty(nodeId, EdgeData.LabeledProperty(key = propertyName), propertyId)
                   }
               }
@@ -82,7 +82,7 @@ object CsvHelper {
 
     allStages.result.foreach { case (stageName, nodeIds) =>
       val stageId = ParentId(NodeId.fresh)
-      nodes += Node.Content(stageId, NodeData.Markdown(stageName), NodeRole.Stage, NodeMeta.default, None)
+      nodes += Node.Content(stageId, NodeData.Markdown(stageName), NodeRole.Stage, NodeMeta.default, NodeSchema.empty)
       topLevelNodeIds += stageId
       nodeIds.foreach { nodeId =>
         edges += Edge.Child(stageId, nodeId)
@@ -91,7 +91,7 @@ object CsvHelper {
 
     allTags.result.foreach { case (stageName, nodeIds) =>
       val tagId = ParentId(NodeId.fresh)
-      nodes += Node.Content(tagId, NodeData.Markdown(stageName), NodeRole.Tag, NodeMeta.default, None)
+      nodes += Node.Content(tagId, NodeData.Markdown(stageName), NodeRole.Tag, NodeMeta.default, NodeSchema.empty)
       topLevelNodeIds += tagId
       nodeIds.foreach { nodeId =>
         edges += Edge.Child(tagId, nodeId)

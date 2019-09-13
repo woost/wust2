@@ -33,7 +33,7 @@ object ViewHeuristic {
     node.views.fold(fallbackView(graph, node)){ views =>
       val roleStats = graph.topLevelRoleStats(userId, node.id)
       (if(roleStats.nonEmpty)
-      views.find {
+      views.find(_.view match {
         case View.Dashboard => true
         // unread
         case View.Table(roles) if roles.exists(_ == NodeRole.Message) && roleStats.messageStat.unreadCount > 0 => true
@@ -55,9 +55,9 @@ object ViewHeuristic {
         case View.Content if roleStats.noteStat.count > 0 => true
 
         case _ => false
-      } else None
+      }) else None
       ).orElse(views.headOption)
-      .flatMap(visibleView(graph, node.id, _))
+      .flatMap(v => visibleView(graph, node.id, v.view))
     }
   }
 

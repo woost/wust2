@@ -15,36 +15,8 @@ object Data {
     data: NodeData,
     role: NodeRole,
     accessLevel: NodeAccess,
-    views: Option[List[View.Visible]]
+    schema: NodeSchema,
   )
-
-  //TODO: needed because we cannot parse views properly...
-  final case class NodeRaw(
-    id: NodeId,
-    data: NodeData,
-    role: NodeRole,
-    accessLevel: NodeAccess,
-    views: Option[String]
-  ) {
-    def toNode: Node = Node(
-      id = id,
-      data = data,
-      role = role,
-      accessLevel = accessLevel,
-      views = views.map(NodeRaw.viewsFromString)
-    )
-  }
-  object NodeRaw {
-    def viewsFromString(str: String): List[View.Visible] = {
-      val viewStrings = str
-        .drop(2).dropRight(2)
-        .split("""","""")
-        .map(_.replaceAll("""\\"""", """""""))
-          .toList
-
-      viewStrings.flatMap(str => decode[View.Visible](str).right.toOption)
-    }
-  }
 
   final case class User(
       id: UserId,
@@ -105,7 +77,7 @@ object Data {
     data: Option[NodeData],
     role: Option[NodeRole],
     accessLevel: NodeAccess,
-    views: Option[String],
+    schema: Option[NodeSchema],
     sourceId: Option[NodeId],
     targetId: Option[NodeId],
     edgeData: Option[EdgeData]
@@ -121,10 +93,7 @@ object Data {
         if (row.nodeId.isEmpty) { // edge
           edges += Edge(row.sourceId.get, row.edgeData.get, row.targetId.get)
         } else { // node
-          //TODO this is really ugly, we want views: Option[List[View]], but quill fails when decoding this graph-row.
-          //Now we let quill decode views to Option[String] and decode the list ourselves...meh
-          val viewList: Option[List[View.Visible]] = row.views.map(NodeRaw.viewsFromString)
-          nodes += Node(row.nodeId.get, row.data.get, row.role.get, row.accessLevel, viewList)
+          nodes += Node(row.nodeId.get, row.data.get, row.role.get, row.accessLevel, row.schema.get)
         }
       }
       Graph(nodes.result(), edges.result())

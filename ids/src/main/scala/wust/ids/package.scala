@@ -11,6 +11,11 @@ import scala.util.Try
 package object ids {
   type UuidType = String
 
+  type EntityMap = collection.Map[NodeRole, Entity]
+  object EntityMap {
+    def empty = Map.empty[NodeRole, Entity]
+  }
+
   object NodeId extends TaggedType[Cuid] {
     @inline def fresh(): NodeId = apply(Cuid.fromCuidString(cuid.Cuid())).right.get //ok, because cuid comes from cuid function
     @inline def fromBase58String(str: String): Either[String, NodeId] = Cuid.fromBase58String(str).map(apply(_))

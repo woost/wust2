@@ -14,6 +14,18 @@ sealed trait View {
   def isContent: Boolean = true
 }
 object View {
+  case class Config(
+    kanban: Option[Config.Kanban],
+    checklist: Option[Config.Checklist]
+  )
+  object Config {
+    case class Kanban(key: String)
+    case class Checklist(key: String, checkNodeId: NodeId, uncheckNodeId: NodeId)
+
+    def default = Config(None, None)
+  }
+
+
   sealed trait Visible extends View
   final case class Table(roles: List[NodeRole]) extends Visible {
     def viewKey = s"table${roles.map(_.toString.toLowerCase).mkString(":", ":", "")}"

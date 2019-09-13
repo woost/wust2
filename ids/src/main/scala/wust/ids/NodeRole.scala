@@ -2,7 +2,9 @@ package wust.ids
 
 import wust.util.macros.SubObjects
 
-sealed trait NodeRole extends Product with Serializable
+sealed trait NodeRole extends Product with Serializable {
+  @inline def tpe: String = productPrefix
+}
 object NodeRole {
   sealed trait ContentRole extends NodeRole
   case object Message extends ContentRole

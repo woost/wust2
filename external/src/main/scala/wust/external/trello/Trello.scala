@@ -102,13 +102,13 @@ object Trello {
     val listsById = BasicMap.ofString[NodeId]()
     val cardsById = BasicMap.ofString[NodeId]()
 
-    val boardNode = Node.Content(NodeId.fresh, NodeData.Markdown(board.name), NodeRole.Project, NodeMeta.default, Some(View.Kanban :: Nil))
+    val boardNode = Node.Content(NodeId.fresh, NodeData.Markdown(board.name), NodeRole.Project, NodeMeta.default, NodeSchema(Some(NodeView(View.Kanban) :: Nil)))
     addNodes += boardNode
 
     // collect all labels in board
     board.labels.foreach { label =>
       val content = if (label.name.isEmpty) label.color else label.name // TODO: user-defined colors
-      val labelNode = Node.Content(NodeId.fresh, NodeData.Markdown(content), NodeRole.Tag, NodeMeta.default, None)
+      val labelNode = Node.Content(NodeId.fresh, NodeData.Markdown(content), NodeRole.Tag, NodeMeta.default, NodeSchema.empty)
       addNodes += labelNode
       addEdges += Edge.Child(ParentId(boardNode.id), ChildId(labelNode.id))
       labelsById += label.id -> labelNode.id
@@ -116,13 +116,13 @@ object Trello {
 
     // collect all checklists in board
     board.checklists.foreach { checklist =>
-      val checklistNode = Node.Content(NodeId.fresh, NodeData.Markdown(checklist.name), NodeRole.Task, NodeMeta.default, Some(View.List :: Nil))
+      val checklistNode = Node.Content(NodeId.fresh, NodeData.Markdown(checklist.name), NodeRole.Task, NodeMeta.default, NodeSchema(Some(NodeView(View.List) :: Nil)))
       addNodes += checklistNode
       checklistsById += checklist.id -> checklistNode.id
 
       // create done column in this checklist
       val doneNode = Eval.later {
-        val doneNode = Node.Content(NodeId.fresh, NodeData.Markdown(Graph.doneText), NodeRole.Stage, NodeMeta.default, None)
+        val doneNode = Node.Content(NodeId.fresh, NodeData.Markdown(Graph.doneText), NodeRole.Stage, NodeMeta.default, NodeSchema.empty)
         addNodes += doneNode
         addEdges += Edge.Child(ParentId(checklistNode.id), ChildId(doneNode.id))
         doneNode
@@ -131,7 +131,7 @@ object Trello {
 
       // collect all items in this checklist
       checklist.checkItems.foreach { checkItem =>
-        val checkitemNode = Node.Content(NodeId.fresh, NodeData.Markdown(checkItem.name), NodeRole.Task, NodeMeta.default, None)
+        val checkitemNode = Node.Content(NodeId.fresh, NodeData.Markdown(checkItem.name), NodeRole.Task, NodeMeta.default, NodeSchema.empty)
         addNodes += checkitemNode
 
         // add item to checklist and potentially its done stage
@@ -142,7 +142,7 @@ object Trello {
 
     // collect all lists/columns in board
     board.lists.foreach { list =>
-      val listNode = Node.Content(NodeId.fresh, NodeData.Markdown(list.name), NodeRole.Stage, NodeMeta.default, Some(View.List :: Nil))
+      val listNode = Node.Content(NodeId.fresh, NodeData.Markdown(list.name), NodeRole.Stage, NodeMeta.default, NodeSchema(Some(NodeView(View.List) :: Nil)))
       addNodes += listNode
       val deletedAt = if (list.closed) Some(currentTime) else None // TODO: deletion time?
       val edgeData = EdgeData.Child(deletedAt = deletedAt, ordering = BigDecimal(list.pos))
@@ -153,20 +153,20 @@ object Trello {
     // collect all cards in board
     board.cards.foreach { card =>
       val views = if (card.desc.nonEmpty) View.List :: View.Chat :: View.Content :: Nil else View.List :: View.Chat :: Nil
-      val cardNode = Node.Content(NodeId.fresh, NodeData.Markdown(card.name), NodeRole.Task, NodeMeta.default, Some(views))
+      val cardNode = Node.Content(NodeId.fresh, NodeData.Markdown(card.name), NodeRole.Task, NodeMeta.default, NodeSchema(Some(views.map(NodeView(_)))))
       addNodes += cardNode
       cardsById += card.id -> cardNode.id
 
       // attach due date
       card.due.foreach { date =>
-        val dateNode = Node.Content(NodeId.fresh, NodeData.DateTime(DateTimeMilli(date)), NodeRole.Neutral, NodeMeta.default, None)
+        val dateNode = Node.Content(NodeId.fresh, NodeData.DateTime(DateTimeMilli(date)), NodeRole.Neutral, NodeMeta.default, NodeSchema.empty)
         addNodes += dateNode
         addEdges += Edge.LabeledProperty(cardNode.id, EdgeData.LabeledProperty.dueDate, PropertyId(dateNode.id))
       }
 
       // attach description as note
       if (card.desc.nonEmpty) {
-        val descNode = Node.Content(NodeId.fresh, NodeData.Markdown(card.desc), NodeRole.Note, NodeMeta.default, None)
+        val descNode = Node.Content(NodeId.fresh, NodeData.Markdown(card.desc), NodeRole.Note, NodeMeta.default, NodeSchema.empty)
         addNodes += descNode
         addEdges += Edge.Child(ParentId(cardNode.id), ChildId(descNode.id))
       }
@@ -203,7 +203,7 @@ object Trello {
             action.data.card.foreach { card =>
               cardsById.get(card.id).foreach { nodeIdCard =>
                 val authorPrefix = action.memberCreator.flatMap(member => member.fullName.orElse(member.username)).fold("")(author => s"${author}: ")
-                val commentNode = Node.Content(NodeId.fresh, NodeData.Markdown(s"$authorPrefix$text"), NodeRole.Message, NodeMeta.default, None)
+                val commentNode = Node.Content(NodeId.fresh, NodeData.Markdown(s"$authorPrefix$text"), NodeRole.Message, NodeMeta.default, NodeSchema.empty)
                 addNodes += commentNode
                 addEdges += Edge.Child(ParentId(nodeIdCard), ChildId(commentNode.id))
               }

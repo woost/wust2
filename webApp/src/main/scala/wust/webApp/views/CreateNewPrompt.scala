@@ -60,7 +60,7 @@ object CreateNewPrompt {
         case Note    => NodeRole.Note
         case Project => NodeRole.Project
       }
-      val newNode = Node.Content(NodeId.fresh, NodeData.Markdown(sub.text), newNodeRole, NodeMeta(nodeAccess.now), views = Some(newNodeViews))
+      val newNode = Node.Content(NodeId.fresh, NodeData.Markdown(sub.text), newNodeRole, NodeMeta(nodeAccess.now), schema = NodeSchema(Some(newNodeViews.map(NodeView(_)))))
       val changes =
         GraphChanges.addNodeWithParent(newNode, parents) merge
           GraphChanges.addToParent(childNodes.now, ParentId(newNode.id)) merge

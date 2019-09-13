@@ -75,8 +75,19 @@ trait Circe {
 
   implicit val viewVisibleEncoder: Encoder[View.Visible] = deriveEncoder[View.Visible]
   implicit val viewVisibleDecoder: Decoder[View.Visible] = deriveDecoder[View.Visible]
+  implicit val viewConfigEncoder: Encoder[View.Config] = deriveEncoder[View.Config]
+  implicit val viewConfigDecoder: Decoder[View.Config] = deriveDecoder[View.Config]
+  implicit val NodeViewEncoder: Encoder[NodeView] = deriveEncoder[NodeView]
+  implicit val NodeViewDecoder: Decoder[NodeView] = deriveDecoder[NodeView]
+  implicit val EntityEncoder: Encoder[Entity] = deriveEncoder[Entity]
+  implicit val EntityDecoder: Decoder[Entity] = deriveDecoder[Entity]
+  implicit val NodeRoleKeyDecoder: KeyDecoder[NodeRole] = KeyDecoder.instance(NodeRole.fromString)
+  implicit val NodeRoleKeyEncoder: KeyEncoder[NodeRole] = KeyEncoder[String].contramap(_.tpe)
+  implicit val NodeSchemaEncoder: Encoder[NodeSchema] = deriveEncoder[NodeSchema]
+  implicit val NodeSchemaDecoder: Decoder[NodeSchema] = deriveDecoder[NodeSchema]
 
   implicit val FeatureDecoder: Decoder[Feature] = deriveDecoder[Feature]
   implicit val FeatureEncoder: Encoder[Feature] = deriveEncoder[Feature]
+
 }
 object Circe extends Circe

@@ -83,9 +83,3 @@ object NodeData {
   object User extends Named
 
 }
-
-sealed trait NodeTypeSelection
-object NodeTypeSelection {
-  final case class Data(data: NodeData.Type) extends NodeTypeSelection
-  case object Ref extends NodeTypeSelection
-}

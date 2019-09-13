@@ -141,7 +141,7 @@ final case class GraphChanges(
 
     val sb = new StringBuilder
     sb ++= s"GraphChanges(\n"
-    if(addNodes.nonEmpty) sb ++= s"  addNodes: ${ addNodes.map(n => s"${ id(n.id) }:${ n.tpe }/${n.role}/${n.views}  ${n.id.toBase58}  ${n.id.toUuid}").mkString("\n            ") }\n"
+    if(addNodes.nonEmpty) sb ++= s"  addNodes: ${ addNodes.map(n => s"${ id(n.id) }:${ n.tpe }/${n.role}/${n.schema}  ${n.id.toBase58}  ${n.id.toUuid}").mkString("\n            ") }\n"
     if(addEdges.nonEmpty) sb ++= s"  addEdges: ${ addEdges.map(e => s"${ id(e.sourceId) } -${ e.data }-> ${ id(e.targetId) }").mkString("\n            ") }\n"
     if(delEdges.nonEmpty) sb ++= s"  delEdges: ${ delEdges.map(e => s"${ id(e.sourceId) } -${ e.data }-> ${ id(e.targetId) }").mkString("\n            ") }\n"
     sb ++= ")"
@@ -207,13 +207,13 @@ object GraphChanges {
   )
 
   val newProjectName = "Untitled Project"
-  def newProject(nodeId: NodeId, userId: UserId, title: String = newProjectName, views: Option[List[View.Visible]] = None): GraphChanges = {
+  def newProject(nodeId: NodeId, userId: UserId, title: String = newProjectName, schema: NodeSchema = NodeSchema.empty): GraphChanges = {
     val post = new Node.Content(
       nodeId,
       NodeData.Markdown(title),
       NodeRole.Project,
       NodeMeta(accessLevel = NodeAccess.Inherited),
-      views = views
+      schema = schema
     )
     GraphChanges(
       addNodes = Array(post),

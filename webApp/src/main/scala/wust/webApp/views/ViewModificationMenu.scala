@@ -48,9 +48,9 @@ object ViewModificationMenu {
     val existingViews = Rx {
       val node = nodeRx()
       node.fold(List.empty[View.Visible]) { node =>
-        node.views match {
+        node.schema.views match {
           case None        => ViewHeuristic.bestView(GlobalState.graph(), node, GlobalState.userId()).toList
-          case Some(views) => views
+          case Some(views) => views.map(_.view)
         }
       }
     }
@@ -149,8 +149,8 @@ object ViewModificationMenu {
     node.foreach { node =>
       if (node.views.isDefined) {
         val newNode = node match {
-          case n: Node.Content => n.copy(views = None)
-          case n: Node.User    => n.copy(views = None)
+          case n: Node.Content => n.copy(schema = n.schema.copy(views = None))
+          case n: Node.User    => n.copy(schema = n.schema.copy(views = None))
         }
 
         val newView = ViewHeuristic.bestView(GlobalState.graph.now, node, GlobalState.user.now.id).getOrElse(View.Empty)
@@ -167,18 +167,18 @@ object ViewModificationMenu {
     val node = nodeRx.now
     node.foreach { node =>
       val currentViews = node.views.getOrElse(Nil)
-      val filteredViews = currentViews.filterNot(_ == view)
+      val filteredViews = currentViews.filterNot(_.view == view)
       val newNode = node match {
-        case n: Node.Content => n.copy(views = Some(filteredViews))
-        case n: Node.User    => n.copy(views = Some(filteredViews))
+        case n: Node.Content => n.copy(schema = n.schema.copy(views = Some(filteredViews)))
+        case n: Node.User    => n.copy(schema = n.schema.copy(views = Some(filteredViews)))
       }
 
       //switch to remaining view
       if (currentView.now == view) {
         val currPosition = currentViews.indexWhere(_ == view)
         val nextPosition = currPosition - 1
-        val newView = if (nextPosition < 0) filteredViews.headOption.getOrElse(View.Empty) else filteredViews(nextPosition)
-        currentView() = newView
+        val newView:NodeView = if (nextPosition < 0) filteredViews.headOption.getOrElse(NodeView(View.Empty)) else filteredViews(nextPosition)
+        currentView() = newView.view
       }
 
       GlobalState.submitChanges(GraphChanges.addNode(newNode))
@@ -195,9 +195,10 @@ object ViewModificationMenu {
         val currentViews = existingViews.now
 
         if (!currentViews.contains(newView)) {
+          val newViews = currentViews :+ newView
           val newNode = node match {
-            case n: Node.Content => n.copy(views = Some(currentViews :+ newView))
-            case n: Node.User    => n.copy(views = Some(currentViews :+ newView))
+            case n: Node.Content => n.copy(schema = n.schema.replaceViews(newViews))
+            case n: Node.User    => n.copy(schema = n.schema.replaceViews(newViews))
           }
 
           GlobalState.submitChanges(GraphChanges.addNode(newNode))
