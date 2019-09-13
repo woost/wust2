@@ -20,6 +20,7 @@ trait Hopscotch extends StyleSheet.Standalone {
     &(".hopscotch-bubble-number") - (
       lineHeight(29 px).important, // centering 1/x step numbers
       fontSize(16 px).important,
-    )
+    ),
+    zIndex(ZIndex.tutorialOverlay).important
   )
 }
