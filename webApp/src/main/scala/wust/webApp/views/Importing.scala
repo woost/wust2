@@ -2,11 +2,11 @@ package wust.webApp.views
 
 import cats.effect.IO
 import fontAwesome.freeSolid
-import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
 import org.scalajs.dom.experimental._
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.reactive._
 import outwatch.ext.monix._
 import outwatch.dom.helpers.EmitterBuilder
 import rx.{Ctx, Rx, Var}
@@ -291,7 +291,7 @@ object Importing {
     )
   }
 
-  private def renderSource(source: Source, changesObserver: Observer[GraphChanges.Import])(implicit ctx: Ctx.Owner): EmitterBuilder[Option[Source], VDomModifier] = EmitterBuilder.ofModifier { sink =>
+  private def renderSource(source: Source, changesObserver: SinkObserver[GraphChanges.Import])(implicit ctx: Ctx.Owner): EmitterBuilder[Option[Source], VDomModifier] = EmitterBuilder.ofModifier { sink =>
     val importers = Importer.fromSource(source)
     div(
       Styles.flex,
@@ -311,16 +311,16 @@ object Importing {
         overflow.auto,
 
         importers.foldLeft(Seq.empty[VDomModifier]) { (prev, importer) =>
-          val field = importerForm(importer).transform(_.lift[Observable].flatMap { result =>
-            Observable.from(result).flatMap {
+          val field = importerForm(importer).transform(_.concatMapAsync { result =>
+            result.map {
               case Right(importChanges) =>
                 UI.toast("Successfully imported Project")
-                Observable(importChanges)
+                Some(importChanges)
               case Left(error)     =>
                 UI.toast(s"${StringOps.trimToMaxLength(error, 200)}", title = "Failed to import Project", level = UI.ToastLevel.Error)
-                Observable.empty
+                None
             }
-          }) --> changesObserver
+          }.collect { case Some(v) => v}) --> changesObserver
 
           if(prev.isEmpty) Seq(field) else prev ++ Seq[VDomModifier](importerSeparator, field) // TODO: proper with css?
         }
@@ -346,7 +346,7 @@ object Importing {
 
   }
 
-  private def renderSourceBody(source: Option[Source], changesObserver: Observer[GraphChanges.Import], allSources: List[Source])(implicit ctx: Ctx.Owner) = source match {
+  private def renderSourceBody(source: Option[Source], changesObserver: SinkObserver[GraphChanges.Import], allSources: List[Source])(implicit ctx: Ctx.Owner) = source match {
     case Some(source) => renderSource(source, changesObserver)
     case None => selectSource(allSources)
   }
@@ -356,7 +356,7 @@ object Importing {
     val selectedSource = Var[Option[Source]](None)
     val allSources = Source.all
 
-    val changesObserver = GlobalState.eventProcessor.changes.contramap[GraphChanges.Import] { importChanges =>
+    val changesObserver = SinkObserver.lift(GlobalState.eventProcessor.changes.contramap[GraphChanges.Import] { importChanges =>
       //TODO: do not sideeffect with state changes here...
       importChanges.focusNodeId.foreach { focusNodeId =>
         GlobalState.urlConfig.update(_.focus(Page(focusNodeId), needsGet = false))
@@ -365,7 +365,7 @@ object Importing {
       GlobalState.uiModalClose.onNext(())
 
       importChanges.resolve(GlobalState.rawGraph.now, focusedId)
-    }
+    })
 
     val modalHeader: VDomModifier = Rx {
       GlobalState.rawGraph().nodesById(focusedId).map { node =>
@@ -409,7 +409,7 @@ object Importing {
 
     val header = selectedSource.map(renderSourceHeader)
 
-    val description = selectedSource.map(renderSourceBody(_, changesObserver.lift[Observer], allSources) --> selectedSource)
+    val description = selectedSource.map(renderSourceBody(_, changesObserver, allSources) --> selectedSource)
 
 
     div(

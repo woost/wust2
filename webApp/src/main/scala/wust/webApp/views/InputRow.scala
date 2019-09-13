@@ -8,6 +8,7 @@ import org.scalajs.dom
 import org.scalajs.dom.window
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.reactive._
 import rx._
 import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
@@ -122,10 +123,10 @@ object InputRow {
         GlobalState.user.now match {
           case user: AuthUser.Implicit if user.name.isEmpty =>
 
-            val sink = GlobalState.eventProcessor.changes.redirectMapMaybe[Submission] { sub =>
+            val sink = SinkObserver.lift(GlobalState.eventProcessor.changes.redirectMapMaybe[Submission] { sub =>
               val userNode = user.toNode
               userNode.data.updateName(sub.text).map(data => GraphChanges.addNode(userNode.copy(data = data)) merge sub.changes(userNode.id))
-            }
+            })
 
             GlobalState.uiModalConfig.onNext(Ownable(implicit ctx =>
                 newNamePromptModalConfig( sink, "Give yourself a name so others can recognize you.", placeholder = Placeholder(Components.implicitUserName), onHide = () => { handle(); true }, enableMentions = false)

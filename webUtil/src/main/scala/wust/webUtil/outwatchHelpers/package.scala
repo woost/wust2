@@ -266,10 +266,10 @@ package object outwatchHelpers extends KeyHash with RxInstances {
   }
 
   //TODO: Outwatch observable for specific key is pressed Observable[Boolean]
-  def keyDown(keyCode: Int): Observable[Boolean] = Observable(
-    outwatch.dom.dsl.events.document.onKeyDown.collect { case e if e.keyCode == keyCode => true }.lift[Observable],
-    outwatch.dom.dsl.events.document.onKeyUp.collect { case e if e.keyCode == keyCode => false }.lift[Observable],
-  ).merge.startWith(false :: Nil)
+  def keyDown(keyCode: Int): SourceStream[Boolean] = SourceStream.merge(
+    outwatch.dom.dsl.events.document.onKeyDown.collect { case e if e.keyCode == keyCode => true },
+    outwatch.dom.dsl.events.document.onKeyUp.collect { case e if e.keyCode == keyCode => false }
+  ).prepend(false)
 
   @inline def multiObserver[T](observers: Observer[T]*): Observer[T] = new CombinedObserver[T](observers)
 

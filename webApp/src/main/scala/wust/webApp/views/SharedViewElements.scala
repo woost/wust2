@@ -9,6 +9,7 @@ import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl.{label, _}
 import outwatch.dom.helpers.EmitterBuilder
+import outwatch.reactive._
 import outwatch.reactive.handler._
 import outwatch.ext.monix._
 import rx._
@@ -467,7 +468,7 @@ object SharedViewElements {
   }
 
   def newNamePromptModalConfig(
-    newNameSink: Observer[InputRow.Submission],
+    newNameSink: SinkObserver[InputRow.Submission],
     header: VDomModifier,
     body: VDomModifier = VDomModifier.empty,
     placeholder: Placeholder = Placeholder.empty,
@@ -523,7 +524,7 @@ object SharedViewElements {
     VDomModifier(
       onClick.stopPropagation.use(Ownable { implicit ctx => 
         newNamePromptModalConfig(
-          sink.lift[Observer],
+          sink,
           header,
           body(ctx),
           placeholder,
