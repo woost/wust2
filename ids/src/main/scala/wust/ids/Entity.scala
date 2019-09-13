@@ -8,6 +8,9 @@ object Entity {
 sealed trait NodeTypeSelection
 object NodeTypeSelection {
   final case class Data(data: NodeData.Type) extends NodeTypeSelection
+
+  final case class DeepChildrenChain(role: NodeRole) extends NodeTypeSelection
+
   case object Tasks extends NodeTypeSelection
   case object Messages extends NodeTypeSelection
   case object Notes extends NodeTypeSelection
