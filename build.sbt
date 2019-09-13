@@ -27,6 +27,7 @@ lazy val commonSettings = Seq(
       Nil,
   addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.10"),
   addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
+  addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full),
   libraryDependencies ++=
     Deps.scribe.core.value ::
       Deps.scribe.perfolation.value ::
@@ -288,7 +289,7 @@ lazy val util = crossProject(JSPlatform, JVMPlatform)
     libraryDependencies ++=
       Deps.cats.core.value ::
       Deps.pureconfig.value ::
-      Deps.taggedTypes.value ::
+      Deps.newType.value ::
       Deps.flatland.value ::
       Nil
   )
@@ -358,7 +359,7 @@ lazy val ids = crossProject(JSPlatform, JVMPlatform)
     libraryDependencies ++=
       Deps.cuid.value ::
         Deps.base58s.value ::
-        Deps.taggedTypes.value ::
+        Deps.newType.value ::
         Deps.circe.core.value % Optional ::
         Deps.circe.genericExtras.value % Optional ::
         Deps.boopickle.value % Optional ::

@@ -76,7 +76,7 @@ object Deps {
   val cuid = dep("io.github.cornerman.scala-cuid" %%% "scala-cuid" % "9589781")
   val base58s = dep("io.github.fdietze.base58s" %%% "base58s" % "fbedca4")
   val monix = dep("io.monix" %%% "monix" % "3.0.0")
-  val taggedTypes = dep("org.rudogma" %%% "supertagged" % "1.4")
+  val newType = dep("io.estatico" %% "newtype" % "0.4.3")
   val colorado = dep("com.github.fdietze.colorado" %%% "colorado" % "8722023")
   val scalacss = dep("com.github.japgolly.scalacss" %%% "core" % "0.5.6")
   val kantanRegex = new {

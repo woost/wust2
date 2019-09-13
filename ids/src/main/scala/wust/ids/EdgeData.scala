@@ -1,6 +1,7 @@
 package wust.ids
 
-import supertagged._
+import io.estatico.newtype.macros.newtype
+import io.estatico.newtype.macros.newsubtype
 
 sealed trait EdgeData {
   val tpe: EdgeData.Type
@@ -8,8 +9,7 @@ sealed trait EdgeData {
   @inline def as[T <: EdgeData]: T = asInstanceOf[T]
 }
 object EdgeData {
-  object Type extends TaggedType[String]
-  type Type = Type.Type
+  @newsubtype case class Type(tpe:String)
 
   abstract class Named(implicit name: sourcecode.Name) {
     val tpe = Type(name.value)

@@ -246,10 +246,10 @@ final case class GraphLookup private(
     case edgeIdx if edges(edgeIdx).targetId == userId => edges(edgeIdx).as[Edge.Expanded].data.isExpanded
   }
 
-  @inline def notDeletedParents(nodeId: NodeId): Seq[NodeId] = idToIdxFold(nodeId)(Seq.empty[NodeId])(idx => notDeletedParentsIdx.map(idx)(nodeIds(_)))
+  @inline def notDeletedParents(nodeId: NodeId): Seq[NodeId] = idToIdxFold(nodeId)(Seq.empty[NodeId])(idx => notDeletedParentsIdx.map(idx)(nodeIds(_).cuid).asInstanceOf[Array[NodeId]])
 
-  @inline def parents(nodeId: NodeId): Seq[NodeId] = idToIdxFold(nodeId)(Seq.empty[NodeId])(idx => parentsIdx.map(idx)(nodeIds(_)))
-  @inline def children(nodeId: NodeId): Seq[NodeId] = idToIdxFold(nodeId)(Seq.empty[NodeId])(idx => childrenIdx.map(idx)(nodeIds(_)))
+  @inline def parents(nodeId: NodeId): Seq[NodeId] = idToIdxFold(nodeId)(Seq.empty[NodeId])(idx => parentsIdx.map(idx)(nodeIds(_).cuid).asInstanceOf[Array[NodeId]])
+  @inline def children(nodeId: NodeId): Seq[NodeId] = idToIdxFold(nodeId)(Seq.empty[NodeId])(idx => childrenIdx.map(idx)(nodeIds(_).cuid).asInstanceOf[Array[NodeId]])
   @inline def parentsContains(nodeId: NodeId)(parentId: NodeId): Boolean = idToIdxFold(nodeId)(false) { nodeIdx =>
     idToIdxFold(parentId)(false)(parentIdx => parentsIdx.contains(nodeIdx)(parentIdx))
   }
@@ -317,8 +317,8 @@ final case class GraphLookup private(
   // not lazy because it often used for sorting. and we do not want to compute a lazy val in a for loop.
   val (nodeCreated: Array[EpochMilli], nodeCreatorIdx: Array[Int], nodeModified: Array[EpochMilli]) = {
     val nodeCreator = new Array[Int](n)
-    val nodeCreated = new Array[EpochMilli](n) // filled with 0L = EpochMilli.min by default
-    val nodeModified = new Array[EpochMilli](n) // filled with 0L = EpochMilli.min by default
+    val nodeCreated = (new Array[Long](n)).asInstanceOf[Array[EpochMilli]] // filled with 0L = EpochMilli.min by default
+    val nodeModified = (new Array[Long](n)).asInstanceOf[Array[EpochMilli]] // filled with 0L = EpochMilli.min by default
     var nodeIdx = 0
     while (nodeIdx < n) {
       val authorEdgeIndices: ArraySliceInt = sortedAuthorshipEdgeIdx(nodeIdx)

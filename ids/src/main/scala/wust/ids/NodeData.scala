@@ -1,6 +1,7 @@
 package wust.ids
 
-import supertagged._
+import io.estatico.newtype.macros.newtype
+import io.estatico.newtype.macros.newsubtype
 
 sealed trait NodeData {
   def str: String //TODO: define this properly via typeclass to plugin from the outside.
@@ -9,8 +10,7 @@ sealed trait NodeData {
   @inline def as[T <: NodeData]: T = asInstanceOf[T]
 }
 object NodeData {
-  object Type extends TaggedType[String]
-  type Type = Type.Type
+  @newsubtype case class Type(tpe:String)
 
   abstract class Named(implicit name: sourcecode.Name) {
     val tpe = Type(name.value)
@@ -53,12 +53,12 @@ object NodeData {
 
   final case class DateTime(content: DateTimeMilli) extends Named with Content {
     def plainStr = content.toString
-    def str = content.isoDateAndTime
+    def str = content.t.isoDateAndTime
   }
   object DateTime extends Named
   final case class Date(content: DateMilli) extends Named with Content {
     def plainStr = content.toString
-    def str = content.isoDate
+    def str = content.t.isoDate
   }
   object Date extends Named
   final case class Duration(content: DurationMilli) extends Named with Content {
