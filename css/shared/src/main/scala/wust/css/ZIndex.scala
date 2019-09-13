@@ -13,6 +13,8 @@ object ZIndex {
   val uiModal = 15000
   val uiSidebar = 16000
   val uiSidebarContent = 16100
+  val tutorialOverlay = 17000
+  val menu = 17500
   val tooltip = 18000
   val dragging = 20000
   val toast = 25000

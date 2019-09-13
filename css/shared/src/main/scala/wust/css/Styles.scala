@@ -331,6 +331,10 @@ object CommonStyles extends StyleSheet.Standalone
     zIndex(ZIndex.tooltip),
   )
 
+  ".ui.dropdown .menu" - (
+    zIndex(ZIndex.menu).important
+  )
+
   ".ui.modal > .close" - (
     color(c"#fff"), // would be black otherwise by semantic ui on small screens
 
