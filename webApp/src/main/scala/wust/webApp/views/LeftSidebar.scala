@@ -1,6 +1,5 @@
 package wust.webApp.views
 
-import wust.webApp.StagingOnly
 import wust.webApp.Icons
 import monix.reactive.Observer
 import wust.facades.googleanalytics.Analytics
@@ -87,13 +86,12 @@ object LeftSidebar {
                     FilterWindow.body(Styles.flexStatic),
                     active = false
                   )
-                ) else Seq.empty) ++
-                StagingOnly(
+                ) else Seq.empty) :+
                   accordionEntry(
                     FeatureExplorer.toggleButton.apply(marginBottom := "10px"),
                     FeatureExplorer(),
                     active = false
-                  )).toSeq,
+                  ),
                 styles = "styled fluid",
                 exclusive = true,
               ).apply(

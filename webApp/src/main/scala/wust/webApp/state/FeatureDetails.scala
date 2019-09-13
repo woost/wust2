@@ -6,7 +6,7 @@ import acyclic.file
 import outwatch.dom._
 import outwatch.dom.dsl._
 import scala.scalajs.js
-import wust.webApp.{ DevOnly, StagingOnly, DebugOnly }
+import wust.webApp.{ DevOnly, DebugOnly }
 import org.scalajs.dom.console
 import wust.ids.{ Feature, View }
 import wust.util.macros.SubObjects
