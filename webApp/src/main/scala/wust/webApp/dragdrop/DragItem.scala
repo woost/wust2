@@ -65,7 +65,7 @@ object DragContainer {
     sealed trait AreaForColumns extends SortableContainer
     sealed trait AreaForCards extends SortableContainer
     sealed trait Workspace extends SortableContainer { def parentId: NodeId }
-    final case class Column(nodeId: NodeId, items: Seq[NodeId], workspace: NodeId, groupKey:PropertyKey) extends AreaForColumns with AreaForCards { @inline def parentId = nodeId; override def toString = s"Column(${parentId.shortHumanReadable})" }
+    final case class Column(nodeId: NodeId, items: Seq[NodeId], workspace: NodeId, groupKey:PropertyKey, propertyValueId:NodeId) extends AreaForColumns with AreaForCards { @inline def parentId = nodeId; override def toString = s"Column(${parentId.shortHumanReadable})" }
     final case class ColumnArea(parentId: NodeId, items: Seq[NodeId]) extends AreaForColumns { override def toString = s"ColumnArea(${parentId.shortHumanReadable})" }
     final case class Inbox(parentId: NodeId, items: Seq[NodeId]) extends AreaForCards with Workspace { override def toString = s"Inbox(${parentId.shortHumanReadable})" }
     final case class Card(parentId: NodeId, items: Seq[NodeId]) extends AreaForCards with Workspace { override def toString = s"Card(${parentId.shortHumanReadable})" }

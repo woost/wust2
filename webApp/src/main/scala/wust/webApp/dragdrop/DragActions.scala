@@ -42,12 +42,10 @@ object DragActions {
       // Task between Columns
       case (payload: DragItem.Task, from: Kanban.Column, into: Kanban.Column, ctrl, false) =>
         (sortableStopEvent, graph, userId) =>
-          def addTargetColumn = sortingChanges(graph, userId, sortableStopEvent, payload.nodeId, from, into)
-          def addTargetWorkspace = if (from.workspace != into.workspace) GraphChanges.connect(Edge.Child)(ParentId(into.workspace), ChildId(payload.nodeId)) else GraphChanges.empty
-          def disconnectSourceColumn = if (addTargetColumn.isEmpty || from.nodeId == into.nodeId) GraphChanges.empty else GraphChanges.disconnect(Edge.Child)(ParentId(from.nodeId), ChildId(payload.nodeId))
-          def disconnectWorkspace: GraphChanges = if (from.workspace != into.workspace)
-            GraphChanges.disconnect(Edge.Child)(ParentId(from.workspace), ChildId(payload.nodeId))
-          else GraphChanges.empty
+
+          def removeProperty = GraphChanges.removeProperty(payload.nodeId, key = from.groupKey, propertyValueId = from.propertyValueId)
+          def setProperty = GraphChanges.addProperty(payload.nodeId, key = into.groupKey, propertyValueId = into.propertyValueId, showOnCard = false)
+
 
           if(from.nodeId != into.nodeId)
             FeatureState.use(Feature.DragTaskToDifferentColumnInKanban)
@@ -55,20 +53,22 @@ object DragActions {
             FeatureState.use(Feature.ReorderTaskInKanban)
 
           if (ctrl)
-            addTargetColumn merge addTargetWorkspace
+            setProperty
           else
-            addTargetColumn merge addTargetWorkspace merge disconnectSourceColumn merge disconnectWorkspace
+            removeProperty merge setProperty
 
       // e.g. Subtask into Column
       //TODO: copying from inbox to column and vice versa does not work. the encoding of being in the inbox is parent-edge to project. encoding of being in a column is parent-edge to project and parent-edge to column. Inclusion in both cannot be encoded with this.
       case (payload: DragItem.Task, from: Kanban.Inbox, intoColumn: Kanban.Column, ctrl, false) =>
         (sortableStopEvent, graph, userId) =>
           //        val move = GraphChanges.changeTarget(Edge.Parent)(Some(payload.nodeId), stageParents, Some(intoColumn.parentId))
-          def addTargetColumn = sortingChanges(graph, userId, sortableStopEvent, payload.nodeId, from, intoColumn)
+          
+          def setProperty = GraphChanges.addProperty(payload.nodeId, key = intoColumn.groupKey, propertyValueId = intoColumn.propertyValueId, showOnCard = false)
           def addTargetWorkspace = GraphChanges.connect(Edge.Child)(ParentId(intoColumn.workspace), ChildId(payload.nodeId))
           def disconnect: GraphChanges = if (from.parentId != intoColumn.workspace)
             GraphChanges.disconnect(Edge.Child)(ParentId(from.parentId), ChildId(payload.nodeId))
           else GraphChanges.empty
+
 
           GlobalState.view.now match {
             case View.Kanban => FeatureState.use(Feature.DragTaskToDifferentColumnInKanban)
@@ -76,9 +76,9 @@ object DragActions {
           }
 
           if (ctrl)
-            addTargetColumn merge addTargetWorkspace
+            setProperty merge addTargetWorkspace
           else
-            addTargetColumn merge addTargetWorkspace merge disconnect
+            setProperty merge addTargetWorkspace merge disconnect
 
       // e.g. Card from Column into other Card/Inbox
       //TODO: copying from inbox to column and vice versa does not work. the encoding of being in the inbox is parent-edge to project. encoding of being in a column is parent-edge to project and parent-edge to column. Inclusion in both cannot be encoded with this.
@@ -92,7 +92,7 @@ object DragActions {
             GraphChanges.disconnect(Edge.Child)(ParentId(fromColumn.workspace), ChildId(payload.nodeId))
           else GraphChanges.empty
 
-          def disconnectFromColumn = GraphChanges.disconnect(Edge.Child)(ParentId(fromColumn.nodeId), ChildId(payload.nodeId))
+          def removeProperty = GraphChanges.removeProperty(payload.nodeId, key = fromColumn.groupKey, propertyValueId = fromColumn.propertyValueId)
 
           (into, GlobalState.view.now) match {
             // case (_: Kanban.Inbox, View.List) => FeatureState.use(Feature.DragTaskToDifferentColumnInChecklist)
@@ -103,7 +103,7 @@ object DragActions {
           if (ctrl)
             addTargetWorkspace
           else
-            addTargetWorkspace merge disconnectFromColumn merge disconnectFromWorkspace
+            addTargetWorkspace merge removeProperty merge disconnectFromWorkspace
 
       // e.g. Card from Card/Inbox into Card/Inbox
       case (payload: DragItem.Task, from: Kanban.Workspace, into: Kanban.Workspace, ctrl, false) =>
@@ -132,7 +132,7 @@ object DragActions {
     import DragItem._
     import wust.graph.GraphChanges._
     {
-      case (payload: ContentNodeConnect, target: ContentNodeConnect, ctrl, false) => (graph, userId) => connectWithProperty(nodeId = payload.nodeId, payload.propertyName, propertyValueId = target.nodeId, showOnCard = false)
+      case (payload: ContentNodeConnect, target: ContentNodeConnect, ctrl, false) => (graph, userId) => addProperty(nodeId = payload.nodeId, payload.propertyName, propertyValueId = target.nodeId, showOnCard = false)
 
       case (payload: ContentNode, target: ContentNode, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), ParentId(target.nodeId), graph, ctrl)
       case (payload: ContentNode, target: Thread, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), target.nodeIds.map(ParentId(_)), graph, ctrl)
@@ -155,7 +155,7 @@ object DragActions {
 
       case (payload: Property, target: ContentNode, false, false) => (graph, userId) => linkOrCopyInto(payload.edge, target.nodeId, graph)
 
-      case (payload: Tag, target: ContentNode, false, false) => (graph, userId) => connectWithProperty(target.nodeId, PropertyKey.tag, payload.nodeId, showOnCard = true)
+      case (payload: Tag, target: ContentNode, false, false) => (graph, userId) => addProperty(target.nodeId, PropertyKey.tag, payload.nodeId, showOnCard = true)
       case (payload: Tag, target: Tag, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), ParentId(target.nodeId), graph, ctrl)
       case (payload: Tag, target: TagBar, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), ParentId(target.nodeId), graph, ctrl)
       case (payload: Tag, target: Channel, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), ParentId(target.nodeId), graph, true) // tags are always linked
