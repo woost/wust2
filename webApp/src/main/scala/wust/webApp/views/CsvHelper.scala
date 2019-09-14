@@ -33,8 +33,6 @@ object CsvHelper {
     val topLevelNodeIds = Array.newBuilder[NodeId]
     val nodes = Array.newBuilder[Node]
     val edges = Array.newBuilder[Edge]
-    val allStages = groupByBuilder[String, ChildId]
-    val allTags = groupByBuilder[String, ChildId]
 
     var header = Option.empty[List[String]]
     while (reader.hasNext) {
@@ -52,14 +50,6 @@ object CsvHelper {
               topLevelNodeIds += nodeId
             } else {
               column match {
-                case "Tags" => cellSplit(cell).foreach { tag =>
-                  allTags += (tag -> ChildId(nodeId))
-                }
-
-                case "Stages" => cellSplit(cell).foreach { stage =>
-                  allStages += (stage -> ChildId(nodeId))
-                }
-
                 // we cannot import Assignees as users, just text property. Name is handled with idx == 0.
                 case propertyName =>
                   if (cell.nonEmpty) {
@@ -77,24 +67,6 @@ object CsvHelper {
 
         case (_, Left(err)) =>
           return Left(s"Error while parsing CSV: $err")
-      }
-    }
-
-    allStages.result.foreach { case (stageName, nodeIds) =>
-      val stageId = ParentId(NodeId.fresh)
-      nodes += Node.Content(stageId, NodeData.Markdown(stageName), NodeRole.Stage, NodeMeta.default, NodeSchema.empty)
-      topLevelNodeIds += stageId
-      nodeIds.foreach { nodeId =>
-        edges += Edge.Child(stageId, nodeId)
-      }
-    }
-
-    allTags.result.foreach { case (stageName, nodeIds) =>
-      val tagId = ParentId(NodeId.fresh)
-      nodes += Node.Content(tagId, NodeData.Markdown(stageName), NodeRole.Tag, NodeMeta.default, NodeSchema.empty)
-      topLevelNodeIds += tagId
-      nodeIds.foreach { nodeId =>
-        edges += Edge.Child(tagId, nodeId)
       }
     }
 
