@@ -137,9 +137,9 @@ object GlobalState {
     }
   }
 
-  val viewConfig: Rx[ViewConfig] = {
+  val viewPage: Rx[ViewPage] = {
 
-    var lastViewConfig: ViewConfig = ViewConfig(View.Empty, Page.empty)
+    var lastViewPage: ViewPage = ViewPage(View.Empty, Page.empty)
 
     val viewAndPageAndSanitizedPage: Rx[(Option[View], Page, Page)] = Rx {
       val rawPage = urlConfig().pageChange.page
@@ -163,18 +163,18 @@ object GlobalState {
             bestView
         }
 
-        lastViewConfig = ViewConfig(visibleView, sanitizedPage)
+        lastViewPage = ViewPage(visibleView, sanitizedPage)
       }
 
-      lastViewConfig
+      lastViewPage
     }
   }
 
-  val view: Rx[View.Visible] = viewConfig.map(_.view)
+  val view: Rx[View.Visible] = viewPage.map(_.view)
   val viewIsContent: Rx[Boolean] = view.map(_.isContent)
 
   val urlPage = urlConfig.map(_.pageChange.page)
-  val page: Rx[Page] = viewConfig.map(_.page)
+  val page: Rx[Page] = viewPage.map(_.page)
   val pageNotFound: Rx[Boolean] = Rx{ !urlConfig().pageChange.page.parentId.forall(rawGraph().contains) }
 
   def focus(nodeId: NodeId, needsGet: Boolean = true) = {
@@ -244,8 +244,8 @@ object GlobalState {
   }
   val isAnyFilterActive: Rx[Boolean] = Rx { graphTransformations().length != 2 || defaultTransformations.exists(t => !graphTransformations().contains(t)) }
 
-  def toFocusState(viewConfig: ViewConfig): Option[FocusState] = viewConfig.page.parentId.map { parentId =>
-    FocusState(viewConfig.view, parentId, parentId, isNested = false, view => urlConfig.update(_.focus(view)), nodeId => focus(nodeId))
+  def toFocusState(viewPage: ViewPage): Option[FocusState] = viewPage.page.parentId.map { parentId =>
+    FocusState(viewPage.view, parentId, parentId, isNested = false, view => urlConfig.update(_.focus(view)), nodeId => focus(nodeId))
   }
 
   private val crispIsAlreadyLoaded = Try(window.asInstanceOf[js.Dynamic].CRISP_IS_READY.asInstanceOf[Boolean]).getOrElse(false)

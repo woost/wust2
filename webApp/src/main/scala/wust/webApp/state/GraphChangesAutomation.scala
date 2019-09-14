@@ -679,7 +679,7 @@ object GraphChangesAutomation {
   // We get the current graph + the new graph change. For each new parent edge in the graph change,
   // we check if the parent has a template node. If the parent has a template node, we want to
   // append the subgraph (which is spanned from the template node) to the newly inserted child of the parent.
-  def enrich(userId: UserId, graph: Graph, viewConfig: Var[UrlConfig], changes: GraphChanges, visitedAutomateParent: Set[NodeId] = Set.empty): GraphChanges = {
+  def enrich(userId: UserId, graph: Graph, viewPage: Var[UrlConfig], changes: GraphChanges, visitedAutomateParent: Set[NodeId] = Set.empty): GraphChanges = {
     scribe.info("Check for automation enrichment of graphchanges: " + changes.toPrettyString(graph))
 
     case class CopyArgs(newNode: Node.Content, templateNodeIdxs: Array[Int], ignoreParents: mutable.HashSet[NodeId], childEdges: Array[Edge.Child]) {
@@ -791,14 +791,14 @@ object GraphChangesAutomation {
       UI.toast(
         StringOps.trimToMaxLength(childNode.str, 50),
         title = s"${ childNode.role } was automated:",
-        // click = () => viewConfig.update(_.copy(pageChange = PageChange(Page(childNode.id))))
+        // click = () => viewPage.update(_.copy(pageChange = PageChange(Page(childNode.id))))
         customIcon = Some("robot")
       )
     }
 
     val newChanges = GraphChanges.from(addNodes = addNodes, addEdges = addEdges, delEdges = delEdges)
     // recursive if they were automation, we might need to do another one based on the automated changes.
-    if (automatedNodes.nonEmpty) enrich(userId, graph.applyChanges(newChanges), viewConfig, newChanges, visitedAutomateParent ++ newAutomateParentChild)
+    if (automatedNodes.nonEmpty) enrich(userId, graph.applyChanges(newChanges), viewPage, newChanges, visitedAutomateParent ++ newAutomateParentChild)
     else newChanges
   }
 

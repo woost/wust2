@@ -9,8 +9,8 @@ import wust.webApp.state.{PageChange, UrlConfig, UrlRoute}
 class UrlConfigParsingSpec extends FreeSpec with MustMatchers {
   def createUrlConfig(view: Option[View], page: Page, prevView: Option[View]) = UrlConfig(view, PageChange(page), prevView, None, None, None)
 
-  def toUrlRouteAndBack(viewConfig: UrlConfig): UrlConfig =
-    UrlConfigParser.fromUrlRoute(UrlConfigWriter.toUrlRoute(viewConfig))
+  def toUrlRouteAndBack(viewPage: UrlConfig): UrlConfig =
+    UrlConfigParser.fromUrlRoute(UrlConfigWriter.toUrlRoute(viewPage))
 
   def freshNodeId(i:Int) = NodeId(Cuid(i, i))
 

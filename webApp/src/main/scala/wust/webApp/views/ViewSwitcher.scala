@@ -43,11 +43,11 @@ object ViewSwitcher {
   def apply(channelId: NodeId)(implicit ctx: Ctx.Owner): CustomEmitterBuilder[View, VNode] = EmitterBuilder.ofNode[View] { viewSink =>
     {
       val currentView = Var[View](View.Empty)
-      GlobalState.viewConfig
+      GlobalState.viewPage
         .foreach({
           case config if config.page.parentId.contains(channelId) => currentView() = config.view
           case _ => ()
-        }: ViewConfig => Unit)
+        }: ViewPage => Unit)
       currentView.triggerLater { view =>
         GlobalState.urlConfig.update(_.focus(view))
         viewSink.onNext(view)

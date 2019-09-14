@@ -142,16 +142,16 @@ object GlobalStateFactory {
     }
 
     // if we have a invitation token, we merge this invited user into our account and get the graph again.
-    urlConfig.foreach { viewConfig =>
+    urlConfig.foreach { viewPage =>
       // handle invittation token
-      viewConfig.invitation foreach { inviteToken =>
+      viewPage.invitation foreach { inviteToken =>
         Client.auth.acceptInvitation(inviteToken).foreach {
           case () =>
             //clear the invitation from the viewconfig and url
             urlConfig.update(_.copy(invitation = None))
 
             // get a new graph with new right after the accepted invitation
-            getNewGraph(viewConfig.pageChange.page).foreach { graph =>
+            getNewGraph(viewPage.pageChange.page).foreach { graph =>
               eventProcessor.localEvents.onNext(ReplaceGraph(graph))
             }
         }
@@ -159,7 +159,7 @@ object GlobalStateFactory {
       }
 
       // handle focus id
-      viewConfig.focusId foreach { focusId =>
+      viewPage.focusId foreach { focusId =>
         //TODO better way to focus a single node in a page. for now just rightsidebar
         rightSidebarNode() = Some(FocusPreference(focusId))
       }
@@ -219,24 +219,24 @@ object GlobalStateFactory {
 
       userAndPage.toObservable
         .filter {
-          case (viewConfig, user) =>
+          case (viewPage, user) =>
             @inline def userWasChanged = prevUser == null || prevUser.id != user.id || prevUser.data.isImplicit != user.data.isImplicit
-            @inline def pageWasChanged = prevPage == null || prevPage != viewConfig.pageChange
-            @inline def needsGet = viewConfig.pageChange.needsGet
-            @inline def pageChangeNonEmpty = viewConfig.pageChange.page.nonEmpty
+            @inline def pageWasChanged = prevPage == null || prevPage != viewPage.pageChange
+            @inline def needsGet = viewPage.pageChange.needsGet
+            @inline def pageChangeNonEmpty = viewPage.pageChange.page.nonEmpty
 
             val result = userWasChanged || (pageWasChanged && needsGet && (pageChangeNonEmpty || isFirstGraphRequest))
 
-            prevPage = viewConfig.pageChange
+            prevPage = viewPage.pageChange
             prevUser = user
             isFirstGraphRequest = false
 
             result
         }.switchMap {
-          case (viewConfig, user) =>
+          case (viewPage, user) =>
             val currentTransitChanges = lastTransitChanges.fold(GraphChanges.empty)(_ merge _)
             Observable
-              .fromFuture(getNewGraph(viewConfig.pageChange.page))
+              .fromFuture(getNewGraph(viewPage.pageChange.page))
               .onErrorHandle(_ => Graph.empty)
               .map(g => ReplaceGraph(g.applyChanges(currentTransitChanges)))
         }

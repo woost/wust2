@@ -11,7 +11,7 @@
 // import wust.graph._
 // import wust.sdk.EventProcessor
 // import wust.webApp.{DevOnly, LocalStorageMock, RequestAnimationFrameMock}
-// import wust.webApp.state.{GlobalState, View, ViewConfig}
+// import wust.webApp.state.{GlobalState, View, ViewPage}
 // import webUtil.outwatchHelpers._
 
 // import scala.collection.immutable._
@@ -45,7 +45,7 @@
 //       appUpdateIsAvailable = Observable.empty,
 //       eventProcessor = eventProcessor,
 //       sidebarOpen = Var(true),
-//       viewConfig = Var(ViewConfig.default),
+//       viewPage = Var(ViewPage.default),
 //       isOnline = Var(true))
 
 //     (eventStream)

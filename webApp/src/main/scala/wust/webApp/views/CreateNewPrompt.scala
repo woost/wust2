@@ -72,12 +72,12 @@ object CreateNewPrompt {
         GlobalState.urlConfig.update(_.focus(Page(newNode.id), needsGet = false))
       } else {
         GlobalState.submitChanges(changes)
-        def newViewConfig = nodeRole.now match {
+        def newViewPage = nodeRole.now match {
           case Message => GlobalState.urlConfig.now.focus(Page(parents.head), View.Conversation)
           case Task    => GlobalState.urlConfig.now.focus(Page(parents.head), View.Tasks)
           case Note    => GlobalState.urlConfig.now.focus(Page(parents.head), View.Content)
         }
-        UI.toast(s"Created new ${nodeRole.now}: ${StringOps.trimToMaxLength(newNode.str, 10)}", click = () => GlobalState.urlConfig() = newViewConfig, level = UI.ToastLevel.Success)
+        UI.toast(s"Created new ${nodeRole.now}: ${StringOps.trimToMaxLength(newNode.str, 10)}", click = () => GlobalState.urlConfig() = newViewPage, level = UI.ToastLevel.Success)
       }
 
       GlobalState.uiModalClose.onNext(())

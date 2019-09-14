@@ -4,10 +4,10 @@ import acyclic.file
 import wust.graph._
 import wust.ids.View
 
-// ViewConfig and UrlConfig are the configurations driving our application ui.
+// ViewPage and UrlConfig are the configurations driving our application ui.
 // For example, it contains the page and view that should be displayed.
 // The UrlConfig is the raw configuration derived from the url.
-// The ViewConfig is the sanitized configuration for the views. For example, the
+// The ViewPage is the sanitized configuration for the views. For example, the
 // page in viewconfig is always consistent with the graph, i.e., it is contained in the graph
 // or else it will be none.
 
@@ -17,4 +17,4 @@ import wust.ids.View
 final case class ShareOptions(title: String, text: String, url: String)
 final case class PageChange(page: Page, needsGet: Boolean = true)
 
-final case class ViewConfig(view: View.Visible, page: Page)
+final case class ViewPage(view: View.Visible, page: Page)

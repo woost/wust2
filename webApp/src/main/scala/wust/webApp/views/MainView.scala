@@ -124,14 +124,14 @@ object MainView {
           Styles.growFull,
           cls := "pusher",
           Rx {
-            val viewConfig = GlobalState.viewConfig()
+            val viewPage = GlobalState.viewPage()
 
             if (viewIsContent() && GlobalState.isLoading()) {
               spaceFillingLoadingAnimation.apply(Styles.growFull, zIndex := ZIndex.loading, backgroundColor := Colors.contentBg)
             } else if (viewIsContent() && GlobalState.pageNotFound()) {
               PageNotFoundView.apply.apply(Styles.growFull, zIndex := ZIndex.loading, backgroundColor := Colors.contentBg)
             } else {
-              ViewRender(GlobalState.toFocusState(viewConfig), viewConfig.view).apply(
+              ViewRender(GlobalState.toFocusState(viewPage), viewPage.view).apply(
                 Styles.growFull,
                 flexGrow := 1
               ).prepend(

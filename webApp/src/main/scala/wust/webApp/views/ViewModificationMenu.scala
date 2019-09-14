@@ -23,11 +23,11 @@ import scala.reflect.ClassTag
 object ViewModificationMenu {
   def selectForm(channelId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
     val currentView = Var[View](View.Empty)
-    GlobalState.viewConfig
+    GlobalState.viewPage
       .foreach({
         case config if config.page.parentId.contains(channelId) => currentView() = config.view
         case _ => ()
-      }: ViewConfig => Unit)
+      }: ViewPage => Unit)
     currentView.triggerLater { view => GlobalState.urlConfig.update(_.focus(view)) }
 
     div.thunkStatic(uniqueKey(channelId.toStringFast))(Ownable { implicit ctx =>
