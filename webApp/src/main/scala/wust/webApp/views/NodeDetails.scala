@@ -36,10 +36,6 @@ object NodeDetails {
         if (propertySingleEmpty()) VDomModifier.empty
         else VDomModifier(
 
-          propertySingle().info.tags.map { tag =>
-            Components.removableNodeTag(tag, taggedNodeId = nodeId)
-          },
-
           propertySingle().properties.map { property =>
             property.values.map { value =>
               VDomModifier.ifTrue(value.edge.data.showOnCard) {

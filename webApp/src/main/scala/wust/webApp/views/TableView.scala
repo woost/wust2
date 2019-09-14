@@ -150,22 +150,6 @@ object TableView {
         }(breakOut)
       )
 
-      if(propertyGroup.infos.exists(_.tags.nonEmpty))
-        columns += UI.Column(
-          columnHeader("Tags"),
-          propertyGroup.infos.map { property =>
-            columnEntryOfNodes(property.node.id, property.tags.map(None -> _))
-          }(breakOut)
-        )
-
-      if(propertyGroup.infos.exists(_.stages.nonEmpty))
-        columns += UI.Column(
-          columnHeader("Stage"),
-          propertyGroup.infos.map { property =>
-            columnEntryOfNodes(property.node.id, property.stages.map(None -> _))
-          }(breakOut)
-        )
-
       if(propertyGroup.infos.exists(_.assignedUsers.nonEmpty))
         columns += UI.Column(
           columnHeader("Assigned"),
