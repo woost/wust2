@@ -25,13 +25,13 @@ object View {
       def contentRole: NodeRole
     }
 
-    case class Kanban(groupKey: String, contentRole: NodeRole) extends GroupedTraversal
+    case class Kanban(groupKey: PropertyKey, contentRole: NodeRole) extends GroupedTraversal
     object Kanban {
-      def default = Kanban("Stage", NodeRole.Task)
+      def default = Kanban(PropertyKey.stage, NodeRole.Task)
     }
-    case class Checklist(groupKey: String, contentRole: NodeRole, checkNodeId: Option[NodeId]) extends GroupedTraversal
+    case class Checklist(groupKey: PropertyKey, contentRole: NodeRole, checkNodeId: Option[NodeId]) extends GroupedTraversal
     object Checklist {
-      def default = Checklist("Stage", NodeRole.Task, None)
+      def default = Checklist(PropertyKey.stage, NodeRole.Task, None)
     }
 
     def empty = Config()

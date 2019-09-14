@@ -403,7 +403,7 @@ object GraphChanges {
     GraphChanges.connect(Edge.Assigned)(nodeId, userId)
   }
 
-  def connectWithProperty(nodeId:NodeId, key:String, propertyValueId:NodeId, showOnCard:Boolean) = {
+  def connectWithProperty(nodeId:NodeId, key:PropertyKey, propertyValueId:NodeId, showOnCard:Boolean) = {
     connect(Edge.LabeledProperty)(nodeId, EdgeData.LabeledProperty(key, showOnCard), PropertyId(propertyValueId))
   }
 }

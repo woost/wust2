@@ -65,7 +65,7 @@ object CsvHelper {
                   if (cell.nonEmpty) {
                     val propertyId = PropertyId(NodeId.fresh)
                     nodes += Node.Content(propertyId, NodeData.Markdown(cell), NodeRole.Neutral, NodeMeta.default, NodeSchema.empty)
-                    edges += Edge.LabeledProperty(nodeId, EdgeData.LabeledProperty(key = propertyName), propertyId)
+                    edges += Edge.LabeledProperty(nodeId, EdgeData.LabeledProperty(key = PropertyKey(propertyName)), propertyId)
                   }
               }
             }

@@ -160,7 +160,7 @@ object GraphChangesAutomation {
           }
 
           case FieldLookup =>
-            currentReferenceNodes = lookupPropertyVariable(graph, currentReferenceNodes, propertyName, newEdges, newEdgesReverse)
+            currentReferenceNodes = lookupPropertyVariable(graph, currentReferenceNodes, PropertyKey(propertyName), newEdges, newEdgesReverse)
             commandMode = CommandSelection
             true
 
@@ -278,7 +278,7 @@ object GraphChangesAutomation {
     arr.result.distinct
   }
 
-  def lookupPropertyVariable(graph: Graph, nodes: Array[Node], key: String, newEdges: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]], newEdgesReverse: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]]): Array[Node] = {
+  def lookupPropertyVariable(graph: Graph, nodes: Array[Node], key: PropertyKey, newEdges: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]], newEdgesReverse: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]]): Array[Node] = {
     val arr = Array.newBuilder[Node]
 
     @inline def add(edge: Edge.LabeledProperty, node: => Node): Unit = if (edge.data.key == key) arr += node

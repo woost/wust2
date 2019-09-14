@@ -235,7 +235,7 @@ object Components {
 
       b(
         EditableContent.inlineEditorOrRender[String](key, editKey, _ => key => span(key + ":")).editValue.collect { case newKey if newKey != key =>
-          GraphChanges(addEdges = properties.map(p => p.edge.copy(data = p.edge.data.copy(key = newKey)))(breakOut), delEdges = properties.map(_.edge)(breakOut)),
+          GraphChanges(addEdges = properties.map(p => p.edge.copy(data = p.edge.data.copy(key = PropertyKey(newKey))))(breakOut), delEdges = properties.map(_.edge)(breakOut)),
         } --> GlobalState.eventProcessor.changes,
         cursor.pointer,
         onClick.stopPropagation.use(true) --> editKey,

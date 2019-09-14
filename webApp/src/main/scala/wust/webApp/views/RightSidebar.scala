@@ -418,7 +418,7 @@ object RightSidebar {
     object AddProperty {
       case object None extends AddProperty
       case object CustomField extends AddProperty
-      final case class DefinedField(title: String, key: String, tpe: NodeData.Type) extends AddProperty
+      final case class DefinedField(title: String, key: PropertyKey, tpe: NodeData.Type) extends AddProperty
       final case class EdgeReference(title: String, create: (NodeId, NodeId) => Edge) extends AddProperty
     }
 

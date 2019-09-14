@@ -2,6 +2,7 @@ package wust.webApp.views
 
 import wust.graph.{Edge, Graph, Node}
 import wust.util.collection.BasicMap
+import wust.ids.PropertyKey
 
 //TODO: separate calculations into separate rx: rx for tags, stages, users, properties
 //TODO: use ids instead of nodes and listen to node changes in each rendered node
@@ -9,8 +10,8 @@ object PropertyData {
 
   final case class PropertyValue(edge: Edge.LabeledProperty, node: Node.Content)
   final case class PropertyGroupValue(node: Node, values: List[PropertyValue])
-  final case class SingleProperty(key: String, values: List[PropertyValue])
-  final case class GroupProperty(key: String, groups: Seq[PropertyGroupValue])
+  final case class SingleProperty(key: PropertyKey, values: List[PropertyValue])
+  final case class GroupProperty(key: PropertyKey, groups: Seq[PropertyGroupValue])
 
   final case class BasicInfo(node: Node, tags: Seq[Node.Content], stages: Seq[Node.Content], assignedUsers: Seq[Node.User], propertyMap: BasicMap[String, List[PropertyValue]], reverseProperties: Seq[Node]) {
     def isEmpty = tags.isEmpty && assignedUsers.isEmpty && propertyMap.isEmpty
@@ -50,7 +51,7 @@ object PropertyData {
         val arr = new Array[SingleProperty](info.propertyMap.size)
         var i = 0
         info.propertyMap.foreach { (key, values) =>
-          arr(i) = SingleProperty(key, values)
+          arr(i) = SingleProperty(PropertyKey(key), values)
           i += 1
         }
         arr
@@ -66,7 +67,7 @@ object PropertyData {
       val infos = childrenIdxs.map(BasicInfo(graph, _))
       val allProperties: Array[String] = infos.flatMap(_.propertyMap.keys).distinct.sorted
       val groupProperties: Array[GroupProperty] = allProperties.map { propertyKey =>
-        GroupProperty(propertyKey, infos.map { info =>
+        GroupProperty(PropertyKey(propertyKey), infos.map { info =>
           PropertyGroupValue(info.node, info.propertyMap.getOrElse(propertyKey, Nil))
         })
       }

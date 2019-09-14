@@ -24,7 +24,7 @@ object TopologicalView {
     val propertyName = Var("depends on")
     val nodeDepth: Rx[Array[Int]] = Rx {
       val graph = GlobalState.graph()
-      val lookup = graph.propertyLookup(propertyName())
+      val lookup = graph.propertyLookup(PropertyKey(propertyName()))
       algorithm.longestPathsIdx(lookup)
     }
 

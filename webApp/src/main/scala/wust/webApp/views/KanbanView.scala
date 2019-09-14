@@ -30,7 +30,7 @@ object KanbanView {
 
     val kanbanConfig = Rx {
       View.Config.Kanban.default //TODO get from somehwere
-      View.Config.Kanban("Sein Status", NodeRole.Project)
+      View.Config.Kanban(PropertyKey("Sein Status"), NodeRole.Project)
     }
 
     val config = Rx {
@@ -254,7 +254,7 @@ object KanbanView {
             cls := "tiny-scrollbar",
             Rx {
               VDomModifier(
-                registerDragContainer( DragContainer.Kanban.Column(nodeId, children().map(_._1), workspace = focusState.focusedId)),
+                registerDragContainer( DragContainer.Kanban.Column(nodeId, children().map(_._1), workspace = focusState.focusedId, kanbanConfig().groupKey)),
                 children().map { case (id, kind) => renderContentOrGroup(focusState, nextTraverseState, nodeId = id, kind = kind, viewRender, selectedNodeIds, config = config, kanbanConfig = kanbanConfig) },
               )
             },
@@ -280,7 +280,7 @@ object KanbanView {
               paddingBottom := "7px",
             ),
             Rx {
-              registerDragContainer( DragContainer.Kanban.Column(nodeId, children().map(_._1), workspace = focusState.focusedId))
+              registerDragContainer( DragContainer.Kanban.Column(nodeId, children().map(_._1), workspace = focusState.focusedId, kanbanConfig().groupKey))
               , // allows to drop cards on collapsed columns
             }
           )

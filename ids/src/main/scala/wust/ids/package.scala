@@ -151,4 +151,12 @@ package object ids {
   }
   type EpochMilli = EpochMilli.Type
 
+  object PropertyKey extends TaggedType[String] {
+    @inline def empty = PropertyKey("")
+    @inline def tag = PropertyKey("Tag")
+    @inline def stage = PropertyKey("Stage")
+    @inline def startDate = PropertyKey("startdate")
+    @inline def endDate = PropertyKey("enddate")
+  }
+  type PropertyKey = PropertyKey.Type
 }

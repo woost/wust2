@@ -50,16 +50,15 @@ object EdgeData {
     }
   }
 
-  sealed trait PropertyKey
-  case object Assigned extends Named with EdgeData with PropertyKey
+  case object Assigned extends Named with EdgeData
 
-  case class LabeledProperty(key: String, showOnCard: Boolean = false) extends Named with EdgeData with PropertyKey
+  case class LabeledProperty(key: PropertyKey, showOnCard: Boolean = false) extends Named with EdgeData
   object LabeledProperty extends Named {
-    def attachment = LabeledProperty("Attachment")
-    def reference = LabeledProperty("Reference")
-    def description = LabeledProperty("Description")
-    def dueDate = LabeledProperty("Due Date")
-    def stage = LabeledProperty("Stage")
+    def attachment = LabeledProperty(PropertyKey("Attachment"))
+    def reference = LabeledProperty(PropertyKey("Reference"))
+    def description = LabeledProperty(PropertyKey("Description"))
+    def dueDate = LabeledProperty(PropertyKey("Due Date"))
+    def stage = LabeledProperty(PropertyKey.stage)
   }
 
   final case class Read(timestamp: EpochMilli) extends Named with EdgeData

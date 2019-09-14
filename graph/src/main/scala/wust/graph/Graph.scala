@@ -266,7 +266,7 @@ final case class GraphLookup private(
 
   @inline def isPinned(idx: Int, userIdx: Int): Boolean = pinnedNodeIdx.contains(userIdx)(idx)
 
-  def propertyLookup(name: String): NestedArrayInt = {
+  def propertyLookup(name: PropertyKey): NestedArrayInt = {
     val targetDegree = new Array[Int](n)
     val relevantEdges = ArraySet.create(edges.length)
 

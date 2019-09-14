@@ -4,6 +4,7 @@ import wust.util.algorithm.dfs
 import wust.facades.draggable.SortableStopEvent
 import wust.graph.{ Edge, GraphChanges, _ }
 import wust.ids.{ UserId, _ }
+import wust.ids.EdgeData
 import wust.webApp.state.FeatureState
 import wust.webApp.state.GlobalState
 
@@ -154,7 +155,7 @@ object DragActions {
 
       case (payload: Property, target: ContentNode, false, false) => (graph, userId) => linkOrCopyInto(payload.edge, target.nodeId, graph)
 
-      case (payload: Tag, target: ContentNode, false, false) => (graph, userId) => connectWithProperty(target.nodeId, "Tag", payload.nodeId, showOnCard = true)
+      case (payload: Tag, target: ContentNode, false, false) => (graph, userId) => connectWithProperty(target.nodeId, PropertyKey.tag, payload.nodeId, showOnCard = true)
       case (payload: Tag, target: Tag, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), ParentId(target.nodeId), graph, ctrl)
       case (payload: Tag, target: TagBar, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), ParentId(target.nodeId), graph, ctrl)
       case (payload: Tag, target: Channel, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), ParentId(target.nodeId), graph, true) // tags are always linked

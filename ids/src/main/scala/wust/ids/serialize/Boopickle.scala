@@ -22,6 +22,7 @@ trait Boopickle {
 
   implicit val viewPickler: Pickler[View] = generatePickler[View]
   implicit val ViewConfigChecklistPickler: Pickler[View.Config.Checklist] = generatePickler[View.Config.Checklist]
+  implicit val ViewConfigKanbanPickler: Pickler[View.Config.Kanban] = generatePickler[View.Config.Kanban]
   implicit val NodeViewPickler: Pickler[NodeView] = generatePickler[NodeView]
   implicit val NodeSchemaPickler: Pickler[NodeSchema] = generatePickler[NodeSchema]
 

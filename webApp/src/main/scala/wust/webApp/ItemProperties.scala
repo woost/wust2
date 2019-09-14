@@ -42,11 +42,11 @@ object ItemProperties {
   sealed trait EdgeFactory
   object EdgeFactory {
     final case class Plain(create: (NodeId, NodeId) => Edge) extends EdgeFactory
-    final case class Property(prefilledKey: String, prefilledShowOnCard: Boolean, create: (NodeId, String, Boolean, NodeId) => Edge) extends EdgeFactory
+    final case class Property(prefilledKey: PropertyKey, prefilledShowOnCard: Boolean, create: (NodeId, PropertyKey, Boolean, NodeId) => Edge) extends EdgeFactory
 
-    @inline def labeledProperty: Property = labeledProperty("")
-    @inline def labeledProperty(key: String): Property = labeledProperty(key, false)
-    def labeledProperty(key: String, showOnCard: Boolean): Property = Property(key, showOnCard, (sourceId, key, showOnCard, targetId) => Edge.LabeledProperty(sourceId, EdgeData.LabeledProperty(key, showOnCard), PropertyId(targetId)))
+    @inline def labeledProperty: Property = labeledProperty(PropertyKey.empty)
+    @inline def labeledProperty(key: PropertyKey): Property = labeledProperty(key, false)
+    def labeledProperty(key: PropertyKey, showOnCard: Boolean): Property = Property(key, showOnCard, (sourceId, key, showOnCard, targetId) => Edge.LabeledProperty(sourceId, EdgeData.LabeledProperty(key, showOnCard), PropertyId(targetId)))
   }
   final case class TypeConfig(prefilledType: Option[NodeTypeSelection] = Some(NodeTypeSelection.Data(NodeData.Markdown.tpe)), hidePrefilledType: Boolean = false, filterRefCompletion: Node => Boolean = _ => true, customOptions: Option[VDomModifier] = None)
   object TypeConfig {
@@ -238,7 +238,7 @@ object ItemProperties {
 
       def createEdge(sourceId: NodeId, targetId: NodeId): Edge = edgeFactory match {
         case EdgeFactory.Plain(create)                     => create(sourceId, targetId)
-        case EdgeFactory.Property(prefilledKey, _, create) => create(sourceId, propertyKey.fold(prefilledKey)(_.string), propertyShowOnCard, targetId)
+        case EdgeFactory.Property(prefilledKey, _, create) => create(sourceId, propertyKey.fold(prefilledKey)(key => PropertyKey(key.string)), propertyShowOnCard, targetId)
       }
 
       def addDataProperty(data: NodeData.Content): Unit = {

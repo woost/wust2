@@ -222,7 +222,7 @@ object ListView {
 
               Rx {
                 VDomModifier(
-                  registerDragContainer( DragContainer.Kanban.Column(nodeId, children().map(_._1), workspace = focusState.focusedId)),
+                  registerDragContainer( DragContainer.Kanban.Column(nodeId, children().map(_._1), workspace = focusState.focusedId, PropertyKey("TOOODOOOO"))),
                   children().map {
                     case (id, kind) =>
                       renderContentOrGroup(

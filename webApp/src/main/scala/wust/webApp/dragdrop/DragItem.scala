@@ -2,8 +2,8 @@ package wust.webApp.dragdrop
 
 import wust.graph.Edge
 import wust.ids.{ NodeId, NodeRole, UserId }
-
 import outwatch.reactive._
+import wust.ids.EdgeData
 
 sealed trait DragPayload extends Product with Serializable { def nodeIds: Seq[NodeId] }
 sealed trait DragTarget extends Product with Serializable { def nodeIds: Seq[NodeId] }
@@ -18,9 +18,9 @@ object DragItem {
   final case class Project(nodeId: NodeId) extends ContentNode { override def toString = s"Project(${nodeId.shortHumanReadable})" }
 
   sealed trait ContentNodeConnect extends ContentNode {
-    def propertyName: String
+    def propertyName: PropertyKey
   }
-  final case class TaskConnect(nodeId: NodeId, propertyName: String) extends ContentNodeConnect { override def toString = s"TaskConnect(${nodeId.shortHumanReadable}, $propertyName)" }
+  final case class TaskConnect(nodeId: NodeId, propertyName: PropertyKey) extends ContentNodeConnect { override def toString = s"TaskConnect(${nodeId.shortHumanReadable}, $propertyName)" }
   final case class Tag(nodeId: NodeId) extends DragPayloadAndTarget { def nodeIds = Seq(nodeId); override def toString = s"Tag(${nodeId.shortHumanReadable})" }
   final case class Property(edge: Edge.LabeledProperty) extends DragPayloadAndTarget { def nodeIds = Seq.empty; override def toString = s"Property($edge)" }
 
@@ -65,7 +65,7 @@ object DragContainer {
     sealed trait AreaForColumns extends SortableContainer
     sealed trait AreaForCards extends SortableContainer
     sealed trait Workspace extends SortableContainer { def parentId: NodeId }
-    final case class Column(nodeId: NodeId, items: Seq[NodeId], workspace: NodeId) extends AreaForColumns with AreaForCards { @inline def parentId = nodeId; override def toString = s"Column(${parentId.shortHumanReadable})" }
+    final case class Column(nodeId: NodeId, items: Seq[NodeId], workspace: NodeId, groupKey:PropertyKey) extends AreaForColumns with AreaForCards { @inline def parentId = nodeId; override def toString = s"Column(${parentId.shortHumanReadable})" }
     final case class ColumnArea(parentId: NodeId, items: Seq[NodeId]) extends AreaForColumns { override def toString = s"ColumnArea(${parentId.shortHumanReadable})" }
     final case class Inbox(parentId: NodeId, items: Seq[NodeId]) extends AreaForCards with Workspace { override def toString = s"Inbox(${parentId.shortHumanReadable})" }
     final case class Card(parentId: NodeId, items: Seq[NodeId]) extends AreaForCards with Workspace { override def toString = s"Card(${parentId.shortHumanReadable})" }

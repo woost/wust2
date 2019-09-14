@@ -23,7 +23,7 @@ object GanttView {
 
   final case class Bar(node: Node, yPos: Int, startDate: Option[EpochMilli], endDate: Option[EpochMilli])
 
-  def getFirstDate(propertyMap: BasicMap[String, List[PropertyData.PropertyValue]], search: String): Option[EpochMilli] = {
+  def getFirstDate(propertyMap: BasicMap[String, List[PropertyData.PropertyValue]], search: PropertyKey): Option[EpochMilli] = {
     propertyMap
       .get(search)
       .flatMap(_.collectFirst{
@@ -58,8 +58,8 @@ object GanttView {
         val node = graph.nodes(nodeIdx)
         if (node.role == NodeRole.Task) {
           val propertyData = PropertyData.Single(graph, nodeIdx)
-          val startDate: Option[EpochMilli] = getFirstDate(propertyData.info.propertyMap, "startdate")
-          val endDate: Option[EpochMilli] = getFirstDate(propertyData.info.propertyMap, "enddate")
+          val startDate: Option[EpochMilli] = getFirstDate(propertyData.info.propertyMap, PropertyKey.startDate)
+          val endDate: Option[EpochMilli] = getFirstDate(propertyData.info.propertyMap, PropertyKey.endDate)
           val yPos = i
           i += 1
           Array(Bar(node, yPos, startDate, endDate))

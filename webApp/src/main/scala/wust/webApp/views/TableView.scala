@@ -93,7 +93,7 @@ object TableView {
           position.relative, // for cancel and save button absolute popup
           EditableContent.inlineEditorOrRender[String](name, editMode, _ => columnHeader(_)).editValue.foreach { newName =>
             if (newName.nonEmpty) {
-              GlobalState.submitChanges(GraphChanges(delEdges = edges.map(e => e)(breakOut)) merge GraphChanges(addEdges = edges.map(edge => edge.copy(data = edge.data.copy(key = newName)))(breakOut)))
+              GlobalState.submitChanges(GraphChanges(delEdges = edges.map(e => e)(breakOut)) merge GraphChanges(addEdges = edges.map(edge => edge.copy(data = edge.data.copy(key = PropertyKey(newName))))(breakOut)))
             }
           }
         ),
