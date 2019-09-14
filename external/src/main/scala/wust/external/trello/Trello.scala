@@ -174,7 +174,7 @@ object Trello {
       // attach labels
       card.idLabels.foreach { idLabel =>
         labelsById.get(idLabel).foreach { nodeIdLabel =>
-          addEdges += Edge.Child(ParentId(nodeIdLabel), ChildId(cardNode.id))
+          addEdges += Edge.LabeledProperty(cardNode.id, EdgeData.LabeledProperty(PropertyKey.tag, showOnCard = true), PropertyId(nodeIdLabel))
         }
       }
 
@@ -190,7 +190,7 @@ object Trello {
       val edgeData = EdgeData.Child(deletedAt = deletedAt, ordering = BigDecimal(card.pos))
       addEdges += Edge.Child(ParentId(boardNode.id), edgeData, ChildId(cardNode.id))
       listsById.get(card.idList).foreach { nodeIdList =>
-        addEdges += Edge.Child(ParentId(nodeIdList), edgeData, ChildId(cardNode.id))
+        addEdges += Edge.LabeledProperty(cardNode.id, EdgeData.LabeledProperty(PropertyKey.stage, showOnCard = false), PropertyId(nodeIdList))
       }
     }
 
