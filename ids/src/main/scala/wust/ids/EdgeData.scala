@@ -59,6 +59,7 @@ object EdgeData {
     def reference = LabeledProperty("Reference")
     def description = LabeledProperty("Description")
     def dueDate = LabeledProperty("Due Date")
+    def stage = LabeledProperty("Stage")
   }
 
   final case class Read(timestamp: EpochMilli) extends Named with EdgeData

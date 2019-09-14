@@ -1,7 +1,7 @@
 package wust.webApp.views
 
 import flatland._
-import wust.graph.{Graph, TaskOrdering}
+import wust.graph._
 import wust.ids._
 import wust.util.algorithm.dfs
 import wust.util.collection._
@@ -11,38 +11,46 @@ import wust.webApp.state.TraverseState
 import scala.collection.mutable
 
 object KanbanData {
-  def inboxNodes(graph: Graph, traverseState: TraverseState): Seq[NodeId] = graph.idToIdxFold(traverseState.parentId)(Seq.empty[NodeId]) { parentIdx =>
-    val allStages: ArraySet = {
-      val stages = ArraySet.create(graph.size)
-      dfs.foreachStopLocally(starts = _(parentIdx), dfs.withoutStart, graph.childrenIdx, { idx =>
-        val isStage = graph.nodes(idx).role == NodeRole.Stage
-        if(isStage) stages += idx
-        isStage
-      })
-      stages
+  case class Config(groupAttribute: Entity.Attribute, contentRole: NodeRole)
+  object Config {
+    def apply(graph: Graph, nodeId: Int, viewConfig: View.Config.GroupedTraversal): Config = {
+      val entity = Entity(Nil) //TODO: get from somewhere
+      def defaultAttribute = Entity.Attribute(viewConfig.groupKey, NodeTypeSelection.DeepChildrenChain(NodeRole.Stage))
+      val attribute = entity.attributes.find(_.key == viewConfig.groupKey).getOrElse(defaultAttribute)
+      Config(attribute, viewConfig.contentRole)
     }
-
-    val inboxTasks: Array[Int] = {
-      val inboxTasks = Array.newBuilder[Int]
-      graph.childrenIdx.foreachElement(parentIdx) { childIdx =>
-        val node = graph.nodes(childIdx)
-        if(node.role == NodeRole.Task && !traverseState.contains(node.id)) {
-          @inline def hasStageParentInWorkspace = graph.parentsIdx(childIdx).exists(allStages.contains)
-
-          if(!hasStageParentInWorkspace) inboxTasks += childIdx
-        }
-      }
-      inboxTasks.result()
-    }
-
-    TaskOrdering.constructOrderingOf[NodeId](graph, traverseState.parentId, inboxTasks.viewMap(graph.nodeIds), identity)
   }
 
-  def columns(graph: Graph, traverseState: TraverseState): Seq[NodeId] = graph.idToIdxFold(traverseState.parentId)(Seq.empty[NodeId]){ parentIdx =>
+  sealed trait Kind
+  object Kind {
+    case object Content extends Kind
+    case object Group extends Kind
+  }
+
+  def inboxNodes(graph: Graph, traverseState: TraverseState, config: Config): Seq[NodeId] = graph.idToIdxFold(traverseState.parentId)(Seq.empty[NodeId]) { parentIdx =>
+
+    val inboxTasks = Array.newBuilder[Int]
+    graph.childrenIdx.foreachElement(parentIdx) { childIdx =>
+      val node = graph.nodes(childIdx)
+      if(node.role == config.contentRole && !traverseState.contains(node.id)) {
+        @inline def hasStage = graph.propertiesEdgeIdx.exists(childIdx) { edgeIdx =>
+          val edge = graph.edges(edgeIdx).as[Edge.LabeledProperty]
+          val propertyNode = graph.nodes(graph.edgesIdx.b(edgeIdx))
+          edge.data.key == config.groupAttribute.key && NodeTypeSelector.isSelected(config.groupAttribute.selection)(propertyNode)
+        }
+
+        if(!hasStage) inboxTasks += childIdx
+      }
+    }
+
+    TaskOrdering.constructOrderingOf[NodeId](graph, traverseState.parentId, inboxTasks.result.viewMap(graph.nodeIds), identity)
+  }
+
+  def columns(graph: Graph, traverseState: TraverseState, config: Config): Seq[NodeId] = graph.idToIdxFold(traverseState.parentId)(Seq.empty[NodeId]){ parentIdx =>
     val columnIds = mutable.ArrayBuffer[NodeId]()
     graph.childrenIdx.foreachElement(parentIdx) { idx =>
       val node = graph.nodes(idx)
-      if (node.role == NodeRole.Stage && !traverseState.contains(node.id)) {
+      if (NodeTypeSelector.isSelected(config.groupAttribute.selection)(node) && !traverseState.contains(node.id)) {
         columnIds += node.id
       }
     }
@@ -50,15 +58,23 @@ object KanbanData {
     TaskOrdering.constructOrderingOf[NodeId](graph, traverseState.parentId, columnIds, identity)
   }
 
-  def columnNodes(graph: Graph, traverseState: TraverseState): Seq[(NodeId, NodeRole)] = graph.idToIdxFold(traverseState.parentId)(Seq.empty[(NodeId, NodeRole)]){ parentIdx =>
-    val childrenIds = mutable.ArrayBuffer[(NodeId, NodeRole)]()
-    graph.childrenIdx.foreachElement(parentIdx) { childIdx =>
-      val node = graph.nodes(childIdx)
-      if (InlineList.contains(NodeRole.Stage, NodeRole.Task)(node.role) && !traverseState.contains(node.id)) {
-        childrenIds += node.id -> node.role
+  def columnNodes(graph: Graph, traverseState: TraverseState, config: Config): Seq[(NodeId, Kind)] = graph.idToIdxFold(traverseState.parentId)(Seq.empty[(NodeId, Kind)]){ parentIdx =>
+    val childrenIds = mutable.ArrayBuffer[(NodeId, Kind)]()
+    graph.propertiesEdgeReverseIdx.foreachElement(parentIdx) { edgeIdx =>
+      val edge = graph.edges(edgeIdx).as[Edge.LabeledProperty]
+      println("REVERSE PROP " + edge)
+      if (edge.data.key == config.groupAttribute.key) {
+        val contentIdx = graph.edgesIdx.a(edgeIdx)
+        val node = graph.nodes(contentIdx)
+        println("ISKEY "  + node + traverseState)
+        if (!traverseState.contains(node.id)) {
+          println("GO?")
+          if (NodeTypeSelector.isSelected(config.groupAttribute.selection)(node)) childrenIds += node.id -> Kind.Content
+          else if (config.contentRole == node.role) childrenIds += node.id -> Kind.Content
+        }
       }
     }
 
-    TaskOrdering.constructOrderingOf[(NodeId, NodeRole)](graph, traverseState.parentId, childrenIds, { case (id, _) => id })
+    TaskOrdering.constructOrderingOf[(NodeId, Kind)](graph, traverseState.parentId, childrenIds, { case (id, _) => id })
   }
 }

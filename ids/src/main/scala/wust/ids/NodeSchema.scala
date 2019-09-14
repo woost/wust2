@@ -16,6 +16,6 @@ object NodeSchema {
 
 case class NodeView(
   view: View.Visible,
-  config: View.Config = View.Config.default
+  config: View.Config = View.Config.empty
 )
 

@@ -15,16 +15,27 @@ sealed trait View {
 }
 object View {
   case class Config(
-    kanban: Option[Config.Kanban],
-    checklist: Option[Config.Checklist]
+    name: Option[String] = None,
+    kanban: Option[Config.Kanban] = None,
+    checklist: Option[Config.Checklist] = None
   )
   object Config {
-    case class Kanban(key: String)
-    case class Checklist(key: String, checkNodeId: NodeId, uncheckNodeId: NodeId)
+    sealed trait GroupedTraversal {
+      def groupKey: String
+      def contentRole: NodeRole
+    }
 
-    def default = Config(None, None)
+    case class Kanban(groupKey: String, contentRole: NodeRole) extends GroupedTraversal
+    object Kanban {
+      def default = Kanban("Stage", NodeRole.Task)
+    }
+    case class Checklist(groupKey: String, contentRole: NodeRole, checkNodeId: Option[NodeId]) extends GroupedTraversal
+    object Checklist {
+      def default = Checklist("Stage", NodeRole.Task, None)
+    }
+
+    def empty = Config()
   }
-
 
   sealed trait Visible extends View
   final case class Table(roles: List[NodeRole]) extends Visible {

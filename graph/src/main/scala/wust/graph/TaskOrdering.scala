@@ -15,14 +15,14 @@ object TaskOrdering {
 
   def constructOrderingOf[T: ClassTag](graph: Graph, parentId: NodeId, container: Seq[T], extractNodeId: T => NodeId): Seq[T] = {
     assert(container.forall(t => graph.idToIdx(extractNodeId(t)).isDefined), "every item in container has to be in the graph")
-    assert(container.forall(t => graph.parentsIdx.exists(graph.idToIdxOrThrow(extractNodeId(t)))(idx => graph.nodeIds(idx) == parentId)), "parentId has to be a direct parent of all items in container")
+    // assert(container.forall(t => graph.parentsIdx.exists(graph.idToIdxOrThrow(extractNodeId(t)))(idx => graph.nodeIds(idx) == parentId)), "parentId has to be a direct parent of all items in container")
 
     val parentIdx = graph.idToIdxOrThrow(parentId)
 
     val sortable = container.map { elem =>
       val nodeId = extractNodeId(elem)
       val nodeIdx = graph.idToIdxOrThrow(nodeId)
-      (elem, getChildEdgeOrThrow(graph, parentIdx = parentIdx, childIdx = nodeIdx).data.ordering)
+      (elem, util.Try(getChildEdgeOrThrow(graph, parentIdx = parentIdx, childIdx = nodeIdx)).toOption.map(_.data.ordering).getOrElse(BigDecimal(0)))
     }
 
     sortable.sortWith(_._2 < _._2).map(_._1)

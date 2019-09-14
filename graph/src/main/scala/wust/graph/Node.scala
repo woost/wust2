@@ -34,7 +34,7 @@ object Node {
     def role: NodeRole = NodeRole.default
     override def toString = s"""User([${id.shortHumanReadable}]"$name"${if (data.isImplicit) ":implicit" else ""}${if (meta.accessLevel != NodeAccess.Restricted) s":$meta" else ""}  ${id.toBase58}  ${id.toUuid})"""
   }
-  final case class Content(id: NodeId, data: NodeData.Content, role: NodeRole, meta: NodeMeta, schema: NodeSchema = NodeSchema.empty) extends Node
+  final case class Content(id: NodeId, data: NodeData.Content, role: NodeRole, meta: NodeMeta, schema: NodeSchema = NodeSchema.empt) extends Node
   object Content {
     @inline def apply(data: NodeData.Content, role: NodeRole, meta: NodeMeta): Content = {
       new Content(NodeId.fresh, data, role, meta)
