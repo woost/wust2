@@ -131,7 +131,7 @@ object DragActions {
     import DragItem._
     import wust.graph.GraphChanges._
     {
-      case (payload: ContentNodeConnect, target: ContentNodeConnect, ctrl, false) => (graph, userId) => connectWithProperty(sourceId = payload.nodeId, payload.propertyName, targetId = target.nodeId)
+      case (payload: ContentNodeConnect, target: ContentNodeConnect, ctrl, false) => (graph, userId) => connectWithProperty(nodeId = payload.nodeId, payload.propertyName, propertyValueId = target.nodeId, showOnCard = false)
 
       case (payload: ContentNode, target: ContentNode, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), ParentId(target.nodeId), graph, ctrl)
       case (payload: ContentNode, target: Thread, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), target.nodeIds.map(ParentId(_)), graph, ctrl)
@@ -154,7 +154,7 @@ object DragActions {
 
       case (payload: Property, target: ContentNode, false, false) => (graph, userId) => linkOrCopyInto(payload.edge, target.nodeId, graph)
 
-      case (payload: Tag, target: ContentNode, false, false) => (graph, userId) => linkInto(ChildId(target.nodeId), ParentId(payload.nodeId), graph)
+      case (payload: Tag, target: ContentNode, false, false) => (graph, userId) => connectWithProperty(target.nodeId, "Tag", payload.nodeId, showOnCard = true)
       case (payload: Tag, target: Tag, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), ParentId(target.nodeId), graph, ctrl)
       case (payload: Tag, target: TagBar, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), ParentId(target.nodeId), graph, ctrl)
       case (payload: Tag, target: Channel, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), ParentId(target.nodeId), graph, true) // tags are always linked

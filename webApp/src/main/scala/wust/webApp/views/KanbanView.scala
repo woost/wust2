@@ -312,7 +312,7 @@ object KanbanView {
       val createdNode = Node.Content(data = NodeData.Markdown(sub.text), role = kanbanConfig.now.contentRole)
       val graph = GlobalState.graph.now
       val addNode = GraphChanges.addNodeWithParent(createdNode, ParentId(focusState.focusedId))
-      val addProperty = parentId.fold(GraphChanges.empty)(GraphChanges.connectWithProperty(createdNode.id, kanbanConfig.now.groupKey, _))
+      val addProperty = parentId.fold(GraphChanges.empty)(GraphChanges.connectWithProperty(createdNode.id, kanbanConfig.now.groupKey, _, showOnCard = false))
       val addTags = ViewFilter.addCurrentlyFilteredTags( createdNode.id)
 
       GlobalState.submitChanges(addNode merge addTags merge addProperty merge sub.changes(createdNode.id))
