@@ -132,7 +132,7 @@ on conflict do nothing;
 -- change  `stage -child-> task`  to  `task -propkey:stage-> stage`
 insert into edge (sourceid, targetid, data)
 -- { "type": "LabeledProperty", "key": "jorg", "showOnCard": false}
-select childnode.id, stagenode.id, jsonb_build_object('type', 'LabeledProperty', 'key', 'Stage', 'showOnCard', true)
+select childnode.id, stagenode.id, jsonb_build_object('type', 'LabeledProperty', 'key', 'Stage', 'showOnCard', false)
     from child
     join node as childnode on childnode.id = child.target_childid
     join node as stagenode on stagenode.id = child.source_parentid
@@ -155,7 +155,7 @@ where
 -- change  `tag -child-> task`  to  `task -propkey:tag-> tag`
 insert into edge (sourceid, targetid, data)
 -- { "type": "LabeledProperty", "key": "jorg", "showOnCard": false}
-select childnode.id, stagenode.id, jsonb_build_object('type', 'LabeledProperty', 'key', 'Tag', 'showOnCard', false)
+select childnode.id, stagenode.id, jsonb_build_object('type', 'LabeledProperty', 'key', 'Tag', 'showOnCard', true)
     from child
     join node as childnode on childnode.id = child.target_childid
     join node as stagenode on stagenode.id = child.source_parentid
