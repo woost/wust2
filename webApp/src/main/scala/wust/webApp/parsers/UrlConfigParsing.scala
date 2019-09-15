@@ -33,11 +33,31 @@ private sealed trait UrlOption {
 }
 private object UrlOption {
 
+  object systemView extends UrlOption {
+    val key = "system"
+
+    private def decodeSystemView(s: String): DecodeResult[View.System] =
+      View.map.get(s) match {
+        case Some(view: View.System) => Right(view)
+        case _               => Left(DecodeError.TypeError(s"Expected View.System, but got: '$view'"))
+      }
+
+    val regex = Regex[String](rx"^(\w/)+$$")
+      .map(_.flatMap { viewStr =>
+        decodeSystemView(viewStr)
+      })
+
+    def update(config: UrlConfig, text: String): DecodeResult[UrlConfig] =
+      parseSingle(regex, text).map { view =>
+        config.copy(systemView = Some(view))
+      }
+  }
+
   object view extends UrlOption {
     val key = "view"
 
-    private def decodeViewName(s: String): DecodeResult[ViewIntent] =
-      Right(ViewIntent.ByName(ViewName(s))) //FIXME
+    private def decodeViewName(s: String): DecodeResult[ViewName] =
+      Right(ViewName(s))
 
     val regex = Regex[String](rx"^(\w/)+$$")
       .map(_.flatMap { viewStr =>
@@ -62,15 +82,6 @@ private object UrlOption {
     def update(config: UrlConfig, text: String): DecodeResult[UrlConfig] =
       parseSingle(regex, text).map { page =>
         config.copy(pageChange = PageChange(page))
-      }
-  }
-
-  object redirectTo extends UrlOption {
-    val key = "redirectTo"
-
-    def update(config: UrlConfig, text: String): DecodeResult[UrlConfig] =
-      parseSingle(view.regex, text).map { view =>
-        config.copy(redirectTo = Some(view))
       }
   }
 
@@ -106,8 +117,8 @@ object UrlConfigParser {
   private val allOptionsRegex = Regex[(String,String)](rx"([^&=]+)=([^&]*)&?")
   private val allOptionsMap = Map(
     UrlOption.view.key -> UrlOption.view,
+    UrlOption.systemView.key -> UrlOption.systemView,
     UrlOption.page.key -> UrlOption.page,
-    UrlOption.redirectTo.key -> UrlOption.redirectTo,
     UrlOption.invitation.key -> UrlOption.invitation,
     UrlOption.focusId.key -> UrlOption.focusId,
   )
@@ -161,9 +172,9 @@ object UrlConfigWriter {
     val pageString = cfg.pageChange.page.parentId map { parentId =>
         UrlOption.page.key + "=" + s"${parentId.toBase58}"
     }
-    val redirectToString =
-      cfg.redirectTo.map(view => UrlOption.redirectTo.key + "=" + view)
-    val hash = List(viewString, pageString, redirectToString).flatten.mkString("&")
+    val systemViewString =
+      cfg.systemView.map(view => UrlOption.systemView.key + "=" + view)
+    val hash = List(viewString, pageString, systemViewString).flatten.mkString("&")
     // we do not write invitation and focusId: this only reading on url change.
     UrlRoute(search = None, hash = Some(hash))
   }

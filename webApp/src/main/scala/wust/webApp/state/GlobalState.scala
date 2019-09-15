@@ -141,16 +141,17 @@ object GlobalState {
 
     var lastViewPage: ViewPage = ViewPage(View.Empty, Page.empty)
 
-    val viewAndPageAndSanitizedPage: Rx[(Option[ViewIntent], Page, Page)] = Rx {
+    val viewAndPageAndSanitizedPage: Rx[(Option[ViewName], Option[View.System], Page, Page)] = Rx {
       val rawPage = urlConfig().pageChange.page
       val rawView = urlConfig().view
-      (rawView, rawPage, rawPage.copy(rawPage.parentId.filter(rawGraph().contains)))
+      val rawSystemView = urlConfig().systemView
+      (rawView, rawSystemView, rawPage, rawPage.copy(rawPage.parentId.filter(rawGraph().contains)))
     }
 
     Rx {
       if (!isLoading()) {
         val tmp = viewAndPageAndSanitizedPage()
-        val (rawView, rawPage, sanitizedPage) = tmp
+        val (rawView, rawSystemView, rawPage, sanitizedPage) = tmp
 
         // val visibleView: View = rawPage.parentId match {
         //   case None => rawView match {

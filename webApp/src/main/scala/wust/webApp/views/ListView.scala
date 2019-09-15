@@ -48,7 +48,7 @@ object ListView {
 
     val config = Rx {
       val g = GlobalState.rawGraph()
-      KanbanData.Config(g, g.idToIdxOrThrow(focusState.focusedId), "Stage", NodeRole.Task)
+      KanbanData.Config(g, g.idToIdxOrThrow(focusState.focusedId), PropertyKey.stage, NodeRole.Task)
     }
 
 
@@ -255,20 +255,18 @@ object ListView {
       val addNode = GraphChanges.addNodeWithParent(createdNode, ParentId(focusState.focusedId))
       val addTags = ViewFilter.addCurrentlyFilteredTags( createdNode.id)
       GlobalState.submitChanges(addNode merge addTags merge sub.changes(createdNode.id))
+
+      val parentIsTask = GlobalState.graph.now.nodesById(focusState.focusedId).exists(_.role == NodeRole.Task)
+      val parentIsPage = focusState.focusedId == focusState.contextParentId
+      val creatingNestedTask = parentIsTask && !parentIsPage
       focusState.view match {
         case View.List =>
-          val parentIsTask = GlobalState.graph.now.nodesById(focusState.focusedId).exists(_.role == NodeRole.Task)
-          val parentIsPage = focusState.focusedId == focusState.contextParentId
-          val creatingNestedTask = parentIsTask && !parentIsPage
           if(creatingNestedTask)
             FeatureState.use(Feature.CreateNestedTaskInChecklist)
           else
             FeatureState.use(Feature.CreateTaskInChecklist)
 
-        case View.Kanban =>
-          val parentIsTask = GlobalState.graph.now.nodesById(focusState.focusedId).exists(_.role == NodeRole.Task)
-          val parentIsPage = focusState.focusedId == focusState.contextParentId
-          val creatingNestedTask = parentIsTask && !parentIsPage
+        case _: View.Kanban =>
           if(creatingNestedTask)
             FeatureState.use(Feature.CreateNestedTaskInKanban)
           else {

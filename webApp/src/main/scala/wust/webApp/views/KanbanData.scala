@@ -13,11 +13,11 @@ import scala.collection.mutable
 object KanbanData {
   case class Config(groupAttribute: Entity.Attribute, contentRole: NodeRole)
   object Config {
-    def apply(graph: Graph, nodeId: Int, groupKey: String, contentRole: NodeRole): Config = {
+    def apply(graph: Graph, nodeId: Int, groupKey: PropertyKey, contentRole: NodeRole): Config = {
       val entity = Entity(Nil) //TODO: get from somewhere
-      def defaultAttribute = Entity.Attribute(viewConfig.groupKey, NodeTypeSelection.DeepChildrenChain(NodeRole.Stage))
-      val attribute = entity.attributes.find(_.key == viewConfig.groupKey).getOrElse(defaultAttribute)
-      Config(attribute, viewConfig.contentRole)
+      def defaultAttribute = Entity.Attribute(groupKey, NodeTypeSelection.DeepChildrenChain(NodeRole.Stage))
+      val attribute = entity.attributes.find(_.key == groupKey).getOrElse(defaultAttribute)
+      Config(attribute, contentRole)
     }
   }
 

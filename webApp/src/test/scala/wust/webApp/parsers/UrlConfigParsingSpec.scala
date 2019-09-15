@@ -20,7 +20,7 @@ class UrlConfigParsingSpec extends FreeSpec with MustMatchers {
     val str = s"view=graph|chat&page=${cuid1.toCuidString}"
     val cfg = UrlConfigParser.fromUrlRoute(UrlRoute(None, Some(str)))
     val expected = createUrlConfig(
-      Some(View.Tiled(ViewOperator.Row, NonEmptyList[View.Visible](View.Graph, View.Thread :: Nil))),
+      Some(View.Tiled(ViewOperator.Row, NonEmptyList[View](View.Graph, View.Thread :: Nil))),
       Page(NodeId(cuid1)), None)
     cfg.pageChange mustEqual expected.pageChange
     cfg.view.get.viewKey mustEqual expected.view.get.viewKey
@@ -32,7 +32,7 @@ class UrlConfigParsingSpec extends FreeSpec with MustMatchers {
     val str = s"view=graph/chat&page=${cuid1.toCuidString}"
     val cfg = UrlConfigParser.fromUrlRoute(UrlRoute(None, Some(str)))
     val expected = createUrlConfig(
-      Some(View.Tiled(ViewOperator.Column, NonEmptyList[View.Visible](View.Graph, View.Thread :: Nil))),
+      Some(View.Tiled(ViewOperator.Column, NonEmptyList[View](View.Graph, View.Thread :: Nil))),
       Page(NodeId(cuid1)), None)
     cfg.pageChange mustEqual expected.pageChange
     cfg.view.get.viewKey mustEqual expected.view.get.viewKey
@@ -44,7 +44,7 @@ class UrlConfigParsingSpec extends FreeSpec with MustMatchers {
     val str = s"view=graph,chat&page=${cuid1.toCuidString}"
     val cfg = UrlConfigParser.fromUrlRoute(UrlRoute(None, Some(str)))
     val expected = createUrlConfig(
-      Some(View.Tiled(ViewOperator.Auto, NonEmptyList[View.Visible](View.Graph, View.Thread :: Nil))),
+      Some(View.Tiled(ViewOperator.Auto, NonEmptyList[View](View.Graph, View.Thread :: Nil))),
       Page(NodeId(cuid1)), None)
     cfg.pageChange mustEqual expected.pageChange
     cfg.view.get.viewKey mustEqual expected.view.get.viewKey
@@ -56,35 +56,35 @@ class UrlConfigParsingSpec extends FreeSpec with MustMatchers {
     val str = s"view=graph?chat&page=${cuid1.toCuidString}"
     val cfg = UrlConfigParser.fromUrlRoute(UrlRoute(None, Some(str)))
     val expected = createUrlConfig(
-      Some(View.Tiled(ViewOperator.Optional, NonEmptyList[View.Visible](View.Graph, View.Thread :: Nil))),
+      Some(View.Tiled(ViewOperator.Optional, NonEmptyList[View](View.Graph, View.Thread :: Nil))),
       Page(NodeId(cuid1)), None)
     cfg.pageChange mustEqual expected.pageChange
     cfg.view.get.viewKey mustEqual expected.view.get.viewKey
   }
 
   "single view - row" in {
-    val orig = createUrlConfig(Some(View.Tiled(ViewOperator.Row, NonEmptyList[View.Visible](View.Graph, View.Thread :: Nil))), Page.empty, None)
+    val orig = createUrlConfig(Some(View.Tiled(ViewOperator.Row, NonEmptyList[View](View.Graph, View.Thread :: Nil))), Page.empty, None)
     val cfg = toUrlRouteAndBack(orig)
     cfg.pageChange mustEqual orig.pageChange
     cfg.view.get.viewKey mustEqual orig.view.get.viewKey
   }
 
   "single view - column" in {
-    val orig = createUrlConfig(Some(View.Tiled(ViewOperator.Column, NonEmptyList[View.Visible](View.Graph, View.Thread :: Nil))), Page.empty, None)
+    val orig = createUrlConfig(Some(View.Tiled(ViewOperator.Column, NonEmptyList[View](View.Graph, View.Thread :: Nil))), Page.empty, None)
     val cfg = toUrlRouteAndBack(orig)
     cfg.pageChange mustEqual orig.pageChange
     cfg.view.get.viewKey mustEqual orig.view.get.viewKey
   }
 
   "single view - auto" in {
-    val orig = createUrlConfig(Some(View.Tiled(ViewOperator.Auto, NonEmptyList[View.Visible](View.Graph, View.Thread :: Nil))), Page.empty, None)
+    val orig = createUrlConfig(Some(View.Tiled(ViewOperator.Auto, NonEmptyList[View](View.Graph, View.Thread :: Nil))), Page.empty, None)
     val cfg = toUrlRouteAndBack(orig)
     cfg.pageChange mustEqual orig.pageChange
     cfg.view.get.viewKey mustEqual orig.view.get.viewKey
   }
 
   "single view - optional" in {
-    val orig = createUrlConfig(Some(View.Tiled(ViewOperator.Optional, NonEmptyList[View.Visible](View.Graph, View.Thread :: Nil))), Page.empty, None)
+    val orig = createUrlConfig(Some(View.Tiled(ViewOperator.Optional, NonEmptyList[View](View.Graph, View.Thread :: Nil))), Page.empty, None)
     val cfg = toUrlRouteAndBack(orig)
     cfg.pageChange mustEqual orig.pageChange
     cfg.view.get.viewKey mustEqual orig.view.get.viewKey

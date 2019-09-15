@@ -48,7 +48,7 @@ object CreateNewPrompt {
 
       GlobalState.clearSelectedNodes()
 
-      val newNodeViews: List[View.Visible] = nodeRole.now match {
+      val newNodeViews: List[View.Custom] = nodeRole.now match {
         case Message => List(View.Chat)
         case Task    => List(View.List, View.Chat)
         case Note    => List(View.Content, View.Chat)
@@ -60,7 +60,7 @@ object CreateNewPrompt {
         case Note    => NodeRole.Note
         case Project => NodeRole.Project
       }
-      val newNode = Node.Content(NodeId.fresh, NodeData.Markdown(sub.text), newNodeRole, NodeMeta(nodeAccess.now), schema = NodeSchema(Some(newNodeViews.map(NodeView(_)))))
+      val newNode = Node.Content(NodeId.fresh, NodeData.Markdown(sub.text), newNodeRole, NodeMeta(nodeAccess.now), schema = NodeSchema(Some(newNodeViews)))
       val changes =
         GraphChanges.addNodeWithParent(newNode, parents) merge
           GraphChanges.addToParent(childNodes.now, ParentId(newNode.id)) merge
@@ -73,9 +73,9 @@ object CreateNewPrompt {
       } else {
         GlobalState.submitChanges(changes)
         def newViewPage = nodeRole.now match {
-          case Message => GlobalState.urlConfig.now.focus(Page(parents.head), View.Conversation)
-          case Task    => GlobalState.urlConfig.now.focus(Page(parents.head), View.Tasks)
-          case Note    => GlobalState.urlConfig.now.focus(Page(parents.head), View.Content)
+          case Message => ??? // FIXME: GlobalState.urlConfig.now.focus(Page(parents.head), View.Conversation)
+          case Task    => ??? // FIXME: GlobalState.urlConfig.now.focus(Page(parents.head), View.Tasks)
+          case Note    => ??? // FIXME: GlobalState.urlConfig.now.focus(Page(parents.head), View.Content)
         }
         UI.toast(s"Created new ${nodeRole.now}: ${StringOps.trimToMaxLength(newNode.str, 10)}", click = () => GlobalState.urlConfig() = newViewPage, level = UI.ToastLevel.Success)
       }

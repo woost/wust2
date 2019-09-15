@@ -59,7 +59,7 @@ object KanbanView {
     selectedNodeIds:Var[Set[NodeId]],
     isTopLevel: Boolean = false,
     config: Rx[KanbanData.Config],
-    kanban: ViewConfig
+    kanban: View.Kanban
   )(implicit ctx: Ctx.Owner): VDomModifier = {
     kind match {
       case KanbanData.Kind.Content => TaskNodeCard.renderThunk( focusState, traverseState, nodeId, selectedNodeIds, compactChildren = true)
@@ -73,7 +73,7 @@ object KanbanView {
     viewRender: ViewRenderLike,
     selectedNodeIds: Var[Set[NodeId]],
     config: Rx[KanbanData.Config],
-    kanban: ViewConfig
+    kanban: View.Kanban
   )(implicit ctx: Ctx.Owner): VDomModifier = {
     val columns = Rx {
       val graph = GlobalState.graph()
@@ -103,7 +103,7 @@ object KanbanView {
     viewRender: ViewRenderLike,
     selectedNodeIds: Var[Set[NodeId]],
     config: Rx[KanbanData.Config],
-    kanban: ViewConfig
+    kanban: View.Kanban
   )(implicit ctx: Ctx.Owner): VNode = {
     val scrollHandler = new ScrollBottomHandler(initialScrollToBottom = false)
 
@@ -157,7 +157,7 @@ object KanbanView {
     selectedNodeIds:Var[Set[NodeId]],
     isTopLevel: Boolean = false,
     config: Rx[KanbanData.Config],
-    kanban: ViewConfig
+    kanban: View.Kanban
   ): VNode = div.thunk(nodeId.hashCode)(isTopLevel)(Ownable { implicit ctx =>
     val editable = Var(false)
     val node = Rx {
@@ -296,7 +296,7 @@ object KanbanView {
     focusState: FocusState,
     parentId: Option[NodeId],
     scrollHandler: ScrollBottomHandler,
-    kanban: ViewConfig
+    kanban: View.Kanban
   )(implicit ctx: Ctx.Owner): VNode = {
     val active = Var[Boolean](false)
     active.foreach{ active =>

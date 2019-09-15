@@ -38,7 +38,7 @@ object ViewModificationMenu {
   def selector(
     channelId: NodeId,
     currentView: Var[View],
-    initialView: Option[View.Visible],
+    initialView: Option[View],
     done: SinkObserver[Unit]
   )(implicit ctx: Ctx.Owner): VDomModifier = {
 
@@ -47,7 +47,7 @@ object ViewModificationMenu {
     }
     val existingViews = Rx {
       val node = nodeRx()
-      node.fold(List.empty[View.Visible]) { node =>
+      node.fold(List.empty[View]) { node =>
         node.schema.views match {
           case None        => ViewHeuristic.bestView(GlobalState.graph(), node, GlobalState.userId()).toList
           case Some(views) => views.map(_.view)
@@ -60,7 +60,7 @@ object ViewModificationMenu {
     }
 
     //TODO rewrite this in a less sideeffecting way
-    currentView.triggerLater { view => addNewView(currentView, done, nodeRx, existingViews, view.asInstanceOf[View.Visible]) }
+    currentView.triggerLater { view => addNewView(currentView, done, nodeRx, existingViews, view.asInstanceOf[View]) }
     initialView.foreach(addNewView(currentView, done, nodeRx, existingViews, _))
 
     VDomModifier(
@@ -162,7 +162,7 @@ object ViewModificationMenu {
       }
     }
   }
-  private def removeView(currentView: Var[View], done: SinkObserver[Unit], nodeRx: Rx[Option[Node]], view: View.Visible): Unit = {
+  private def removeView(currentView: Var[View], done: SinkObserver[Unit], nodeRx: Rx[Option[Node]], view: View): Unit = {
     done.onNext(())
     val node = nodeRx.now
     node.foreach { node =>
@@ -186,7 +186,7 @@ object ViewModificationMenu {
   }
 
   //TODO: gets triggered 3 times when adding a view. Should only trigger once
-  private def addNewView(currentView: Var[View], done: SinkObserver[Unit], nodeRx: Rx[Option[Node]], existingViews: Rx[List[View.Visible]], newView: View.Visible): Unit = {
+  private def addNewView(currentView: Var[View], done: SinkObserver[Unit], nodeRx: Rx[Option[Node]], existingViews: Rx[List[View]], newView: View): Unit = {
     scribe.info(s"ViewModificationMenu.addNewView($newView)")
     if (View.selectableList.contains(newView)) { // only allow defined views
       done.onNext(())

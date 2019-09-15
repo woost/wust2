@@ -57,12 +57,12 @@ object ViewSwitcher {
     }
   }
 
-  def apply(channelId: NodeId, currentView: Var[View], initialView: Option[View.Visible] = None): VNode = {
+  def apply(channelId: NodeId, currentView: Var[View], initialView: Option[View] = None): VNode = {
     div.thunk(uniqueKey(channelId.toStringFast))(initialView)(Ownable { implicit ctx => modifier(channelId, currentView, initialView) })
   }
 
   val addViewIcon = freeSolid.faPlus
-  def modifier(channelId: NodeId, currentView: Var[View], initialView: Option[View.Visible])(implicit ctx: Ctx.Owner): VDomModifier = {
+  def modifier(channelId: NodeId, currentView: Var[View], initialView: Option[View])(implicit ctx: Ctx.Owner): VDomModifier = {
     val closeDropdown = SinkSourceHandler.publish[Unit]
 
     def addNewTabDropdown = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
@@ -95,7 +95,7 @@ object ViewSwitcher {
         val channelNode = graph.nodesById(channelId)
         val user = GlobalState.user()
 
-        def bestView:View.Visible = graph.nodesById(channelId).flatMap(ViewHeuristic.bestView(graph, _, user.id)).getOrElse(View.Empty)
+        def bestView:View = graph.nodesById(channelId).flatMap(ViewHeuristic.bestView(graph, _, user.id)).getOrElse(View.Empty)
 
         val nodeIdx = graph.idToIdx(channelId)
         val (numMsg, numTasks, numFiles) = (for {
@@ -161,17 +161,17 @@ object ViewSwitcher {
 
       // actions
       onClick.stopPropagation.foreach { e =>
-        val clickedView = tabInfo.targetView.asInstanceOf[View.Visible]
+        val clickedView = tabInfo.targetView
         if (e.ctrlKey) {
           currentView.update{ oldView =>
             oldView match {
               case View.Empty                                => clickedView
-              case view: View.Visible if view == clickedView => View.Empty
+              case view: View if view == clickedView => View.Empty
               case view: View.Tiled if view.views.toList.contains(clickedView) =>
                 if (view.views.toList.distinct.length == 1) View.Empty
                 else view.copy(views = NonEmptyList.fromList(view.views.filterNot(_ == clickedView)).get)
               case view: View.Tiled                          => view.copy(views = view.views :+ clickedView)
-              case view: View.Visible if view != clickedView => View.Tiled(ViewOperator.Row, NonEmptyList.of(view, clickedView))
+              case view: View if view != clickedView => View.Tiled(ViewOperator.Row, NonEmptyList.of(view, clickedView))
               case view                                      => view
             }
           }

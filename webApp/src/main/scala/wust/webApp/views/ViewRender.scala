@@ -8,10 +8,10 @@ import wust.webApp.state.{FocusState, GlobalState}
 import wust.webApp.views.graphview.GraphView
 
 object ViewRender extends ViewRenderLike {
-  def apply(focusState: FocusState, view: View.Visible)(implicit ctx: Ctx.Owner): VNode = apply( Some(focusState), view)
-  def apply(focusState: Option[FocusState], view: View.Visible)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(focusState: FocusState, view: View)(implicit ctx: Ctx.Owner): VNode = apply( Some(focusState), view)
+  def apply(focusState: Option[FocusState], view: View)(implicit ctx: Ctx.Owner): VNode = {
     @inline def emptyView = dsl.div
-    def withoutFocusState: PartialFunction[View.Visible, VNode] = {
+    def withoutFocusState: PartialFunction[View, VNode] = {
       case View.Login            => AuthView.login
       case View.Signup           => AuthView.signup
       case View.UserSettings     => UserSettingsView.apply
@@ -20,7 +20,7 @@ object ViewRender extends ViewRenderLike {
       case View.Tiled(op, views) => TiledView(op, views.map(ViewRender( focusState, _)))
       case View.Empty            => emptyView
     }
-    def withFocusState(focusState: FocusState): PartialFunction[View.Visible, VNode] = withoutFocusState orElse {
+    def withFocusState(focusState: FocusState): PartialFunction[View, VNode] = withoutFocusState orElse {
       case View.Chat          => ChatView(focusState)
       case View.Thread        => ThreadView(focusState)
       case View.Table(roles)  => TableView(focusState, roles, ViewRender)
@@ -36,8 +36,8 @@ object ViewRender extends ViewRenderLike {
       case View.ActivityStream => ActivityStream(focusState)
     }
 
-    val renderView: PartialFunction[View.Visible, VNode] = focusState.fold(withoutFocusState)(withFocusState)
+    val renderView: PartialFunction[View, VNode] = focusState.fold(withoutFocusState)(withFocusState)
 
-    renderView.applyOrElse[View.Visible, VNode](view, _ => emptyView)
+    renderView.applyOrElse[View, VNode](view, _ => emptyView)
   }
 }

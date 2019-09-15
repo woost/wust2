@@ -36,7 +36,7 @@ object NewProjectPrompt {
 
   val newProjectText = "New Project"
   def newProjectButton(label: String = newProjectText, focusNewProject: Boolean = true, buttonClass: String = "", extraChanges: NodeId => GraphChanges = _ => GraphChanges.empty): VNode = {
-    val selectedViews = Var[Seq[View.Visible]](Seq.empty)
+    val selectedViews = Var[Seq[View.Custom]](Seq.empty)
     val triggerSubmit = SinkSourceHandler.publish[Unit]
     val importChanges = Var(Option.empty[GraphChanges.Import])
     def body(implicit ctx: Ctx.Owner) = div(
@@ -107,8 +107,8 @@ object NewProjectPrompt {
     )
   }
 
-  def viewCheckboxes = multiCheckbox[View.Visible](
-    View.selectableList,
+  def viewCheckboxes = multiCheckbox[View.Custom](
+    ???,
     view => span(
       marginLeft := "4px",
       ViewSwitcher.viewToTabInfo(view, 0, 0, 0).icon, //TODO: Map[View,Icon] ?

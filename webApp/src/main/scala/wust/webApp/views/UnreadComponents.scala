@@ -233,7 +233,7 @@ object UnreadComponents {
     }
   }
 
-  def activityButtons(nodeId: NodeId, modifiers: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): EmitterBuilder[View.Visible, VDomModifier] = EmitterBuilder.ofModifier { sink =>
+  def activityButtons(nodeId: NodeId, modifiers: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): EmitterBuilder[View.System, VDomModifier] = EmitterBuilder.ofModifier { sink =>
 
     val haveUnreadNotifications = Rx {
       val graph = GlobalState.graph()

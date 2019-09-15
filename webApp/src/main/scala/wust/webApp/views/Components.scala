@@ -155,7 +155,8 @@ object Components {
           } // Max 1 dm node with this name
           previousDmNode match {
             case Some(dmNode) if graph.can_access_node(user.id, dmNode.id) =>
-              GlobalState.urlConfig.update(_.focus(Page(dmNode.id), View.Conversation))
+              // GlobalState.urlConfig.update(_.focus(Page(dmNode.id), View.Conversation)) //FIXME
+              ???
             case _ => // create a new channel, add user as member
               val nodeId = NodeId.fresh
               val change:GraphChanges =
@@ -167,7 +168,8 @@ object Components {
                 ))
 
               GlobalState.submitChanges(change)
-              GlobalState.urlConfig.update(_.focus(Page(nodeId), View.Conversation, needsGet = false))
+              // GlobalState.urlConfig.update(_.focus(Page(nodeId), View.Conversation, needsGet = false)) //FIXMe
+              ???
               ()
           }
         },

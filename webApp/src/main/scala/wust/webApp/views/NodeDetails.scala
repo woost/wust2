@@ -141,7 +141,8 @@ object NodeDetails {
           renderMessageCount(
             taskStats().messageChildrenCount,
             UI.tooltip("left center") := "Show comments",
-            onClick.stopPropagation.use(Some(FocusPreference(nodeId, Some(View.Conversation)))) --> GlobalState.rightSidebarNode,
+            // FIXME: onClick.stopPropagation.use(Some(FocusPreference(nodeId, Some(View.Conversation)))) --> GlobalState.rightSidebarNode,
+            ???,
             cursor.pointer,
           ),
         ),

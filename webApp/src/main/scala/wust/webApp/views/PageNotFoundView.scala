@@ -39,7 +39,7 @@ object PageNotFoundView {
               marginLeft := "20px",
               cls := "ui primary button",
               "Login",
-              onClick.stopPropagation.foreach(GlobalState.urlConfig.update(_.focusWithRedirect(View.Login)))
+              onClick.stopPropagation.foreach(GlobalState.urlConfig.update(_.focus(View.Login)))
             )
           )
         }

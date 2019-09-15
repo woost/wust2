@@ -52,7 +52,7 @@ object AuthControls {
       button(
         "Login",
         cls := s"tiny compact ui $loginButtonStyle button",
-        onClick.useLazy(GlobalState.urlConfig.now.focusWithRedirect(View.Login)) --> GlobalState.urlConfig,
+        onClick.useLazy(GlobalState.urlConfig.now.focus(View.Login)) --> GlobalState.urlConfig,
         onClick foreach {
           FeatureState.use(Feature.ClickLoginInAuthStatus)
         },
@@ -60,7 +60,7 @@ object AuthControls {
       button(
         "Signup",
         cls := s"tiny compact ui $signupButtonStyle button",
-        onClick.useLazy(GlobalState.urlConfig.now.focusWithRedirect(View.Signup)) --> GlobalState.urlConfig,
+        onClick.useLazy(GlobalState.urlConfig.now.focus(View.Signup)) --> GlobalState.urlConfig,
         onClick foreach {
           FeatureState.use(Feature.ClickSignupInAuthStatus)
         },
@@ -74,7 +74,7 @@ object AuthControls {
       cls := s"tiny compact ui $buttonStyle button",
       onClick foreach {
         Client.auth.logout().foreach { _ =>
-          GlobalState.urlConfig.update(_.focus(Page.empty, View.Login))
+          GlobalState.urlConfig.update(_.focusOverride(View.Login))
         }
         FeatureState.use(Feature.ClickLogoutInAuthStatus)
       },

@@ -115,7 +115,7 @@ object PageHeader {
           ))
           .foreach{ view =>
             view match {
-              case View.Kanban => FeatureState.use(Feature.SwitchToKanbanInPageHeader)
+              case _: View.Kanban => FeatureState.use(Feature.SwitchToKanbanInPageHeader)
               case View.List   => FeatureState.use(Feature.SwitchToChecklistInPageHeader)
               case View.Chat   => FeatureState.use(Feature.SwitchToChatInPageHeader)
               case _           =>

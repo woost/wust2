@@ -46,7 +46,7 @@ object AuthView {
       needUserName: Boolean,
       submitAction: UserValue => Future[Option[String]],
       alternativeHeader: String,
-      alternativeView: View,
+      alternativeView: View.System,
       alternativeText: String,
       autoCompletePassword: String,
       showPasswordReset: Boolean
@@ -58,7 +58,7 @@ object AuthView {
       if (FormValidator.reportValidity(element)) submitAction(userValue.now).onComplete {
         case Success(None)        =>
           userValue() = UserValue()
-          GlobalState.urlConfig.update(_.redirect)
+          GlobalState.urlConfig.update(_.unfocusSystem)
         case Success(Some(error)) =>
           errorMessageHandler.onNext(StatusMessage.Error(s"$submitText failed", error))
         case Failure(t)           =>
@@ -237,7 +237,7 @@ object AuthView {
               "discard all content now",
               onClick.preventDefault foreach {
                 if(dom.window.confirm("This will delete all your content, you created as an unregistered user. Do you want to continue?")) {
-                  GlobalState.urlConfig.update(cfg => cfg.copy(redirectTo = None, pageChange = PageChange(Page.empty))) // clear page, so we do not access an old page anymore
+                  GlobalState.urlConfig.update(_.clearFocus) // clear page, so we do not access an old page anymore
                   Client.auth.logout()
                 }
                 ()

@@ -1,12 +1,12 @@
 package wust.ids
 
 import cats.data.NonEmptyList
-import wust.util.collection.BasicMap
+import wust.util.collection._
 import wust.util.macros.SubObjects
 
 import scala.collection.breakOut
 
-// BE AWARE: Whenever you rename/change/delete a View.Visible from here, you have to write a DB MIGRATION
+// BE AWARE: Whenever you rename/change/delete a View from here, you have to write a DB MIGRATION
 // to update the json views in the node table.
 
 case class ViewConfig(
@@ -14,7 +14,7 @@ case class ViewConfig(
 )
 
 sealed trait View extends Product with Serializable {
-  def viewKey: String
+  def viewKey: String //TODO remove viewkey except for view.system.
   def isContent: Boolean = true
 }
 object View {
@@ -104,9 +104,10 @@ object View {
     def viewKey = "empty"
   }
 
-  val list: Array[View] = SubObjects.all[View]
+  val list: Array[View.System] = SubObjects.all[View.System]
+  def map: collection.Map[String, View.System] = list.toList.by(_.viewKey)
 
-  // val selectableList: Array[View.Visible] = Array(
+  // val selectableList: Array[View] = Array(
   //   View.Dashboard,
   //   View.List,
   //   View.Kanban,
