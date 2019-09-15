@@ -9,9 +9,16 @@ import scala.collection.breakOut
 // BE AWARE: Whenever you rename/change/delete a View from here, you have to write a DB MIGRATION
 // to update the json views in the node table.
 
-case class ViewConfig(
+case class ConfiguredView(
   view: View.Custom,
+  config: ViewConfig = ViewConfig.default
 )
+
+case class ViewConfig(
+)
+object ViewConfig {
+  def default = ViewConfig()
+}
 
 sealed trait View extends Product with Serializable {
   def viewKey: String //TODO remove viewkey except for view.system.

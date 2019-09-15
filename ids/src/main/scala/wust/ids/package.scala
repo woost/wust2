@@ -15,9 +15,9 @@ package object ids {
   object EntityMap {
     def empty = Map.empty[NodeRole, Entity]
   }
-  type ViewMap = collection.Map[ViewName, ViewConfig]
+  type ViewMap = collection.Map[ViewName, ConfiguredView]
   object ViewMap {
-    def empty = Map.empty[ViewName, ViewConfig]
+    def empty = Map.empty[ViewName, ConfiguredView]
   }
 
   object ViewName extends TaggedType[String] {

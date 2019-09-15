@@ -62,8 +62,8 @@ object NewProjectPrompt {
       MainTutorial.waitForNextStep()
       val newName = if (sub.text.trim.isEmpty) GraphChanges.newProjectName else sub.text
       val nodeId = NodeId.fresh
-      val views = if (selectedViews.now.isEmpty) None else Some(selectedViews.now.toList)
-      GlobalState.submitChanges(GraphChanges.newProject(nodeId, GlobalState.user.now.id, newName, NodeSchema.empty) merge sub.changes(nodeId) merge extraChanges(nodeId))
+      val views = if (selectedViews.now.isEmpty) Nil else selectedViews.now.toList
+      GlobalState.submitChanges(GraphChanges.newProject(nodeId, GlobalState.user.now.id, newName, NodeSchema.fromViewSeq(views)) merge sub.changes(nodeId) merge extraChanges(nodeId))
 
       if (focusNewProject) GlobalState.urlConfig.update(_.focus(Page(nodeId), needsGet = false))
 
