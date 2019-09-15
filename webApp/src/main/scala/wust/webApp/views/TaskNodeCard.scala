@@ -106,7 +106,7 @@ object TaskNodeCard {
 
           focusState.view match {
             case View.List => FeatureState.use(Feature.ExpandTaskInChecklist)
-            case View.Kanban => FeatureState.use(Feature.ExpandTaskInKanban)
+            case _: View.Kanban => FeatureState.use(Feature.ExpandTaskInKanban)
             case _ =>
           }
         }

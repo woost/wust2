@@ -43,7 +43,7 @@ object ViewHeuristic {
     //     case View.Chat if roleStats.messageStat.unreadCount > 0 => true
     //     case View.Thread if roleStats.messageStat.unreadCount > 0 => true
     //     case View.List if roleStats.taskStat.unreadCount > 0 => true
-    //     case View.Kanban if roleStats.taskStat.unreadCount > 0 => true
+    //     case _: View.Kanban if roleStats.taskStat.unreadCount > 0 => true
     //     case View.Content if roleStats.noteStat.unreadCount > 0 => true
     //     // non-empty
     //     case View.Table(roles) if roles.exists(_ == NodeRole.Message) && roleStats.messageStat.count > 0 => true
@@ -52,7 +52,7 @@ object ViewHeuristic {
     //     case View.Chat if roleStats.messageStat.count > 0 => true
     //     case View.Thread if roleStats.messageStat.count > 0 => true
     //     case View.List if roleStats.taskStat.count > 0 => true
-    //     case View.Kanban if roleStats.taskStat.count > 0 => true
+    //     case _: View.Kanban if roleStats.taskStat.count > 0 => true
     //     case View.Content if roleStats.noteStat.count > 0 => true
 
     //     case _ => false

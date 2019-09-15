@@ -29,7 +29,7 @@ object ViewSwitcher {
     case View.Chat        => TabInfo(View.Chat, Icons.chat, "messages", numMsg)
     case View.Thread      => TabInfo(View.Thread, Icons.thread, "messages", numMsg)
     case View.List        => TabInfo(View.List, Icons.list, "tasks", numTasks)
-    case View.Kanban      => TabInfo(View.Kanban, Icons.kanban, "tasks", numTasks)
+    case _: View.Kanban      => TabInfo(View.Kanban, Icons.kanban, "tasks", numTasks)
     case View.Files       => TabInfo(View.Files, Icons.files, "files", numFiles)
     case View.Graph       => TabInfo(View.Graph, Icons.graph, "nodes", numTasks)
     case view: View.Table => TabInfo(view, Icons.table, "records", (if (view.roles.contains(NodeRole.Task)) numTasks else 0) + (if (view.roles.contains(NodeRole.Message)) numMsg else 0))

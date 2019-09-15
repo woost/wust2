@@ -198,7 +198,7 @@ object RightSidebar {
 
     currentView.triggerLater{ view =>
       view match {
-        case View.Kanban => FeatureState.use(Feature.SwitchToKanbanInRightSidebar)
+        case _: View.Kanban => FeatureState.use(Feature.SwitchToKanbanInRightSidebar)
         case View.List   => FeatureState.use(Feature.SwitchToChecklistInRightSidebar)
         case View.Chat   => FeatureState.use(Feature.SwitchToChatInRightSidebar)
         case _           =>
@@ -206,9 +206,11 @@ object RightSidebar {
     }
 
     //TODO: really ugly, to widen the var for the viewswitcher :/
-    val viewSwitcherVar: Var[View] = Var(currentView.now)
-    currentView.triggerLater(viewSwitcherVar() = _)
-    viewSwitcherVar.triggerLater(newView => ViewHeuristic.visibleView(graph, focusPref.nodeId, newView).foreach(currentView() = _))
+    // val viewSwitcherVar: Var[View] = Var(currentView.now)
+    // currentView.triggerLater(viewSwitcherVar() = _)
+    // viewSwitcherVar.triggerLater(newView => ViewHeuristic.visibleView(graph, focusPref.nodeId, newView).foreach(currentView() = _))
+    //FIXME
+    ???
 
     def focusState(view: View) = FocusState(
       view,
@@ -232,7 +234,8 @@ object RightSidebar {
         Styles.flex,
         alignItems.center,
 
-        ViewSwitcher(focusPref.nodeId, viewSwitcherVar, focusPref.view.flatMap(ViewHeuristic.visibleView(graph, focusPref.nodeId, _))),
+        // FIXME: ViewSwitcher(focusPref.nodeId, currentView, focusPref.view.flatMap(ViewHeuristic.visibleView(graph, focusPref.nodeId, _))),
+        ???,
         UnreadComponents.activityButtons(focusPref.nodeId, modifiers = marginLeft := "10px") --> currentView,
       ),
 
