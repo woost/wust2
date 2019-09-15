@@ -24,45 +24,47 @@ import wust.webUtil.{ BrowserDetect, Elements, Ownable, UI }
 import scala.reflect.ClassTag
 
 object ViewSwitcher {
-  def viewToTabInfo(view: View, numMsg: Int, numTasks: Int, numFiles: Int): TabInfo = view match {
-    case View.Dashboard   => TabInfo(View.Dashboard, Icons.dashboard, "dashboard", 0)
-    case View.Chat        => TabInfo(View.Chat, Icons.chat, "messages", numMsg)
-    case View.Thread      => TabInfo(View.Thread, Icons.thread, "messages", numMsg)
-    case View.List        => TabInfo(View.List, Icons.list, "tasks", numTasks)
-    case _: View.Kanban      => TabInfo(View.Kanban, Icons.kanban, "tasks", numTasks)
-    case View.Files       => TabInfo(View.Files, Icons.files, "files", numFiles)
-    case View.Graph       => TabInfo(View.Graph, Icons.graph, "nodes", numTasks)
-    case view: View.Table => TabInfo(view, Icons.table, "records", (if (view.roles.contains(NodeRole.Task)) numTasks else 0) + (if (view.roles.contains(NodeRole.Message)) numMsg else 0))
-    case View.Content     => TabInfo(View.Content, Icons.notes, "notes", 0)
-    case View.Gantt       => TabInfo(View.Gantt, Icons.gantt, "tasks", 0)
-    case View.Topological => TabInfo(View.Topological, Icons.topological, "tasks", 0)
-    case view             => TabInfo(view, freeSolid.faSquare, "", 0) //TODO complete icon definitions
-  }
+  // def viewToTabInfo(view: View, numMsg: Int, numTasks: Int, numFiles: Int): TabInfo = view match {
+  //   case View.Dashboard   => TabInfo(View.Dashboard, Icons.dashboard, "dashboard", 0)
+  //   case View.Chat        => TabInfo(View.Chat, Icons.chat, "messages", numMsg)
+  //   case View.Thread      => TabInfo(View.Thread, Icons.thread, "messages", numMsg)
+  //   case View.List        => TabInfo(View.List, Icons.list, "tasks", numTasks)
+  //   case _: View.Kanban      => TabInfo(View.Kanban, Icons.kanban, "tasks", numTasks)
+  //   case View.Files       => TabInfo(View.Files, Icons.files, "files", numFiles)
+  //   case View.Graph       => TabInfo(View.Graph, Icons.graph, "nodes", numTasks)
+  //   case view: View.Table => TabInfo(view, Icons.table, "records", (if (view.roles.contains(NodeRole.Task)) numTasks else 0) + (if (view.roles.contains(NodeRole.Message)) numMsg else 0))
+  //   case View.Content     => TabInfo(View.Content, Icons.notes, "notes", 0)
+  //   case View.Gantt       => TabInfo(View.Gantt, Icons.gantt, "tasks", 0)
+  //   case View.Topological => TabInfo(View.Topological, Icons.topological, "tasks", 0)
+  //   case view             => TabInfo(view, freeSolid.faSquare, "", 0) //TODO complete icon definitions
+  // }
 
   //TODO FocusState?
   def apply(channelId: NodeId)(implicit ctx: Ctx.Owner): CustomEmitterBuilder[View, VNode] = EmitterBuilder.ofNode[View] { viewSink =>
     {
-      val currentView = Var[View](View.Empty)
+      val currentView = Var[Option[View.Custom]](None)
       GlobalState.viewPage
         .foreach({
-          case config if config.page.parentId.contains(channelId) => currentView() = config.view
-          case _ => ()
+          case ViewPage(customView: View.Custom, page) if page.parentId.contains(channelId) => currentView() = Some(customView)
+          case _ => currentView() = None
         }: ViewPage => Unit)
       currentView.triggerLater { view =>
-        GlobalState.urlConfig.update(_.focus(view))
-        viewSink.onNext(view)
+        // GlobalState.urlConfig.update(_.focus(view))
+        view.foreach { view =>
+          viewSink.onNext(view)
+        }
       }
 
       apply(channelId, currentView)
     }
   }
 
-  def apply(channelId: NodeId, currentView: Var[View], initialView: Option[View] = None): VNode = {
+  def apply(channelId: NodeId, currentView: Var[Option[View.Custom]], initialView: Option[View] = None): VNode = {
     div.thunk(uniqueKey(channelId.toStringFast))(initialView)(Ownable { implicit ctx => modifier(channelId, currentView, initialView) })
   }
 
   val addViewIcon = freeSolid.faPlus
-  def modifier(channelId: NodeId, currentView: Var[View], initialView: Option[View])(implicit ctx: Ctx.Owner): VDomModifier = {
+  def modifier(channelId: NodeId, currentView: Var[Option[View.Custom]], initialView: Option[View])(implicit ctx: Ctx.Owner): VDomModifier = {
     val closeDropdown = SinkSourceHandler.publish[Unit]
 
     def addNewTabDropdown = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
@@ -72,7 +74,7 @@ object ViewSwitcher {
           padding := "5px",
           div(cls := "item", display.none), //TODO ui dropdown needs at least one element
 
-          ViewModificationMenu.selector(channelId, currentView, initialView, closeDropdown)
+        // ViewModificationMenu.selector(channelId, currentView, initialView, closeDropdown)
         ), close = closeDropdown, dropdownModifier = cls := "top left")
       )
     })
@@ -95,7 +97,7 @@ object ViewSwitcher {
         val channelNode = graph.nodesById(channelId)
         val user = GlobalState.user()
 
-        def bestView:View = graph.nodesById(channelId).flatMap(ViewHeuristic.bestView(graph, _, user.id)).getOrElse(View.Empty)
+        def bestView: View = graph.nodesById(channelId).flatMap(ViewHeuristic.bestView(graph, _, user.id)).getOrElse(View.Empty)
 
         val nodeIdx = graph.idToIdx(channelId)
         val (numMsg, numTasks, numFiles) = (for {
@@ -109,9 +111,21 @@ object ViewSwitcher {
         }) getOrElse ((0, 0, 0))
 
         VDomModifier(
-          channelNode.flatMap(_.views.map(_.map(_.view))).getOrElse(bestView :: Nil).map { view =>
-            singleTab(currentView, ViewSwitcher.viewToTabInfo(view, numMsg = numMsg, numTasks = numTasks, numFiles = numFiles))
-          },
+          channelNode.toSeq.flatMap(_.schema.views.map{
+            case (viewName, viewConfig) =>
+              singleTab(
+                currentView,
+                TabInfo(viewConfig.view, freeSolid.faSquare, "view", -1)
+              // ViewSwitcher.viewToTabInfo(view, numMsg = numMsg, numTasks = numTasks, numFiles = numFiles)
+              )
+          }),
+          // channelNode.flatMap(_.views.map(_.map(_.view))).getOrElse(bestView :: Nil).map { view =>
+          //   singleTab(currentView,
+          //     ???
+          //
+          //     // ViewSwitcher.viewToTabInfo(view, numMsg = numMsg, numTasks = numTasks, numFiles = numFiles)
+          //   )
+          // },
           addNewViewTab
         )
       },
@@ -121,7 +135,7 @@ object ViewSwitcher {
 
   /// Parameters that make out a tab
   final case class TabInfo(
-    targetView: View,
+    targetView: View.Custom,
     icon: VDomModifier,
     wording: String,
     numItems: Int
@@ -131,11 +145,13 @@ object ViewSwitcher {
   private object modifiers {
 
     /// @return A class modifier, setting "active" or "inactive"
-    def modActivityStateCssClass(currentView: Rx[View], tabInfo: TabInfo)(implicit ctx: Ctx.Owner) = Rx {
-      if (isActiveTab(currentView(), tabInfo))
-        cls := "active"
-      else
-        cls := "inactive"
+    def modActivityStateCssClass(currentView: Rx[Option[View.Custom]], tabInfo: TabInfo)(implicit ctx: Ctx.Owner) = Rx {
+      currentView().map { customView =>
+        if (isActiveTab(customView, tabInfo))
+          cls := "active"
+        else
+          cls := "inactive"
+      }
     }
 
     /// @return A tooltip modifier
@@ -145,14 +161,13 @@ object ViewSwitcher {
   }
 
   private def isActiveTab(currentView: View, tabInfo: TabInfo): Boolean = {
-    val tabViewKey = tabInfo.targetView.viewKey
     currentView match {
-      case View.Tiled(_, views) => views.exists(_.viewKey == tabViewKey)
-      case view                 => view.viewKey == tabViewKey
+      case View.Tiled(_, views) => views.exists(_ == tabInfo.targetView)
+      case view                 => view == tabInfo.targetView
     }
   }
 
-  def tabSkeleton(currentView: Var[View], tabInfo: TabInfo)(implicit ctx: Ctx.Owner): BasicVNode = {
+  def tabSkeleton(currentView: Var[Option[View.Custom]], tabInfo: TabInfo)(implicit ctx: Ctx.Owner): BasicVNode = {
     div(
       // modifiers
       cls := "viewswitcher-item",
@@ -162,22 +177,22 @@ object ViewSwitcher {
       // actions
       onClick.stopPropagation.foreach { e =>
         val clickedView = tabInfo.targetView
-        if (e.ctrlKey) {
-          currentView.update{ oldView =>
-            oldView match {
-              case View.Empty                                => clickedView
-              case view: View if view == clickedView => View.Empty
-              case view: View.Tiled if view.views.toList.contains(clickedView) =>
-                if (view.views.toList.distinct.length == 1) View.Empty
-                else view.copy(views = NonEmptyList.fromList(view.views.filterNot(_ == clickedView)).get)
-              case view: View.Tiled                          => view.copy(views = view.views :+ clickedView)
-              case view: View if view != clickedView => View.Tiled(ViewOperator.Row, NonEmptyList.of(view, clickedView))
-              case view                                      => view
-            }
-          }
-        } else {
-          currentView() = clickedView
-        }
+        // if (e.ctrlKey) {
+        //   currentView.update{ oldView =>
+        //     oldView match {
+        //       case View.Empty                        => clickedView
+        //       case view: View if view == clickedView => View.Empty
+        //       case view: View.Tiled if view.views.toList.contains(clickedView) =>
+        //         if (view.views.toList.distinct.length == 1) View.Empty
+        //         else view.copy(views = NonEmptyList.fromList(view.views.filterNot(_ == clickedView)).get)
+        //       case view: View.Tiled                  => view.copy(views = view.views :+ clickedView)
+        //       case view: View if view != clickedView => View.Tiled(ViewOperator.Row, NonEmptyList.of(view, clickedView))
+        //       case view                              => view
+        //     }
+        //   }
+        // } else {
+          currentView() = Some(clickedView)
+        // }
       },
 
       // content
@@ -186,7 +201,7 @@ object ViewSwitcher {
   }
 
   /// @return a single iconized tab for switching to the respective view
-  def singleTab(currentView: Var[View], tabInfo: TabInfo)(implicit ctx: Ctx.Owner) = {
+  def singleTab(currentView: Var[Option[View.Custom]], tabInfo: TabInfo)(implicit ctx: Ctx.Owner) = {
     tabSkeleton(currentView, tabInfo).apply(
       cls := "single",
     // VDomModifier.ifTrue(tabInfo.numItems > 0)(span(tabInfo.numItems, paddingLeft := "7px")),

@@ -121,13 +121,12 @@ object View {
   // // View.Topological,
   // )
 
-  def forNodeRole(nodeRole: NodeRole): Option[View] = //Some(nodeRole) collect {
+  // def forNodeRole(nodeRole: NodeRole): Option[View] = //Some(nodeRole) collect {
     // case NodeRole.Project => View.Dashboard
     // case NodeRole.Message => View.Conversation
     // case NodeRole.Task    => View.Tasks
     // case NodeRole.Note    => View.Content
   // }
-  ???
 }
 
 sealed trait ViewOperator {

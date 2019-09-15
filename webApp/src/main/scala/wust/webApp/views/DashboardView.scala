@@ -36,8 +36,8 @@ object DashboardView {
     )
 
     val configWidgets = VDomModifier(
-      Styles.flex,
-      UI.segment("Views", ViewModificationMenu.selectForm(focusState.focusedId)).apply(Styles.flexStatic, segmentMod),
+      Styles.flex:VDomModifier,
+      // UI.segment("Views", ViewModificationMenu.selectForm(focusState.focusedId)).apply(Styles.flexStatic, segmentMod),
     )
 
     val projectNodes = Rx { getProjectList(GlobalState.graph(), focusState.focusedId) }

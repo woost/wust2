@@ -63,12 +63,12 @@ object NewProjectPrompt {
       val newName = if (sub.text.trim.isEmpty) GraphChanges.newProjectName else sub.text
       val nodeId = NodeId.fresh
       val views = if (selectedViews.now.isEmpty) None else Some(selectedViews.now.toList)
-      GlobalState.submitChanges(GraphChanges.newProject(nodeId, GlobalState.user.now.id, newName, NodeSchema(views)) merge sub.changes(nodeId) merge extraChanges(nodeId))
+      GlobalState.submitChanges(GraphChanges.newProject(nodeId, GlobalState.user.now.id, newName, NodeSchema.empty) merge sub.changes(nodeId) merge extraChanges(nodeId))
 
       if (focusNewProject) GlobalState.urlConfig.update(_.focus(Page(nodeId), needsGet = false))
 
       FeatureState.use(Feature.CreateProject)
-      selectedViews.now.foreach (ViewModificationMenu.trackAddViewFeature)
+      // selectedViews.now.foreach (ViewModificationMenu.trackAddViewFeature)
 
       selectedViews() = Seq.empty
     }
@@ -111,7 +111,7 @@ object NewProjectPrompt {
     ???,
     view => span(
       marginLeft := "4px",
-      ViewSwitcher.viewToTabInfo(view, 0, 0, 0).icon, //TODO: Map[View,Icon] ?
+      // ViewSwitcher.viewToTabInfo(view, 0, 0, 0).icon, //TODO: Map[View,Icon] ?
       span(marginLeft := "4px", view.toString)
     ),
   ).mapResult { modifier =>

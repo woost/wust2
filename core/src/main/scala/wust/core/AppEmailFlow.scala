@@ -212,7 +212,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
     val subject = s"$authorName mentioned you in '${StringOps.trimToMaxLength(node.str, 50)}'"
 
     val escapedContent = com.google.common.html.HtmlEscapers.htmlEscaper().escape(StringOps.trimToMaxLength(node.str, 250))
-    val view = View.forNodeRole(node.role)
+    val view = ???//View.forNodeRole(node.role)
 
     val linkNodeIds = if (mentionedIn.isEmpty) Seq(node.id) else mentionedIn
 
@@ -253,7 +253,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
     val subject = s"Reminder: '${StringOps.trimToMaxLength(node.str, 50)}'"
 
     val escapedContent = com.google.common.html.HtmlEscapers.htmlEscaper().escape(StringOps.trimToMaxLength(node.str, 250))
-    val view = View.forNodeRole(node.role)
+    val view = ???//View.forNodeRole(node.role)
 
     val body =
       s"""

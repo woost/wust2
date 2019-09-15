@@ -1,5 +1,6 @@
 package wust.webApp.state
 
+import acyclic.file
 import scala.util.Try
 import com.github.ghik.silencer.silent
 import acyclic.file
@@ -151,7 +152,7 @@ object GlobalState {
     Rx {
       if (!isLoading()) {
         val tmp = viewAndPageAndSanitizedPage()
-        val (rawView, rawSystemView, rawPage, sanitizedPage) = tmp
+        val (viewName, rawSystemView, rawPage, sanitizedPage) = tmp
 
         // val visibleView: View = rawPage.parentId match {
         //   case None => rawView match {
@@ -163,7 +164,8 @@ object GlobalState {
         //     scribe.debug(s"View heuristic chose new view (was $rawView): $bestView")
         //     bestView
         // }
-        val visibleView: View = ???
+        println("AGAN")
+        val visibleView: View = sanitizedPage.parentId.flatMap(rawGraph().nodesById).flatMap(node => viewName.map(node.schema.views).map(_.view)).getOrElse(View.Kanban.default)
 
         lastViewPage = ViewPage(visibleView, sanitizedPage)
       }

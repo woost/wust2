@@ -62,5 +62,5 @@ object ViewHeuristic {
     // }
   }
 
-  def fallbackView(graph: Graph, node: Node): Option[View] = View.forNodeRole(node.role)
+  // def fallbackView(graph: Graph, node: Node): Option[View] = View.forNodeRole(node.role)
 }
