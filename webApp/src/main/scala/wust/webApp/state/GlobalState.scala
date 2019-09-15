@@ -164,8 +164,11 @@ object GlobalState {
         //     scribe.debug(s"View heuristic chose new view (was $rawView): $bestView")
         //     bestView
         // }
-        println("AGAN")
-        val visibleView: View = sanitizedPage.parentId.flatMap(rawGraph().nodesById).flatMap(node => viewName.map(node.schema.views).map(_.view)).getOrElse(View.Kanban.default)
+        println("system: "+rawSystemView)
+        val visibleView: View = rawSystemView match {
+          case Some(systemView) => systemView
+          case None => sanitizedPage.parentId.flatMap(rawGraph().nodesById).flatMap(node => viewName.map(node.schema.views).map(_.view)).getOrElse(View.Kanban.default)
+        }
 
         lastViewPage = ViewPage(visibleView, sanitizedPage)
       }

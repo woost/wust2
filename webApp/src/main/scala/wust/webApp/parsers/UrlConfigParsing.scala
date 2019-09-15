@@ -36,14 +36,18 @@ private object UrlOption {
   object systemView extends UrlOption {
     val key = "system"
 
-    private def decodeSystemView(s: String): DecodeResult[View.System] =
+    private def decodeSystemView(s: String): DecodeResult[View.System] = {
+      println(s)
+      println(View.map)
       View.map.get(s) match {
         case Some(view: View.System) => Right(view)
         case _               => Left(DecodeError.TypeError(s"Expected View.System, but got: '$view'"))
       }
+    }
 
     val regex = Regex[String](rx"^(\w/)+$$")
       .map(_.flatMap { viewStr =>
+        println("decoding"+viewStr)
         decodeSystemView(viewStr)
       })
 

@@ -327,6 +327,7 @@ object GlobalStateFactory {
       screenSize.debug("screenSize")
       page.debug("page")
       view.debug("view")
+      viewPage.debug("viewPage")
       user.debug("auth")
       selectedNodes.debug("selected")
     }
