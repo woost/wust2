@@ -167,8 +167,8 @@ object GlobalState {
         println("system: "+rawSystemView)
         val visibleView: View = rawSystemView match {
           case Some(systemView) => systemView
-          case None => viewName match {
-            case Some(viewName) => sanitizedPage.parentId.flatMap(rawGraph().nodesById).flatMap(node => node.schema.views.get(viewName).map(_.view)).getOrElse(View.Kanban.default) //FIXME proper defaulty
+          case None => rawPage.parentId match {
+            case Some(_) => sanitizedPage.parentId.flatMap(rawGraph().nodesById).flatMap(node => viewName.map(node.schema.views).map(_.view)).getOrElse(View.Kanban.default) //FIXME: propert daefault
             case None => View.Welcome
           }
         }

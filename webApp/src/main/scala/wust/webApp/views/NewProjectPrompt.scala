@@ -108,7 +108,7 @@ object NewProjectPrompt {
   }
 
   def viewCheckboxes = multiCheckbox[View.Custom](
-    ???,
+    View.selectableList,
     view => span(
       marginLeft := "4px",
       // ViewSwitcher.viewToTabInfo(view, 0, 0, 0).icon, //TODO: Map[View,Icon] ?

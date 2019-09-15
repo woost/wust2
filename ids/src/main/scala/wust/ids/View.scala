@@ -29,6 +29,9 @@ object View {
     // override def toString = s"Table(${roles.mkString(",")})"
     override def toString = "Table with Task Details"
   }
+  object Table {
+    def default = Table(NodeRole.Task :: Nil)
+  }
   case object Thread extends Custom {
     override def toString = "Chat with Threads"
     def viewKey = "thread"
@@ -107,19 +110,19 @@ object View {
   val list: Array[View.System] = SubObjects.all[View.System]
   def map: collection.Map[String, View.System] = list.toList.by(_.viewKey)
 
-  // val selectableList: Array[View] = Array(
-  //   View.Dashboard,
-  //   View.List,
-  //   View.Kanban,
-  //   View.Table(NodeRole.Task :: Nil),
-  //   View.Graph,
-  //   View.Chat,
-  //   View.Thread,
-  //   View.Content,
-  //   View.Files,
-  // // View.Gantt,
-  // // View.Topological,
-  // )
+  val selectableList: Array[View.Custom] = Array(
+    View.Dashboard,
+    View.List,
+    View.Kanban.default,
+    View.Table.default,
+    View.Graph,
+    View.Chat,
+    View.Thread,
+    View.Content,
+    View.Files,
+  // View.Gantt,
+  // View.Topological,
+  )
 
   // def forNodeRole(nodeRole: NodeRole): Option[View] = //Some(nodeRole) collect {
     // case NodeRole.Project => View.Dashboard
