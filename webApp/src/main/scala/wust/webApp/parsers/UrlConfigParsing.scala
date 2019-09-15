@@ -45,16 +45,18 @@ private object UrlOption {
       }
     }
 
-    val regex = Regex[String](rx"^(\w/)+$$")
+    val regex = Regex[String](rx"^\w+$$")
       .map(_.flatMap { viewStr =>
         println("decoding"+viewStr)
         decodeSystemView(viewStr)
       })
 
-    def update(config: UrlConfig, text: String): DecodeResult[UrlConfig] =
+    def update(config: UrlConfig, text: String): DecodeResult[UrlConfig] = {
+      println("TEST " + text)
       parseSingle(regex, text).map { view =>
         config.copy(systemView = Some(view))
       }
+    }
   }
 
   object view extends UrlOption {
@@ -63,7 +65,7 @@ private object UrlOption {
     private def decodeViewName(s: String): DecodeResult[ViewName] =
       Right(ViewName(s))
 
-    val regex = Regex[String](rx"^(\w/)+$$")
+    val regex = Regex[String](rx"^\w+$$")
       .map(_.flatMap { viewStr =>
         decodeViewName(viewStr)
       })
@@ -137,9 +139,11 @@ object UrlConfigParser {
       }
     }
 
+    println("parsing " + route)
     val result = route.hash.fold[DecodeResult[UrlConfig]](Right(UrlConfig.default)) { hash =>
       val matched = decodeSeq(allOptionsRegex.eval(hash).toList)
       matched.map(_.foldLeft[UrlConfig](UrlConfig.default) { case (cfg, (key, value)) =>
+        println("GOT AN OPTION " + key + value)
         allOptionsMap.get(key) match {
           case Some(option) => option.update(cfg, value) match {
             case Right(cfg) => cfg

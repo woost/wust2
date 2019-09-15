@@ -167,7 +167,10 @@ object GlobalState {
         println("system: "+rawSystemView)
         val visibleView: View = rawSystemView match {
           case Some(systemView) => systemView
-          case None => sanitizedPage.parentId.flatMap(rawGraph().nodesById).flatMap(node => viewName.map(node.schema.views).map(_.view)).getOrElse(View.Kanban.default)
+          case None => viewName match {
+            case Some(viewName) => sanitizedPage.parentId.flatMap(rawGraph().nodesById).flatMap(node => node.schema.views.get(viewName).map(_.view)).getOrElse(View.Kanban.default) //FIXME proper defaulty
+            case None => View.Welcome
+          }
         }
 
         lastViewPage = ViewPage(visibleView, sanitizedPage)
