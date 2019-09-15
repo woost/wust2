@@ -1,6 +1,6 @@
 package wust.webApp.state
 
-import wust.ids.{NodeId, View}
+import wust.ids.{NodeId, View, ViewName}
 
 // when travsering a tree in the dom, we always have a current parent and a chain of ancestors. Needed to check cycles or operate on the parents in the views.
 final case class TraverseState(
@@ -21,10 +21,10 @@ final case class FocusPreference(
 //TODO reprensent context as ADT FocusContext: Global, Sidebar, Nodecard with contextparentid, isnested and the actions derived from it
 // or make focusstate an ADT because most properties are dervied from the context
 final case class FocusState(
-  view: View.Visible, // how to render the current focus
+  view: View, // how to render the current focus
   contextParentId: NodeId, // the parent of the current context: in the main view it is page (== focusedId), in the right sidebar it is rightSidebarNode (== focusedId), within a card it is either page or rightsidebarNode depending where the card is shown (!= focusedId).
   focusedId: NodeId, // the currently focused id that is the node the view should render
   isNested: Boolean, // whether the view is nested inside another: only the mainview is not nested.
-  viewAction: View => Unit, // change the view
+  viewAction: ViewName => Unit, // change the view
   contextParentIdAction: NodeId => Unit // change the contextParentId
 )

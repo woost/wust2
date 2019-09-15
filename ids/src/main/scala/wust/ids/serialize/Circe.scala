@@ -73,16 +73,16 @@ trait Circe {
   implicit val connectionContentDecoder: Decoder[EdgeData] = deriveDecoder[EdgeData]
   implicit val connectionContentEncoder: Encoder[EdgeData] = deriveEncoder[EdgeData]
 
-  implicit val viewVisibleEncoder: Encoder[View.Visible] = deriveEncoder[View.Visible]
-  implicit val viewVisibleDecoder: Decoder[View.Visible] = deriveDecoder[View.Visible]
-  implicit val viewConfigEncoder: Encoder[View.Config] = deriveEncoder[View.Config]
-  implicit val viewConfigDecoder: Decoder[View.Config] = deriveDecoder[View.Config]
-  implicit val NodeViewEncoder: Encoder[NodeView] = deriveEncoder[NodeView]
-  implicit val NodeViewDecoder: Decoder[NodeView] = deriveDecoder[NodeView]
+  implicit val viewCustomEncoder: Encoder[View.Custom] = deriveEncoder[View.Custom]
+  implicit val viewCustomDecoder: Decoder[View.Custom] = deriveDecoder[View.Custom]
+  implicit val ViewConfigEncoder: Encoder[ViewConfig] = deriveEncoder[ViewConfig]
+  implicit val ViewConfigDecoder: Decoder[ViewConfig] = deriveDecoder[ViewConfig]
   implicit val EntityEncoder: Encoder[Entity] = deriveEncoder[Entity]
   implicit val EntityDecoder: Decoder[Entity] = deriveDecoder[Entity]
   implicit val NodeRoleKeyDecoder: KeyDecoder[NodeRole] = KeyDecoder.instance(NodeRole.fromString)
   implicit val NodeRoleKeyEncoder: KeyEncoder[NodeRole] = KeyEncoder[String].contramap(_.tpe)
+  implicit val ViewNameKeyDecoder: KeyDecoder[ViewName] = KeyDecoder.instance(x => Some(ViewName(x)))
+  implicit val ViewNameKeyEncoder: KeyEncoder[ViewName] = KeyEncoder[String].contramap(x => x)
   implicit val NodeSchemaEncoder: Encoder[NodeSchema] = deriveEncoder[NodeSchema]
   implicit val NodeSchemaDecoder: Decoder[NodeSchema] = deriveDecoder[NodeSchema]
 

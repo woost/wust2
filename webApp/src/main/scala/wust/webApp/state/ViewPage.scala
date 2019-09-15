@@ -17,4 +17,4 @@ import wust.ids.View
 final case class ShareOptions(title: String, text: String, url: String)
 final case class PageChange(page: Page, needsGet: Boolean = true)
 
-final case class ViewPage(view: View.Visible, page: Page)
+final case class ViewPage(view: View, page: Page)

@@ -102,7 +102,7 @@ object Trello {
     val listsById = BasicMap.ofString[NodeId]()
     val cardsById = BasicMap.ofString[NodeId]()
 
-    val boardNode = Node.Content(NodeId.fresh, NodeData.Markdown(board.name), NodeRole.Project, NodeMeta.default, NodeSchema(Some(NodeView(View.Kanban) :: Nil)))
+    val boardNode = Node.Content(NodeId.fresh, NodeData.Markdown(board.name), NodeRole.Project, NodeMeta.default, NodeSchema.fromViews(View.Kanban.default))
     addNodes += boardNode
 
     // collect all labels in board
@@ -116,7 +116,7 @@ object Trello {
 
     // collect all checklists in board
     board.checklists.foreach { checklist =>
-      val checklistNode = Node.Content(NodeId.fresh, NodeData.Markdown(checklist.name), NodeRole.Task, NodeMeta.default, NodeSchema(Some(NodeView(View.List) :: Nil)))
+      val checklistNode = Node.Content(NodeId.fresh, NodeData.Markdown(checklist.name), NodeRole.Task, NodeMeta.default, NodeSchema.fromViews(View.List))
       addNodes += checklistNode
       checklistsById += checklist.id -> checklistNode.id
 
@@ -142,7 +142,7 @@ object Trello {
 
     // collect all lists/columns in board
     board.lists.foreach { list =>
-      val listNode = Node.Content(NodeId.fresh, NodeData.Markdown(list.name), NodeRole.Stage, NodeMeta.default, NodeSchema(Some(NodeView(View.List) :: Nil)))
+      val listNode = Node.Content(NodeId.fresh, NodeData.Markdown(list.name), NodeRole.Stage, NodeMeta.default, NodeSchema.fromViews(View.List))
       addNodes += listNode
       val deletedAt = if (list.closed) Some(currentTime) else None // TODO: deletion time?
       val edgeData = EdgeData.Child(deletedAt = deletedAt, ordering = BigDecimal(list.pos))
@@ -153,7 +153,7 @@ object Trello {
     // collect all cards in board
     board.cards.foreach { card =>
       val views = if (card.desc.nonEmpty) View.List :: View.Chat :: View.Content :: Nil else View.List :: View.Chat :: Nil
-      val cardNode = Node.Content(NodeId.fresh, NodeData.Markdown(card.name), NodeRole.Task, NodeMeta.default, NodeSchema(Some(views.map(NodeView(_)))))
+      val cardNode = Node.Content(NodeId.fresh, NodeData.Markdown(card.name), NodeRole.Task, NodeMeta.default, NodeSchema.fromViewSeq(views))
       addNodes += cardNode
       cardsById += card.id -> cardNode.id
 

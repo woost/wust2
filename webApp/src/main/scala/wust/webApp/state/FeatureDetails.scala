@@ -8,7 +8,7 @@ import outwatch.dom.dsl._
 import scala.scalajs.js
 import wust.webApp.{ DevOnly, DebugOnly }
 import org.scalajs.dom.console
-import wust.ids.{ Feature, View }
+import wust.ids.{ Feature, View, ViewName }
 import wust.util.macros.SubObjects
 import wust.webApp.views.ViewGraphTransformation
 import wust.webUtil.outwatchHelpers._
@@ -22,7 +22,7 @@ case class FeatureDetails(
 )
 
 object FeatureDetails {
-  def addView(view: View.Visible) = FeatureDetails(
+  def addView(view: View) = FeatureDetails(
     title = s"Add ${view.toString} View",
     description = VDomModifier(s"When creating a new project, select ", em(view.toString), ". Or: press ", em(ViewSwitcher.addViewIcon), " next to the view tabs of a project.")
   )
@@ -96,7 +96,7 @@ object FeatureDetails {
 
       // Kanban
       case AddKanbanView => FeatureDetails.addView (
-        view = View.Kanban
+        view = View.Kanban.default
       )
       case CreateTaskInKanban => FeatureDetails (
         title = "Create Task (Kanban)",

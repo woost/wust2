@@ -141,7 +141,7 @@ object GlobalState {
 
     var lastViewPage: ViewPage = ViewPage(View.Empty, Page.empty)
 
-    val viewAndPageAndSanitizedPage: Rx[(Option[View], Page, Page)] = Rx {
+    val viewAndPageAndSanitizedPage: Rx[(Option[ViewIntent], Page, Page)] = Rx {
       val rawPage = urlConfig().pageChange.page
       val rawView = urlConfig().view
       (rawView, rawPage, rawPage.copy(rawPage.parentId.filter(rawGraph().contains)))
@@ -152,16 +152,17 @@ object GlobalState {
         val tmp = viewAndPageAndSanitizedPage()
         val (rawView, rawPage, sanitizedPage) = tmp
 
-        val visibleView: View.Visible = rawPage.parentId match {
-          case None => rawView match {
-            case Some(view: View.Visible) if !view.isContent => view
-            case _ => View.Welcome
-          }
-          case Some(parentId) =>
-            val bestView = ViewHeuristic(rawGraph.now, parentId, rawView, user.now.id).getOrElse(View.Empty) // use rawGraph.now to not trigger on every graph change
-            scribe.debug(s"View heuristic chose new view (was $rawView): $bestView")
-            bestView
-        }
+        // val visibleView: View = rawPage.parentId match {
+        //   case None => rawView match {
+        //     case Some(view) if !view.isContent => view
+        //     case _ => View.Welcome
+        //   }
+        //   case Some(parentId) =>
+        //     val bestView = ViewHeuristic(rawGraph.now, parentId, rawView, user.now.id).getOrElse(View.Empty) // use rawGraph.now to not trigger on every graph change
+        //     scribe.debug(s"View heuristic chose new view (was $rawView): $bestView")
+        //     bestView
+        // }
+        val visibleView: View = ???
 
         lastViewPage = ViewPage(visibleView, sanitizedPage)
       }
@@ -170,7 +171,7 @@ object GlobalState {
     }
   }
 
-  val view: Rx[View.Visible] = viewPage.map(_.view)
+  val view: Rx[View] = viewPage.map(_.view)
   val viewIsContent: Rx[Boolean] = view.map(_.isContent)
 
   val urlPage = urlConfig.map(_.pageChange.page)

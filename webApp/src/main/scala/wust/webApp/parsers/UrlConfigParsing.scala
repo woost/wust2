@@ -6,7 +6,7 @@ import kantan.regex._
 import kantan.regex.implicits._
 import wust.api.Authentication
 import wust.graph.Page
-import wust.ids.{Cuid, NodeId, View, ViewOperator}
+import wust.ids.{Cuid, NodeId, View, ViewOperator, ViewName}
 import wust.util.collection.BasicMap
 import wust.webApp.state._
 
@@ -36,38 +36,12 @@ private object UrlOption {
   object view extends UrlOption {
     val key = "view"
 
-    private def decodeVisibleView(s: String): DecodeResult[View.Visible] =
-      decodeView(s).flatMap {
-        case view: View.Visible => Right(view)
-        case view               => Left(DecodeError.TypeError(s"Expected View.Visible, but got: '$view'"))
-      }
+    private def decodeViewName(s: String): DecodeResult[ViewIntent] =
+      Right(ViewIntent.ByName(ViewName(s))) //FIXME
 
-    private def decodeView(s: String): DecodeResult[View] = {
-      val split = s.split(":")
-      val viewName = split(0)
-      val parameters = split.drop(1).toList
-      val result = View.map.get(viewName).flatMap(_ (parameters))
-      result.fold[DecodeResult[View]](Left(DecodeError.TypeError(s"Unknown view '$s")))(Right(_))
-    }
-
-    val regex = Regex[String](rx"^(\w|\:|\||,|\?|/)+$$")
+    val regex = Regex[String](rx"^(\w/)+$$")
       .map(_.flatMap { viewStr =>
-        val views = viewStr.split("\\||,|\\?|/").filter(_.nonEmpty)
-        val view = views.head
-        val opsViews = views.drop(1)
-        if(opsViews.isEmpty) decodeView(view)
-        else {
-          val opString = viewStr.substring(view.length, view.length + 1) // TODO only support one operator. nested tiling?
-          ViewOperator.fromString.lift(opString) match {
-            case Some(op) =>
-              decodeVisibleView(view).flatMap { view =>
-                decodeSeq(opsViews.map(decodeVisibleView)).map { views =>
-                  View.Tiled(op, NonEmptyList(view, views.toList))
-                }
-              }
-            case None     => Left(DecodeError.TypeError(s"Unknown operator '$opString'"))
-          }
-        }
+        decodeViewName(viewStr)
       })
 
     def update(config: UrlConfig, text: String): DecodeResult[UrlConfig] =
@@ -183,12 +157,12 @@ object UrlConfigParser {
 
 object UrlConfigWriter {
   def write(cfg: UrlConfig): UrlRoute = {
-    val viewString = cfg.view.map(view => UrlOption.view.key + "=" + view.viewKey)
+    val viewString = cfg.view.map(view => UrlOption.view.key + "=" + view)
     val pageString = cfg.pageChange.page.parentId map { parentId =>
         UrlOption.page.key + "=" + s"${parentId.toBase58}"
     }
     val redirectToString =
-      cfg.redirectTo.map(view => UrlOption.redirectTo.key + "=" + view.viewKey)
+      cfg.redirectTo.map(view => UrlOption.redirectTo.key + "=" + view)
     val hash = List(viewString, pageString, redirectToString).flatten.mkString("&")
     // we do not write invitation and focusId: this only reading on url change.
     UrlRoute(search = None, hash = Some(hash))

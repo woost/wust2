@@ -100,7 +100,7 @@ object Wunderlist {
     }
 
     account.data.lists.foreach { list =>
-      val projectNode = Node.Content(NodeId.fresh, NodeData.Markdown(list.title), NodeRole.Project, NodeMeta.default, NodeSchema(Some(NodeView(View.List) :: Nil)))
+      val projectNode = Node.Content(NodeId.fresh, NodeData.Markdown(list.title), NodeRole.Project, NodeMeta.default, NodeSchema.fromViews(View.List))
       listById += list.id -> NodeInfo(projectNode.id, Eval.later(getDoneNode(projectNode.id)))
       topLevelNodeIds += projectNode.id
       addNodes += projectNode
@@ -113,7 +113,7 @@ object Wunderlist {
       ordering = taskPositionMap.getOrElse(task.id, 0)
     } {
       //TODO: define notes view if notes available on task
-      val taskNode = Node.Content(NodeId.fresh, NodeData.Markdown(task.title), NodeRole.Task, NodeMeta.default, NodeSchema(Some((View.List :: View.Chat :: Nil).map(NodeView(_)))))
+      val taskNode = Node.Content(NodeId.fresh, NodeData.Markdown(task.title), NodeRole.Task, NodeMeta.default, NodeSchema.fromViews(View.List, View.Chat))
       taskById += task.id -> NodeInfo(taskNode.id, Eval.later(getDoneNode(taskNode.id)))
       addNodes += taskNode
       val childData = EdgeData.Child(ordering = BigDecimal(ordering))
@@ -134,7 +134,7 @@ object Wunderlist {
       taskInfo <- taskById.get(task.task_id)
       ordering = subTaskPositionMap.getOrElse(task.id, 0)
     } {
-      val taskNode = Node.Content(NodeId.fresh, NodeData.Markdown(task.title), NodeRole.Task, NodeMeta.default, NodeSchema(Some((View.List :: View.Chat :: Nil).map(NodeView(_)))))
+      val taskNode = Node.Content(NodeId.fresh, NodeData.Markdown(task.title), NodeRole.Task, NodeMeta.default, NodeSchema.fromViews(View.List, View.Chat))
       addNodes += taskNode
       val childData = EdgeData.Child(ordering = BigDecimal(ordering))
       addEdges += Edge.Child(ParentId(taskInfo.nodeId), childData, ChildId(taskNode.id))

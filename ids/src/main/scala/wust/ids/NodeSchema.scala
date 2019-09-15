@@ -1,21 +1,18 @@
 package wust.ids
 
 case class NodeSchema(
-  views: Option[List[NodeView]] = None,
+  views: ViewMap = ViewMap.empty,
   entities: EntityMap = EntityMap.empty
 ) {
-  def replaceViews(views: Option[List[View.Visible]]): NodeSchema = copy(views = views.map(_.map(NodeView(_))))
-  def replaceViews(views: List[View.Visible]): NodeSchema = copy(views = Some(views.map(NodeView(_))))
+  def replaceViews(views: Option[List[View.Custom]]): NodeSchema = ??? //FIXME
+  def replaceViews(views: List[View.Custom]): NodeSchema = ??? //FIXME
 }
 object NodeSchema {
-  def empty = NodeSchema()
-  def apply(views: Option[List[View.Visible]]): NodeSchema = NodeSchema(views.map(_.map(NodeView(_))))
-  def apply(views: List[View.Visible]): NodeSchema = NodeSchema(Some(views.map(NodeView(_))))
-  def apply(view: View.Visible): NodeSchema = NodeSchema(Some(NodeView(view) :: Nil))
+  @inline def empty = new NodeSchema()
+  @inline def apply(ts: (ViewName, ViewConfig)*) = new NodeSchema(views = ts.toMap)
+  @inline def fromViews(ts: View.Custom*): NodeSchema = fromViewSeq(ts)
+  def fromViewSeq(ts: Seq[View.Custom]): NodeSchema = new NodeSchema(views = ts.map(v => ViewName(v.toString) -> ViewConfig(v)).toMap) //FIXME: to String is not really right
+  def apply(views: Option[List[View.Custom]]): NodeSchema = ??? //FIXME
+  def apply(views: List[View.Custom]): NodeSchema = ??? //FIXME
 }
-
-case class NodeView(
-  view: View.Visible,
-  config: View.Config = View.Config.empty
-)
 

@@ -21,9 +21,8 @@ trait Boopickle {
   implicit val connectionContentPickler: Pickler[EdgeData] = generatePickler[EdgeData]
 
   implicit val viewPickler: Pickler[View] = generatePickler[View]
-  implicit val ViewConfigChecklistPickler: Pickler[View.Config.Checklist] = generatePickler[View.Config.Checklist]
-  implicit val ViewConfigKanbanPickler: Pickler[View.Config.Kanban] = generatePickler[View.Config.Kanban]
-  implicit val NodeViewPickler: Pickler[NodeView] = generatePickler[NodeView]
+  implicit val ViewKanbanPickler: Pickler[View.Kanban] = generatePickler[View.Kanban]
+  implicit val ViewConfigPickler: Pickler[ViewConfig] = generatePickler[ViewConfig]
   implicit val NodeSchemaPickler: Pickler[NodeSchema] = generatePickler[NodeSchema]
 
   implicit val featurePickler: Pickler[Feature] = generatePickler[Feature]

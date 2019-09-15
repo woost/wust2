@@ -15,6 +15,14 @@ package object ids {
   object EntityMap {
     def empty = Map.empty[NodeRole, Entity]
   }
+  type ViewMap = collection.Map[ViewName, ViewConfig]
+  object ViewMap {
+    def empty = Map.empty[ViewName, ViewConfig]
+  }
+
+  object ViewName extends TaggedType[String] {
+  }
+  type ViewName = ViewName.Type
 
   object NodeId extends TaggedType[Cuid] {
     @inline def fresh(): NodeId = apply(Cuid.fromCuidString(cuid.Cuid())).right.get //ok, because cuid comes from cuid function

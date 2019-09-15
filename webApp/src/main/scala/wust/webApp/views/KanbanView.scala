@@ -22,20 +22,15 @@ import wust.webApp.views.DragComponents.registerDragContainer
 
 object KanbanView {
 
-  def apply(focusState: FocusState, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(focusState: FocusState, viewRender: ViewRenderLike, kanban: View.Kanban)(implicit ctx: Ctx.Owner): VNode = {
 
     val selectedNodeIds:Var[Set[NodeId]] = Var(Set.empty[NodeId])
 
     val traverseState = TraverseState(focusState.focusedId)
 
-    val kanbanConfig = Rx {
-      View.Config.Kanban.default //TODO get from somehwere
-      View.Config.Kanban(PropertyKey("Sein Status"), NodeRole.Project)
-    }
-
     val config = Rx {
       val g = GlobalState.rawGraph()
-      KanbanData.Config(g, g.idToIdxOrThrow(focusState.focusedId), kanbanConfig())
+      KanbanData.Config(g, g.idToIdxOrThrow(focusState.focusedId), kanban.groupKey, kanban.contentRole)
     }
 
     div(
@@ -46,10 +41,10 @@ object KanbanView {
       Styles.flex,
       alignItems.flexStart,
 
-      renderInboxColumn( focusState, traverseState, viewRender, selectedNodeIds, config, kanbanConfig),
+      renderInboxColumn( focusState, traverseState, viewRender, selectedNodeIds, config, kanban),
 
       // inbox is separated, because it cannot be reordered. The others are in a sortable container
-      renderToplevelColumns( focusState, traverseState, viewRender, selectedNodeIds, config, kanbanConfig),
+      renderToplevelColumns( focusState, traverseState, viewRender, selectedNodeIds, config, kanban),
 
       newColumnArea( focusState).apply(Styles.flexStatic),
     )
@@ -64,11 +59,11 @@ object KanbanView {
     selectedNodeIds:Var[Set[NodeId]],
     isTopLevel: Boolean = false,
     config: Rx[KanbanData.Config],
-    kanbanConfig: Rx[View.Config.Kanban]
+    kanban: ViewConfig
   )(implicit ctx: Ctx.Owner): VDomModifier = {
     kind match {
       case KanbanData.Kind.Content => TaskNodeCard.renderThunk( focusState, traverseState, nodeId, selectedNodeIds, compactChildren = true)
-      case KanbanData.Kind.Group => renderColumn( focusState, traverseState, nodeId, viewRender = viewRender, selectedNodeIds, isTopLevel = isTopLevel, config = config, kanbanConfig = kanbanConfig)
+      case KanbanData.Kind.Group => renderColumn( focusState, traverseState, nodeId, viewRender = viewRender, selectedNodeIds, isTopLevel = isTopLevel, config = config, kanban = kanban)
     }
   }
 
@@ -78,7 +73,7 @@ object KanbanView {
     viewRender: ViewRenderLike,
     selectedNodeIds: Var[Set[NodeId]],
     config: Rx[KanbanData.Config],
-    kanbanConfig: Rx[View.Config.Kanban]
+    kanban: ViewConfig
   )(implicit ctx: Ctx.Owner): VDomModifier = {
     val columns = Rx {
       val graph = GlobalState.graph()
@@ -93,7 +88,7 @@ object KanbanView {
       Rx {
         VDomModifier(
           columns().map { columnId =>
-            renderColumn( focusState, traverseState, columnId, viewRender, selectedNodeIds, isTopLevel = true, config = config, kanbanConfig = kanbanConfig)
+            renderColumn( focusState, traverseState, columnId, viewRender, selectedNodeIds, isTopLevel = true, config = config, kanban = kanban)
           },
           registerDragContainer( DragContainer.Kanban.ColumnArea(focusState.focusedId, columns())),
         )
@@ -108,7 +103,7 @@ object KanbanView {
     viewRender: ViewRenderLike,
     selectedNodeIds: Var[Set[NodeId]],
     config: Rx[KanbanData.Config],
-    kanbanConfig: Rx[View.Config.Kanban]
+    kanban: ViewConfig
   )(implicit ctx: Ctx.Owner): VNode = {
     val scrollHandler = new ScrollBottomHandler(initialScrollToBottom = false)
 
@@ -150,7 +145,7 @@ object KanbanView {
           )
         }
       ),
-      addCardField(focusState, None, scrollHandler, kanbanConfig)
+      addCardField(focusState, None, scrollHandler, kanban)
     )
   }
 
@@ -162,7 +157,7 @@ object KanbanView {
     selectedNodeIds:Var[Set[NodeId]],
     isTopLevel: Boolean = false,
     config: Rx[KanbanData.Config],
-    kanbanConfig: Rx[View.Config.Kanban]
+    kanban: ViewConfig
   ): VNode = div.thunk(nodeId.hashCode)(isTopLevel)(Ownable { implicit ctx =>
     val editable = Var(false)
     val node = Rx {
@@ -254,8 +249,8 @@ object KanbanView {
             cls := "tiny-scrollbar",
             Rx {
               VDomModifier(
-                registerDragContainer( DragContainer.Kanban.Column(nodeId, children().map(_._1), workspace = focusState.focusedId, kanbanConfig().groupKey, propertyValueId = nodeId)),
-                children().map { case (id, kind) => renderContentOrGroup(focusState, nextTraverseState, nodeId = id, kind = kind, viewRender, selectedNodeIds, config = config, kanbanConfig = kanbanConfig) },
+                registerDragContainer( DragContainer.Kanban.Column(nodeId, children().map(_._1), workspace = focusState.focusedId, kanban.groupKey, propertyValueId = nodeId)),
+                children().map { case (id, kind) => renderContentOrGroup(focusState, nextTraverseState, nodeId = id, kind = kind, viewRender, selectedNodeIds, config = config, kanban = kanban) },
               )
             },
             scrollHandler.modifier,
@@ -280,7 +275,7 @@ object KanbanView {
               paddingBottom := "7px",
             ),
             Rx {
-              registerDragContainer( DragContainer.Kanban.Column(nodeId, children().map(_._1), workspace = focusState.focusedId, kanbanConfig().groupKey, propertyValueId = nodeId))
+              registerDragContainer( DragContainer.Kanban.Column(nodeId, children().map(_._1), workspace = focusState.focusedId, kanban.groupKey, propertyValueId = nodeId))
               , // allows to drop cards on collapsed columns
             }
           )
@@ -290,7 +285,7 @@ object KanbanView {
         cls := "kanbancolumnfooter",
         Styles.flex,
         justifyContent.spaceBetween,
-        addCardField(focusState, Some(nodeId), scrollHandler, kanbanConfig).apply(width := "100%"),
+        addCardField(focusState, Some(nodeId), scrollHandler, kanban).apply(width := "100%"),
         // stageCommentZoom,
       )
     )
@@ -301,7 +296,7 @@ object KanbanView {
     focusState: FocusState,
     parentId: Option[NodeId],
     scrollHandler: ScrollBottomHandler,
-    kanbanConfig: Rx[View.Config.Kanban]
+    kanban: ViewConfig
   )(implicit ctx: Ctx.Owner): VNode = {
     val active = Var[Boolean](false)
     active.foreach{ active =>
@@ -309,10 +304,10 @@ object KanbanView {
     }
 
     def submitAction(userId: UserId)(sub: InputRow.Submission) = {
-      val createdNode = Node.Content(data = NodeData.Markdown(sub.text), role = kanbanConfig.now.contentRole)
+      val createdNode = Node.Content(data = NodeData.Markdown(sub.text), role = kanban.contentRole)
       val graph = GlobalState.graph.now
       val addNode = GraphChanges.addNodeWithParent(createdNode, ParentId(focusState.focusedId))
-      val addProperty = parentId.fold(GraphChanges.empty)(GraphChanges.addProperty(createdNode.id, kanbanConfig.now.groupKey, _, showOnCard = false))
+      val addProperty = parentId.fold(GraphChanges.empty)(GraphChanges.addProperty(createdNode.id, kanban.groupKey, _, showOnCard = false))
       val addTags = ViewFilter.addCurrentlyFilteredTags( createdNode.id)
 
       GlobalState.submitChanges(addNode merge addTags merge addProperty merge sub.changes(createdNode.id))

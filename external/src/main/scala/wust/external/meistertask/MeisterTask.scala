@@ -51,12 +51,12 @@ object MeisterTask {
     val sectionsByName = BasicMap.ofString[NodeId]()
     val doneStageInSection = BasicMap.ofString[NodeId]()
 
-    val projectNode = Node.Content(NodeId.fresh, NodeData.Markdown(project.name), NodeRole.Project, NodeMeta.default, NodeSchema(Some(NodeView(View.Kanban) :: Nil)))
+    val projectNode = Node.Content(NodeId.fresh, NodeData.Markdown(project.name), NodeRole.Project, NodeMeta.default, NodeSchema.fromViews(View.Kanban.default))
     addNodes += projectNode
 
     project.tasks.foreach { task =>
       val views = if (task.notes.nonEmpty) View.List :: View.Chat :: View.Content :: Nil else View.List :: View.Chat :: Nil
-      val taskNode = Node.Content(NodeId.fresh, NodeData.Markdown(task.name), NodeRole.Task, NodeMeta.default, NodeSchema(Some(views.map(NodeView(_)))))
+      val taskNode = Node.Content(NodeId.fresh, NodeData.Markdown(task.name), NodeRole.Task, NodeMeta.default, NodeSchema.fromViewSeq(views))
       addNodes += taskNode
 
       // attach tags

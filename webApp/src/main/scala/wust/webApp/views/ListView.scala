@@ -46,11 +46,9 @@ object ListView {
     lastElementModifier: VDomModifier = VDomModifier.empty,
   )(implicit ctx: Ctx.Owner):VNode = {
 
-    val checklistConfig = View.Config.Checklist.default //TODO get from somehwere
-
     val config = Rx {
       val g = GlobalState.rawGraph()
-      KanbanData.Config(g, g.idToIdxOrThrow(focusState.focusedId), checklistConfig)
+      KanbanData.Config(g, g.idToIdxOrThrow(focusState.focusedId), "Stage", NodeRole.Task)
     }
 
 

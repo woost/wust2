@@ -29,8 +29,8 @@ object DragActions {
           else GraphChanges.empty
 
           (from, into, GlobalState.view.now) match {
-            case (_: Kanban.ColumnArea, _: Kanban.ColumnArea, View.Kanban) => FeatureState.use(Feature.ReorderColumnsInKanban)
-            case (_, _: Kanban.Column, View.Kanban) => FeatureState.use(Feature.NestColumnsInKanban)
+            case (_: Kanban.ColumnArea, _: Kanban.ColumnArea, _ : View.Kanban) => FeatureState.use(Feature.ReorderColumnsInKanban)
+            case (_, _: Kanban.Column, _ : View.Kanban) => FeatureState.use(Feature.NestColumnsInKanban)
             case _ =>
           }
 
@@ -71,7 +71,7 @@ object DragActions {
 
 
           GlobalState.view.now match {
-            case View.Kanban => FeatureState.use(Feature.DragTaskToDifferentColumnInKanban)
+            case _ : View.Kanban => FeatureState.use(Feature.DragTaskToDifferentColumnInKanban)
             case _           =>
           }
 
@@ -96,7 +96,7 @@ object DragActions {
 
           (into, GlobalState.view.now) match {
             // case (_: Kanban.Inbox, View.List) => FeatureState.use(Feature.DragTaskToDifferentColumnInChecklist)
-            case (_: Kanban.Inbox, View.Kanban) => FeatureState.use(Feature.DragTaskToDifferentColumnInKanban)
+            case (_: Kanban.Inbox, _ : View.Kanban) => FeatureState.use(Feature.DragTaskToDifferentColumnInKanban)
             case _                              =>
           }
 
@@ -116,7 +116,7 @@ object DragActions {
 
           (from, into, GlobalState.view.now) match {
             case (_: Kanban.Inbox, _: Kanban.Inbox, View.List) => FeatureState.use(Feature.ReorderTaskInChecklist)
-            case (_: Kanban.Inbox, _: Kanban.Inbox, View.Kanban) => FeatureState.use(Feature.ReorderTaskInKanban)
+            case (_: Kanban.Inbox, _: Kanban.Inbox, _ : View.Kanban) => FeatureState.use(Feature.ReorderTaskInKanban)
             case _ =>
           }
 
