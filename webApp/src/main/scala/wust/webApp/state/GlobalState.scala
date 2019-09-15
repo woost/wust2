@@ -68,6 +68,8 @@ object GlobalState {
     eventProcessor.changes.onNext(changes)
   }
 
+  val changeSink = eventProcessor.changes
+
   val leftSidebarOpen: Var[Boolean] = //TODO: replace with ADT Open/Closed
     Client.storage.sidebarOpen.imap(_ getOrElse !BrowserDetect.isMobile)(Some(_)) // expanded sidebar per default for desktop
 
