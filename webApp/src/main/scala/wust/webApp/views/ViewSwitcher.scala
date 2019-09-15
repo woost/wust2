@@ -115,7 +115,7 @@ object ViewSwitcher {
             case (viewName, viewConfig) =>
               singleTab(
                 currentView,
-                TabInfo(viewConfig.view, freeSolid.faSquare, "view", -1)
+                TabInfo(viewConfig.view, freeSolid.faSquare, viewName, -1)
               // ViewSwitcher.viewToTabInfo(view, numMsg = numMsg, numTasks = numTasks, numFiles = numFiles)
               )
           }),
@@ -153,11 +153,6 @@ object ViewSwitcher {
           cls := "inactive"
       }
     }
-
-    /// @return A tooltip modifier
-    def modTooltip(tabInfo: TabInfo): VDomModifier =
-      UI.tooltip("bottom left") :=
-        s"${tabInfo.targetView.toString}${if (tabInfo.numItems > 0) s": ${tabInfo.numItems} ${tabInfo.wording}" else ""}"
   }
 
   private def isActiveTab(currentView: View, tabInfo: TabInfo): Boolean = {
@@ -172,7 +167,7 @@ object ViewSwitcher {
       // modifiers
       cls := "viewswitcher-item",
       modifiers.modActivityStateCssClass(currentView, tabInfo),
-      modifiers.modTooltip(tabInfo),
+      tabInfo.wording,
 
       // actions
       onClick.stopPropagation.foreach { e =>
@@ -194,9 +189,6 @@ object ViewSwitcher {
           currentView() = Some(clickedView)
         // }
       },
-
-      // content
-      div(cls := "fa-fw", tabInfo.icon),
     )
   }
 
