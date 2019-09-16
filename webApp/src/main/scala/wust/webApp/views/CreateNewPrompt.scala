@@ -1,7 +1,6 @@
 package wust.webApp.views
 
 import monix.reactive.subjects.PublishSubject
-import cats.effect.IO
 import colorado.{ Color, RGB }
 import wust.facades.fomanticui.DropdownEntry
 import fontAwesome.{ IconLookup, freeRegular, freeSolid }
@@ -39,7 +38,7 @@ object CreateNewPrompt {
   }
   import SelectableNodeRole._
 
-  def apply(show: Observable[Boolean], defaultAddToChannels: Boolean, defaultNodeRole: SelectableNodeRole)(implicit ctx: Ctx.Owner): VDomModifier = IO {
+  def apply(show: Observable[Boolean], defaultAddToChannels: Boolean, defaultNodeRole: SelectableNodeRole)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier.delay {
     val parentNodes = Var[Vector[ParentId]](Vector.empty)
     val childNodes = Var[Vector[ChildId]](Vector.empty)
     val nodeRole = Var[SelectableNodeRole](defaultNodeRole)

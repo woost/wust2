@@ -1,7 +1,6 @@
 package wust.webUtil
 
 import typings.chartDotJs.chartDotJsMod.ChartConfiguration
-import cats.effect.IO
 import fontAwesome.{IconLookup, Params, Transform, fontawesome, freeSolid}
 import wust.facades.fomanticui.AutoResizeConfig
 import wust.facades.dateFns.DateFns
@@ -111,7 +110,7 @@ object Elements {
     EmitterBuilder.fromSource(events.document.onMouseDown)
 
   val onClickOrLongPress: EmitterBuilder.Sync[Boolean, VDomModifier] =
-    EmitterBuilder[Boolean, VDomModifier] { sink => IO {
+    EmitterBuilder[Boolean, VDomModifier] { sink => VDomModifier.delay {
       // https://stackoverflow.com/a/27413909
       val duration = 251
       val distanceToleranceSq = 5*5
@@ -366,7 +365,7 @@ object Elements {
   def onClickN(desiredClicks: Int) = EmitterBuilder[Unit, VDomModifier] { sink =>
     import scala.concurrent.duration._
 
-    IO {
+    VDomModifier.delay {
       var clickCounter = 0
 
       VDomModifier(

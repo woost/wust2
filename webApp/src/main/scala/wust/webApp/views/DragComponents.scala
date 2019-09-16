@@ -1,6 +1,5 @@
 package wust.webApp.views
 
-import cats.effect.IO
 import monix.execution.Cancelable
 import monix.reactive.Observer
 import org.scalajs.dom
@@ -19,7 +18,7 @@ import snabbdom.VNodeProxy
 object DragComponents {
   def onAfterPayloadWasDragged: EmitterBuilder[Unit, VDomModifier] =
     EmitterBuilder.ofModifier[Unit] { sink =>
-      IO {
+      VDomModifier.delay {
         prop(DragItem.draggedActionPropName) := (() => () => sink.onNext(Unit))
       }
     }

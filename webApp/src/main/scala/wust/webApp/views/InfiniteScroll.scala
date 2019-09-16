@@ -1,6 +1,5 @@
 package wust.webApp.views
 
-import cats.effect.IO
 import outwatch.reactive._
 import org.scalajs.dom
 import outwatch.dom._
@@ -16,7 +15,7 @@ object InfiniteScroll {
 
   val onIntersectionWithViewport: EmitterBuilder[Boolean, VDomModifier] = onIntersectionWithViewport(ignoreInitial = false)
   def onIntersectionWithViewport(ignoreInitial: Boolean): EmitterBuilder[Boolean, VDomModifier] =
-    EmitterBuilder.ofModifier[Boolean] { sink => IO {
+    EmitterBuilder.ofModifier[Boolean] { sink => VDomModifier.delay {
       var prevIsIntersecting = ignoreInitial
 
       VDomModifier(
@@ -48,7 +47,7 @@ object InfiniteScroll {
     }}
 
   def onInfiniteScrollUp(shouldLoad: Rx[Boolean])(implicit ctx: Ctx.Owner): EmitterBuilder[Int, VDomModifier] =
-    EmitterBuilder.ofModifier[Int] { sink => IO {
+    EmitterBuilder.ofModifier[Int] { sink => VDomModifier.delay {
 
       var lastHeight = 0.0
       var lastScrollTop = 0.0

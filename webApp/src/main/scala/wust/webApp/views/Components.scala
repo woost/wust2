@@ -2,7 +2,6 @@ package wust.webApp.views
 
 import acyclic.file
 import wust.webUtil.outwatchHelpers._
-import cats.effect.IO
 import wust.facades.emojijs.EmojiConvertor
 import wust.facades.fomanticui.{SearchOptions, SearchSourceEntry}
 import wust.facades.jquery.JQuerySelection
@@ -685,7 +684,7 @@ object Components {
         )
       }.map(Some(_))
 
-    def searchInGraph(graph: Rx[Graph], placeholder: String, valid: Rx[Boolean] = Var(true), filter: Node => Boolean = _ => true, completeOnInit: Boolean = true, showNotFound: Boolean = true, elementModifier: VDomModifier = VDomModifier.empty, innerElementModifier: VDomModifier = VDomModifier.empty, inputModifiers: VDomModifier = VDomModifier.empty, resultsModifier: VDomModifier = VDomModifier.empty, createNew: String => Boolean = _ => false)(implicit ctx: Ctx.Owner): EmitterBuilder[NodeId, VDomModifier] = EmitterBuilder.ofModifier(sink => IO {
+    def searchInGraph(graph: Rx[Graph], placeholder: String, valid: Rx[Boolean] = Var(true), filter: Node => Boolean = _ => true, completeOnInit: Boolean = true, showNotFound: Boolean = true, elementModifier: VDomModifier = VDomModifier.empty, innerElementModifier: VDomModifier = VDomModifier.empty, inputModifiers: VDomModifier = VDomModifier.empty, resultsModifier: VDomModifier = VDomModifier.empty, createNew: String => Boolean = _ => false)(implicit ctx: Ctx.Owner): EmitterBuilder[NodeId, VDomModifier] = EmitterBuilder.ofModifier(sink => VDomModifier.delay {
       var inputElem: dom.html.Element = null
       var resultsElem: dom.html.Element = null
       var elem: JQuerySelection = null

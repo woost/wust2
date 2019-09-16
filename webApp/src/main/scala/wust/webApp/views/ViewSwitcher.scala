@@ -21,7 +21,6 @@ import wust.webApp._
 import wust.webApp.state._
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{ BrowserDetect, Elements, Ownable, UI }
-import cats.effect.IO
 
 import scala.reflect.ClassTag
 

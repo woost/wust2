@@ -3,7 +3,6 @@ package wust.webApp.views
 import wust.api.AuthUser
 import acyclic.file
 import wust.webUtil.outwatchHelpers._
-import cats.effect.IO
 import wust.facades.emojijs.EmojiConvertor
 import wust.facades.fomanticui.{SearchOptions, SearchSourceEntry}
 import wust.facades.jquery.JQuerySelection
