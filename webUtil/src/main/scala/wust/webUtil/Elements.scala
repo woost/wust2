@@ -495,4 +495,20 @@ object Elements {
       }
     )
   }
+
+  // https://stackoverflow.com/questions/28983016/how-to-paste-rich-text-from-clipboard-to-html-textarea-element
+  val onPasteHtmlOrTextIntoValue: VDomModifier = {
+    // parse html from clipboard if available (useful to pasting rich text). If clipboardData not available, or
+    // html data is not available, we fallback to the normal paste event. Otherwise prevent default and fill
+    // the value of this element.
+    onPaste.foreach { event =>
+      if (event.clipboardData != js.undefined) {
+          val htmlText = event.clipboardData.getData("text/html")
+          if (htmlText != js.undefined && htmlText != null && htmlText.nonEmpty) {
+            event.preventDefault()
+            event.currentTarget.asInstanceOf[dom.html.Input].value = htmlText
+          }
+      }
+    }
+  }
 }

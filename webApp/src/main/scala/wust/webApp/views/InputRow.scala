@@ -319,6 +319,7 @@ object InputRow {
         markdownHelpOverlay,
 
         textArea(
+          onPasteHtmlOrTextIntoValue,
           onDomMount foreach { e => currentTextArea = e.asInstanceOf[dom.html.TextArea] },
           onDomUpdate foreach { triggerAutoResize() },
           maxHeight := "400px",
