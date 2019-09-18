@@ -1018,7 +1018,7 @@ object CommonStyles extends StyleSheet.Standalone
   val kanbanColumnBorderRadius = (4 px)
 
   ".kanbanview" - (
-    padding(kanbanPageSpacing),
+    padding(0 px, kanbanPageSpacing),
     height(100 %%),
   )
 
@@ -1029,6 +1029,7 @@ object CommonStyles extends StyleSheet.Standalone
   ".kanbannewcolumnarea" - (
     minWidth(kanbanColumnWidth),
     maxWidth(kanbanColumnWidth), // prevents inner fluid textarea to exceed size
+    padding(1 px, 20 px),
   )
 
   ".kanban-uncategorized-title" - (
@@ -1040,20 +1041,68 @@ object CommonStyles extends StyleSheet.Standalone
   ".kanbantoplevelcolumn" - (
     marginTop(0 px),
     marginLeft(0 px),
-    marginRight(10 px),
+    // marginRight(10 px),
   )
 
-  ".kanbantoplevelcolumn" - (
-    display.flex,
-    minHeight(0 px),
-    minWidth(kanbanColumnWidth).important, // conflicts with minwidth of nodecard
-    // we don't specify a max-width here. This would cause cards in nested columns to be too big for the available width.
-    flexDirection.column,
-    maxHeight(100 %%)
+  ".kanbanview" - (
+    &(">.kanbantoplevelcolumn") - (// inbox column
+      display.flex,
+      minHeight(0 px),
+      minWidth(kanbanColumnWidth).important, // conflicts with minwidth of nodecard
+      // we don't specify a max-width here. This would cause cards in nested columns to be too big for the available width.
+      flexDirection.column,
+      maxHeight(100 %%),
+      height(100 %%),
+    )
   )
 
-  ".kanbansubcolumn" - (
-    border(1 px, solid, c"#d0d0d0"),
+  ".kanbancolumnarea" - (
+    &(">.kanbantoplevelcolumn") - (
+      display.flex,
+      minHeight(0 px),
+      minWidth(kanbanColumnWidth).important, // conflicts with minwidth of nodecard
+      // we don't specify a max-width here. This would cause cards in nested columns to be too big for the available width.
+      flexDirection.column,
+
+      &(">.kanbancolumnheader") - (
+        // borderRight(1 px, solid, Color(Colors.contentBg)),
+        boxShadow := "rgba(0, 0, 0, 0.05) 0px 2px 5px 0px, rgba(0, 0, 0, 0.05) 0px 0px 0px 1px",
+      )
+    ),
+    &(".kanbansubcolumn") - (
+      borderBottomLeftRadius(5 px),
+      borderBottomRightRadius(5 px),
+      &(">.kanbancolumnheader") - (
+        borderTopLeftRadius(2 px),
+        borderTopRightRadius(2 px),
+      )
+    ),
+    &(">.kanbantoplevelcolumn:nth-child(2n+1)") - (
+      backgroundColor(Color(Colors.contentBgShade)),
+      &(">.kanbancolumnchildren >.kanbansubcolumn") - (
+        backgroundColor(Color(Colors.contentBg)),
+        &(">.kanbancolumnchildren >.kanbansubcolumn") - (
+          backgroundColor(Color(Colors.contentBgShade)),
+          &(">.kanbancolumnchildren >.kanbansubcolumn") - (
+            backgroundColor(Color(Colors.contentBg)),
+          )
+        )
+      )
+    ),
+    &(">.kanbantoplevelcolumn:nth-child(2n)") - (
+      &(">.kanbancolumnchildren >.kanbansubcolumn") - (
+        backgroundColor(Color(Colors.contentBgShade)),
+        &(">.kanbancolumnchildren >.kanbansubcolumn") - (
+          backgroundColor(Color(Colors.contentBg)),
+          &(">.kanbancolumnchildren >.kanbansubcolumn") - (
+            backgroundColor(Color(Colors.contentBgShade)),
+            &(">.kanbancolumnchildren >.kanbansubcolumn") - (
+              backgroundColor(Color(Colors.contentBg)),
+            )
+          )
+        )
+      )
+    ),
   )
 
   ".kanbancolumntitle" - (
@@ -1151,16 +1200,18 @@ object CommonStyles extends StyleSheet.Standalone
 
   ".kanbancolumn" - (
     fontWeight.bold,
-    borderRadius(kanbanColumnBorderRadius),
+    // borderRadius(kanbanColumnBorderRadius),
     Styles.flexStatic,
     backgroundColor(Color(Colors.contentBg)),
   )
 
   ".kanbancolumnheader" - (
+    color.white,
     Styles.flexStatic,
     Styles.flex,
     alignItems.flexEnd,
     justifyContent.spaceBetween,
+    marginBottom(10 px),
   )
 
   ".kanbancolumnfooter" - (
@@ -1168,7 +1219,8 @@ object CommonStyles extends StyleSheet.Standalone
   )
 
   ".kanbancolumnchildren" - (
-    minHeight(50 px), // enough vertical area to drag cards in
+    minHeight(50 px), // enough vertical area to drag cards in (most relevant for nested columns)
+    height(100 %%), 
     minWidth(kanbanColumnWidth), // enough horizontal area to not flicker width when adding cards
     cursor.default,
     overflowY.auto,

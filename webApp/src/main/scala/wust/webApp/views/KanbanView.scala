@@ -38,6 +38,7 @@ object KanbanView {
 
       renderInboxColumn( focusState, traverseState, viewRender, selectedNodeIds),
 
+      // inbox is separated, because it cannot be reordered. The others are in a sortable container
       renderToplevelColumns( focusState, traverseState, viewRender, selectedNodeIds),
 
       newColumnArea( focusState).apply(Styles.flexStatic),
@@ -45,7 +46,6 @@ object KanbanView {
   }
 
   private def renderTaskOrStage(
-    
     focusState: FocusState,
     traverseState: TraverseState,
     nodeId: NodeId,
@@ -62,7 +62,6 @@ object KanbanView {
   }
 
   private def renderToplevelColumns(
-    
     focusState: FocusState,
     traverseState: TraverseState,
     viewRender: ViewRenderLike,
@@ -77,7 +76,6 @@ object KanbanView {
       cls := s"kanbancolumnarea",
       Styles.flexStatic,
       Styles.flex,
-      alignItems.flexStart,
 
       Rx {
         VDomModifier(
@@ -108,7 +106,6 @@ object KanbanView {
       // sortable: draggable needs to be direct child of container
       cls := "kanbancolumn",
       cls := "kanbantoplevelcolumn",
-      border := "2px solid transparent",
       keyed,
       div(
         cls := "kanbancolumnheader",
@@ -214,19 +211,19 @@ object KanbanView {
     )
 
     val scrollHandler = new ScrollBottomHandler(initialScrollToBottom = false)
-    val accentColor = BaseColors.accent.copy(h = hue(nodeId)).toHex
+    val kanbanColumnBgColor = BaseColors.kanbanColumnBg.copy(h = hue(nodeId)).toHex
 
     VDomModifier(
       // sortable: draggable needs to be direct child of container
       cls := "kanbancolumn",
       if(isTopLevel) cls := "kanbantoplevelcolumn" else cls := "kanbansubcolumn",
-      border := s"2px solid ${accentColor}",
       Rx{
         VDomModifier.ifNot(editable())(DragComponents.dragWithHandle(DragItem.Stage(nodeId))) // prevents dragging when selecting text
       },
       div(
         cls := "kanbancolumnheader",
         cls := "draghandle",
+        backgroundColor := kanbanColumnBgColor,
 
         columnTitle,
 

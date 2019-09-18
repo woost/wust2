@@ -8,6 +8,7 @@ object Colors {
   @inline final def unread = "#1F81F3"
   @inline final def unreadBorder = "#66c0ff"
   @inline final def contentBg = "#F2F4F6"
+  @inline final def contentBgShade = "#e9edf1"
 
   @inline final def sidebarBg = "#fff"
   @inline final def fgColor = "rgba(0, 0, 0, 0.87)"
@@ -26,5 +27,6 @@ object BaseColors {
   val tag = RGB("#fa8088").hcl
   val accent = RGB("#72cb9e").hcl
   val eulerBg = tag
+  val kanbanColumnBg = RGB("#6DC389").hcl
 }
 
