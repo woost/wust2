@@ -1,6 +1,6 @@
 package wust.webApp.views
 
-import outwatch.dom.helpers.{ CustomEmitterBuilder, EmitterBuilder, PropBuilder, SyncEmitterBuilder }
+import outwatch.dom.helpers.{ EmitterBuilder, PropBuilder, SyncEmitterBuilder }
 import cats.data.NonEmptyList
 import cats.syntax._
 import cats.implicits._
@@ -40,7 +40,7 @@ object ViewSwitcher {
   }
 
   //TODO FocusState?
-  def apply(channelId: NodeId)(implicit ctx: Ctx.Owner): CustomEmitterBuilder[View, VNode] = EmitterBuilder.ofNode[View] { viewSink =>
+  def apply(channelId: NodeId)(implicit ctx: Ctx.Owner): EmitterBuilder.Sync[View, VNode] = EmitterBuilder.ofNode[View] { viewSink =>
     {
       val currentView = Var[View](View.Empty)
       GlobalState.viewConfig
