@@ -57,6 +57,8 @@ object ActivityStream {
       calculateActivityList(graph(), focusState.focusedId, userId()).take(100) // max 100 items
     }
 
+    val markAllReadButton = markAllAsReadButton("Mark all as read", activityNodes, userId)
+
     div(
       keyed,
       Styles.growFull,
@@ -72,7 +74,7 @@ object ActivityStream {
         div(
           Styles.flex,
           h3("Activity Stream"),
-          markAllAsReadButton("Mark all as read", activityNodes, userId)
+          markAllReadButton
         ),
 
         div(
@@ -90,6 +92,10 @@ object ActivityStream {
             }
           },
 
+        ),
+        div(
+          Styles.flex,
+          markAllReadButton
         ),
         div(height := "20px") // padding bottom workaround in flexbox
       )

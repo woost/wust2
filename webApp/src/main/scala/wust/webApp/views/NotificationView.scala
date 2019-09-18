@@ -49,6 +49,8 @@ object NotificationView {
     val renderTime = EpochMilli.now
     val collapsed = Var(Set.empty[NodeId])
 
+    def markAllReadButton(graph: Graph, userId: UserId) = markAllAsReadButton("Mark everything as read", focusState.focusedId, graph, userId, renderTime)
+
     div(
       keyed,
       Styles.growFull,
@@ -81,7 +83,7 @@ object NotificationView {
                   div(
                     Styles.flex,
                     h3("What's new?"),
-                    markAllAsReadButton("Mark everything as read", focusState.focusedId, graph, userId, renderTime)
+                    markAllReadButton(graph, userId)
                   ),
                   renderUnreadGroup(graph, userId, unreadTreeNode, focusedId = focusState.focusedId, renderTime = renderTime, currentTime = currentTime, collapsed, isToplevel = true)
                 )
@@ -95,6 +97,12 @@ object NotificationView {
             }
           )
         },
+        div(
+          Styles.flex,
+          Rx {
+            markAllReadButton(GlobalState.graph(), GlobalState.userId())
+          }
+        ),
         div(height := "20px") // padding bottom workaround in flexbox
       )
     )
