@@ -199,7 +199,7 @@ package object outwatchHelpers extends KeyHash with RxInstances {
   }
 
   implicit class ManagedElementsWithJquery(val builder: outwatch.dom.managedElement.type) extends AnyVal {
-    def asJquery(subscription: JQuerySelection => Cancelable): VDomModifier = builder { elem =>
+    def asJquery[T : CancelSubscription](subscription: JQuerySelection => T): VDomModifier = builder { elem =>
       import wust.facades.jquery.JQuery._
       subscription($(elem.asInstanceOf[dom.html.Element]))
     }
@@ -223,15 +223,15 @@ package object outwatchHelpers extends KeyHash with RxInstances {
     @inline def append(m: VDomModifier*) = vNode.map(_.apply(m: _*))
   }
 
-  implicit class WustRichHandler[T](val o: Handler[T]) extends AnyVal {
-    def unsafeToVar(seed: T)(implicit ctx: Ctx.Owner): rx.Var[T] = {
-      val rx = Var[T](seed)
-      o.subscribe(rx)
-      rx.triggerLater(o.onNext(_))
-      rx
-    }
+  @inline implicit class WustRichHandler[F[_] : Source : Sink, T](val o: F[T]) {
+    @inline def unsafeToVar(seed: T)(implicit ctx: Ctx.Owner): rx.Var[T] = unsafeHandlerToVar(o)(seed)
+  }
 
-    @inline def transformObserverWith[R](f: Observer[T] => Observer[R]): ProHandler[R, T] = ProHandler(f(o), o)
+  private def unsafeHandlerToVar[F[_] : Source : Sink, T](o: F[T])(seed: T)(implicit ctx: Ctx.Owner): rx.Var[T] = {
+    val rx = Var[T](seed)
+    Source[F].subscribe(o)(rx)
+    rx.triggerLater(Sink[F].onNext(o)(_))
+    rx
   }
 
   implicit class WustRichObserver[T](val o: Observer[T]) extends AnyVal {

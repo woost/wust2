@@ -10,8 +10,7 @@ import org.scalajs.dom.window
 import org.scalajs.dom.window.{ clearTimeout, navigator, setTimeout }
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.ext.monix._
-import outwatch.ext.monix.handler._
+import outwatch.reactive.handler._
 import rx._
 import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
@@ -37,7 +36,7 @@ object FeedbackForm {
     val activeDisplay = Rx { display := (if (showPopup()) "block" else "none") }
 
     val feedbackText = Var("")
-    val clear = Handler.unsafe[Unit].mapObservable(_ => "")
+    val clear = Handler.unsafe[Unit]
 
     val initialStatus = ""
     val statusText = Var[VDomModifier](initialStatus)
@@ -77,7 +76,7 @@ object FeedbackForm {
           textArea(
             cls := "field",
             onInput.value --> feedbackText,
-            value <-- clear,
+            value <-- clear.map(_ => ""),
             rows := 5, //TODO: auto expand textarea: https://codepen.io/vsync/pen/frudD
             resize := "none",
             placeholder := "Questions? Missing features? Suggestions? Something is not working? What do you like? What is annoying?"

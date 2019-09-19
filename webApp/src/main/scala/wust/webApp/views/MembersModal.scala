@@ -1,10 +1,8 @@
 package wust.webApp.views
 
-import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import outwatch.dom._
-import outwatch.ext.monix._
-import outwatch.ext.monix.handler._
+import outwatch.reactive.handler._
 import outwatch.dom.dsl._
 import rx._
 import wust.webUtil.{Elements, ModalConfig}
@@ -24,9 +22,9 @@ import scala.util.{Failure, Success}
 object MembersModal {
   def config(node: Node.Content)(implicit ctx: Ctx.Owner): ModalConfig = {
 
-    val clear = Handler.unsafe[Unit].mapObservable(_ => "")
-    val userNameInputProcess = PublishSubject[String]
-    val statusMessageHandler = PublishSubject[Option[(String, String, VDomModifier)]]
+    val clear = Handler.unsafe[Unit]
+    val userNameInputProcess = Handler.unsafe[String]
+    val statusMessageHandler = Handler.unsafe[Option[(String, String, VDomModifier)]]
 
     def addUserMember(userId: UserId): Unit = {
       val change: GraphChanges = GraphChanges(addEdges = Array(
@@ -101,7 +99,7 @@ object MembersModal {
                 input(
                   tpe := "email",
                   placeholder := "Invite by email address",
-                  value <-- clear,
+                  value <-- clear.map(_ => ""),
                   Elements.valueWithEnter(clearValue = false) foreach { str =>
                     if (FormValidator.reportValidity(element)) {
                       handleAddMember(str)

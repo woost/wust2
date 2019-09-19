@@ -6,7 +6,6 @@ import outwatch.reactive._
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.ext.monix._
-import outwatch.ext.monix.handler._
 import monix.reactive.Observer
 import rx.{Ctx, Rx, Var}
 import wust.webUtil.outwatchHelpers._
@@ -171,7 +170,7 @@ object GraphChangesAutomationUI {
             Components.removeableList[Node](
               templates,
               SinkObserver.combine(
-                SinkObserver.lift(GlobalState.eventProcessor.changes.redirectMap[Node] { templateNode =>
+                SinkObserver.lift(GlobalState.eventProcessor.changes.contramap[Node] { templateNode =>
                   val g = GlobalState.rawGraph.now
                   val existingParent = g.parentEdgeIdx(g.idToIdxOrThrow(templateNode.id)).find { edgeIdx =>
                     val edge = graph.edges(edgeIdx).as[Edge.Child]

@@ -185,8 +185,7 @@ object EditableContent {
   final case class CommonEditHandler[T](edit: Handler[EditInteraction[T]], save: Observable[Unit])
   private def commonEditStructure[T](initial: Option[T], current: Handler[EditInteraction[T]], config: Config, handle: EditInteraction[T] => EditInteraction[T])(modifier: CommonEditHandler[T] => VDomModifier) = {
     val handledCurrent: Handler[EditInteraction[T]] = current
-      .transformObserverWith(_.redirectMap(handleEditInteraction[T](initial, config) andThen handle))
-      .transformObservable(_.filter(uniqueEditInteraction[T](initial)))
+      .transformHandler[EditInteraction[T]](_.map[EditInteraction[T]](handleEditInteraction[T](initial, config) andThen handle))(_.filter(uniqueEditInteraction[T](initial)))
 
     val saveHandler = PublishSubject[Unit]
 

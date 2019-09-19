@@ -190,9 +190,9 @@ object InputRow {
     val initialValueAndSubmitOptions = {
       // ignore submit events if mentions or emoji picker is open
       if (submitOnEnter) {
-        valueWithEnterWithInitial(initialValue, filterEvent = filterSubmitEvent) foreach handleInput _
+        valueWithEnterWithInitial(SourceStream.lift(initialValue), filterEvent = filterSubmitEvent) foreach handleInput _
       } else {
-        valueWithCtrlEnterWithInitial(initialValue, filterEvent = filterSubmitEvent) foreach handleInput _
+        valueWithCtrlEnterWithInitial(SourceStream.lift(initialValue), filterEvent = filterSubmitEvent) foreach handleInput _
       }
     }
 

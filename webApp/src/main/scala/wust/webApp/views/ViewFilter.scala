@@ -4,7 +4,6 @@ import flatland.ArraySet
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.ext.monix._
-import outwatch.ext.monix.handler._
 import rx._
 import wust.facades.googleanalytics.Analytics
 import wust.graph.{ Edge, Graph, GraphChanges }
@@ -81,7 +80,7 @@ object ViewFilter {
         input(
           `type` := "text",
           placeholder := "Filter",
-          value <-- clearOnPageSwitch,
+          value <-- GlobalState.page.map(_ => ""),
           onFocus.use(true) --> focused,
           onBlur.use(false) --> focused,
           onInput.value.debounce(500 milliseconds).map{ needle =>
@@ -93,10 +92,5 @@ object ViewFilter {
         i(cls := "search icon", marginRight := "5px"),
       )
     )
-  }
-  def clearOnPageSwitch(implicit ctx: Ctx.Owner) = {
-    val clear = Handler.unsafe[Unit].mapObservable(_ => "")
-    GlobalState.page.foreach(_ => clear.onNext(()))
-    clear
   }
 }

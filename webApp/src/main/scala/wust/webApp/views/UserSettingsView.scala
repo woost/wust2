@@ -8,7 +8,7 @@ import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.ext.monix._
-import outwatch.ext.monix.handler._
+import outwatch.reactive.handler._
 import rx._
 import wust.api._
 import wust.css.Styles

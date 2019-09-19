@@ -5,7 +5,6 @@ import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.ext.monix._
-import outwatch.ext.monix.handler._
 import outwatch.dom.helpers.EmitterBuilder
 import rx._
 import wust.webUtil.outwatchHelpers._
@@ -80,7 +79,6 @@ object ItemProperties {
       case _ => None
     }
 
-    val clear = Handler.unsafe[Unit].mapObservable(_ => "")
     val propertyTypeSelection = Var[Option[NodeTypeSelection]](config.prefilledType)
     val propertyKeyInput = Var[Option[NonEmptyString]](prefilledKeyString.flatMap(NonEmptyString(_)))
     val propertyValueInput = Var[Option[ValueSelection]](None)
@@ -236,7 +234,7 @@ object ItemProperties {
           case Target.Node(nodeId)            => addProperty(nodeId)
         }
 
-        GlobalState.submitChanges(changes) foreach { _ => clear.onNext (()) }
+        GlobalState.submitChanges(changes)
       }
 
       def createEdge(sourceId: NodeId, targetId: NodeId): Edge = edgeFactory match {

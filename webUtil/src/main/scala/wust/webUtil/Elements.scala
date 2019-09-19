@@ -5,8 +5,6 @@ import fontAwesome.{IconLookup, Params, Transform, fontawesome, freeSolid}
 import wust.facades.fomanticui.AutoResizeConfig
 import wust.facades.dateFns.DateFns
 import wust.facades.hammerjs
-import monix.execution.Cancelable
-import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
 import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.raw.{HTMLElement, HTMLInputElement}
@@ -22,8 +20,8 @@ import wust.util._
 
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.ext.monix.handler._
-import outwatch.ext.monix._
+import outwatch.reactive._
+import outwatch.reactive.handler._
 import outwatch.dom.helpers.{EmitterBuilder, PropBuilder}
 
 import scala.concurrent.duration._
@@ -199,7 +197,7 @@ object Elements {
           sink.onNext(e)
         })
 
-        Cancelable { () =>
+        cancelable { () =>
           hammertime.stop()
           hammertime.destroy()
           elem.asInstanceOf[js.Dynamic].hammer = js.undefined
@@ -214,7 +212,7 @@ object Elements {
     VDomModifier(
       managedElement.asHtml { elem =>
         val clip = new ClipboardJS(elem)
-        Cancelable(() => clip.destroy())
+        cancelable(() => clip.destroy())
       }
     )
   }
@@ -250,19 +248,18 @@ object Elements {
     }
   }
 
-  final class ValueWithEnter(overrideValue: Observable[String] = Observable.empty, clearValue: Boolean = true, eventHandler: EmitterBuilder.Sync[dom.KeyboardEvent, VDomModifier] = onEnter) {
+  final class ValueWithEnter(overrideValue: SourceStream[String] = SourceStream.empty, clearValue: Boolean = true, eventHandler: EmitterBuilder.Sync[dom.KeyboardEvent, VDomModifier] = onEnter) {
     private var elem:HTMLInputElement = _
 
     private val userInput = Handler.unsafe[String]
-    private val clearInput = if (clearValue) Handler.unsafe[Unit].mapObservable(_ => "") else ProHandler(Observer.empty, Observable.empty)
-    private val writeValue = Observable(clearInput, overrideValue).merge
+    private val clearInput = if (clearValue) Handler.unsafe[Unit] else ProHandler(SinkObserver.empty, SourceStream.empty)
+    private val writeValue = SourceStream.merge(clearInput.map(_ => ""), overrideValue)
 
     def trigger(): Unit = {
       // We clear input field before userInput is triggered
       val value = elem.value
-      clearInput.onNext(()).foreach { _ =>
-        userInput.onNext(value)
-      }
+      clearInput.onNext(())
+      userInput.onNext(value)
     }
 
     val emitterBuilder: EmitterBuilder.Sync[String, VDomModifier] = EmitterBuilder[String, VDomModifier] { sink =>
@@ -338,7 +335,7 @@ object Elements {
   def valueWithCtrlEnter: EmitterBuilder.Sync[String, VDomModifier] = valueWithCtrlEnter(true)
   def valueWithEnter(clearValue: Boolean, filterEvent: () => Boolean = () => true): EmitterBuilder.Sync[String, VDomModifier] = (new ValueWithEnter(clearValue = clearValue, eventHandler = onEnter.filter(_ => filterEvent()))).emitterBuilder
   def valueWithCtrlEnter(clearValue: Boolean, filterEvent: () => Boolean = () => true): EmitterBuilder.Sync[String, VDomModifier] = (new ValueWithEnter(clearValue = clearValue, eventHandler = onCtrlEnter.filter(_ => filterEvent()))).emitterBuilder
-  def valueWithEnterWithInitial(overrideValue: Observable[String], clearValue: Boolean = true, filterEvent: () => Boolean = () => true): EmitterBuilder.Sync[String, VDomModifier] = {
+  def valueWithEnterWithInitial(overrideValue: SourceStream[String], clearValue: Boolean = true, filterEvent: () => Boolean = () => true): EmitterBuilder.Sync[String, VDomModifier] = {
     new ValueWithEnter(
       overrideValue = overrideValue,
       clearValue = clearValue,
@@ -346,7 +343,7 @@ object Elements {
     ).emitterBuilder 
   }
 
-  def valueWithCtrlEnterWithInitial(overrideValue: Observable[String], clearValue: Boolean = true, filterEvent: () => Boolean = () => true): EmitterBuilder.Sync[String, VDomModifier] = {
+  def valueWithCtrlEnterWithInitial(overrideValue: SourceStream[String], clearValue: Boolean = true, filterEvent: () => Boolean = () => true): EmitterBuilder.Sync[String, VDomModifier] = {
     new ValueWithEnter(
       overrideValue = overrideValue,
       clearValue = clearValue,
@@ -435,7 +432,7 @@ object Elements {
     VDomModifier(
       managedElement.asJquery { e =>
         val subscription = e.autoResize(new AutoResizeConfig { maxHeight = _maxHeight; onresizeheight = _onResize })
-        Cancelable(() => subscription.reset())
+        cancelable(() => subscription.reset())
       },
       resize := "none",
       height := "0px"
@@ -491,7 +488,7 @@ object Elements {
         val context = elem.asInstanceOf[dom.html.Canvas].getContext("2d").asInstanceOf[typings.std.CanvasRenderingContext2D]
         val chart = new typings.chartDotJs.chartDotJsMod.^(context, configuration)
 
-        Cancelable(() => chart.destroy())
+        cancelable(() => chart.destroy())
       }
     )
   }
