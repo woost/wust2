@@ -6,7 +6,8 @@ object DebugOnly {
   @inline def apply[T](code: => T): Option[T] = {
     if (isTrue) Option(code) else None
   }
-  @inline def isTrue = scribe.Logger.root.includes(scribe.Level.Debug)
+  var isTrueSetting = false
+  @inline def isTrue = isTrueSetting
 }
 
 object DevOnly {
@@ -15,7 +16,6 @@ object DevOnly {
   }
 
   @inline def isTrue = LinkingInfo.developmentMode || DebugOnly.isTrue // show DevOnly stuff also in DebugOnly
-  @inline def showDebugLogs = false
 }
 
 object DeployedOnly {
