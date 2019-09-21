@@ -144,14 +144,12 @@ object LeftSidebar {
     def accordionEntry(title: VDomModifier, content: VDomModifier, active: Boolean): UI.AccordionEntry = {
       UI.AccordionEntry(
         title = VDomModifier(
-          onClick.stopPropagation.discard,
           b(title),
           marginTop := "5px",
           padding := "3px",
           Styles.flexStatic
         ),
         content = VDomModifier(
-          onClick.stopPropagation.discard,
           margin := "5px",
           padding := "0px",
           overflowY.auto,
