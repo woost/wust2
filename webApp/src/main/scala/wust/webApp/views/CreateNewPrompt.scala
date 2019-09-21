@@ -77,7 +77,8 @@ object CreateNewPrompt {
           case Task    => ??? // FIXME: GlobalState.urlConfig.now.focus(Page(parents.head), View.Tasks)
           case Note    => ??? // FIXME: GlobalState.urlConfig.now.focus(Page(parents.head), View.Content)
         }
-        UI.toast(s"Created new ${nodeRole.now}: ${StringOps.trimToMaxLength(newNode.str, 10)}", click = () => GlobalState.urlConfig() = newViewPage, level = UI.ToastLevel.Success)
+        // UI.toast(s"Created new ${nodeRole.now}: ${StringOps.trimToMaxLength(newNode.str, 10)}", click = () => GlobalState.urlConfig() = newViewPage, level = UI.ToastLevel.Success)
+        ???
       }
 
       GlobalState.uiModalClose.onNext(())

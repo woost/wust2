@@ -402,7 +402,7 @@ object ThreadView {
       scrollHandler = Some(scrollHandler),
       preFillByShareApi = true,
       autoFocus = !BrowserDetect.isMobile && !focusState.isNested,
-      triggerFocus = LiftSource[Observable].lift(inputFieldFocusTrigger),
+      triggerFocus = inputFieldFocusTrigger,
       showMarkdownHelp = true,
       enableEmojiPicker = true,
       enforceUserName = true,
