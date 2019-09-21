@@ -36,6 +36,8 @@ object Main {
 
     setupDom()
 
+    outwatch.woost.OutwatchSetting.init()
+
     GlobalStateFactory.init()
 
     DevOnly { enableEventLogging() }
