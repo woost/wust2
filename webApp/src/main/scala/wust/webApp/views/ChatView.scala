@@ -508,7 +508,7 @@ object ChatView {
       scrollHandler = Some(scrollHandler),
       preFillByShareApi = true,
       autoFocus = !BrowserDetect.isMobile && !focusState.isNested,
-      triggerFocus = inputFieldFocusTrigger,
+      triggerFocus = LiftSource[Observable].lift(inputFieldFocusTrigger),
       showMarkdownHelp = !BrowserDetect.isMobile,
       enforceUserName = true,
       placeholder = Placeholder.newMessage,

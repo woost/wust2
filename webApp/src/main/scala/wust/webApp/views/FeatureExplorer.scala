@@ -199,7 +199,6 @@ object FeatureExplorer {
     import scala.concurrent.duration._
 
     val shake = 0.2
-
     val animationObservable = SourceStream.concatAsync(
       Task(transform := "rotate(-20deg)").delayExecution(shake seconds),
       Task(transform := "rotate(0deg)").delayExecution(shake seconds),
