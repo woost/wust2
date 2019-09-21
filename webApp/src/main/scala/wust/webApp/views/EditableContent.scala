@@ -8,6 +8,7 @@ import outwatch.dom._
 import outwatch.dom.dsl.{emitter, _}
 import outwatch.ext.monix._
 import outwatch.ext.monix.handler._
+import outwatch.reactive._
 import outwatch.dom.helpers.EmitterBuilder
 import rx._
 import wust.webUtil.Elements._
@@ -21,8 +22,8 @@ import scala.concurrent.duration._
 import scala.scalajs.js
 
 object EditableContent {
-  private val currentlyEditingSubject = PublishSubject[Boolean]
-  def currentlyEditing: Observable[Boolean] = currentlyEditingSubject
+  private val currentlyEditingSubject = SinkSourceHandler.publish[Boolean]
+  def currentlyEditing: SourceStream[Boolean] = currentlyEditingSubject
 
   sealed trait ErrorMode
   object ErrorMode {

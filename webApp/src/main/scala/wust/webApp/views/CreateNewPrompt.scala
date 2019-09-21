@@ -1,14 +1,11 @@
 package wust.webApp.views
 
-import monix.reactive.subjects.PublishSubject
 import colorado.{ Color, RGB }
 import wust.facades.fomanticui.DropdownEntry
 import fontAwesome.{ IconLookup, freeRegular, freeSolid }
-import monix.execution.Ack
-import monix.reactive.Observable
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.ext.monix._
+import outwatch.reactive._
 import rx._
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{ ModalConfig, Ownable, UI }
@@ -38,15 +35,15 @@ object CreateNewPrompt {
   }
   import SelectableNodeRole._
 
-  def apply(show: Observable[Boolean], defaultAddToChannels: Boolean, defaultNodeRole: SelectableNodeRole)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier.delay {
+  def apply[F[_] : Source](show: F[Boolean], defaultAddToChannels: Boolean, defaultNodeRole: SelectableNodeRole)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier.delay {
     val parentNodes = Var[Vector[ParentId]](Vector.empty)
     val childNodes = Var[Vector[ChildId]](Vector.empty)
     val nodeRole = Var[SelectableNodeRole](defaultNodeRole)
     val addToChannels = Var[Boolean](defaultAddToChannels)
     val nodeAccess = Var[NodeAccess](NodeAccess.Inherited)
-    val triggerSubmit = PublishSubject[Unit]
+    val triggerSubmit = SinkSourceHandler.publish[Unit]
 
-    def newMessage(sub: InputRow.Submission): Future[Ack] = {
+    def newMessage(sub: InputRow.Submission) = {
       val parents: Vector[ParentId] = if (parentNodes.now.isEmpty) Vector(ParentId(GlobalState.user.now.id: NodeId)) else parentNodes.now
 
       GlobalState.clearSelectedNodes()
@@ -69,24 +66,21 @@ object CreateNewPrompt {
           GraphChanges.addToParent(childNodes.now, ParentId(newNode.id)) merge
           sub.changes(newNode.id)
 
-      val ack = if (addToChannels.now) {
+      if (addToChannels.now) {
         val channelChanges = GraphChanges.connect(Edge.Pinned)(newNode.id, GlobalState.user.now.id)
-        val ack = GlobalState.submitChanges(changes merge channelChanges)
+        GlobalState.submitChanges(changes merge channelChanges)
         GlobalState.urlConfig.update(_.focus(Page(newNode.id), needsGet = false))
-        ack
       } else {
-        val ack = GlobalState.submitChanges(changes)
+        GlobalState.submitChanges(changes)
         def newViewConfig = nodeRole.now match {
           case Message => GlobalState.urlConfig.now.focus(Page(parents.head), View.Conversation)
           case Task    => GlobalState.urlConfig.now.focus(Page(parents.head), View.Tasks)
           case Note    => GlobalState.urlConfig.now.focus(Page(parents.head), View.Content)
         }
         UI.toast(s"Created new ${nodeRole.now}: ${StringOps.trimToMaxLength(newNode.str, 10)}", click = () => GlobalState.urlConfig() = newViewConfig, level = UI.ToastLevel.Success)
-        ack
       }
 
       GlobalState.uiModalClose.onNext(())
-      ack
     }
 
     val targetNodeSelection = div(

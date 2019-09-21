@@ -7,13 +7,12 @@ import wust.facades.fomanticui.{SearchOptions, SearchSourceEntry}
 import wust.facades.jquery.JQuerySelection
 import wust.facades.marked.Marked
 import fontAwesome._
-import monix.execution.Cancelable
-import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
 import outwatch.reactive.SinkObserver
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.ext.monix.handler._
+import outwatch.reactive._
+import outwatch.reactive.handler._
 import outwatch.ext.monix._
 import outwatch.dom.helpers.EmitterBuilder
 import rx._
@@ -642,10 +641,17 @@ object Components {
 
       def contentEditor = EditableContent.ofNodeOrRender( node, editMode, implicit ctx => node => renderNodeData( node, maxLength), config).editValue.map(GraphChanges.addNode) --> GlobalState.eventProcessor.changes
 
-      def refEditor = EditableContent.customOrRender[Node](node, editMode,
+      def refEditor = EditableContent.customOrRender[Node](
+        node, editMode,
         implicit ctx => node => nodeCard( node, maxLength = maxLength).apply(Styles.wordWrap, nonPropertyModifier),
-        implicit ctx => handler => searchAndSelectNodeApplied( handler.edit.collectHandler[Option[NodeId]] { case id => EditInteraction.fromOption(id.map(GlobalState.rawGraph.now.nodesByIdOrThrow(_))) } { case EditInteraction.Input(v) => Some(v.id) }.transformObservable(_.prepend(Some(node.id))), filter = (_:Node) => true), config
-      ).editValue.collect { case newNode if newNode.id != edge.propertyId => GraphChanges(delEdges = Array(edge), addEdges = Array(edge.copy(propertyId = PropertyId(newNode.id)))) } --> GlobalState.eventProcessor.changes
+        implicit ctx => handler => searchAndSelectNodeApplied[MonixHandler](
+          handler.edit.collectHandler[Option[NodeId]] { case id => EditInteraction.fromOption(id.map(GlobalState.rawGraph.now.nodesByIdOrThrow(_))) } { case EditInteraction.Input(v) => Some(v.id) }.transformObservable(_.prepend(Some(node.id))),
+          filter = (_:Node) => true
+        ),
+        config
+      ).editValue.collect { case newNode if newNode.id != edge.propertyId =>
+        GraphChanges(delEdges = Array(edge), addEdges = Array(edge.copy(propertyId = PropertyId(newNode.id))))
+      } --> GlobalState.eventProcessor.changes
 
       div(
         (node.role, node.data) match {
@@ -657,9 +663,8 @@ object Components {
       )
     }
 
-    def searchAndSelectNodeApplied(current: Var[Option[NodeId]], filter: Node => Boolean)(implicit ctx: Ctx.Owner): VNode = searchAndSelectNode( current.toObservable, filter: Node => Boolean) --> current
-    def searchAndSelectNodeApplied(current: Handler[Option[NodeId]], filter: Node => Boolean)(implicit ctx: Ctx.Owner): VNode = searchAndSelectNode( current, filter) --> current
-    def searchAndSelectNode(observable: Observable[Option[NodeId]], filter: Node => Boolean)(implicit ctx: Ctx.Owner): EmitterBuilder[Option[NodeId], VNode] =
+    def searchAndSelectNodeApplied[F[_] : Sink : Source](current: F[Option[NodeId]], filter: Node => Boolean)(implicit ctx: Ctx.Owner): VNode = searchAndSelectNode(current, filter) --> current
+    def searchAndSelectNode[F[_] : Source](observable: F[Option[NodeId]], filter: Node => Boolean)(implicit ctx: Ctx.Owner): EmitterBuilder[Option[NodeId], VNode] =
       Components.searchInGraph(GlobalState.rawGraph, "Search", filter = {
             case n: Node.Content => InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task, NodeRole.Project)(n.role) && filter(n)
             case _ => false
@@ -667,7 +672,7 @@ object Components {
         div(
           search,
 
-          observable.map[VDomModifier] {
+          SourceStream.map(observable) {
             case Some(nodeId) => div(
               marginTop := "4px",
               Styles.flex,
@@ -792,7 +797,7 @@ object Components {
 
         managedElement.asJquery { e =>
           elem = e
-          Cancelable(() => e.search("destroy"))
+          cancelable(() => e.search("destroy"))
         }
       )
     })

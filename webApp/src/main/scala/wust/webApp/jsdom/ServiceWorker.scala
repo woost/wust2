@@ -2,8 +2,7 @@ package wust.webApp.jsdom
 
 import wust.facades.googleanalytics.Analytics
 import io.circe.{Decoder, Encoder, Json}
-import monix.reactive.Observable
-import monix.reactive.subjects.PublishSubject
+import outwatch.reactive._
 import org.scalajs.dom.window
 import org.scalajs.dom.experimental.serviceworkers
 import wust.webUtil.outwatchHelpers._
@@ -17,8 +16,8 @@ object ServiceWorker {
   private var activeServiceworker: Option[serviceworkers.ServiceWorker] = None
 
   // returns an observable that notifies whenever a new serviceworker is registered and activated
-  def register(location: String): Observable[Unit] = {
-    val subject = PublishSubject[Unit]()
+  def register(location: String): SourceStream[Unit] = {
+    val subject = SinkSourceHandler.publish[Unit]
 
     Navigator.serviceWorker.foreach { sw =>
       // Use the window load event to keep the page load performant
@@ -68,11 +67,11 @@ object ServiceWorker {
      * cookies are deleted, history is cleared or in privacy mode.
      * To stop woost from crashing and just running without serviceworkers, we need this workaround
      */
-    subject.onErrorRecoverWith{
+    subject.recoverOption{
       case e: Throwable =>
         scribe.debug("SW could not register:", e)
         Analytics.sendEvent("serviceworker", "register", "error")
-        Observable.empty[Unit]
+        None
     }
   }
 

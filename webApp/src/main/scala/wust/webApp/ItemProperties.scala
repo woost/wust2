@@ -1,11 +1,10 @@
 package wust.webApp
 
-import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.ext.monix._
 import outwatch.dom.helpers.EmitterBuilder
+import outwatch.reactive._
 import rx._
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{ Elements, UI }
@@ -285,7 +284,7 @@ object ItemProperties {
   }
 
   def managePropertiesDropdown(target: Target, config: TypeConfig = TypeConfig.default, edgeFactory: EdgeFactory = EdgeFactory.labeledProperty, names: Names = Names.default, descriptionModifier: VDomModifier = VDomModifier.empty, dropdownModifier: VDomModifier = cls := "top left")(implicit ctx: Ctx.Owner): VDomModifier = {
-    val closeDropdown = PublishSubject[Unit]
+    val closeDropdown = SinkSourceHandler.publish[Unit]
     UI.dropdownMenu(VDomModifier(
       padding := "5px",
       div(cls := "item", display.none), // dropdown menu needs an item

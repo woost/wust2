@@ -3,14 +3,11 @@ package wust.webApp.views
 import flatland._
 import wust.webApp.parsers.UrlConfigWriter
 import fontAwesome._
-import monix.execution.Ack
-import monix.reactive.Observer
-import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl.{ label, _ }
 import outwatch.dom.helpers.EmitterBuilder
-import outwatch.ext.monix._
+import outwatch.reactive._
 import rx._
 import wust.css.Styles
 import wust.graph._
@@ -31,7 +28,6 @@ import GlobalState.SelectedNode
 
 import scala.collection.breakOut
 import scala.scalajs.js
-import monix.reactive.Observable
 import SharedViewElements._
 
 import scala.reflect.ClassTag
@@ -41,7 +37,7 @@ object NewProjectPrompt {
   val newProjectText = "New Project"
   def newProjectButton(label: String = newProjectText, focusNewProject: Boolean = true, buttonClass: String = "", extraChanges: NodeId => GraphChanges = _ => GraphChanges.empty): VNode = {
     val selectedViews = Var[Seq[View.Visible]](Seq.empty)
-    val triggerSubmit = PublishSubject[Unit]
+    val triggerSubmit = SinkSourceHandler.publish[Unit]
     val importChanges = Var(Option.empty[GraphChanges.Import])
     def body(implicit ctx: Ctx.Owner) = div(
       color := "#333",
@@ -62,7 +58,7 @@ object NewProjectPrompt {
       MainTutorial.onDomMountContinue,
     )
 
-    def newProject(sub: InputRow.Submission) = {
+    def newProject(sub: InputRow.Submission): Unit = {
       MainTutorial.waitForNextStep()
       val newName = if (sub.text.trim.isEmpty) GraphChanges.newProjectName else sub.text
       val nodeId = NodeId.fresh
@@ -75,8 +71,6 @@ object NewProjectPrompt {
       selectedViews.now.foreach (ViewModificationMenu.trackAddViewFeature)
 
       selectedViews() = Seq.empty
-
-      Ack.Continue
     }
 
     button(
@@ -132,7 +126,7 @@ object NewProjectPrompt {
 
   def multiCheckbox[T: ClassTag](checkboxes: Array[T], description: T => VDomModifier): EmitterBuilder[Seq[T], VDomModifier] = EmitterBuilder.ofModifier { sink =>
     var checkedState = Array.fill(checkboxes.length)(false)
-    val changed = PublishSubject[Unit]
+    val changed = SinkSourceHandler.publish[Unit]
 
     div(
       Styles.flex,

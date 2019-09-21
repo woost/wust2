@@ -1,10 +1,10 @@
 package wust.webApp.views
 
 import fontAwesome.freeSolid
-import monix.reactive.Observable
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.reactive._
 import outwatch.ext.monix._
 import rx._
 import wust.webUtil.Ownable
@@ -12,8 +12,6 @@ import wust.webUtil.outwatchHelpers._
 import wust.css.{Styles, ZIndex}
 import wust.sdk.Colors
 import wust.webApp.views.Components._
-
-import scala.concurrent.duration._
 
 object MovableElement {
   sealed trait Position
@@ -32,7 +30,7 @@ object MovableElement {
     bodyModifier: Ownable[VDomModifier]
   )
 
-  def withToggleSwitch(windows: Seq[Window], enabled: Rx[Boolean], resizeEvent: Observable[Unit])(implicit ctx: Ctx.Owner): VDomModifier = {
+  def withToggleSwitch[F[_] : Source](windows: Seq[Window], enabled: Rx[Boolean], resizeEvent: F[Unit])(implicit ctx: Ctx.Owner): VDomModifier = {
     val activeWindow = Var(0)
     div(
       enabled.map {
@@ -70,7 +68,7 @@ object MovableElement {
     )
   }
 
-  def apply(window: Window, enabled: Rx[Boolean], resizeEvent: Observable[Unit], index: Int, activeWindow: Var[Int])(implicit ctx: Ctx.Owner): VDomModifier = {
+  def apply[F[_] : Source](window: Window, enabled: Rx[Boolean], resizeEvent: F[Unit], index: Int, activeWindow: Var[Int])(implicit ctx: Ctx.Owner): VDomModifier = {
     import window._
 
     var mouseDownOffset: Option[LeftPosition] = None
@@ -137,7 +135,7 @@ object MovableElement {
             currentHeight.map(currentHeight => height := s"${currentHeight}px"),
           ),
 
-          emitter(resizeEvent.delayOnNext(200 millis)).foreach { setPosition() }, // delay a bit, so that any rendering from the resize event as actually done.
+          emitter(resizeEvent).delayMillis(200).foreach { setPosition() }, // delay a bit, so that any rendering from the resize event as actually done.
           emitter(events.window.onResize).foreach { setPosition() },
           onDomMount.foreach { elem =>
             domElem = elem.asInstanceOf[dom.html.Element]

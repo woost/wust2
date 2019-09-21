@@ -1,10 +1,8 @@
 package wust.webApp.views
 
-import monix.execution.Cancelable
-import monix.reactive.{Observable, Observer}
 import outwatch.dom.dsl._
 import outwatch.dom._
-import outwatch.ext.monix._
+import outwatch.reactive._
 import rx._
 import wust.css.Styles
 import wust.facades.fomanticui.ModalOptions
@@ -51,7 +49,7 @@ object Modal {
       ),
     )
   }
-  def modal(config: Observable[Ownable[ModalConfig]], globalClose: Observable[Unit] with Observer[Unit]): VNode = div(
+  def modal(config: SourceStream[Ownable[ModalConfig]], globalClose: SinkSourceHandler.Simple[Unit]): VNode = div(
     cls := "ui modal",
     config.map[VDomModifier] { configRx =>
       configRx.flatMap(config => Ownable { implicit ctx =>
@@ -74,7 +72,7 @@ object Modal {
                 }: js.Function0[Boolean]
               })
               .modal("show")
-            Cancelable(() => e.modal("destroy"))
+            cancelable(() => e.modal("destroy"))
           },
 
           i(cls := "close icon"),

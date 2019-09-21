@@ -11,7 +11,6 @@ import wust.facades.fomanticui.SearchResults
 import wust.facades.highlightjs.Highlight
 import wust.facades.jquery.JQuery
 import wust.facades.marked.{Marked, MarkedOptions, Renderer}
-import monix.reactive.Observable
 import org.scalajs.dom.{console, document}
 import org.scalajs.dom
 import outwatch.dom._

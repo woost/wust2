@@ -7,11 +7,10 @@ import cats.implicits._
 import wust.css.{ Styles, ZIndex }
 import flatland._
 import fontAwesome._
-import monix.reactive.Observer
-import monix.reactive.subjects.PublishSubject
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
+import outwatch.reactive._
 import rx._
 import wust.css.Styles
 import wust.graph.{ GraphChanges, Node }
@@ -64,7 +63,7 @@ object ViewSwitcher {
 
   val addViewIcon = freeSolid.faPlus
   def modifier(channelId: NodeId, currentView: Var[View], initialView: Option[View.Visible])(implicit ctx: Ctx.Owner): VDomModifier = {
-    val closeDropdown = PublishSubject[Unit]
+    val closeDropdown = SinkSourceHandler.publish[Unit]
 
     def addNewTabDropdown = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
       VDomModifier(

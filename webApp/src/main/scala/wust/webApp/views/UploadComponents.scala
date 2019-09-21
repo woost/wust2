@@ -1,7 +1,6 @@
 package wust.webApp.views
 
 import fontAwesome._
-import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
 import org.scalajs.dom.document
 import outwatch.dom._

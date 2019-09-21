@@ -1,12 +1,9 @@
 package wust.webApp.views
 
 import wust.facades.fomanticui.{JQuerySelectionWithFomanticUI, SidebarOptions}
-import monix.execution.Cancelable
-import monix.reactive.Observable
-import monix.reactive.subjects.PublishSubject
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.ext.monix._
+import outwatch.reactive._
 import rx._
 import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
@@ -46,7 +43,7 @@ object GenericSidebar {
     def overlayOpenSidebar(config: Config) = VDomModifier(
       cls := "overlay-sidebar",
       directionOverlayModifier,
-      onClick.onlyOwnEvents.use(false) --> sidebarOpen,
+      // onClick.onlyOwnEvents.use(false) --> sidebarOpen,
       VDomModifier.ifTrue(BrowserDetect.isMobile)(closeSwipe),
 
       div(
@@ -93,8 +90,7 @@ object GenericSidebar {
   }
 
   final case class SidebarConfig(items: VDomModifier, sidebarModifier: VDomModifier = VDomModifier.empty)
-  def sidebar(config: Observable[Ownable[SidebarConfig]], globalClose: Observable[Unit], targetSelector: Option[String]): VNode = {
-    val elemHandler = PublishSubject[JQuerySelectionWithFomanticUI]
+  def sidebar(config: SourceStream[Ownable[SidebarConfig]], globalClose: SourceStream[Unit], targetSelector: Option[String]): VNode = {
 
     div(
       cls := "ui sidebar right icon labeled borderless vertical menu mini",
@@ -112,7 +108,6 @@ object GenericSidebar {
               ctx.contextualRx.kill()
             },
             managedElement.asJquery { e =>
-              elemHandler.onNext(e)
               e.sidebar(new SidebarOptions {
                 transition = "overlay"
                 mobileTransition = "overlay"
@@ -120,7 +115,7 @@ object GenericSidebar {
                 context = targetSelector.orUndefined
               }).sidebar("show")
 
-              Cancelable(() => e.sidebar("destroy"))
+              cancelable(() => e.sidebar("destroy"))
             },
             config.items,
             config.sidebarModifier

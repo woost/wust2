@@ -6,7 +6,6 @@ import outwatch.reactive._
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.ext.monix._
-import monix.reactive.Observer
 import rx.{Ctx, Rx, Var}
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{BrowserDetect, ModalConfig, Ownable, UI}

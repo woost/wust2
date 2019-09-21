@@ -2,14 +2,10 @@ package wust.webApp.views
 
 import flatland._
 import fontAwesome._
-import monix.execution.Ack
-import monix.execution.Ack.Continue
-import monix.reactive.Observable
-import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom.window
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.ext.monix._
+import outwatch.reactive._
 import rx._
 import wust.css.Styles
 import wust.graph._
@@ -39,10 +35,10 @@ object ThreadView {
   def apply(focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
 
     val scrollHandler = new ScrollBottomHandler
-    val inputFieldFocusTrigger = PublishSubject[Unit]
+    val inputFieldFocusTrigger = SinkSourceHandler.publish[Unit]
 
 
-    val pageCounter = PublishSubject[Int]()
+    val pageCounter = SinkSourceHandler.publish[Int]
     val shouldLoadInfinite = Var[Boolean](false)
 
     div(
@@ -63,7 +59,7 @@ object ThreadView {
   }
 
   private def selectedNodesBar(
-    inputFieldFocusTrigger: PublishSubject[Unit],
+    inputFieldFocusTrigger: SinkSourceHandler.Simple[Unit],
   )(implicit ctx: Ctx.Owner) = VDomModifier (
     position.relative, // for absolute positioning of selectednodes
     SelectedNodes(
@@ -77,7 +73,7 @@ object ThreadView {
 
   private def chatHistory(
     focusState: FocusState,
-    externalPageCounter: Observable[Int],
+    externalPageCounter: SourceStream[Int],
     shouldLoadInfinite: Var[Boolean],
     scrollHandler: ScrollBottomHandler,
   )(implicit ctx: Ctx.Owner): VDomModifier = {
@@ -298,7 +294,7 @@ object ThreadView {
 
   private def threadReplyField(focusState: FocusState, nodeId: NodeId, showReplyField: Var[Boolean])(implicit ctx:Ctx.Owner): VNode = {
 
-    def handleInput(sub: InputRow.Submission): Future[Ack] = if (sub.text.nonEmpty) {
+    def handleInput(sub: InputRow.Submission): Unit = if (sub.text.nonEmpty) {
       val graph = GlobalState.graph.now
       val user = GlobalState.user.now
       val createdNode = Node.MarkdownMessage(sub.text)
@@ -306,10 +302,10 @@ object ThreadView {
       val expandChange = if(!graph.isExpanded(user.id, nodeId).getOrElse(false)) GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(true), user.id) else GraphChanges.empty
       val changes = addNodeChange merge expandChange
       GlobalState.submitChanges(changes)
-    } else Future.successful(Continue)
+      ()
+    }
 
     InputRow(
-      
       Some(focusState),
       submitAction = handleInput,
       autoFocus = true,
@@ -333,7 +329,6 @@ object ThreadView {
     }
 
     val renderedMessage = renderMessage(
-      
       nodeId,
       directParentIds,
       isDeletedNow = isDeletedNow,
@@ -382,10 +377,9 @@ object ThreadView {
   }
 
   private def chatInput(
-    
     focusState: FocusState,
     scrollHandler: ScrollBottomHandler,
-    inputFieldFocusTrigger: PublishSubject[Unit],
+    inputFieldFocusTrigger: SinkSourceHandler.Simple[Unit],
   )(implicit ctx: Ctx.Owner) = {
     val fileUploadHandler = Var[Option[AWS.UploadableFile]](None)
 
@@ -402,7 +396,6 @@ object ThreadView {
     }
 
     InputRow(
-      
       Some(focusState),
       submitAction,
       fileUploadHandler = Some(fileUploadHandler),

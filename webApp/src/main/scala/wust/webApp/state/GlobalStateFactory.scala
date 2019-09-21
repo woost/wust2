@@ -11,6 +11,7 @@ import monix.reactive.Observable
 import org.scalajs.dom
 import org.scalajs.dom.window
 import outwatch.ext.monix._
+import outwatch.reactive._
 import outwatch.dom.helpers.OutwatchTracing
 import rx._
 import wust.webUtil.outwatchHelpers._
@@ -37,7 +38,7 @@ object GlobalStateFactory {
 
     import GlobalState._
 
-    Observable(EditableContent.currentlyEditing, UI.currentlyEditing).merge.subscribe(eventProcessor.stopEventProcessing)
+    SourceStream.merge(EditableContent.currentlyEditing, UI.currentlyEditing).subscribe(eventProcessor.stopEventProcessing)
 
     // on mobile left and right sidebars overlay the screen.
     // close the right sidebar when the left sidebar is opened on mobile.

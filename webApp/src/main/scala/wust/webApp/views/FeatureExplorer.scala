@@ -8,10 +8,10 @@ import scala.scalajs.js
 import scala.util.Try
 import wust.webApp.{ DevOnly, DebugOnly }
 import fontAwesome._
-import monix.reactive.Observable
+import monix.eval.Task
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.ext.monix._
+import outwatch.reactive._
 import rx._
 import wust.css.{ Styles, ZIndex }
 import wust.ids.Feature
@@ -196,20 +196,21 @@ object FeatureExplorer {
 
   val usedFeatureAnimation = {
     import outwatch.dom.dsl.styles.extra._
-
     import scala.concurrent.duration._
+
     val shake = 0.2
+
+    val animationObservable = SourceStream.concatAsync(
+      Task(transform := "rotate(-20deg)").delayExecution(shake seconds),
+      Task(transform := "rotate(0deg)").delayExecution(shake seconds),
+      Task(visibility.hidden).delayExecution(5 seconds)
+    ).prepend(transform := "rotate(20deg)")
+
     div(
       scoreBadge("+1"),
       transition := s"visibility 0s, transform ${shake}s",
       transform := "rotate(0deg)",
-      Observable(visibility.hidden) ++ FeatureState.usedNewFeatureTrigger.switchMap{ _ =>
-        Observable(visibility.visible) ++
-          Observable(transform := "rotate(20deg)") ++
-          Observable(transform := "rotate(-20deg)").delayExecution(shake seconds) ++
-          Observable(transform := "rotate(0deg)").delayExecution(shake seconds) ++
-          Observable(visibility.hidden).delayExecution(5 seconds)
-      }
+      FeatureState.usedNewFeatureTrigger.switchMap(_ => animationObservable).prepend(visibility.hidden)
     )
   }
 

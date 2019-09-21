@@ -3,9 +3,6 @@ package wust.webUtil
 import wust.facades.fomanticui.{AccordeonOptions, DropdownEntry, DropdownOptions, PopupOptions, TableSortInstance, ToastClassNameOptions, ToastOptions, ProgressOptions}
 import wust.facades.jquery
 import wust.facades.jquery.{JQuery, JQuerySelection}
-import monix.execution.Cancelable
-import monix.reactive.Observable
-import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import rx._
 import wust.webUtil.outwatchHelpers._
@@ -14,8 +11,8 @@ import wust.util.collection._
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers._
+import outwatch.reactive._
 import outwatch.reactive.handler._
-import outwatch.ext.monix._
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
@@ -25,8 +22,8 @@ import wust.facades.emojijs.EmojiConvertor
 
 
 object UI {
-  private val currentlyEditingSubject = PublishSubject[Boolean]
-  def currentlyEditing: Observable[Boolean] = currentlyEditingSubject
+  private val currentlyEditingSubject = SinkSourceHandler.publish[Boolean]
+  def currentlyEditing: SourceStream[Boolean] = currentlyEditingSubject
 
   def message(msgType:String = "", header:Option[VDomModifier] = None, content:Option[VDomModifier] = None):VNode = {
     div(
@@ -64,7 +61,7 @@ object UI {
   def popup(options: PopupOptions): VDomModifier = VDomModifier.ifNot(BrowserDetect.isMobile)(
     managedElement.asJquery { elem =>
       elem.popup(options)
-      Cancelable(() => elem.popup("destroy"))
+      cancelable(() => elem.popup("destroy"))
     }
   )
   val popup: AttributeBuilder[String, VDomModifier] = str => popup(new PopupOptions { content = str; hideOnScroll = true; exclusive = true; variation = "mini basic" })
@@ -162,7 +159,7 @@ object UI {
   val verticalDivider = div(cls := "ui vertical divider")
   def verticalDivider(text:String) = div(cls := "ui vertical divider", text)
 
-  def dropdownMenu(items: VDomModifier, close: Observable[Unit], dropdownModifier: VDomModifier = VDomModifier.empty): VDomModifier = VDomModifier(
+  def dropdownMenu(items: VDomModifier, close: SourceStream[Unit], dropdownModifier: VDomModifier = VDomModifier.empty): VDomModifier = VDomModifier(
     cls := "ui pointing link inline dropdown",
     dropdownModifier,
     Elements.withoutDefaultPassiveEvents, // revert default passive events, else dropdown is not working
@@ -180,7 +177,7 @@ object UI {
             true
           }: js.Function0[Boolean]
         })
-      Cancelable(() => elem.dropdown("destroy"))
+      cancelable(() => elem.dropdown("destroy"))
     },
     cursor.pointer,
     div(
@@ -274,7 +271,7 @@ object UI {
           sort() = if (data.direction != null) Some(ColumnSort(data.index, data.direction)) else None
         })
 
-        Cancelable(() => data.destroy())
+        cancelable(() => data.destroy())
       },
 
       thead(

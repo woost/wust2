@@ -2,9 +2,6 @@ package wust.webApp.views
 
 import wust.webApp.parsers.{ UrlConfigWriter }
 import fontAwesome._
-import monix.execution.Ack
-import monix.reactive.Observer
-import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl.{label, _}
@@ -32,7 +29,6 @@ import GlobalState.SelectedNode
 
 import scala.collection.breakOut
 import scala.scalajs.js
-import monix.reactive.Observable
 
 object SharedViewElements {
 
@@ -368,7 +364,7 @@ object SharedViewElements {
   }
 
   def createNewButton(addToChannels: Boolean = false, nodeRole: CreateNewPrompt.SelectableNodeRole = CreateNewPrompt.SelectableNodeRole.Task)(implicit ctx: Ctx.Owner): VNode = {
-    val show = PublishSubject[Boolean]()
+    val show = SinkSourceHandler.publish[Boolean]
 
     div(
       div(cls := "fa-fw", UI.tooltip("bottom right") := "Create new...", freeSolid.faPlus),
@@ -476,7 +472,7 @@ object SharedViewElements {
     enableMentions: Boolean = true,
     enableEmojiPicker: Boolean = false,
     showSubmitIcon:Boolean = true,
-    triggerSubmit:Observable[Unit] = Observable.empty,
+    triggerSubmit:SourceStream[Unit] = SourceStream.empty,
     additionalChanges: NodeId => GraphChanges = _ => GraphChanges.empty,
   )(implicit ctx: Ctx.Owner) = {
     ModalConfig(
@@ -515,7 +511,7 @@ object SharedViewElements {
     body: Ownable[VDomModifier] = Ownable.value(VDomModifier.empty),
     placeholder: Placeholder = Placeholder.empty,
     showSubmitIcon:Boolean = true,
-    triggerSubmit:Observable[Unit] = Observable.empty,
+    triggerSubmit:SourceStream[Unit] = SourceStream.empty,
     additionalChanges: NodeId => GraphChanges = _ => GraphChanges.empty,
     enableMentions: Boolean = true,
     enableEmojiPicker: Boolean = false,

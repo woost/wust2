@@ -1,7 +1,6 @@
 package wust.webApp.views
 
 import wust.webApp.Icons
-import monix.reactive.Observer
 import wust.facades.googleanalytics.Analytics
 import fontAwesome.{freeSolid, _}
 import org.scalajs.dom
@@ -123,7 +122,6 @@ object LeftSidebar {
           overlayOpenModifier = VDomModifier(
             authStatus,
             Components.reloadButton(fontSize.small, margin := "15px auto 0px auto"),
-            onClick.use(false) --> GlobalState.leftSidebarOpen
           ),
           expandedOpenModifier = VDomModifier.empty,
           closedModifier = Some(VDomModifier(
@@ -146,12 +144,14 @@ object LeftSidebar {
     def accordionEntry(title: VDomModifier, content: VDomModifier, active: Boolean): UI.AccordionEntry = {
       UI.AccordionEntry(
         title = VDomModifier(
+          onClick.stopPropagation.discard,
           b(title),
           marginTop := "5px",
           padding := "3px",
           Styles.flexStatic
         ),
         content = VDomModifier(
+          onClick.stopPropagation.discard,
           margin := "5px",
           padding := "0px",
           overflowY.auto,

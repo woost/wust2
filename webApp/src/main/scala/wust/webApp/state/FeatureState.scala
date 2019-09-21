@@ -13,8 +13,9 @@ import wust.webApp.Client
 import wust.webUtil.UI
 import UI.ToastLevel
 import wust.api.UsedFeature
-import monix.reactive.subjects.PublishSubject
 import wust.facades.googleanalytics.Analytics
+
+import outwatch.reactive._
 
 import scala.collection.breakOut
 import scala.concurrent.ExecutionContext
@@ -109,7 +110,7 @@ object FeatureState {
     suggestions
   }
 
-  val usedNewFeatureTrigger = PublishSubject[Unit]
+  val usedNewFeatureTrigger = SinkSourceHandler.publish[Unit]
 
   def canUseApi: Boolean = {
     GlobalState.user.now match {

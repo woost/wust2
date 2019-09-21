@@ -1,8 +1,8 @@
 package wust.webApp.views
 
-import monix.reactive.subjects.PublishSubject
 import outwatch.dom.dsl._
-import outwatch.dom.{VNode, _}
+import outwatch.dom._
+import outwatch.reactive._
 import rx._
 import wust.webUtil.UI
 import wust.webUtil.outwatchHelpers._
@@ -135,7 +135,7 @@ object AssignedTasksView  {
   )
 
   private def chooseUser(users: Rx[Seq[Node.User]], selectedUserId: Var[UserId])(implicit ctx: Ctx.Owner): VNode = {
-    val close = PublishSubject[Unit]
+    val close = SinkSourceHandler.publish[Unit]
     div(
       Rx {
         val userId = selectedUserId()

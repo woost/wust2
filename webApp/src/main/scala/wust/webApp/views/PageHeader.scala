@@ -18,7 +18,6 @@ import wust.webApp.views.DragComponents.{ drag, registerDragContainer }
 
 import scala.collection.breakOut
 import scala.scalajs.js
-import monix.reactive.Observer
 
 object PageHeader {
 

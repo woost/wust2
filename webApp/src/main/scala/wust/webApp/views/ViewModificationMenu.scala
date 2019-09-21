@@ -3,12 +3,11 @@ package wust.webApp.views
 import wust.css.{ Styles, ZIndex }
 import flatland._
 import fontAwesome._
-import monix.reactive.Observer
-import monix.reactive.subjects.PublishSubject
 import outwatch.reactive._
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
+import outwatch.reactive._
 import rx._
 import wust.css.Styles
 import wust.graph.{ GraphChanges, Node }
@@ -32,7 +31,7 @@ object ViewModificationMenu {
     currentView.triggerLater { view => GlobalState.urlConfig.update(_.focus(view)) }
 
     div.thunkStatic(uniqueKey(channelId.toStringFast))(Ownable { implicit ctx =>
-      selector(channelId, currentView, None, Observer.empty)
+      selector(channelId, currentView, None, SinkObserver.empty)
     })
   }
 
@@ -40,7 +39,7 @@ object ViewModificationMenu {
     channelId: NodeId,
     currentView: Var[View],
     initialView: Option[View.Visible],
-    done: Observer[Unit]
+    done: SinkObserver[Unit]
   )(implicit ctx: Ctx.Owner): VDomModifier = {
 
     val nodeRx = Rx {
@@ -144,7 +143,7 @@ object ViewModificationMenu {
       )
     )
   }
-  private def resetView(currentView: Var[View], done: Observer[Unit], nodeRx: Rx[Option[Node]]): Unit = {
+  private def resetView(currentView: Var[View], done: SinkObserver[Unit], nodeRx: Rx[Option[Node]]): Unit = {
     done.onNext(())
     val node = nodeRx.now
     node.foreach { node =>
@@ -163,7 +162,7 @@ object ViewModificationMenu {
       }
     }
   }
-  private def removeView(currentView: Var[View], done: Observer[Unit], nodeRx: Rx[Option[Node]], view: View.Visible): Unit = {
+  private def removeView(currentView: Var[View], done: SinkObserver[Unit], nodeRx: Rx[Option[Node]], view: View.Visible): Unit = {
     done.onNext(())
     val node = nodeRx.now
     node.foreach { node =>
@@ -187,7 +186,7 @@ object ViewModificationMenu {
   }
 
   //TODO: gets triggered 3 times when adding a view. Should only trigger once
-  private def addNewView(currentView: Var[View], done: Observer[Unit], nodeRx: Rx[Option[Node]], existingViews: Rx[List[View.Visible]], newView: View.Visible): Unit = {
+  private def addNewView(currentView: Var[View], done: SinkObserver[Unit], nodeRx: Rx[Option[Node]], existingViews: Rx[List[View.Visible]], newView: View.Visible): Unit = {
     scribe.info(s"ViewModificationMenu.addNewView($newView)")
     if (View.selectableList.contains(newView)) { // only allow defined views
       done.onNext(())

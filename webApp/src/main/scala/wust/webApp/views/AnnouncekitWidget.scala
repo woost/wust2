@@ -19,7 +19,6 @@ import wust.webApp.views.DragComponents.{ drag, registerDragContainer }
 
 import scala.collection.breakOut
 import scala.scalajs.js
-import monix.reactive.Observer
 import snabbdom.VNodeProxy
 import wust.facades.announcekit._
 import org.scalajs.dom.console

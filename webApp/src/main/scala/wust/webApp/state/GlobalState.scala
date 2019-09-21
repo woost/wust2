@@ -3,8 +3,6 @@ package wust.webApp.state
 import scala.util.Try
 import com.github.ghik.silencer.silent
 import acyclic.file
-import monix.reactive.Observable
-import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom.experimental.permissions.PermissionState
 import rx._
 import wust.api._
@@ -21,7 +19,6 @@ import wust.webApp.jsdom.ServiceWorker
 import wust.facades.googleanalytics.Analytics
 import wust.facades.hotjar
 import monix.eval.Task
-import monix.reactive.Observable
 import org.scalajs.dom
 import org.scalajs.dom.window
 import rx._
@@ -54,7 +51,7 @@ object GlobalState {
   val isBrowserOnline = isBrowserOnlineObservable.unsafeToRx(true)
 
   // register the serviceworker and get an update observable when serviceworker updates are available.
-  val serviceWorkerIsActivated: Observable[Unit] = if (LinkingInfo.productionMode) ServiceWorker.register(WoostConfig.value.urls.serviceworker) else Observable.empty
+  val serviceWorkerIsActivated: SourceStream[Unit] = if (LinkingInfo.productionMode) ServiceWorker.register(WoostConfig.value.urls.serviceworker) else SourceStream.empty
 
   val eventProcessor = EventProcessor(
     Client.observable.event,
@@ -65,7 +62,7 @@ object GlobalState {
 
   eventProcessor.graph.foreach { g => scribe.debug("eventProcessor.graph: " + g) }
 
-  val mouseClickInMainView = PublishSubject[Unit]
+  val mouseClickInMainView = SinkSourceHandler.publish[Unit]
 
   def submitChanges(changes: GraphChanges) = {
     eventProcessor.changes.onNext(changes)
@@ -104,10 +101,10 @@ object GlobalState {
 
   val uploadingFiles: Var[Map[NodeId, UploadingFile]] = Var(Map.empty)
 
-  val uiSidebarConfig: PublishSubject[Ownable[GenericSidebar.SidebarConfig]] = PublishSubject()
-  val uiSidebarClose: PublishSubject[Unit] = PublishSubject()
-  val uiModalConfig: PublishSubject[Ownable[ModalConfig]] = PublishSubject()
-  val uiModalClose: PublishSubject[Unit] = PublishSubject()
+  val uiSidebarConfig = SinkSourceHandler.publish[Ownable[GenericSidebar.SidebarConfig]]
+  val uiSidebarClose = SinkSourceHandler.publish[Unit]
+  val uiModalConfig = SinkSourceHandler.publish[Ownable[ModalConfig]]
+  val uiModalClose = SinkSourceHandler.publish[Unit]
 
   @silent("deprecated")
   val rawGraph: Rx[Graph] = {

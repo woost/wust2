@@ -1,11 +1,8 @@
 package wust.webApp.views
 
-import monix.execution.Cancelable
-import monix.reactive.Observer
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.ext.monix._
 import outwatch.dom.helpers.EmitterBuilder
 import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
@@ -42,7 +39,7 @@ object DragComponents {
       prop(DragContainer.propName) := (() => container),
       managedElement.asHtml { elem =>
         SortableEvents.sortable.addContainer(elem)
-        Cancelable { () => SortableEvents.sortable.removeContainer(elem) }
+        cancelable { () => SortableEvents.sortable.removeContainer(elem) }
       }
     )
   }

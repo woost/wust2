@@ -1,7 +1,6 @@
 package wust.webApp.views
 
 import wust.webApp.state.FeatureState
-import monix.reactive.Observer
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.ext.monix._

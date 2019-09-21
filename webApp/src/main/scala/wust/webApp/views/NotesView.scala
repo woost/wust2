@@ -3,6 +3,7 @@ package wust.webApp.views
 import fontAwesome.freeSolid
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.reactive._
 import rx._
 import wust.css.Styles
 import wust.graph._
@@ -13,7 +14,6 @@ import wust.webApp.state.{ FeatureState, FocusState, GlobalState, Placeholder }
 import wust.webApp.views.DragComponents.registerDragContainer
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{ Elements, UI }
-import monix.reactive.subjects.PublishSubject
 
 // Notes view, this is a simple view for storing note/wiki/documentation on a node.
 // It  renders all direct children of noderole note and allows to add new notes.
@@ -50,7 +50,7 @@ object NotesView {
   }
 
   private def inputRow(focusState: FocusState)(implicit ctx: Ctx.Owner) = {
-    val triggerSubmit = PublishSubject[Unit]
+    val triggerSubmit = SinkSourceHandler.publish[Unit]
 
     InputRow(
       Some(focusState),

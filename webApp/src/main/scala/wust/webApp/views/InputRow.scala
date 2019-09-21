@@ -2,13 +2,12 @@ package wust.webApp.views
 
 import wust.facades.wdtEmojiBundle._
 import fontAwesome._
-import monix.reactive.Observable
-import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import org.scalajs.dom.window
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.reactive._
+import outwatch.ext.monix._
 import rx._
 import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
@@ -21,14 +20,11 @@ import wust.ids._
 import wust.webApp.state._
 import wust.webApp.views.Components._
 import wust.webApp.views.SharedViewElements._
-import monix.reactive.Observer
 
 import scala.collection.breakOut
 import scala.collection.mutable
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
-import monix.reactive.subjects.PublishSubject
-import outwatch.ext.monix._
 
 import wust.webApp.state.InputMention._
 
@@ -42,12 +38,12 @@ object InputRow {
     fileUploadHandler: Option[Var[Option[AWS.UploadableFile]]] = None,
     blurAction: Option[String => Unit] = None,
     scrollHandler: Option[ScrollBottomHandler] = None,
-    triggerFocus: Observable[Unit] = Observable.empty,
+    triggerFocus: SourceStream[Unit] = SourceStream.empty,
     autoFocus: Boolean = false,
     placeholder: Placeholder = Placeholder.empty,
     preFillByShareApi: Boolean = false,
     submitOnEnter: Boolean = !BrowserDetect.isMobile,
-    triggerSubmit: Observable[Unit] = Observable.empty,
+    triggerSubmit: SourceStream[Unit] = SourceStream.empty,
     additionalChanges:NodeId => GraphChanges = _ => GraphChanges.empty,
     submitIcon: VDomModifier = freeRegular.faPaperPlane,
     showSubmitIcon: Boolean = BrowserDetect.isMobile,
@@ -63,8 +59,8 @@ object InputRow {
         val elements = List(share.title, share.text, share.url).filter(_.nonEmpty)
         elements.mkString(" - ")
       }
-    }.toObservable.dropWhile(_.isEmpty)
-    else Observable.empty // drop starting sequence of empty values. only interested once share api defined.
+    }.toSourceStream.dropWhile(_.isEmpty)
+    else SourceStream.empty // drop starting sequence of empty values. only interested once share api defined.
 
     val markdownHelpOpened = Var(false)
     val markdownHelpModifiers = Var(VDomModifier.empty)

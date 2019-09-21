@@ -3,12 +3,11 @@ package wust.webApp.views
 import wust.ids.Feature
 import wust.webApp.state.FeatureState
 import fontAwesome.IconDefinition
-import monix.reactive.Observable
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.ext.monix._
 import outwatch.reactive.handler._
+import outwatch.ext.monix._
 import rx._
 import wust.api._
 import wust.css.Styles
@@ -161,8 +160,8 @@ object UserSettingsView {
   private def pluginSettings(user: UserInfo)(implicit ctx: Ctx.Owner): VNode = div(
     Styles.flex,
     flexWrap.wrap,
-    OAuthClientService.all.map { service =>
-      Observable.fromFuture(getEnabledOAuthClientServices()).map { enabledServices =>
+    getEnabledOAuthClientServices().map { enabledServices =>
+      OAuthClientService.all.map { service =>
         div(
           margin := "10px 30px 10px 0px",
           minWidth := "200px",
@@ -173,7 +172,7 @@ object UserSettingsView {
     div(
       margin := "10px 30px 10px 0px",
       minWidth := "200px",
-      Observable.fromFuture(slackButton(user))
+      slackButton(user)
     ),
   )
 
