@@ -95,7 +95,7 @@ object ChatView {
     shouldLoadInfinite: Var[Boolean]
   )(implicit ctx: Ctx.Owner): VDomModifier = {
     val pageParentId = focusState.focusedId
-    val initialPageCounter = 30
+    val initialPageCounter = 35
     val pageCounter = Var(initialPageCounter)
 
     val messages = Rx {
