@@ -108,7 +108,7 @@ object UnreadComponents {
   }
 
   // returns lastreadtime
-  @inline def activitiesOfNode(graph:Graph, userId:UserId, nodeIdx:Int)(collect: Activity => Unit): Option[EpochMilli] = {
+  def activitiesOfNode(graph:Graph, userId:UserId, nodeIdx:Int)(collect: Activity => Unit): Option[EpochMilli] = {
     val lastReadTime = findLastReadTime(graph, userId, nodeIdx)
     var isFirst = true
     var lastAuthorship: Authorship = null

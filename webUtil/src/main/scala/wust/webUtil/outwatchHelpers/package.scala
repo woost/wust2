@@ -54,7 +54,7 @@ package object outwatchHelpers extends KeyHash with RxInstances {
     @inline def prepend(mods: VDomModifier*): F[G[VNode]] = Functor[F].map(f)(g => Functor[G].map(g)(_.apply(mods: _*)))
   }
 
-  implicit class RichVarFactory(val v: Var.type) extends AnyVal {
+  @inline implicit class RichVarFactory(val v: Var.type) extends AnyVal {
     @inline def empty[T: Empty]: Var[T] = Var(Empty[T])
   }
 
@@ -159,7 +159,7 @@ package object outwatchHelpers extends KeyHash with RxInstances {
     @inline def debug(name: String = "")(implicit ctx: Ctx.Owner): Obs = {
       rx.debug(x => s"$name: $x")
     }
-    @inline def debug(print: T => String)(implicit ctx: Ctx.Owner): Obs = {
+    def debug(print: T => String)(implicit ctx: Ctx.Owner): Obs = {
       val boxBgColor = "#000" // HCL(baseHue, 50, 63).toHex
       val boxStyle =
         s"color: white; background: $boxBgColor; border-radius: 3px; padding: 2px; font-weight: bold; font-size:larger;"
@@ -167,7 +167,7 @@ package object outwatchHelpers extends KeyHash with RxInstances {
       rx.foreach(x => console.log(s"%c ⟳ %c ${print(x)}", boxStyle, "background-color: transparent; font-weight: normal"))
     }
 
-    @inline def debugWithDetail(print: T => String, detail: T => String)(implicit ctx: Ctx.Owner): Obs = {
+    def debugWithDetail(print: T => String, detail: T => String)(implicit ctx: Ctx.Owner): Obs = {
       val boxBgColor = "#000" // HCL(baseHue, 50, 63).toHex
       val boxStyle =
         s"color: white; background: $boxBgColor; border-radius: 3px; padding: 2px; font-weight: bold; font-size:larger;"
@@ -192,7 +192,7 @@ package object outwatchHelpers extends KeyHash with RxInstances {
   }
 
   implicit object RxSource extends Source[Rx] {
-    @inline def subscribe[G[_] : Sink, A](stream: Rx[A])(sink: G[_ >: A]): Subscription = {
+    def subscribe[G[_] : Sink, A](stream: Rx[A])(sink: G[_ >: A]): Subscription = {
       implicit val ctx = Ctx.Owner.Unsafe
       Sink[G].onNext(sink)(stream.now)
       val obs = stream.triggerLater(Sink[G].onNext(sink)(_))
@@ -229,11 +229,11 @@ package object outwatchHelpers extends KeyHash with RxInstances {
     @inline def append(m: VDomModifier*) = vNode.apply(m: _*)
   }
 
-  implicit class RichRxVNode(val vNode: Rx[VNode]) extends AnyVal {
+  @inline implicit class RichRxVNode(val vNode: Rx[VNode]) extends AnyVal {
     @inline def append(m: VDomModifier*)(implicit ctx: Ctx.Owner) = vNode.map(_.apply(m: _*))
   }
 
-  implicit class RichObservableVNode(val vNode: Observable[VNode]) extends AnyVal {
+  @inline implicit class RichObservableVNode(val vNode: Observable[VNode]) extends AnyVal {
     @inline def append(m: VDomModifier*) = vNode.map(_.apply(m: _*))
   }
 
@@ -285,8 +285,6 @@ package object outwatchHelpers extends KeyHash with RxInstances {
     outwatch.dom.dsl.events.document.onKeyUp.collect { case e if e.keyCode == keyCode => false }
   ).prepend(false)
 
-  @inline def multiObserver[T](observers: Observer[T]*): Observer[T] = new CombinedObserver[T](observers)
-
   import scalacss.defaults.Exports.StyleA
   @inline implicit def styleToAttr(styleA: StyleA): VDomModifier = dsl.cls := styleA.htmlClass
 
@@ -332,9 +330,9 @@ package object outwatchHelpers extends KeyHash with RxInstances {
 
   // fontawesome uses svg for icons and span for layered icons.
   // we need to handle layers as an html tag instead of svg.
-  @inline private def stringToTag(tag: String): BasicVNode = if (tag == "span") dsl.htmlTag(tag) else dsl.svgTag(tag)
+  private def stringToTag(tag: String): BasicVNode = if (tag == "span") dsl.htmlTag(tag) else dsl.svgTag(tag)
 
-  @inline private def treeToModifiers(tree: AbstractElement): VDomModifier = VDomModifier(
+  def treeToModifiers(tree: AbstractElement): VDomModifier = VDomModifier(
     tree.attributes.map { case (name, value) => dsl.attr(name) := value }.toJSArray,
     tree.children.fold(js.Array[VNode]()) { _.map(abstractTreeToVNode) }
   )

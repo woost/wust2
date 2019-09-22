@@ -10,7 +10,7 @@ import scala.scalajs.js.Date
 import scala.util.control.NonFatal
 
 object StringJsOps {
-  @inline def safeToDuration(durationString: String): Either[String, DurationMilli] = {
+  def safeToDuration(durationString: String): Either[String, DurationMilli] = {
     try {
       Right(DurationMilli(Juration.parse(durationString).toLong * 1000))
     } catch { case NonFatal(e) =>
@@ -32,7 +32,7 @@ object StringJsOps {
     new js.Date(date).asInstanceOf[js.Dynamic].toLocaleString(dom.window.navigator.language).asInstanceOf[String]
   }
 
-  @inline def timeToTimeString(t: TimeMilli): String = {
+  def timeToTimeString(t: TimeMilli): String = {
     val date = new Date(t)
     f"${date.getHours}%02d:${date.getMinutes}%02d"
   }
