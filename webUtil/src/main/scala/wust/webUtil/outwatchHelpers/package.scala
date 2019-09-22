@@ -145,6 +145,13 @@ package object outwatchHelpers extends KeyHash with RxInstances {
       Subscription(() => obs.kill())
     }
 
+    def toTailSourceStream: SourceStream[T] = SourceStream.create[T] { observer =>
+      // transfer ownership from scala.rx to Monix. now Monix decides when the rx is killed.
+      implicit val ctx = Ctx.Owner.Unsafe
+      val obs = rx.triggerLater(observer.onNext(_))
+      Subscription(() => obs.kill())
+    }
+
     @inline def subscribe(that: Var[T])(implicit ctx: Ctx.Owner): Obs = rx.foreach(that() = _)
     @inline def subscribe(that: Observer[T])(implicit ctx: Ctx.Owner): Obs = rx.foreach(that.onNext)
 

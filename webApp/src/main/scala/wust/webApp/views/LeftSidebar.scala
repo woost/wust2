@@ -7,6 +7,7 @@ import org.scalajs.dom
 import org.scalajs.dom.window
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.reactive._
 import outwatch.ext.monix._
 import rx._
 import wust.webUtil.outwatchHelpers._
@@ -280,29 +281,18 @@ object LeftSidebar {
     div(syncStatusIcon)
   }
 
-  // TODO: https://github.com/OutWatch/outwatch/issues/227
-  val beforeInstallPromptEvents: Rx[Option[dom.Event]] = Rx.create(Option.empty[dom.Event]) {
-    observer: Var[Option[dom.Event]] =>
-      dom.window.addEventListener(
-        "beforeinstallprompt", { e: dom.Event =>
-          e.preventDefault(); // Prevents immediate prompt display
-          observer() = Some(e)
-        }
-      )
-  }
+  val beforeInstallPromptEvents: SourceStream[dom.Event] = events.window.eventProp("beforeinstallprompt").preventDefault
 
   def beforeInstallPrompt(buttonModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner) = {
     div(
-      Rx {
-        beforeInstallPromptEvents().map { e =>
-          button(
-            cls := "tiny ui primary basic button", "Install as App", onClick foreach {
-              e.asInstanceOf[js.Dynamic].prompt();
-              ()
-            },
-            buttonModifier
-          )
-        }
+      beforeInstallPromptEvents.map { e =>
+        button(
+          cls := "tiny ui primary basic button", "Install as App", onClick foreach {
+            e.asInstanceOf[js.Dynamic].prompt();
+            ()
+          },
+          buttonModifier
+        )
       }
     )
   }

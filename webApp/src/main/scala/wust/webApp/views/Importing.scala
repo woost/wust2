@@ -284,7 +284,7 @@ object Importing {
             source.icon(height := "2em"),
             div(source.description, paddingTop := "3px"),
             cursor.pointer,
-            onClick.stopPropagation.use(Some(source)) --> sink
+            onClick.stopPropagation.useLazy(Some(source)) --> sink
           )
         }
       )

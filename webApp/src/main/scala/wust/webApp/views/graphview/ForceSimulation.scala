@@ -2,15 +2,12 @@ package wust.webApp.views.graphview
 
 import d3v4._
 import flatland._
-import monix.execution.Cancelable
-import monix.execution.cancelables.CompositeCancelable
-import monix.reactive.Observable
 import org.scalajs.dom
 import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.{CanvasRenderingContext2D, html}
 import outwatch.dom._
 import outwatch.dom.dsl.events
-import outwatch.ext.monix._
+import outwatch.reactive._
 import rx._
 import vectory._
 import wust.webUtil.BrowserDetect
@@ -51,7 +48,6 @@ object ForceSimulationConstants {
 }
 
 class ForceSimulation(
-    
     focusState: FocusState,
     onDrop: (NodeId, NodeId, Boolean) => Boolean,
     roleToDragItemPayload:PartialFunction[(NodeId, NodeRole), DragPayload],
@@ -82,11 +78,11 @@ class ForceSimulation(
   private val nodeContainerElement = Var[Option[dom.html.Element]](None)
 
   var isCtrlPressed = false
-  
+
   if (!BrowserDetect.isMobile)
     keyDown(KeyCode.Ctrl).foreach { isCtrlPressed = _ }
 
-  var simulationCancelable:Cancelable = Cancelable()
+  var simulationCancelable:Subscription = Subscription.empty
   val component: VNode = {
     import outwatch.dom.dsl._
     import outwatch.dom.dsl.styles.extra._
@@ -99,7 +95,7 @@ class ForceSimulation(
       managedElement.asHtml { elem =>
         // snabbdom.VNodeProxy.setDirty(elem)
         backgroundElement() = Some(elem)
-        Cancelable { () => backgroundElement() = None; simulationCancelable.cancel() }
+        cancelable { () => backgroundElement() = None; simulationCancelable.cancel() }
       },
       position := "relative",
       width := "100%",
@@ -110,13 +106,13 @@ class ForceSimulation(
         position := "absolute",
         managedElement.asHtml { elem =>
           canvasLayerElement() = Some(elem.asInstanceOf[dom.html.Canvas])
-          Cancelable { () => canvasLayerElement() = None; simulationCancelable.cancel() }
+          cancelable { () => canvasLayerElement() = None; simulationCancelable.cancel() }
         },
       ),
       div(
         managedElement.asHtml { elem =>
           nodeContainerElement() = Some(elem)
-          Cancelable { () => nodeContainerElement() = None; simulationCancelable.cancel() }
+          cancelable { () => nodeContainerElement() = None; simulationCancelable.cancel() }
         },
         width := "100%",
         height := "100%",
@@ -138,9 +134,9 @@ class ForceSimulation(
   }
 
 
-  def initSimulation(backgroundElement:dom.html.Element, canvasLayerElement: dom.html.Canvas, nodeContainerElement: dom.html.Element)(implicit ctx: Ctx.Owner):Cancelable = {
-    val cancelable = CompositeCancelable()
-    cancelable += Cancelable(() => scribe.info("canceling simulation"))
+  def initSimulation(backgroundElement:dom.html.Element, canvasLayerElement: dom.html.Canvas, nodeContainerElement: dom.html.Element)(implicit ctx: Ctx.Owner):Subscription = {
+    val cancelable = Subscription.builder()
+    cancelable += Subscription(() => scribe.info("canceling simulation"))
 
     scribe.info(log("-------------------- init simulation"))
     val background = d3.select(backgroundElement)
@@ -191,7 +187,7 @@ class ForceSimulation(
       .scaleExtent(js.Array(0.01, 10))
       .on("zoom", () => zoomed())
       .clickDistance(10) // interpret short drags as clicks
-    cancelable += Cancelable(() => zoom.on("zoom", null))
+    cancelable += Subscription(() => zoom.on("zoom", null))
 
     background
       .call(zoom) // mouse events only get catched in background layer, then trigger zoom events, which in turn trigger zoomed()
@@ -214,9 +210,9 @@ class ForceSimulation(
           }
         }
       )
-    cancelable += Cancelable(() => background.on("click", null:ListenerFunction0))
+    cancelable += Subscription(() => background.on("click", null:ListenerFunction0))
 
-    cancelable += Observable(events.window.onResize.lift[Observable], GlobalState.rightSidebarNode.map(_.isDefined).toLazyTailObservable).merge.foreach { _ =>
+    cancelable += SourceStream.mergeVaried(events.window.onResize, GlobalState.rightSidebarNode.map(_.isDefined).toTailSourceStream).foreach { _ =>
       // TODO: detect element resize instead: https://www.npmjs.com/package/element-resize-detector
       resized()
       startAnimated()
@@ -400,7 +396,7 @@ class ForceSimulation(
       startAnimated() // this also triggers the initial simulation start
     }
 
-    cancelable += Cancelable(() => stop())
+    cancelable += Subscription(() => stop())
 
     cancelable
   }

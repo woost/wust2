@@ -156,13 +156,16 @@ object ItemProperties {
             propertyTypeSelection.map(_.flatMap {
               case NodeTypeSelection.Data(propertyType) =>
                 EditElementParser.forNodeDataType(propertyType) map { implicit parser =>
-                  EditableContent.editorRx[NodeData.Content](propertyValueInput.imap[Option[NodeData.Content]](_.collect { case ValueSelection.Data(data) => data })(_.map(ValueSelection.Data(_))), editableConfig.copy(
-                    modifier = VDomModifier(
-                      width := "100%",
-                      marginTop := "4px",
-                      Elements.onEnter.stopPropagation foreach (createProperty())
+                  EditableContent.editorRx[NodeData.Content](
+                    propertyValueInput.imap[Option[NodeData.Content]](_.collect { case ValueSelection.Data(data) => data })(_.map(ValueSelection.Data(_))),
+                    editableConfig.copy(
+                      modifier = VDomModifier(
+                        width := "100%",
+                        marginTop := "4px",
+                        Elements.onEnter.stopPropagation foreach (createProperty())
+                      )
                     )
-                  )).apply(editModifier)
+                  ).apply(editModifier)
                 }
               case NodeTypeSelection.Ref => Some(
                Components.searchAndSelectNodeApplied(propertyValueInput.imap[Option[NodeId]](_.collect { case ValueSelection.Ref(data) => data })(_.map(ValueSelection.Ref(_))), filter = config.filterRefCompletion).apply(

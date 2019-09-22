@@ -217,7 +217,7 @@ object GlobalStateFactory {
       var prevPage: PageChange = null
       var prevUser: Node.User = null
 
-      userAndPage.toObservable
+      userAndPage.toSourceStream
         .filter {
           case (viewConfig, user) =>
             @inline def userWasChanged = prevUser == null || prevUser.id != user.id || prevUser.data.isImplicit != user.data.isImplicit
@@ -235,9 +235,9 @@ object GlobalStateFactory {
         }.switchMap {
           case (viewConfig, user) =>
             val currentTransitChanges = lastTransitChanges.fold(GraphChanges.empty)(_ merge _)
-            Observable
+            SourceStream
               .fromFuture(getNewGraph(viewConfig.pageChange.page))
-              .onErrorHandle(_ => Graph.empty)
+              .recover { case _ => Graph.empty }
               .map(g => ReplaceGraph(g.applyChanges(currentTransitChanges)))
         }
         .subscribe(eventProcessor.localEvents)
@@ -266,8 +266,8 @@ object GlobalStateFactory {
     // every update bumps the version of the endpoint url: core-v1_2-3.app.woost.space.
     //TODO with is browseronline: isBrowserOnlineObservable
     isClientOnlineObservable
-      .lift[Observable]
-      .throttleLast(2.minutes)
+      .liftSource[Observable]
+      .throttleLast(2.minutes) // TODO: add to SourceStream?
       .foreach { isOnline =>
         if (!isOnline) {
           scribe.info("Client is offline, checking whether backend is online")

@@ -14,7 +14,6 @@ import wust.webApp.state.{ GlobalState, ScreenSize }
 import wust.webApp.views.Components._
 import wust.facades.wdtEmojiBundle._
 import wust.webUtil.Elements.{onGlobalEscape, onGlobalClick}
-import monix.reactive.Observer
 
 object EmojiPicker {
   def apply() = {

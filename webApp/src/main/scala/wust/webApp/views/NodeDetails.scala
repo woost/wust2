@@ -137,7 +137,7 @@ object NodeDetails {
           renderNotesCount(
             taskStats().noteChildrenCount,
             UI.tooltip("left center") := "Show notes",
-            onClick.stopPropagation.use(Some(FocusPreference(nodeId, Some(View.Content)))) --> GlobalState.rightSidebarNode,
+            onClick.stopPropagation.useLazy(Some(FocusPreference(nodeId, Some(View.Content)))) --> GlobalState.rightSidebarNode,
             cursor.pointer,
           ),
         ),
@@ -145,7 +145,7 @@ object NodeDetails {
           renderMessageCount(
             taskStats().messageChildrenCount,
             UI.tooltip("left center") := "Show comments",
-            onClick.stopPropagation.use(Some(FocusPreference(nodeId, Some(View.Conversation)))) --> GlobalState.rightSidebarNode,
+            onClick.stopPropagation.useLazy(Some(FocusPreference(nodeId, Some(View.Conversation)))) --> GlobalState.rightSidebarNode,
             cursor.pointer,
           ),
         ),
@@ -153,7 +153,7 @@ object NodeDetails {
           renderProjectsCount(
             taskStats().projectChildrenCount,
             UI.tooltip("left center") := "Show Projects",
-            onClick.stopPropagation.use(Some(FocusPreference(nodeId, Some(View.Dashboard)))) --> GlobalState.rightSidebarNode,
+            onClick.stopPropagation.useLazy(Some(FocusPreference(nodeId, Some(View.Dashboard)))) --> GlobalState.rightSidebarNode,
             cursor.pointer,
           ),
         ),

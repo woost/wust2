@@ -258,7 +258,7 @@ object KanbanView {
               Styles.flex,
               justifyContent.center,
               div(cls := "fa-fw", Icons.expand, UI.tooltip("bottom center") := "Expand"),
-              onClick.stopPropagation.use(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(true), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes,
+              onClick.stopPropagation.useLazy(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(true), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes,
               cursor.pointer,
               paddingBottom := "7px",
             ),

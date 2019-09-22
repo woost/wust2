@@ -340,7 +340,7 @@ object Components {
       keyed(userNode.id),
       UI.tooltip("left center") := s"${displayUserName(userNode.data)}. Click to unassign.",
       cursor.pointer,
-      onClick.stopPropagation.use(GraphChanges.disconnect(Edge.Assigned)(targetNodeId, userNode.id)) --> GlobalState.eventProcessor.changes,
+      onClick.stopPropagation.useLazy(GraphChanges.disconnect(Edge.Assigned)(targetNodeId, userNode.id)) --> GlobalState.eventProcessor.changes,
     )
   }
 

@@ -64,7 +64,7 @@ object ChatView {
           shouldLoadInfinite,
         ),
       ),
-      onGlobalEscape.use(Set.empty[NodeId]) --> currentReply,
+      onGlobalEscape.useLazy(Set.empty[NodeId]) --> currentReply,
       renderCurrentReply( focusState, inputFieldFocusTrigger, currentReply, pinReply),
       chatInput( focusState, currentReply, pinReply, scrollHandler, inputFieldFocusTrigger)
     )
