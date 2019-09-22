@@ -2,12 +2,12 @@ package wust.webApp.views
 
 import monix.eval.Task
 import wust.webUtil.UI
-import monix.reactive.Observable
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.ext.monix._
-import outwatch.ext.monix.handler._
+import outwatch.reactive._
+import outwatch.reactive.handler._
 import outwatch.dom.helpers.EmitterBuilder
 import rx._
 import wust.webUtil.Elements
@@ -149,30 +149,49 @@ trait EditElementParser[T] { self =>
   def render(config: Config, initial: Task[Option[T]], handler: Handler[EditInteraction[T]])(implicit ctx: Ctx.Owner): VDomModifier
 
   def widen[R >: T](implicit tag: ClassTag[T]): EditElementParser[R] = new EditElementParser[R] {
-    override def render(config: Config, initial: Task[Option[R]], handler: Handler[EditInteraction[R]])(implicit ctx: Ctx.Owner): VDomModifier =
-      self.render(config, initial.map(_.collect { case t: T => t }), handler.collectHandler[EditInteraction[T]] { case t => t } {
-        case EditInteraction.Cancel => EditInteraction.Cancel
-        case edit: EditInteraction.Error => edit
-        case EditInteraction.Input(t: T) => EditInteraction.Input(t)
-      })
+    override def render(config: Config, initial: Task[Option[R]], handler: Handler[EditInteraction[R]])(implicit ctx: Ctx.Owner): VDomModifier = {
+      val newHandler = ProHandler(
+        handler,
+        handler.collect {
+          case EditInteraction.Cancel => EditInteraction.Cancel
+          case edit: EditInteraction.Error => edit
+          case EditInteraction.Input(t: T) => EditInteraction.Input(t)
+        }
+      )
+      self.render(config, initial.map(_.collect { case t: T => t }), newHandler)
+    }
   }
 
   @inline final def map[R](f: T => R)(g: R => T): EditElementParser[R] = flatMap[R](t => EditInteraction.Input(f(t)))(r => EditInteraction.Input(g(r)))
   @inline final def flatMap[R](f: T => EditInteraction[R])(g: R => EditInteraction[T]): EditElementParser[R] = new EditElementParser[R] {
-    def render(config: Config, initial: Task[Option[R]], handler: Handler[EditInteraction[R]])(implicit ctx: Ctx.Owner) = self.render(config, initial.map(_.flatMap(g(_).toOption)), handler.mapHandler[EditInteraction[T]](_.toEither.map(f).merge)(_.toEither.map(g).merge))
+    def render(config: Config, initial: Task[Option[R]], handler: Handler[EditInteraction[R]])(implicit ctx: Ctx.Owner) = {
+      val newHandler = ProHandler(
+        handler.contramap[EditInteraction[T]](_.toEither.map(f).merge),
+        handler.map[EditInteraction[T]](_.toEither.map(g).merge)
+      )
+      self.render(config, initial.map(_.flatMap(g(_).toOption)), newHandler)
+    }
   }
   @inline final def mapEval[R](f: T => Task[R])(g: R => Task[T]): EditElementParser[R] = flatMapEval[R](t => f(t).map(EditInteraction.Input(_)))(r => g(r).map(EditInteraction.Input(_)))
   final def flatMapEval[R](f: T => Task[EditInteraction[R]])(g: R => Task[EditInteraction[T]]): EditElementParser[R] = new EditElementParser[R] {
-    def render(config: Config, initial: Task[Option[R]], handler: Handler[EditInteraction[R]])(implicit ctx: Ctx.Owner) =
-      self.render(
+    def render(config: Config, initial: Task[Option[R]], handler: Handler[EditInteraction[R]])(implicit ctx: Ctx.Owner) = {
+      //TODO: all observable methods in SourceStream, then have Observer methods without connectable?
+      val connectableSink = handler.redirect[SourceStream, EditInteraction[T]](_.concatMapAsync(_.toEither.fold(Task.pure(_), f)))
+      VDomModifier(managedFunction(() => connectableSink.connect()), self.render(
         config,
         initial.flatMap(_.fold[Task[Option[T]]](Task.pure(None))(g(_).map(_.toOption))),
-        ProHandler(handler.redirectEval[EditInteraction[T]](_.toEither.fold(Task.pure(_), f)), handler.mapEval(_.toEither.fold(Task.pure(_), g)))
-      )
+        ProHandler(connectableSink.sink, handler.concatMapAsync(_.toEither.fold(Task.pure(_), g)))
+      ))
+    }
   }
   @inline final def mapEditInteraction[R](f: EditInteraction[T] => R)(g: EditInteraction[R] => EditInteraction[T]): EditElementParser[R] = flatMapEditInteraction[R](t => EditInteraction.Input(f(t)))(g)
   final def flatMapEditInteraction[R](f: EditInteraction[T] => EditInteraction[R])(g: EditInteraction[R] => EditInteraction[T]): EditElementParser[R] = new EditElementParser[R] {
-    def render(config: Config, initial: Task[Option[R]], handler: Handler[EditInteraction[R]])(implicit ctx: Ctx.Owner) = self.render(config, initial.map(initial => g(EditInteraction.fromOption(initial)).toOption), handler.mapHandler(f)(g))
+    def render(config: Config, initial: Task[Option[R]], handler: Handler[EditInteraction[R]])(implicit ctx: Ctx.Owner) =
+      self.render(
+        config,
+        initial.map(initial => g(EditInteraction.fromOption(initial)).toOption),
+        ProHandler(handler.contramap(f), handler.map(g))
+      )
   }
 }
 object EditElementParser {
@@ -256,20 +275,26 @@ object EditElementParser {
 
     def render(config: Config, initial: Task[Option[DateTimeMilli]], handler: Handler[EditInteraction[DateTimeMilli]])(implicit ctx: Ctx.Owner) = {
       var lastDateTime: DateTimeMilli = defaultDateTime()
-      val dateHandler = handler.mapHandler[EditInteraction[DateMilli]](_.map { date =>
-        val (_, time) = splitDateTimeLocal(lastDateTime)
-        DateTimeMilli(EpochMilli(date + time))
-      })(_.map { dateTime =>
-        val (date, _) = splitDateTime(dateTime)
-        date
-      })
-      val timeHandler = handler.mapHandler[EditInteraction[TimeMilli]](_.map { time =>
-        val (date, _) = splitDateTimeLocal(lastDateTime)
-        DateTimeMilli(EpochMilli(date + time))
-      }) (_.map { dateTime =>
-        val (_, time) = splitDateTime(dateTime)
-        time
-      })
+      val dateHandler = ProHandler(
+        handler.contramap[EditInteraction[DateMilli]](_.map { date =>
+          val (_, time) = splitDateTimeLocal(lastDateTime)
+          DateTimeMilli(EpochMilli(date + time))
+        }),
+        handler.map(_.map { dateTime =>
+          val (date, _) = splitDateTime(dateTime)
+          date
+        })
+      )
+      val timeHandler = ProHandler(
+        handler.contramap[EditInteraction[TimeMilli]](_.map { time =>
+          val (date, _) = splitDateTimeLocal(lastDateTime)
+          DateTimeMilli(EpochMilli(date + time))
+        }),
+        handler.map(_.map { dateTime =>
+          val (_, time) = splitDateTime(dateTime)
+          time
+        })
+      )
 
       val initialDateAndTime = initial.map(_.map { dt =>
         lastDateTime = dt
@@ -318,7 +343,7 @@ object EditElementParser {
             case _ => VDomModifier.empty
           }
         ),
-        EditHelper.uploadFieldModifier(Observable(Observable.from(initial), handler.map(_.toOption)).concat, randomId)
+        EditHelper.uploadFieldModifier(SourceStream.concatAsync(initial, handler.map(_.toOption)), randomId)
       )
     }
   }
@@ -396,9 +421,9 @@ object EditInteraction {
 
 object EditHelper {
 
-  def uploadFieldModifier(selected: Observable[Option[dom.File]], fileInputId: String, tooltipDirection: String = "top left")(implicit ctx: Ctx.Owner): VDomModifier = {
+  def uploadFieldModifier(selected: SourceStream[Option[dom.File]], fileInputId: String, tooltipDirection: String = "top left")(implicit ctx: Ctx.Owner): VDomModifier = {
 
-    val iconAndPopup: Observable[(VNode, Option[VNode])] = selected.prepend(None).map {
+    val iconAndPopup: SourceStream[(VNode, Option[VNode])] = selected.prepend(None).map {
       case None =>
         (span(Icons.fileUpload), None)
       case Some(file) =>

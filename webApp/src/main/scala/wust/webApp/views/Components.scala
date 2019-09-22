@@ -644,8 +644,11 @@ object Components {
       def refEditor = EditableContent.customOrRender[Node](
         node, editMode,
         implicit ctx => node => nodeCard( node, maxLength = maxLength).apply(Styles.wordWrap, nonPropertyModifier),
-        implicit ctx => handler => searchAndSelectNodeApplied[MonixHandler](
-          handler.edit.collectHandler[Option[NodeId]] { case id => EditInteraction.fromOption(id.map(GlobalState.rawGraph.now.nodesByIdOrThrow(_))) } { case EditInteraction.Input(v) => Some(v.id) }.transformObservable(_.prepend(Some(node.id))),
+        implicit ctx => handler => searchAndSelectNodeApplied[Handler](
+          ProHandler(
+            handler.edit.contracollect[Option[NodeId]] { case id => EditInteraction.fromOption(id.map(GlobalState.rawGraph.now.nodesByIdOrThrow(_))) },
+            handler.edit.collect[Option[NodeId]] { case EditInteraction.Input(v) => Some(v.id) }.prepend(Some(node.id)),
+          ),
           filter = (_:Node) => true
         ),
         config
