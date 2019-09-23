@@ -191,6 +191,7 @@ object EditableContent {
     val saveHandler = PublishSubject[Unit]
 
     dsl.span(
+      managedFunction(() => handledCurrent.connect()),
       display.inlineFlex,
       flexDirection.column,
       alignItems.center,
