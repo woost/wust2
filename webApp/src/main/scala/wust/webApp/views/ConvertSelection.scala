@@ -12,6 +12,7 @@ import wust.webUtil.Elements
 import wust.webUtil.outwatchHelpers._
 import wust.webApp.state.FeatureState
 import wust.ids.Feature
+import rx._
 
 final case class ConvertSelection(
   role: NodeRole,
@@ -20,7 +21,7 @@ final case class ConvertSelection(
 )
 object ConvertSelection {
 
-  def menuItem(node: Node.Content): VNode = {
+  def menuItem(node: Node.Content)(implicit ctx: Ctx.Owner): VNode = {
     a(
       cls := "item",
       Elements.icon(Icons.convertItem),

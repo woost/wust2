@@ -911,7 +911,7 @@ object Components {
     def apply(title: VDomModifier, description: VDomModifier, active: Boolean, clickAction: () => Unit): MenuItem =
       new MenuItem(title, description, Var(active), clickAction)
   }
-  def verticalMenu(items: Seq[MenuItem]): VNode = menu(
+  def verticalMenu(items: Seq[MenuItem])(implicit ctx: Ctx.Owner): VNode = menu(
     items,
     outerModifier = VDomModifier(
       width := "100%",
@@ -928,7 +928,7 @@ object Components {
       paddingBottom := "10px"
     )
   )
-  def horizontalMenu(items: Seq[MenuItem]): VNode = menu(
+  def horizontalMenu(items: Seq[MenuItem])(implicit ctx: Ctx.Owner): VNode = menu(
     items.map(item => item.copy(title = VDomModifier(item.title, marginBottom := "5px"))),
     outerModifier = VDomModifier(
       Styles.flex,
@@ -944,16 +944,16 @@ object Components {
     )
   )
 
-  def menu(items: Seq[MenuItem], innerModifier: VDomModifier, outerModifier: VDomModifier): VNode = {
+  def menu(items: Seq[MenuItem], innerModifier: VDomModifier, outerModifier: VDomModifier)(implicit ctx: Ctx.Owner): VNode = {
     div(
       paddingTop := "10px",
       outerModifier,
 
       items.map { item =>
         div(
-          Ownable(implicit ctx => Rx {
+          Rx {
             if(item.active()) VDomModifier(fontWeight.bold) else opacity := 0.4
-          }),
+          },
           div(item.title),
           div(item.description),
           onClick.foreach { item.clickAction() },
