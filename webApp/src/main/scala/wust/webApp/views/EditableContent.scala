@@ -156,7 +156,9 @@ object EditableContent {
       elements.map { case (title, element) =>
         option(value := ValueStringifier[T].stringify(element), title, selected <-- activeElement.map(_ contains element)),
       },
-      onInput.transform(_.concatMapAsync(e => EditStringParser[T].parse(stringFromSelect(e.currentTarget.asInstanceOf[dom.html.Select])))).editValueOption --> activeElement,
+      onInput
+        .map(e => stringFromSelect(e.currentTarget.asInstanceOf[dom.html.Select]))
+        .concatMapAsync(str => EditStringParser[T].parse(str)).editValueOption --> activeElement,
     )
   }
 
