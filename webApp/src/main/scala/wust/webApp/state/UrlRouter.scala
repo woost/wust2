@@ -1,6 +1,5 @@
 package wust.webApp.state
 
-import monix.execution.Scheduler
 import org.scalajs.dom.raw.HashChangeEvent
 import org.scalajs.dom.window
 import outwatch.dom.dsl._
@@ -15,7 +14,7 @@ object UrlRouter {
     UrlRoute(search = locationSearch, hash = locationHash)
   }
 
-  def variable()(implicit ctx: Ctx.Owner, ec: Scheduler): Var[UrlRoute] = {
+  def variable()(implicit ctx: Ctx.Owner): Var[UrlRoute] = {
     val route = Var[UrlRoute](locationRoute)
     route.foreach { route =>
       if (route != locationRoute) {
