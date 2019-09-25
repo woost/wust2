@@ -185,13 +185,14 @@ object EditableContent {
 
   final case class CommonEditHandler[T](edit: Handler[EditInteraction[T]], save: Observable[Unit])
   private def commonEditStructure[T](initial: Option[T], current: Handler[EditInteraction[T]], config: Config, handle: EditInteraction[T] => EditInteraction[T])(modifier: CommonEditHandler[T] => VDomModifier) = {
-    val handledCurrent: Handler[EditInteraction[T]] = current
-      .transformHandler[EditInteraction[T]](_.map[EditInteraction[T]](handleEditInteraction[T](initial, config) andThen handle))(_.filter(uniqueEditInteraction[T](initial)))
+    val handledCurrent = ProHandler(
+      current.contramap[EditInteraction[T]](handleEditInteraction[T](initial, config) andThen handle),
+      current.filter(uniqueEditInteraction[T](initial)).share
+    )
 
     val saveHandler = PublishSubject[Unit]
 
     dsl.span(
-      managedFunction(() => handledCurrent.connect()),
       display.inlineFlex,
       flexDirection.column,
       alignItems.center,
@@ -219,7 +220,7 @@ object EditableContent {
       ),
 
       config.submitMode match {
-        case SubmitMode.Explicit => VDomModifier.ifNot(BrowserDetect.isMobile)(onGlobalEscape.use(EditInteraction.Cancel) --> handledCurrent)
+        case SubmitMode.Explicit => VDomModifier.ifNot(BrowserDetect.isMobile)(onGlobalEscape.use(EditInteraction.Cancel) -->[Observer] handledCurrent)
         case _ => VDomModifier.empty
       },
 

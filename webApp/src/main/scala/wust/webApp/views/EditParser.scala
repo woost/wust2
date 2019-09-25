@@ -318,7 +318,7 @@ object EditElementParser {
             case _ => VDomModifier.empty
           }
         ),
-        EditHelper.uploadFieldModifier(handler.map(_.toOption), randomId)
+        EditHelper.uploadFieldModifier(Observable(Observable.from(initial), handler.map(_.toOption)).concat, randomId)
       )
     }
   }
