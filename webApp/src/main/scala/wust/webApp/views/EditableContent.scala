@@ -1,14 +1,12 @@
 package wust.webApp.views
 
 import monix.eval.Task
-import monix.reactive.subjects.PublishSubject
-import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl.{emitter, _}
 import outwatch.ext.monix._
-import outwatch.ext.monix.handler._
 import outwatch.reactive._
+import outwatch.reactive.handler._
 import outwatch.dom.helpers.EmitterBuilder
 import rx._
 import wust.webUtil.Elements._
@@ -164,7 +162,7 @@ object EditableContent {
 
   @inline private def stringFromSelect(element: dom.html.Select): String = element.value
 
-  private def cancelButton(current: Observer[EditInteraction[Nothing]]) = dsl.span(
+  private def cancelButton(current: SinkObserver[EditInteraction[Nothing]]) = dsl.span(
     "Cancel",
     cls := "ui button compact mini",
     padding := "5px",
@@ -174,7 +172,7 @@ object EditableContent {
     styleAttr := "cursor: pointer !important", // overwrite style from semantic ui with important
     onClick.stopPropagation.use(EditInteraction.Cancel) --> current
   )
-  private def saveButton(current: Observer[Unit]) = dsl.span(
+  private def saveButton(current: SinkObserver[Unit]) = dsl.span(
     "Save",
     cls := "ui button primary compact mini",
     padding := "5px",
@@ -185,14 +183,14 @@ object EditableContent {
     onClick.stopPropagation.use(()) --> current
   )
 
-  final case class CommonEditHandler[T](edit: Handler[EditInteraction[T]], save: Observable[Unit])
+  final case class CommonEditHandler[T](edit: Handler[EditInteraction[T]], save: SourceStream[Unit])
   private def commonEditStructure[T](initial: Option[T], current: Handler[EditInteraction[T]], config: Config, handle: EditInteraction[T] => EditInteraction[T])(modifier: CommonEditHandler[T] => VDomModifier) = {
     val handledCurrent = ProHandler(
       current.contramap[EditInteraction[T]](handleEditInteraction[T](initial, config) andThen handle),
       current.filter(uniqueEditInteraction[T](initial)).share
     )
 
-    val saveHandler = PublishSubject[Unit]
+    val saveHandler = Handler.publish.unsafe[Unit]
 
     dsl.span(
       display.inlineFlex,
@@ -222,7 +220,7 @@ object EditableContent {
       ),
 
       config.submitMode match {
-        case SubmitMode.Explicit => VDomModifier.ifNot(BrowserDetect.isMobile)(onGlobalEscape.use(EditInteraction.Cancel) -->[Observer] handledCurrent)
+        case SubmitMode.Explicit => VDomModifier.ifNot(BrowserDetect.isMobile)(onGlobalEscape.use(EditInteraction.Cancel) -->[SinkObserver] handledCurrent)
         case _ => VDomModifier.empty
       },
 
@@ -297,7 +295,7 @@ object EditableContent {
     case e => e
   }
 
-  private def showErrorsOutside[T](interaction: Observable[EditInteraction[T]], errorMode: ErrorMode): VDomModifier = errorMode match {
+  private def showErrorsOutside[T](interaction: SourceStream[EditInteraction[T]], errorMode: ErrorMode): VDomModifier = errorMode match {
     case ErrorMode.ShowInline => interaction.map {
       case EditInteraction.Error(error) => div(
         cls := "ui pointing red basic mini label",
@@ -312,7 +310,7 @@ object EditableContent {
     case _ =>  VDomModifier.empty
   }
 
-  private def showErrorsInside[T](interaction: Observable[EditInteraction[T]]): VDomModifier = interaction.map {
+  private def showErrorsInside[T](interaction: SourceStream[EditInteraction[T]]): VDomModifier = interaction.map {
     case EditInteraction.Error(error) => VDomModifier(
       boxShadow := s"0 0 1px 1px #e0b4b4",
       borderColor := "#e0b4b4",
@@ -333,13 +331,16 @@ object EditableContent {
       }
     }
 
-    handler.mapObserver { e =>
-      if (e != lastValue) {
-        lastValue = e
-        current() = lastValue.toOption
-      }
-      e
-    }
+    ProHandler(
+      handler.contramap[EditInteraction[T]] { e =>
+        if (e != lastValue) {
+          lastValue = e
+          current() = lastValue.toOption
+        }
+        e
+      },
+      handler
+    )
   }
 
   //TODO: bad heuristic...
