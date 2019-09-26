@@ -15,7 +15,7 @@ object DevOnly {
     if (isTrue) Option(code) else None
   }
 
-  @inline def isTrue = false //LinkingInfo.developmentMode || DebugOnly.isTrue // show DevOnly stuff also in DebugOnly
+  @inline def isTrue = LinkingInfo.developmentMode || DebugOnly.isTrue // show DevOnly stuff also in DebugOnly
 }
 
 object DeployedOnly {
