@@ -267,7 +267,7 @@ object LeftSidebar {
         (GlobalState.isClientOnline(), GlobalState.isSynced() && !GlobalState.isLoading())
       }
       //TODO: scala.rx debounce is not working correctly
-      rx.toTailObservable.debounce(300 milliseconds).prepend(rx.now)
+      rx.toTailSourceStream.debounce(300 milliseconds).prepend(rx.now)
     }
 
     val syncStatusIcon = status.map { status =>
@@ -343,13 +343,16 @@ object LeftSidebar {
         href <-- nodeUrl(nodeId),
         cls := "channel-line",
         Rx {
-          VDomModifier(
-            VDomModifier.ifTrue(selected())(
-              color := Colors.sidebarBg,
-              backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(nodeId)).toHex
-            ),
-          node().map(node => renderProject(node, renderNode = node => renderAsOneLineText(node).apply(cls := "channel-name"), withIcon = true, openFolder = selected()))
+          VDomModifier.ifTrue(selected())(
+            color := Colors.sidebarBg,
+            backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(nodeId)).toHex
           )
+        },
+
+        Rx {
+          node().map { node =>
+            renderProject(node, renderNode = node => renderAsOneLineText(node).apply(cls := "channel-name"), withIcon = true, openFolder = selected())
+          }
         },
 
         onClick foreach { 
@@ -365,16 +368,6 @@ object LeftSidebar {
         permissionLevel.map(Permission.permissionIndicatorIfPublic(_, VDomModifier(fontSize := "0.7em", color.gray, marginLeft.auto, marginRight := "5px"))),
         channelModifier
       ),
-
-      // isPinned map {
-      //   case false => button(
-      //     marginLeft := "auto",
-      //     freeSolid.faBookmark,
-      //     cls := "ui button mini compact basic",
-      //     onClickDefault.useLazy(GraphChanges.pin(nodeId, GlobalState.userId.now)) --> GlobalState.eventProcessor.changes
-      //   )
-      //   case true => VDomModifier.empty
-      // },
     )
   }
 
@@ -382,10 +375,10 @@ object LeftSidebar {
     if (filterString.isEmpty) _ => true else _.str.toLowerCase.contains(filterString.toLowerCase)
   }
 
-  private def channels(toplevelChannels: Rx[Seq[NodeId]], sidebarWithProjects: Var[Boolean], sidebarFilter: Var[String]): VNode = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
+  private def channels(toplevelChannels: Rx[Seq[NodeId]], sidebarWithProjects: Var[Boolean], sidebarFilter: Var[String])(implicit ctx: Ctx.Owner): VNode = {
 
     def channelList(traverseState: TraverseState, userId: UserId, depth: Int = 0)(implicit ctx: Ctx.Owner): VNode = {
-      div.thunk(traverseState.parentId.toStringFast)(depth)(Ownable { implicit ctx =>
+      div({
         val children = Rx {
           val graph = GlobalState.rawGraph()
           val findChildren = if (sidebarWithProjects()) ChannelTreeData.childrenChannelsOrProjects _ else ChannelTreeData.childrenChannels _
@@ -396,12 +389,15 @@ object LeftSidebar {
           GlobalState.rawGraph().isExpanded(userId, traverseState.parentId).getOrElse(true)
         }
 
+        val channelListModifiers = VDomModifier(
+          paddingLeft := "14px",
+          fontSize := fontSizeByDepth(depth),
+        )
+
         VDomModifier(
           channelLine( traverseState, userId, expanded = expanded, hasChildren = hasChildren, depth = depth, channelModifier = VDomModifier(flexGrow := 1, flexShrink := 0)),
           Rx {
             VDomModifier.ifTrue(hasChildren() && expanded())(div(
-              paddingLeft := "14px",
-              fontSize := fontSizeByDepth(depth),
               children().map { child => channelList(traverseState.step(child), userId, depth = depth + 1) }
             ))
           }
@@ -409,7 +405,14 @@ object LeftSidebar {
       })
     }
 
-    VDomModifier(
+    val filterControls = div(
+      Styles.flex,
+      filterInput(sidebarFilter).apply(width := "100%"),
+      toggleSidebarWithProjects(sidebarWithProjects).apply(Styles.flexStatic),
+      marginBottom := "5px",
+    )
+
+    div(
       cls := "channels tiny-scrollbar",
 
       Rx {
@@ -417,18 +420,13 @@ object LeftSidebar {
 
         VDomModifier(
           VDomModifier.ifTrue(toplevelChannels().nonEmpty || sidebarFilter().nonEmpty)(
-            div(
-              Styles.flex,
-              filterInput(sidebarFilter).apply(width := "100%"),
-              toggleSidebarWithProjects(sidebarWithProjects).apply(Styles.flexStatic),
-              marginBottom := "5px",
-            )
+            filterControls
           ),
           toplevelChannels().map(nodeId => channelList(TraverseState(nodeId), userId)),
         )
       },
     )
-  })
+  }
 
   private def toggleSidebarWithProjects(sidebarWithProjects: Var[Boolean])(implicit ctx: Ctx.Owner): VNode = button(
     cls := "ui mini compact basic button",
@@ -514,12 +512,12 @@ object LeftSidebar {
     )
   }
 
-  private def channelIcons(toplevelChannels: Rx[Seq[NodeId]], size: Int): VDomModifier = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
+  private def channelIcons(toplevelChannels: Rx[Seq[NodeId]], size: Int)(implicit ctx: Ctx.Owner): VDomModifier = {
     val indentFactor = 3
     val maxDepth = 6
     val defaultPadding = CommonStyles.channelIconDefaultPadding
 
-    def renderChannel(traverseState: TraverseState, userId: UserId, depth: Int, expanded: Rx[Boolean], hasChildren: Rx[Boolean])(implicit ctx: Ctx.Owner) = {
+    def renderChannel(traverseState: TraverseState, userId: UserId, depth: Int)(implicit ctx: Ctx.Owner) = {
       val nodeId = traverseState.parentId
       val selected = Rx { (GlobalState.page().parentId contains nodeId) && GlobalState.viewIsContent() }
       val node = Rx {
@@ -528,48 +526,51 @@ object LeftSidebar {
 
       val sanitizedDepth = depth.min(maxDepth)
 
-      VDomModifier(
-        Rx {
-          channelIcon( node(), selected, size)(ctx)(
-            UI.popup("right center") <-- node.map(_.str),
-            onClick foreach {
-              // needs to be before onChannelClick, because else GlobalState.page is already at the new page
-              GlobalState.page.now.parentId match {
-                case Some(parentId) if parentId == nodeId => // no switch happening...
-                case _ => FeatureState.use(Feature.SwitchPageFromCollapsedLeftSidebar)
-              }
-            },
-            onChannelClick( nodeId),
-            drag(target = DragItem.Channel(nodeId, traverseState.tail.headOption)),
-            cls := "node",
+      val channelIconModifiers = VDomModifier(
+        onClick foreach {
+          // needs to be before onChannelClick, because else GlobalState.page is already at the new page
+          GlobalState.page.now.parentId match {
+            case Some(parentId) if parentId == nodeId => // no switch happening...
+            case _ => FeatureState.use(Feature.SwitchPageFromCollapsedLeftSidebar)
+          }
+        },
+        onChannelClick( nodeId),
+        drag(target = DragItem.Channel(nodeId, traverseState.tail.headOption)),
+        cls := "node",
 
-            // for each indent, steal padding on left and right
-            // and reduce the width, so that the icon keeps its size
-            width := s"${size - (sanitizedDepth * indentFactor)}px",
-            padding := s"${defaultPadding}px ${defaultPadding - (sanitizedDepth * indentFactor / 2.0)}px"
-          )
-        }
+        // for each indent, steal padding on left and right
+        // and reduce the width, so that the icon keeps its size
+        width := s"${size - (sanitizedDepth * indentFactor)}px",
+        padding := s"${defaultPadding}px ${defaultPadding - (sanitizedDepth * indentFactor / 2.0)}px"
+      )
+
+      channelIcon(node, selected, size).apply(
+        UI.popup("right center") <-- node.map(_.str),
+        channelIconModifiers
       )
     }
 
     def channelList(traverseState: TraverseState, userId: UserId, findChildren: (Graph, TraverseState) => Seq[NodeId], depth: Int = 0)(implicit ctx: Ctx.Owner): VNode = {
-      div.thunkStatic(traverseState.parentId.toStringFast)(Ownable { implicit ctx =>
+      div({
         val children = Rx {
           val graph = GlobalState.rawGraph()
           findChildren(graph, traverseState)
         }
-        val hasChildren = children.map(_.nonEmpty)
         val expanded = Rx {
           GlobalState.rawGraph().isExpanded(userId, traverseState.parentId).getOrElse(true)
         }
 
+        val channelListModifiers = VDomModifier(
+          VDomModifier.ifTrue(depth < maxDepth)(paddingLeft := s"${indentFactor}px"),
+          fontSize := fontSizeByDepth(depth),
+        )
+
         VDomModifier(
           backgroundColor := "#666", // color for indentation space
-          renderChannel(traverseState, userId, depth, expanded = expanded, hasChildren = hasChildren),
+          renderChannel(traverseState, userId, depth),
           Rx {
-            VDomModifier.ifTrue(hasChildren() && expanded())(div(
-              VDomModifier.ifTrue(depth < maxDepth)(paddingLeft := s"${indentFactor}px"),
-              fontSize := fontSizeByDepth(depth),
+            VDomModifier.ifTrue(children().nonEmpty && expanded())(div(
+              channelListModifiers,
               children().map { child => channelList(traverseState.step(child), userId, findChildren, depth = depth + 1) }
             ))
           }
@@ -577,7 +578,7 @@ object LeftSidebar {
       })
     }
 
-    VDomModifier(
+    div(
       cls := "channelIcons tiny-scrollbar",
 
       Rx {
@@ -588,8 +589,9 @@ object LeftSidebar {
         )
       }
     )
-  })
-  private def channelIcon(node: Node, isSelected: Rx[Boolean], size: Int)(implicit ctx: Ctx.Owner): VNode = {
+  }
+
+  private def channelIcon(node: Rx[Node], isSelected: Rx[Boolean], size: Int)(implicit ctx: Ctx.Owner): VNode = {
     def iconText(str:String):String = {
       str match {
         case EmojiReplacer.emojiAtBeginningRegex(emoji) => emoji
@@ -602,12 +604,16 @@ object LeftSidebar {
       width := s"${size}px",
       height := s"${size}px",
       Rx {
-        if (isSelected()) VDomModifier(
-          backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(node.id)).toHex,
-          color := "white"
-        ) else color := BaseColors.pageBg.copy(h = NodeColor.hue(node.id)).toHex,
+        val n = node()
+        VDomModifier(
+          if (isSelected()) VDomModifier(
+            backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(n.id)).toHex,
+            color := "white"
+          ) else color := BaseColors.pageBg.copy(h = NodeColor.hue(n.id)).toHex,
+
+          replaceEmoji(iconText(n.str))
+        )
       },
-      replaceEmoji(iconText(node.str))
     )
   }
 
