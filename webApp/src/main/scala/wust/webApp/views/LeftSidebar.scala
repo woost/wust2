@@ -103,7 +103,7 @@ object LeftSidebar {
                   justifyContent.flexStart,
                   fontSize := "12px",
                   boxShadow := "none", //explicitly overwrite boxshadow from accordion.
-                  onMouseDown.stopPropagation.discard, // prevent rightsidebar from closing
+                  onClick.stopPropagation.discard, // prevent left sidebar from closing
                 )
             },
             beforeInstallPrompt(buttonModifier = VDomModifier(

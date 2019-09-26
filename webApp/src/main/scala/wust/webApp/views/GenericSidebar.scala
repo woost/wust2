@@ -43,7 +43,7 @@ object GenericSidebar {
     def overlayOpenSidebar(config: Config) = VDomModifier(
       cls := "overlay-sidebar",
       directionOverlayModifier,
-      // onClick.onlyOwnEvents.use(false) --> sidebarOpen,
+      onClick.use(false) --> sidebarOpen,
       VDomModifier.ifTrue(BrowserDetect.isMobile)(closeSwipe),
 
       div(
