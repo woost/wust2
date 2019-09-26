@@ -121,7 +121,7 @@ final case class GraphChanges(
 
   lazy val size: Int = InlineList.foldLeft(addNodes, addEdges, delEdges)(0)(_ + _.length)
   lazy val isEmpty: Boolean = InlineList.forall(addNodes, addEdges, delEdges)(_.isEmpty)
-  @inline def nonEmpty: Boolean = !isEmpty
+  def nonEmpty: Boolean = !isEmpty
 
   override def toString = toPrettyString()
 
@@ -330,10 +330,10 @@ object GraphChanges {
 
 
   // these moveInto methods are only used for drag&drop right now. Can we unify them with the above moveInto?
-  @inline def moveInto(nodeId: ChildId, newParentId: ParentId, graph:Graph): GraphChanges = moveInto(nodeId :: Nil, newParentId :: Nil, graph)
-  @inline def moveInto(nodeId: Iterable[ChildId], newParentId: ParentId, graph:Graph): GraphChanges = moveInto(nodeId, newParentId :: Nil, graph)
-  @inline def moveInto(nodeId: ChildId, newParentIds: Iterable[ParentId], graph:Graph): GraphChanges = moveInto(nodeId :: Nil, newParentIds, graph)
-  @inline def moveInto(nodeIds: Iterable[ChildId], newParentIds: Iterable[ParentId], graph:Graph): GraphChanges = {
+  def moveInto(nodeId: ChildId, newParentId: ParentId, graph:Graph): GraphChanges = moveInto(nodeId :: Nil, newParentId :: Nil, graph)
+  def moveInto(nodeId: Iterable[ChildId], newParentId: ParentId, graph:Graph): GraphChanges = moveInto(nodeId, newParentId :: Nil, graph)
+  def moveInto(nodeId: ChildId, newParentIds: Iterable[ParentId], graph:Graph): GraphChanges = moveInto(nodeId :: Nil, newParentIds, graph)
+  def moveInto(nodeIds: Iterable[ChildId], newParentIds: Iterable[ParentId], graph:Graph): GraphChanges = {
     GraphChanges.moveInto(graph, nodeIds, newParentIds)
   }
 
@@ -378,9 +378,9 @@ object GraphChanges {
     }
   } else GraphChanges.empty
 
-  @inline def linkInto(nodeId: ChildId, tagId: ParentId, graph:Graph): GraphChanges = linkInto(nodeId :: Nil, tagId, graph)
-  @inline def linkInto(nodeId: ChildId, tagIds: Iterable[ParentId], graph:Graph): GraphChanges = linkInto(nodeId :: Nil, tagIds, graph)
-  @inline def linkInto(nodeIds: Iterable[ChildId], tagId: ParentId, graph:Graph): GraphChanges = linkInto(nodeIds, tagId :: Nil, graph)
+  def linkInto(nodeId: ChildId, tagId: ParentId, graph:Graph): GraphChanges = linkInto(nodeId :: Nil, tagId, graph)
+  def linkInto(nodeId: ChildId, tagIds: Iterable[ParentId], graph:Graph): GraphChanges = linkInto(nodeId :: Nil, tagIds, graph)
+  def linkInto(nodeIds: Iterable[ChildId], tagId: ParentId, graph:Graph): GraphChanges = linkInto(nodeIds, tagId :: Nil, graph)
   def linkInto(nodeIds: Iterable[ChildId], tagIds: Iterable[ParentId], graph:Graph): GraphChanges = {
     // tags will be added with the same (latest) deletedAt date, which the node already has for other parents
     nodeIds.foldLeft(GraphChanges.empty) { (currentChange, nodeId) =>
@@ -390,16 +390,16 @@ object GraphChanges {
   }
 
 
-  @inline def linkOrMoveInto(nodeId: ChildId, newParentId: ParentId, graph:Graph, link:Boolean): GraphChanges = linkOrMoveInto(nodeId :: Nil, newParentId :: Nil, graph, link)
-  @inline def linkOrMoveInto(nodeId: Iterable[ChildId], newParentId: ParentId, graph:Graph, link:Boolean): GraphChanges = linkOrMoveInto(nodeId, newParentId :: Nil, graph, link)
-  @inline def linkOrMoveInto(nodeId: ChildId, newParentIds: Iterable[ParentId], graph:Graph, link:Boolean): GraphChanges = linkOrMoveInto(nodeId :: Nil, newParentIds, graph, link)
-  @inline def linkOrMoveInto(nodeId: Iterable[ChildId], newParentId: Iterable[ParentId], graph:Graph, link:Boolean): GraphChanges = {
+  def linkOrMoveInto(nodeId: ChildId, newParentId: ParentId, graph:Graph, link:Boolean): GraphChanges = linkOrMoveInto(nodeId :: Nil, newParentId :: Nil, graph, link)
+  def linkOrMoveInto(nodeId: Iterable[ChildId], newParentId: ParentId, graph:Graph, link:Boolean): GraphChanges = linkOrMoveInto(nodeId, newParentId :: Nil, graph, link)
+  def linkOrMoveInto(nodeId: ChildId, newParentIds: Iterable[ParentId], graph:Graph, link:Boolean): GraphChanges = linkOrMoveInto(nodeId :: Nil, newParentIds, graph, link)
+  def linkOrMoveInto(nodeId: Iterable[ChildId], newParentId: Iterable[ParentId], graph:Graph, link:Boolean): GraphChanges = {
     if(link) linkInto(nodeId, newParentId, graph)
     else moveInto(nodeId, newParentId, graph)
   }
 
 
-  @inline def assign(nodeId: NodeId, userId: UserId): GraphChanges = {
+  def assign(nodeId: NodeId, userId: UserId): GraphChanges = {
     GraphChanges.connect(Edge.Assigned)(nodeId, userId)
   }
 

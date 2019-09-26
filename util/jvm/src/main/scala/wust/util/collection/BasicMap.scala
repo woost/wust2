@@ -25,13 +25,13 @@ trait BasicMapNative extends BasicMapFactory {
   @inline def ofInt[Value](sizeHint: Int): BasicMap[Int, Value] = apply[Int, Value](sizeHint)
 
   @inline def apply[Key, Value](): BasicMap[Key, Value] = new BasicJvmMap[Key, Value](new mutable.HashMap)
-  @inline def apply[Key, Value](value: (Key, Value), values: Seq[(Key, Value)]): BasicMap[Key, Value] = {
+  def apply[Key, Value](value: (Key, Value), values: Seq[(Key, Value)]): BasicMap[Key, Value] = {
     val map = apply[Key, Value](values.size + 1)
     map += value
     values.foreach(map += _)
     map
   }
-  @inline def apply[Key, Value](sizeHint: Int): BasicMap[Key, Value] = {
+  def apply[Key, Value](sizeHint: Int): BasicMap[Key, Value] = {
     val map = new mutable.HashMap[Key, Value]
     map.sizeHint(sizeHint)
     new BasicJvmMap(map)

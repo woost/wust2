@@ -35,7 +35,7 @@ package object collection {
       map
     }
 
-    @inline def groupByCollect[K,B](f: PartialFunction[T, (K,B)]): scala.collection.Map[K, scala.collection.Seq[B]] = groupByForeach { add =>
+    def groupByCollect[K,B](f: PartialFunction[T, (K,B)]): scala.collection.Map[K, scala.collection.Seq[B]] = groupByForeach { add =>
       f.runWith { case (k,b) => add(k, b) }.andThen(_ => ())
     }
 

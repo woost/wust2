@@ -521,7 +521,6 @@ object ForceSimulation {
   }
 
   def updateDomNodes(
-    
     posts: js.Array[Node],
     nodeSelection: d3.Selection[Node],
     nodeOnClick: (Node, Int) => Unit

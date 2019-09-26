@@ -44,7 +44,7 @@ final class StopWatch {
     @inline def readMillis = readNanos / 1000000
     @inline def readSeconds = readNanos / 1000000000.0
     @inline def readHuman: String = readHuman(3)
-    @inline def readHuman(precision: Int = 8) = {
+    def readHuman(precision: Int = 8) = {
       val time = readSeconds
       val fraction = time - math.floor(time)
       var s = time.toInt

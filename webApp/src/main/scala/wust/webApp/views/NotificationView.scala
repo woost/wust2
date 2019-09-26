@@ -108,7 +108,7 @@ object NotificationView {
     )
   }
 
-  @inline def sortUnreadNodes[T](nodes: js.Array[T], index: T => Int, graph: Graph): Unit = {
+  @inline private def sortUnreadNodes[T](nodes: js.Array[T], index: T => Int, graph: Graph): Unit = {
     @inline def compareDeepModified(a: Int, b: Int) = {
       val modifiedA = graph.nodeDeepModified(a)
       val modifiedB = graph.nodeDeepModified(b)

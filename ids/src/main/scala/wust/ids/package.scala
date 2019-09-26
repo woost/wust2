@@ -63,7 +63,7 @@ package object ids {
 
   object EpochMilli extends TaggedType[Long] {
     var delta: Long = 0 //TODO we should not have a var here, we use the delta for something very specific in the client and not for every epochmilli instance!
-    @inline def localNow: EpochMilli = EpochMilli(System.currentTimeMillis()) // UTC: https://docs.oracle.com/javase/8/docs/api/java/lang/System.html#currentTimeMillis--
+    def localNow: EpochMilli = EpochMilli(System.currentTimeMillis()) // UTC: https://docs.oracle.com/javase/8/docs/api/java/lang/System.html#currentTimeMillis--
     @inline def now: EpochMilli = EpochMilli(localNow + delta)
     @inline def zero: EpochMilli = EpochMilli(0L)
     @inline def second: Long = 1000L
@@ -75,9 +75,9 @@ package object ids {
     @silent("deprecated")
     def parse(str: String) = Try(Date.parse(str)).toOption.map(EpochMilli(_))
 
-    @inline def fromDate(d: Date): EpochMilli = EpochMilli(d.toInstant.toEpochMilli)
-    @inline def fromLocalDateTime(d: LocalDateTime): EpochMilli = EpochMilli(d.toInstant(ZoneOffset.UTC).toEpochMilli)
-    @inline def fromZonedDateTime(d: ZonedDateTime): EpochMilli = EpochMilli(d.toInstant.toEpochMilli)
+    def fromDate(d: Date): EpochMilli = EpochMilli(d.toInstant.toEpochMilli)
+    def fromLocalDateTime(d: LocalDateTime): EpochMilli = EpochMilli(d.toInstant(ZoneOffset.UTC).toEpochMilli)
+    def fromZonedDateTime(d: ZonedDateTime): EpochMilli = EpochMilli(d.toInstant.toEpochMilli)
 
     implicit class RichEpochMilli(val t: EpochMilli) extends AnyVal {
       @inline def <(that: EpochMilli): Boolean = t < that
@@ -93,7 +93,7 @@ package object ids {
 
       @inline def toDate: Date = new Date(t)
       @inline def toLocalDateTime: LocalDateTime = toZonedDateTime.toLocalDateTime
-      @inline def toZonedDateTime: ZonedDateTime = Instant.ofEpochMilli(t).atZone(ZoneOffset.UTC)
+      def toZonedDateTime: ZonedDateTime = Instant.ofEpochMilli(t).atZone(ZoneOffset.UTC)
 
       @silent("deprecated")
       def humanReadable: String = {

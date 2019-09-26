@@ -37,7 +37,7 @@ trait BasicSetNative extends BasicSetFactory {
   // scala classes normally rely on their equals method and hashcode which is not taken into account
   // in the js world.
   @inline private def apply[Key](): BasicSet[Key] = new BasicJsSet[Key](new JsSet)
-  @inline private def apply[Key](value: Key, values: Seq[Key]): BasicSet[Key] = {
+  private def apply[Key](value: Key, values: Seq[Key]): BasicSet[Key] = {
     val set = apply[Key]()
     set.add(value)
     values.foreach(set.add)

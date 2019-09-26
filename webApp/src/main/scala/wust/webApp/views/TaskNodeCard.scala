@@ -55,11 +55,11 @@ object TaskNodeCard {
       def menuItem(shortName : String,
         longDesc : String,
         icon : VDomModifier,
-        action : VDomModifier) = {
+        modifier : VDomModifier) = {
         div(
           cls := "item",
           span(cls := "icon", icon),
-          action,
+          modifier,
           cursor.pointer,
           UI.tooltip("left center") := longDesc
         )
@@ -89,35 +89,42 @@ object TaskNodeCard {
           }
         }
       }
-      def toggleDelete = {
-        Rx {
-          val text = if (isDeletedNow()) "Recover" else "Archive"
-          menuItem(
-            text, text, if (isDeletedNow()) Icons.undelete else Icons.delete,
-            onClick.stopPropagation foreach toggleDeleteClickAction()
-          )
-        }
+      val toggleDelete = Rx {
+        val text = if (isDeletedNow()) "Recover" else "Archive"
+        menuItem(
+          text, text, if (isDeletedNow()) Icons.undelete else Icons.delete,
+          onClick.stopPropagation foreach toggleDeleteClickAction()
+        )
       }
+
+      val largerOnMobile = VDomModifier.ifTrue(BrowserDetect.isMobile)(fontSize := "24px", paddingTop := "5px", color := "#D9D9D9", backgroundColor := Colors.nodecardBg)
       def expand = menuItem(
         "Expand", "Expand", Icons.expand,
-        onClick.stopPropagation.foreach{
-          val changes = GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(true), GlobalState.user.now.id)
-          GlobalState.submitChanges(changes)
+        VDomModifier(
+          onClick.stopPropagation.foreach{
+            val changes = GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(true), GlobalState.user.now.id)
+            GlobalState.submitChanges(changes)
 
-          focusState.view match {
-            case View.List => FeatureState.use(Feature.ExpandTaskInChecklist)
-            case View.Kanban => FeatureState.use(Feature.ExpandTaskInKanban)
-            case _ =>
-          }
-        }
+            focusState.view match {
+              case View.List => FeatureState.use(Feature.ExpandTaskInChecklist)
+              case View.Kanban => FeatureState.use(Feature.ExpandTaskInKanban)
+              case _ =>
+            }
+          },
+          largerOnMobile
+        )
       )
 
       def collapse = menuItem(
         "Collapse", "Collapse", Icons.collapse,
-        onClick.stopPropagation.useLazy(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(false), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes)
-      def toggleExpand = Rx {
-        @inline def largerOnMobile = VDomModifier.ifTrue(BrowserDetect.isMobile)(fontSize := "24px", paddingTop := "5px", color := "#D9D9D9", backgroundColor := Colors.nodecardBg)
-        (if (isExpanded()) collapse else expand).apply(largerOnMobile)
+        VDomModifier(
+          onClick.stopPropagation.useLazy(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(false), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes,
+          largerOnMobile
+        )
+      )
+
+      val toggleExpand = Rx {
+        if (isExpanded()) collapse else expand
       }
 
       div(

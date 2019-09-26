@@ -23,7 +23,7 @@ import com.github.ghik.silencer.silent
 
 object RightSidebar {
 
-  @inline def apply(viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VNode = apply(GlobalState.rightSidebarNode, nodeId => GlobalState.rightSidebarNode() = nodeId.map(FocusPreference(_)), viewRender: ViewRenderLike)
+  def apply(viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VNode = apply(GlobalState.rightSidebarNode, nodeId => GlobalState.rightSidebarNode() = nodeId.map(FocusPreference(_)), viewRender: ViewRenderLike)
   def apply(focusedNodeId: Rx[Option[FocusPreference]], parentIdAction: Option[NodeId] => Unit, viewRender: ViewRenderLike, openModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
 
     val isFullscreen = Var(false)

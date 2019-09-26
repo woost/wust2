@@ -32,7 +32,7 @@ import scala.scalajs.js
 
 object SharedViewElements {
 
-  @inline def sortByCreated(nodes: js.Array[Int], graph: Graph): Unit = {
+  def sortByCreated(nodes: js.Array[Int], graph: Graph): Unit = {
     nodes.sort { (a, b) =>
       val createdA = graph.nodeCreated(a)
       val createdB = graph.nodeCreated(b)
@@ -42,7 +42,7 @@ object SharedViewElements {
     }
   }
 
-  @inline def sortByDeepCreated(nodes: js.Array[Int], graph: Graph): Unit = {
+  def sortByDeepCreated(nodes: js.Array[Int], graph: Graph): Unit = {
     nodes.sort { (a, b) =>
       val createdA = graph.nodeDeepCreated(a)
       val createdB = graph.nodeDeepCreated(b)
@@ -52,7 +52,7 @@ object SharedViewElements {
     }
   }
 
-  @inline def sortByDeepCreated[T](nodes: js.Array[T], index:T => Int, graph: Graph): Unit = {
+  def sortByDeepCreated[T](nodes: js.Array[T], index:T => Int, graph: Graph): Unit = {
     nodes.sort { (aRaw, bRaw) =>
       val a = index(aRaw)
       val b = index(bRaw)
@@ -149,10 +149,6 @@ object SharedViewElements {
       padding := "0 0 0 5px",
       modificationData.map(item => modificationItem(item._1, item._2))
     )
-
-    @inline def modificationsString = {
-      modificationData.map(item => modificationItem(item._1, item._2)).mkString(",\n")
-    }
 
     modificationData.nonEmpty.ifTrue[VDomModifier]{
       val lastModification = modificationData.last

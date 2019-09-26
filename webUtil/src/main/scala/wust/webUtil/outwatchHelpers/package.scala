@@ -250,7 +250,7 @@ package object outwatchHelpers extends KeyHash with RxInstances {
 
   implicit class WustRichObserver[T](val o: Observer[T]) extends AnyVal {
     //TODO: helper in outwatch monixops for redirectFuture
-    @inline def redirectEval[R](f: R => Task[T]): Observer[R] = redirectFuture(r => f(r).runToFuture)
+    def redirectEval[R](f: R => Task[T]): Observer[R] = redirectFuture(r => f(r).runToFuture)
     def redirectFuture[R](f: R => Future[T]): Observer[R] = new Observer[R] {
       override def onNext(elem: R): Future[Ack] = f(elem).flatMap(o.onNext(_))
       override def onError(ex: Throwable): Unit = o.onError(ex)

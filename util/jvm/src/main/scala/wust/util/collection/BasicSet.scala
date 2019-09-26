@@ -21,13 +21,13 @@ trait BasicSetNative extends BasicSetFactory {
   @inline def ofInt(sizeHint: Int): BasicSet[Int] = apply[Int](sizeHint)
 
   @inline def apply[Key](): BasicSet[Key] = new BasicJvmSet[Key](new mutable.HashSet)
-  @inline def apply[Key](value: Key, values: Seq[Key]): BasicSet[Key] = {
+  def apply[Key](value: Key, values: Seq[Key]): BasicSet[Key] = {
     val set = apply[Key](values.size + 1)
     set.add(value)
     values.foreach(set.add)
     set
   }
-  @inline def apply[Key](sizeHint: Int): BasicSet[Key] = {
+  def apply[Key](sizeHint: Int): BasicSet[Key] = {
     val set = new mutable.HashSet[Key]
     set.sizeHint(sizeHint)
     new BasicJvmSet(set)

@@ -45,7 +45,7 @@ trait BasicMapNative extends BasicMapFactory {
   // scala classes normally rely on their equals method and hashcode which is not taken into account
   // in the js world.
   @inline private def apply[Key, Value](): BasicMap[Key, Value] = new BasicJsMap[Key, Value](new JsMap)
-  @inline private def apply[Key, Value](value: (Key, Value), values: Seq[(Key, Value)]): BasicMap[Key, Value] = {
+  private def apply[Key, Value](value: (Key, Value), values: Seq[(Key, Value)]): BasicMap[Key, Value] = {
     val map = apply[Key, Value]()
     map += value
     values.foreach(map += _)
