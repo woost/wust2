@@ -108,7 +108,8 @@ object Importing {
 
             b("Project Name:", marginRight := "10px", Styles.flexStatic),
             EditableContent.editor[NonEmptyString](EditableContent.Config(
-              submitMode = EditableContent.SubmitMode.OnInput,
+              submitMode = EditableContent.SubmitMode.Manual,
+              emitter = onInput,
               modifier = placeholder := "Project Name"
             )).editValueOption.map(_.map(_.string)) --> formVar
           )
@@ -187,7 +188,8 @@ object Importing {
      case Input.FromFile(description, acceptType) =>
        stringImporter("Upload file", description, source.parser) { current =>
          EditableContent.editor[dom.File](EditableContent.Config(
-           submitMode = EditableContent.SubmitMode.OnChange,
+           submitMode = EditableContent.SubmitMode.Manual,
+           emitter = onChange,
            modifier = acceptType.map(accept := _)
          )).editValueOption.map(_.map(file => IO.fromFuture(IO(FileReaderOps.readAsText(file))).map(Right(_)))) --> current
        }
@@ -195,7 +197,8 @@ object Importing {
      case Input.FromRemoteFile(description, getUrl) =>
        stringImporter("Import from Url", description, source.parser) { current =>
          EditableContent.editor[NonEmptyString](EditableContent.Config(
-           submitMode = EditableContent.SubmitMode.OnInput,
+           submitMode = EditableContent.SubmitMode.Manual,
+           emitter = onInput,
            modifier = placeholder := "Url to public Trello board"
          )).mapResult(_.apply(cls := "ui mini form")).editValueOption.map(_.map { value =>
            getUrl(value.string) match {

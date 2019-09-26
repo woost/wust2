@@ -36,23 +36,20 @@ object EditableContent {
     // emitter submit mode has no magic and just emits a new value (input or error) whenever the mentioned emitters trigger.
     // should be used in forms where you have an action like enter or a specific submit button.
     // then you set your desired emitter, and in the end use the current value in your submit logic
-    final case class Emitter(builder: List[EmitterBuilder[dom.Event, VDomModifier]]) extends SubmitMode
-    def OnChange = Emitter(dsl.onChange :: Nil)
-    def OnInput = Emitter(dsl.onInput :: Nil)
-    def OnEnter = Emitter(Elements.onEnter :: Nil)
-    def Off = Emitter(Nil)
+    case object Manual extends SubmitMode
 
     // explicit submit mode is special in that it is built for edit fields without any submit button.
     // we only emit a new value (input or error) when onBlur or onEnter were triggered. If the value has
     // not changed, it will emit cancel. It will additionally emit cancel when escape is pressed.
     // furthermore a small x-button is embedded into the ui.
-    case object Explicit extends SubmitMode
+    case object Automatic extends SubmitMode
   }
 
   final case class Config(
     modifier: VDomModifier = VDomModifier.empty,
     inputModifier: VDomModifier = VDomModifier.empty,
-    submitMode: SubmitMode = SubmitMode.Explicit,
+    submitMode: SubmitMode = SubmitMode.Automatic,
+    emitter: EmitterBuilder[dom.Event, VDomModifier] = EmitterBuilder.empty,
     submitOnEnter: Boolean = !BrowserDetect.isMobile,
     errorMode: ErrorMode = ErrorMode.ShowInline,
     selectTextOnFocus: Boolean = true,
@@ -63,7 +60,7 @@ object EditableContent {
       errorMode = ErrorMode.Cancel
     )
     def off = Config(
-      submitMode = SubmitMode.Off,
+      submitMode = SubmitMode.Manual,
       errorMode = ErrorMode.Ignore
     )
   }
@@ -203,7 +200,7 @@ object EditableContent {
         width := "100%",
         modifier(CommonEditHandler(handledCurrent, saveHandler)),
         config.submitMode match {
-          case SubmitMode.Explicit => div(
+          case SubmitMode.Automatic => div(
             position.absolute,
             padding := "2px",
             right := "4px",
@@ -220,7 +217,7 @@ object EditableContent {
       ),
 
       config.submitMode match {
-        case SubmitMode.Explicit => VDomModifier.ifNot(BrowserDetect.isMobile)(onGlobalEscape.use(EditInteraction.Cancel) -->[SinkObserver] handledCurrent)
+        case SubmitMode.Automatic => VDomModifier.ifNot(BrowserDetect.isMobile)(onGlobalEscape.use(EditInteraction.Cancel) -->[SinkObserver] handledCurrent)
         case _ => VDomModifier.empty
       },
 
@@ -268,7 +265,7 @@ object EditableContent {
     var lastValue = initial
 
     (({
-      case EditInteraction.Input(value) if config.submitMode == SubmitMode.Explicit && lastValue.contains(value) =>
+      case EditInteraction.Input(value) if config.submitMode == SubmitMode.Automatic && lastValue.contains(value) =>
         EditInteraction.Cancel
       case _: EditInteraction.Error if config.errorMode == ErrorMode.Cancel =>
         EditInteraction.Cancel
@@ -366,17 +363,17 @@ object EditableContent {
 
   private def blurEmitter(config: Config): EmitterBuilder[Any, VDomModifier] = {
     config.submitMode match {
-      case SubmitMode.Explicit => onBlur.transform(_.delay(200 millis))
-      case SubmitMode.Emitter(builders) => EmitterBuilder.empty
+      case SubmitMode.Automatic => onBlur.transform(_.delay(200 millis))
+      case SubmitMode.Manual => EmitterBuilder.empty
     }
   }
 
   private def inputEmitter(config: Config): EmitterBuilder[Any, VDomModifier] = {
     val emitters = config.submitMode match {
-      case SubmitMode.Explicit => if (config.submitOnEnter) Seq(onEnter) else Seq(onCtrlEnter)
-      case SubmitMode.Emitter(builders) => builders
+      case SubmitMode.Automatic => if (config.submitOnEnter) List(onEnter) else List(onCtrlEnter)
+      case _ => Nil
     }
 
-    EmitterBuilder.combineSeq(emitters)
+    EmitterBuilder.combineSeq(config.emitter :: emitters)
   }
 }

@@ -93,7 +93,8 @@ object ItemProperties {
 
     val editModifier = VDomModifier(width := "100%")
     val editableConfig = EditableContent.Config(
-      submitMode = EditableContent.SubmitMode.OnInput,
+      submitMode = EditableContent.SubmitMode.Manual,
+      emitter = onInput,
       selectTextOnFocus = false
     )
 

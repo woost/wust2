@@ -107,7 +107,7 @@ object UploadComponents {
     EditableContent.editor[AWS.UploadableFile](config = EditableContent.Config(
       inputModifier = acceptType.map(accept := _),
       errorMode = EditableContent.ErrorMode.ShowToast,
-      submitMode = EditableContent.SubmitMode.Off
+      submitMode = EditableContent.SubmitMode.Manual,
     )).editValue.mapResult(_.apply(marginLeft := "3px"))
   }
 
@@ -115,7 +115,7 @@ object UploadComponents {
     EditableContent.editorRx[AWS.UploadableFile](selected, config = EditableContent.Config(
       inputModifier = acceptType.map(accept := _),
       errorMode = EditableContent.ErrorMode.ShowToast,
-      submitMode = EditableContent.SubmitMode.Off
+      submitMode = EditableContent.SubmitMode.Manual
     )).apply(marginLeft := "3px")
   }
 }

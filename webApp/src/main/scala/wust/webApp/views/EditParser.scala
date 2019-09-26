@@ -244,7 +244,7 @@ object EditElementParser {
   }
   implicit object EditDurationMilli extends EditElementParser[DurationMilli] {
     def render(config: Config, initial: Task[Option[DurationMilli]], handler: Handler[EditInteraction[DurationMilli]])(implicit ctx: Ctx.Owner) = renderSimpleInput(
-      initial, handler, EmitterBuilder.combine(config.emitter, onInput), VDomModifier(config.inputModifier, config.modifier, Elements.durationInputMod),
+      initial, handler, EmitterBuilder.combine(config.emitter, onChange), VDomModifier(config.inputModifier, config.modifier, Elements.durationInputMod),
       elem => Task.pure(EditInteraction.fromEither(StringJsOps.safeToDuration(elem.value)))
     )
   }
