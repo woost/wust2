@@ -121,6 +121,7 @@ object LeftSidebar {
 
           ),
           overlayOpenModifier = VDomModifier(
+            onClick.use(false) --> GlobalState.leftSidebarOpen,
             authStatus,
             Components.reloadButton(fontSize.small, margin := "15px auto 0px auto"),
           ),

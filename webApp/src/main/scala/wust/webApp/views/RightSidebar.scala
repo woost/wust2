@@ -54,7 +54,10 @@ object RightSidebar {
       isFullscreen,
       config = Ownable { implicit ctx =>
         GenericSidebar.Config(
-          openModifier = VDomModifier(focusedNodeId.map(_.map(content(_, parentIdAction, viewRender, isFullscreen, focusHistory, focusFuture, () => lastFocusPref = None))), openModifier)
+          openModifier = VDomModifier(
+            focusedNodeId.map(_.map(content(_, parentIdAction, viewRender, isFullscreen, focusHistory, focusFuture, () => lastFocusPref = None))),
+            openModifier
+          )
         )
       }
     )
