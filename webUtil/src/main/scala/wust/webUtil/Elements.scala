@@ -498,10 +498,12 @@ object Elements {
     // parse html from clipboard if available (useful to pasting rich text). If clipboardData not available, or
     // html data is not available, we fallback to the normal paste event. Otherwise prevent default and fill
     // the value of this element.
+    // we have a heuristic which kind of text we want to interpret as html. For one-line texts, we ignore html formatting,
+    // becasue otherwise we get weird html when pasting links. Only multi-line texts are interpreted as html if html available.
     onPaste.foreach { event =>
       if (event.clipboardData != js.undefined) {
           val htmlText = event.clipboardData.getData("text/html")
-          if (htmlText != js.undefined && htmlText != null && htmlText.nonEmpty) {
+          if (htmlText != js.undefined && htmlText != null && htmlText.lines.size > 1) {
             event.preventDefault()
             event.currentTarget.asInstanceOf[dom.html.Input].value = htmlText
           }
