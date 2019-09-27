@@ -399,6 +399,7 @@ object LeftSidebar {
           channelLine( traverseState, userId, expanded = expanded, hasChildren = hasChildren, depth = depth, channelModifier = VDomModifier(flexGrow := 1, flexShrink := 0)),
           Rx {
             VDomModifier.ifTrue(hasChildren() && expanded())(div(
+              channelListModifiers,
               children().map { child => channelList(traverseState.step(child), userId, depth = depth + 1) }
             ))
           }
