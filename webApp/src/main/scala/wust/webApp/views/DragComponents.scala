@@ -31,7 +31,7 @@ object DragComponents {
       },
       snabbdom.VNodeProxy.repairDomBeforePatch, // draggable modifies the dom, but snabbdom assumes that the dom corresponds to its last vdom representation. So Before patch
 
-      DomMountHook { proxy = _ },
+      new DomMountHook({ proxy = _ }),
       managedFunction(() => container.triggerRepair.foreach { _ =>
         if(proxy != null) VNodeProxy.repairDom(proxy)
       }),
