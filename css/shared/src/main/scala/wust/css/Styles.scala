@@ -1234,7 +1234,7 @@ object CommonStyles extends StyleSheet.Standalone
   // the column, instead of sorting the top-level-columns.
   // therefore, instead setting a padding on the column, we set a margin/padding on the inner elements.
   ".kanbancolumn > .kanbancolumnheader" - (
-    padding(kanbanColumnPadding),
+    padding(7 px, 12 px),
   )
 
   ".kanbancolumnchildren > .nodecard," +
