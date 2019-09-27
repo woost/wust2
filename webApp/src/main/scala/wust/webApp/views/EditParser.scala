@@ -423,7 +423,7 @@ object EditHelper {
 
   def uploadFieldModifier(selected: SourceStream[Option[dom.File]], fileInputId: String, tooltipDirection: String = "top left")(implicit ctx: Ctx.Owner): VDomModifier = {
 
-    val iconAndPopup: SourceStream[(VNode, Option[VNode])] = selected.prepend(None).map {
+    val iconAndPopup: SourceStream[(VNode, Option[VNode])] = selected.map {
       case None =>
         (span(Icons.fileUpload), None)
       case Some(file) =>
