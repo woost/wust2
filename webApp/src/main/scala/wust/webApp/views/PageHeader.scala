@@ -82,22 +82,27 @@ object PageHeader {
 
     VDomModifier(
       backgroundColor := pageStyle.pageBgColor,
-      div(
-        Styles.flexStatic,
 
-        Styles.flex,
-        alignItems.center,
+      GlobalState.presentationMode.map {
+        case PresentationMode.Full => div(
+          Styles.flexStatic,
 
-        Rx {
-          VDomModifier(
-            VDomModifier.ifTrue(GlobalState.screenSize() != ScreenSize.Small)(
-              breadCrumbs,
-              bookmarkButton(pageNodeId),
-              AuthControls.authStatusOnColoredBackground.map(_(Styles.flexStatic, marginLeft.auto, marginTop := "3px"))
+          Styles.flex,
+          alignItems.center,
+
+          Rx {
+            VDomModifier(
+              VDomModifier.ifTrue(GlobalState.screenSize() != ScreenSize.Small)(
+                breadCrumbs,
+                bookmarkButton(pageNodeId),
+                AuthControls.authStatusOnColoredBackground.map(_(Styles.flexStatic, marginLeft.auto, marginTop := "3px"))
+              )
             )
-          )
-        },
-      ),
+          },
+        )
+        case PresentationMode.ContentOnly => VDomModifier.empty
+      },
+
       div(
         paddingTop := "5px",
 
@@ -145,7 +150,10 @@ object PageHeader {
               ViewFilter.filterBySearchInputWithIcon.apply(marginRight := "5px")
             )
           },
-          PageSettingsMenu(pageNodeId).apply(fontSize := "20px"),
+          GlobalState.presentationMode.map {
+            case PresentationMode.Full => PageSettingsMenu(pageNodeId).apply(fontSize := "20px")
+            case PresentationMode.ContentOnly => VDomModifier.empty
+          }
         )
       )
     )

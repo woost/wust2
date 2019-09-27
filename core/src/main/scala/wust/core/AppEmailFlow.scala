@@ -40,7 +40,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
   }
 
   private def inviteWorkspaceLink(nodeId: NodeId, token: Authentication.Token):String = {
-    s"https://${serverConfig.host}/#page=${nodeId.toBase58}&invitation=${token.string}"
+    s"https://${serverConfig.host}/#page=${nodeId.toBase58}&invitation=${token.string}&presentation=content"
   }
 
   private def userSettingsLink: String = {

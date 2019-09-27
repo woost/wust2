@@ -7,7 +7,7 @@ import kantan.regex.implicits._
 import wust.api.Authentication
 import wust.graph.Page
 import wust.ids.{Cuid, NodeId, View, ViewOperator}
-import wust.util.collection.BasicMap
+import wust.util.collection._
 import wust.webApp.state._
 
 import scala.scalajs.js
@@ -29,6 +29,7 @@ private object ParsingHelpers {
 import wust.webApp.parsers.ParsingHelpers._
 
 private sealed trait UrlOption {
+  def key: String
   def update(config: UrlConfig, text: String): DecodeResult[UrlConfig]
 }
 private object UrlOption {
@@ -125,18 +126,32 @@ private object UrlOption {
         config.copy(focusId = Some(focusId))
       }
   }
+
+  object presentationMode extends UrlOption {
+    val key = "presentation"
+
+    val regex = Regex[String](rx"^(.+)$$")
+
+    def update(config: UrlConfig, text: String): DecodeResult[UrlConfig] =
+      parseSingle(regex, text).flatMap { name =>
+        PresentationMode.fromString(name)
+          .map(mode => config.copy(mode = mode))
+          .toRight(DecodeError.TypeError(s"Not a valid presentation mode: $text"))
+      }
+  }
 }
 
 object UrlConfigParser {
 
   private val allOptionsRegex = Regex[(String,String)](rx"([^&=]+)=([^&]*)&?")
-  private val allOptionsMap = Map(
-    UrlOption.view.key -> UrlOption.view,
-    UrlOption.page.key -> UrlOption.page,
-    UrlOption.redirectTo.key -> UrlOption.redirectTo,
-    UrlOption.invitation.key -> UrlOption.invitation,
-    UrlOption.focusId.key -> UrlOption.focusId,
-  )
+  private val allOptionsMap = List(
+    UrlOption.view,
+    UrlOption.page,
+    UrlOption.redirectTo,
+    UrlOption.invitation,
+    UrlOption.focusId,
+    UrlOption.presentationMode
+  ).by(_.key)
 
   def parse(route: UrlRoute): UrlConfig = {
     val searchOptions = BasicMap.ofString[String]()
@@ -187,9 +202,9 @@ object UrlConfigWriter {
     val pageString = cfg.pageChange.page.parentId map { parentId =>
         UrlOption.page.key + "=" + s"${parentId.toBase58}"
     }
-    val redirectToString =
-      cfg.redirectTo.map(view => UrlOption.redirectTo.key + "=" + view.viewKey)
-    val hash = List(viewString, pageString, redirectToString).flatten.mkString("&")
+    val redirectToString = cfg.redirectTo.map(view => UrlOption.redirectTo.key + "=" + view.viewKey)
+    val mode = PresentationMode.toString(cfg.mode).map(m => UrlOption.presentationMode.key + "=" + m)
+    val hash = List(viewString, pageString, redirectToString, mode).flatten.mkString("&")
     // we do not write invitation and focusId: this only reading on url change.
     UrlRoute(search = None, hash = Some(hash))
   }

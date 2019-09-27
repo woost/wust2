@@ -172,6 +172,7 @@ object GlobalState {
   val viewIsContent: Rx[Boolean] = view.map(_.isContent)
 
   val urlPage = urlConfig.map(_.pageChange.page)
+  val presentationMode: Rx[PresentationMode] = urlConfig.map(_.mode)
   val page: Rx[Page] = viewConfig.map(_.page)
   val pageNotFound: Rx[Boolean] = Rx{ !urlConfig().pageChange.page.parentId.forall(rawGraph().contains) }
 

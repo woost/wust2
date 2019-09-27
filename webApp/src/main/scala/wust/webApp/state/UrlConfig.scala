@@ -5,7 +5,22 @@ import wust.api.Authentication
 import wust.graph.Page
 import wust.ids.{View, NodeId}
 
-final case class UrlConfig(view: Option[View], pageChange: PageChange, redirectTo: Option[View], shareOptions: Option[ShareOptions], invitation: Option[Authentication.Token], focusId: Option[NodeId]) {
+sealed trait PresentationMode
+object PresentationMode {
+  case object ContentOnly extends PresentationMode
+  case object Full extends PresentationMode
+
+  def toString(p: PresentationMode): Option[String] = Some(p) collect {
+    case ContentOnly => "content"
+  }
+
+  def fromString(s: String): Option[PresentationMode] = Some(s.toLowerCase) collect {
+    case "content" => ContentOnly
+    case "full" => Full
+  }
+}
+
+final case class UrlConfig(view: Option[View], pageChange: PageChange, redirectTo: Option[View], shareOptions: Option[ShareOptions], invitation: Option[Authentication.Token], focusId: Option[NodeId], mode: PresentationMode) {
   private val canRedirectTo: View => Boolean = {
     case View.Login | View.Signup => false
     case _ => true
@@ -23,5 +38,5 @@ final case class UrlConfig(view: Option[View], pageChange: PageChange, redirectT
 }
 
 object UrlConfig {
-  val default = UrlConfig(view = None, pageChange = PageChange(Page.empty), redirectTo = None, shareOptions = None, invitation = None, focusId = None)
+  val default = UrlConfig(view = None, pageChange = PageChange(Page.empty), redirectTo = None, shareOptions = None, invitation = None, focusId = None, mode = PresentationMode.Full)
 }

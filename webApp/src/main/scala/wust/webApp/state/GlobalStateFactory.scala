@@ -325,6 +325,7 @@ object GlobalStateFactory {
       graph.debugWithDetail((g: Graph) => s"graph: ${g.toString}", (g: Graph) => g.toDetailedString)
 
       screenSize.debug("screenSize")
+      urlConfig.debug("urlConfig")
       page.debug("page")
       view.debug("view")
       user.debug("auth")

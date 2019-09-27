@@ -12,12 +12,13 @@ import wust.webUtil.outwatchHelpers._
 import wust.css.{ Styles, ZIndex }
 import wust.sdk.Colors
 import wust.webApp.WoostNotification
-import wust.webApp.state.{ GlobalState, ScreenSize }
+import wust.webApp.state.{ GlobalState, ScreenSize, PresentationMode}
 import wust.webApp.views.Components._
 import wust.facades.wdtEmojiBundle.wdtEmojiBundle
 import wust.ids.Feature
 import wust.webApp.state.FeatureDetails
 import wust.webApp.DevOnly
+import wust.webUtil.Elements._
 
 object MainView {
 
@@ -34,39 +35,83 @@ object MainView {
       Styles.growFull,
       Rx {
         if (GlobalState.hasError()) ErrorPage()
-        else main
+        else GlobalState.presentationMode() match {
+          case PresentationMode.Full => fullPresentation
+          case PresentationMode.ContentOnly => contentPresentation
+        }
       }
     )
   }
 
-  private def main(implicit ctx: Ctx.Owner): VDomModifier = {
-    VDomModifier(
+  private def contentPresentation(implicit ctx: Ctx.Owner): VDomModifier = {
+    div(
+      Styles.growFull,
+      Styles.flex,
+      flexDirection.column,
+
       div(
         Styles.flex,
         Styles.growFull,
 
-        position.relative, // needed for mobile expanded sidebars
-
         onMouseDown.use(()) --> GlobalState.mouseClickInMainView,
-
-        LeftSidebar.apply(
-          onMouseDown.use(None) --> GlobalState.rightSidebarNode,
-        ),
 
         div(
           Styles.flex,
           Styles.growFull,
           flexDirection.column,
+
           onMouseDown.use(None) --> GlobalState.rightSidebarNode,
 
-          //      DevOnly { DevView },
           topBannerContainer,
-          content,
+          content(PresentationMode.ContentOnly),
         ),
+
         VDomModifier.ifNot(BrowserDetect.isMobile)(EmojiPicker()),
 
         RightSidebar(ViewRender),
+      ),
+
+      div(
+        marginLeft := "auto",
+        marginRight := "10px",
+        "Brought to you by ",
+        b(
+          color := Colors.woost,
+          WoostLogoComponents.woostIcon,
+          " Woost",
+          onClickDefault.foreach(GlobalState.urlConfig.update(_.copy(mode = PresentationMode.Full))))
       )
+    )
+  }
+
+
+  private def fullPresentation(implicit ctx: Ctx.Owner): VDomModifier = {
+    div(
+      Styles.flex,
+      Styles.growFull,
+
+      position.relative, // needed for mobile expanded sidebars
+
+      onMouseDown.use(()) --> GlobalState.mouseClickInMainView,
+
+      LeftSidebar.apply(
+        onMouseDown.use(None) --> GlobalState.rightSidebarNode,
+      ),
+
+      div(
+        Styles.flex,
+        Styles.growFull,
+        flexDirection.column,
+        onMouseDown.use(None) --> GlobalState.rightSidebarNode,
+
+        //      DevOnly { DevView },
+        topBannerContainer,
+        content(PresentationMode.Full),
+      ),
+
+      VDomModifier.ifNot(BrowserDetect.isMobile)(EmojiPicker()),
+
+      RightSidebar(ViewRender),
     )
   }
 
@@ -83,7 +128,7 @@ object MainView {
     )
   }
 
-  def content(implicit ctx: Ctx.Owner) = {
+  def content(presentationMode: PresentationMode)(implicit ctx: Ctx.Owner) = {
     val viewIsContent = Rx {
       GlobalState.view().isContent
     }
@@ -105,7 +150,7 @@ object MainView {
         if (viewIsContent())
           PageHeader(ViewRender).apply(Styles.flexStatic, viewWidthMod)
         else {
-          VDomModifier.ifTrue(GlobalState.screenSize() != ScreenSize.Small)(
+          VDomModifier.ifTrue(GlobalState.screenSize() != ScreenSize.Small && presentationMode == PresentationMode.Full)(
             Topbar.apply(Styles.flexStatic, viewWidthMod)
           )
         }
