@@ -319,25 +319,26 @@ object RightSidebar {
       )
     }
 
+    val nodeCardModifiers = VDomModifier(
+      cls := "right-sidebar-node",
+
+      Styles.flex,
+      justifyContent.spaceBetween,
+
+      fontSize := "20px",
+      width := "100%",
+      margin := "3px 3px 3px 3px",
+      Styles.wordWrap,
+      cls := "enable-text-selection",
+      onClick.stopPropagation.use(true) --> editMode,
+
+      UnreadComponents.readObserver(focusPref.nodeId)
+    )
+
     val nodeCard = Rx {
       node().map{ node =>
-        Components.nodeCardEditable(node, editMode,
-          contentInject = width := "100%" // pushes cancel button to the right
-        ).apply(
-          cls := "right-sidebar-node",
-
-          Styles.flex,
-          justifyContent.spaceBetween,
-
-          fontSize := "20px",
-          width := "100%",
-          margin := "3px 3px 3px 3px",
-          Styles.wordWrap,
-          cls := "enable-text-selection",
-          onClick.stopPropagation.use(true) --> editMode,
-
-          UnreadComponents.readObserver(node.id)
-        )
+        Components.nodeCardEditable(node, editMode, contentInject = width := "100%" // pushes cancel button to the right
+        ).apply(nodeCardModifiers)
       }
     }
 
@@ -552,6 +553,16 @@ object RightSidebar {
                 onClick.stopPropagation.useLazy(GraphChanges(delEdges = Array(Edge.ReferencesTemplate(focusPref.nodeId, EdgeData.ReferencesTemplate(isCreate = false), TemplateId(referenceNodeId)), Edge.ReferencesTemplate(focusPref.nodeId, EdgeData.ReferencesTemplate(isCreate = true), TemplateId(referenceNodeId))))) --> GlobalState.eventProcessor.changes
               )
 
+              val referenceModifiers = Rx {
+                val graph = GlobalState.rawGraph()
+
+                referenceEdges().map { edgeIdx =>
+                  val edge = graph.edges(edgeIdx).as[Edge.ReferencesTemplate]
+                  val node = graph.nodes(graph.edgesIdx.b(edgeIdx))
+                  (node, edge.data.modifierStrings)
+                }
+              }
+
               div(
                 padding := "5px",
                 alignItems.flexStart,
@@ -560,14 +571,9 @@ object RightSidebar {
 
                 b("Template Reference:", UI.popup := "Reference another template, such that the current node becomes the automation template for any existing node derived from the referenced template node."),
 
-                Rx {
-                  val graph = GlobalState.rawGraph()
-                  div(
-                    referenceEdges().map { edgeIdx =>
-                      val edge = graph.edges(edgeIdx).as[Edge.ReferencesTemplate]
-                      val node = graph.nodes(graph.edgesIdx.b(edgeIdx))
-                      val referenceModifiers = edge.data.modifierStrings
-                      val referenceModifierString = if (referenceModifiers.isEmpty) "" else referenceModifiers.mkString(",") + ": "
+                div(
+                  Rx {
+                    referenceModifiers().map { case (node, referenceModifiers) =>
                       div(
                         Styles.flex,
                         alignItems.center,
@@ -576,12 +582,13 @@ object RightSidebar {
                         Components.nodeCard(node, maxLength = Some(100)).apply(
                           Components.sidebarNodeFocusClickMod(Var(Some(focusPref)), pref => parentIdAction(pref.map(_.nodeId)), node.id)
                         ),
-                        div(padding := "2px", Icons.delete, deleteButton(node.id))
+                        div(padding := "4px", Icons.delete, deleteButton(node.id))
                       )
-                    },
-                    button(cls := "ui compact basic button mini", "Add Template Reference", addButton)
-                  )
-                }
+                    }
+                  },
+
+                  button(cls := "ui compact basic button mini", "Add Template Reference", addButton, margin := "5px")
+                )
               )
           }
         ),
