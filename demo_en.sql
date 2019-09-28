@@ -1014,7 +1014,6 @@ ALTER TABLE ONLY public.webpushsubscription ALTER COLUMN id SET DEFAULT nextval(
 --
 
 COPY public.edge (sourceid, targetid, data) FROM stdin;
-246ded7f-ae61-db00-0beb-c341f9e67fd0	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
 246dedbb-a4e5-4f01-0beb-c446b4802a70	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1562866481423}
 246def1f-16b9-bf02-0beb-c3f1824d4e88	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
 246dedbb-a4e5-4f01-0beb-c446b4802a70	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Notify"}
@@ -1944,6 +1943,215 @@ COPY public.edge (sourceid, targetid, data) FROM stdin;
 246e5a92-5692-5e13-3f11-2614592c761c	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Notify"}
 246e5a92-5692-5e13-3f11-2614592c761c	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Pinned"}
 246def7d-10f5-d605-0beb-c3cc4fdeea75	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Expanded", "isExpanded": false}
+246ded7f-ae61-db00-0beb-c341f9e67fd0	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1566934558258}
+246ded7f-ae61-db00-0beb-c341f9e67fd0	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1566934558427}
+246ded7f-ae61-db00-0beb-c341f9e67fd0	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1566934558427}
+246ded7f-ae61-db00-0beb-c341f9e67fd0	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+24863647-eb7e-4001-3b8f-fa6f01e7c5a4	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1566935963065}
+24863647-eb7e-4001-3b8f-fa6f01e7c5a4	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1566935963065}
+24863647-eb7e-4001-3b8f-fa6f01e7c5a4	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Notify"}
+24863647-eb7e-4001-3b8f-fa6f01e7c5a4	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Pinned"}
+24863647-eb7e-4001-3b8f-fa6f01e7c5a4	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+24863668-cefd-4402-3b8f-fba0c2e12b07	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1566936047365}
+24863668-cefd-4402-3b8f-fba0c2e12b07	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1566936047365}
+24863647-eb7e-4001-3b8f-fa6f01e7c5a4	24863668-cefd-4402-3b8f-fba0c2e12b07	{"type": "Child", "ordering": 1566936047300.152136000000021868982987527, "deletedAt": null}
+24863668-cefd-4402-3b8f-fba0c2e12b07	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+2486366b-81c4-b803-3b8f-fbf01cb3a48c	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1566936054065}
+2486366b-81c4-b803-3b8f-fbf01cb3a48c	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1566936054065}
+24863647-eb7e-4001-3b8f-fa6f01e7c5a4	2486366b-81c4-b803-3b8f-fbf01cb3a48c	{"type": "Child", "ordering": 1566936054200.152136000000032209792369804, "deletedAt": null}
+2486366b-81c4-b803-3b8f-fbf01cb3a48c	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+2486366d-624f-7804-3b8f-fc381526b2b7	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1566936058865}
+2486366d-624f-7804-3b8f-fc381526b2b7	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1566936058865}
+24863647-eb7e-4001-3b8f-fa6f01e7c5a4	2486366d-624f-7804-3b8f-fc381526b2b7	{"type": "Child", "ordering": 1566936059000.152136000000042518903337655, "deletedAt": null}
+2486366d-624f-7804-3b8f-fc381526b2b7	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+2486367b-4e54-8805-3b8f-fbf70cec222b	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1566936094465}
+2486367b-4e54-8805-3b8f-fbf70cec222b	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1566936094465}
+24863647-eb7e-4001-3b8f-fa6f01e7c5a4	2486367b-4e54-8805-3b8f-fbf70cec222b	{"type": "Child", "ordering": 1566936094600.152136000000052239592407595, "deletedAt": null}
+2486367b-4e54-8805-3b8f-fbf70cec222b	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+2486369e-9e86-c401-3b8f-fc6936eb8e7f	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1566936184933}
+2486369e-9e86-c401-3b8f-fc6936eb8e7f	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1566936184933}
+24863647-eb7e-4001-3b8f-fa6f01e7c5a4	2486369e-9e86-c401-3b8f-fc6936eb8e7f	{"type": "Automated"}
+24863647-eb7e-4001-3b8f-fa6f01e7c5a4	2486369e-9e86-c401-3b8f-fc6936eb8e7f	{"type": "Child", "ordering": 1566936184900.152136000000012729923284607, "deletedAt": null}
+2486369e-9e86-c401-3b8f-fc6936eb8e7f	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+248636a5-4472-2c03-3b8f-fc07066fd8f4	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1566936201833}
+248636a5-4472-2c03-3b8f-fc07066fd8f4	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1566936201833}
+2486369e-9e86-c401-3b8f-fc6936eb8e7f	248636a5-4472-2c03-3b8f-fc07066fd8f4	{"key": "Contact", "type": "LabeledProperty", "showOnCard": true}
+248636a5-4472-2c03-3b8f-fc07066fd8f4	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+248636aa-e612-6c05-3b8f-facf368bb5b3	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1566936216233}
+248636aa-e612-6c05-3b8f-facf368bb5b3	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1566936216233}
+2486369e-9e86-c401-3b8f-fc6936eb8e7f	248636aa-e612-6c05-3b8f-facf368bb5b3	{"key": "Location", "type": "LabeledProperty", "showOnCard": true}
+248636aa-e612-6c05-3b8f-facf368bb5b3	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+248636b8-6dfa-9407-3b8f-fc6043c9cda0	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1566936250833}
+248636b8-6dfa-9407-3b8f-fc6043c9cda0	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1566936250833}
+24863647-eb7e-4001-3b8f-fa6f01e7c5a4	248636b8-6dfa-9407-3b8f-fc6043c9cda0	{"key": "Coach1", "type": "LabeledProperty", "showOnCard": false}
+248636b8-6dfa-9407-3b8f-fc6043c9cda0	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+248636bd-796f-7809-3b8f-fab82bfc00b1	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1566936263733}
+248636bd-796f-7809-3b8f-fab82bfc00b1	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1566936263733}
+24863647-eb7e-4001-3b8f-fa6f01e7c5a4	248636bd-796f-7809-3b8f-fab82bfc00b1	{"key": "Coach2", "type": "LabeledProperty", "showOnCard": false}
+248636bd-796f-7809-3b8f-fab82bfc00b1	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+248636c0-f470-bc0b-3b8f-fbbb57fbe5d0	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1566936272633}
+248636c0-f470-bc0b-3b8f-fbbb57fbe5d0	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1566936272633}
+24863647-eb7e-4001-3b8f-fa6f01e7c5a4	248636c0-f470-bc0b-3b8f-fbbb57fbe5d0	{"key": "Coach3", "type": "LabeledProperty", "showOnCard": false}
+248636c0-f470-bc0b-3b8f-fbbb57fbe5d0	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+248636d7-3ee0-640d-3b8f-f9edf5d3da5f	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1566936329633}
+248636d7-3ee0-640d-3b8f-f9edf5d3da5f	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1566936329633}
+24863647-eb7e-4001-3b8f-fa6f01e7c5a4	248636d7-3ee0-640d-3b8f-f9edf5d3da5f	{"key": "Zipcode", "type": "LabeledProperty", "showOnCard": false}
+248636d7-3ee0-640d-3b8f-f9edf5d3da5f	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+248636db-dc35-7c0f-3b8f-fbf0b4fb2586	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1566936341433}
+248636db-dc35-7c0f-3b8f-fbf0b4fb2586	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1566936341433}
+24863647-eb7e-4001-3b8f-fa6f01e7c5a4	248636db-dc35-7c0f-3b8f-fbf0b4fb2586	{"key": "City", "type": "LabeledProperty", "showOnCard": false}
+248636db-dc35-7c0f-3b8f-fbf0b4fb2586	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+248636e9-320f-3013-3b8f-fbdab8af82da	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1566936375533}
+248636e9-320f-3013-3b8f-fbdab8af82da	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1566936375533}
+24863647-eb7e-4001-3b8f-fa6f01e7c5a4	248636e9-320f-3013-3b8f-fbdab8af82da	{"key": "Company", "type": "LabeledProperty", "showOnCard": false}
+248636e9-320f-3013-3b8f-fbdab8af82da	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+24863712-ce12-d017-3b8f-fa37f03b1a8b	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1566936481933}
+24863712-ce12-d017-3b8f-fa37f03b1a8b	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1566936481933}
+2486369e-9e86-c401-3b8f-fc6936eb8e7f	24863712-ce12-d017-3b8f-fa37f03b1a8b	{"key": "EndTime", "type": "LabeledProperty", "showOnCard": false}
+24863712-ce12-d017-3b8f-fa37f03b1a8b	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+24863752-285d-a001-3b8f-fa9ebaf39ffb	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1566936644083}
+24863752-285d-a001-3b8f-fa9ebaf39ffb	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1566936644083}
+2486369e-9e86-c401-3b8f-fc6936eb8e7f	24863752-285d-a001-3b8f-fa9ebaf39ffb	{"type": "Child", "ordering": 1566936644000.152136000000010760748417019, "deletedAt": null}
+24863752-285d-a001-3b8f-fa9ebaf39ffb	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+248636e2-3c0c-a811-3b8f-fa014b57c82c	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1566936357733}
+248636e2-3c0c-a811-3b8f-fa014b57c82c	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1566936357733}
+24863647-eb7e-4001-3b8f-fa6f01e7c5a4	248636e2-3c0c-a811-3b8f-fa014b57c82c	{"key": "Street", "type": "LabeledProperty", "showOnCard": false}
+248636e2-3c0c-a811-3b8f-fa014b57c82c	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+24863727-f62e-a41b-3b8f-fbbcdfa0f2b9	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1566936536033}
+24863727-f62e-a41b-3b8f-fbbcdfa0f2b9	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1566936536033}
+2486369e-9e86-c401-3b8f-fc6936eb8e7f	24863727-f62e-a41b-3b8f-fbbcdfa0f2b9	{"key": "Participant", "type": "LabeledProperty", "showOnCard": false}
+24863727-f62e-a41b-3b8f-fbbcdfa0f2b9	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+2486370c-9647-3415-3b8f-faa5729ab39d	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1566936466133}
+2486370c-9647-3415-3b8f-faa5729ab39d	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1566936466133}
+2486369e-9e86-c401-3b8f-fc6936eb8e7f	2486370c-9647-3415-3b8f-faa5729ab39d	{"key": "StartingTime", "type": "LabeledProperty", "showOnCard": false}
+2486370c-9647-3415-3b8f-faa5729ab39d	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+2486371c-9ee8-5c19-3b8f-fc6f78fa1860	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1566936507033}
+2486371c-9ee8-5c19-3b8f-fc6f78fa1860	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1566936507033}
+2486369e-9e86-c401-3b8f-fc6936eb8e7f	2486371c-9ee8-5c19-3b8f-fc6f78fa1860	{"key": "Invite-Email", "type": "LabeledProperty", "showOnCard": false}
+2486371c-9ee8-5c19-3b8f-fc6f78fa1860	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+248637b6-9f5f-a401-3b8f-fb73ff1772f6	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1566936900993}
+24863668-cefd-4402-3b8f-fba0c2e12b07	248637b6-9f5f-a401-3b8f-fb73ff1772f6	{"type": "Automated"}
+24863668-cefd-4402-3b8f-fba0c2e12b07	248637b6-9f5f-a401-3b8f-fb73ff1772f6	{"type": "Child", "ordering": 1566936900900.152136000000011676719649526, "deletedAt": null}
+248637b8-f80d-1402-3b8f-fa22725f5717	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1566936906893}
+248637b8-f80d-1402-3b8f-fa22725f5717	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1566936906893}
+248637b6-9f5f-a401-3b8f-fb73ff1772f6	248637b8-f80d-1402-3b8f-fa22725f5717	{"type": "Child", "ordering": 1566936906900.152136000000020226954794775, "deletedAt": null}
+248637b8-f80d-1402-3b8f-fa22725f5717	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+246dedbb-a4e5-4f01-0beb-c446b4802a70	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Expanded", "isExpanded": false}
+248637b6-9f5f-a401-3b8f-fb73ff1772f6	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569665043609}
+248637b6-9f5f-a401-3b8f-fb73ff1772f6	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1569665043609}
+248637b6-9f5f-a401-3b8f-fb73ff1772f6	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+248637b6-9f5f-a401-3b8f-fb73ff1772f6	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Expanded", "isExpanded": true}
+2486369e-9e86-c401-3b8f-fc6936eb8e7f	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Expanded", "isExpanded": true}
+24967f48-0844-d301-40f7-5e9b17a8bfaa	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569665077753}
+24863668-cefd-4402-3b8f-fba0c2e12b07	24967f48-0844-d301-40f7-5e9b17a8bfaa	{"type": "Automated"}
+24967f48-0844-d301-40f7-5e9b17a8bfaa	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569665098539}
+24967f48-0844-d301-40f7-5e9b17a8bfaa	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569665153525}
+24967f48-0844-d301-40f7-5e9b17a8bfaa	248637b6-9f5f-a401-3b8f-fb73ff1772f6	{"type": "ReferencesTemplate", "isCreate": true, "isRename": true}
+24967f48-0844-d301-40f7-5e9b17a8bfaa	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569665142214}
+24967f48-0844-d301-40f7-5e9b17a8bfaa	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569665148494}
+24967f48-0844-d301-40f7-5e9b17a8bfaa	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569665156658}
+24967f48-0844-d301-40f7-5e9b17a8bfaa	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1569665156658}
+24967f48-0844-d301-40f7-5e9b17a8bfaa	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+248637b6-9f5f-a401-3b8f-fb73ff1772f6	24967f48-0844-d301-40f7-5e9b17a8bfaa	{"key": "Teamproject", "type": "LabeledProperty", "showOnCard": true}
+2496806b-918b-c601-40f7-5ee2611b4bbd	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569665823253}
+24967f48-0844-d301-40f7-5e9b17a8bfaa	2496806b-918b-c601-40f7-5ee2611b4bbd	{"type": "Child", "ordering": 1569665823238.165938700000011558056029117, "deletedAt": null}
+24968076-2733-c002-40f7-5dca082531b7	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569665850303}
+24968076-2733-c002-40f7-5dca082531b7	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1569665850303}
+24967f48-0844-d301-40f7-5e9b17a8bfaa	24968076-2733-c002-40f7-5dca082531b7	{"type": "Child", "ordering": 1569665850304.165938700000020353972662711, "deletedAt": null}
+24968076-2733-c002-40f7-5dca082531b7	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+24968088-8f6a-bd03-40f7-5f253eb058b1	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569665897374}
+24968088-8f6a-bd03-40f7-5f253eb058b1	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1569665897374}
+24967f48-0844-d301-40f7-5e9b17a8bfaa	24968088-8f6a-bd03-40f7-5f253eb058b1	{"type": "Child", "ordering": 1569665897373.165938700000031845241403569, "deletedAt": null}
+24968088-8f6a-bd03-40f7-5f253eb058b1	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+24968088-8f6a-bd03-40f7-5f253eb058b1	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Expanded", "isExpanded": true}
+2496808c-6b6e-6a04-40f7-5dbcab4f00b4	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569665907240}
+2496808c-6b6e-6a04-40f7-5dbcab4f00b4	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1569665907240}
+24968088-8f6a-bd03-40f7-5f253eb058b1	2496808c-6b6e-6a04-40f7-5dbcab4f00b4	{"type": "Child", "ordering": 1569665907242.16593870000004029658054674, "deletedAt": null}
+2496808c-6b6e-6a04-40f7-5dbcab4f00b4	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+24968099-41bc-e405-40f7-5e0375178840	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569665940065}
+24968099-41bc-e405-40f7-5e0375178840	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1569665940065}
+24968088-8f6a-bd03-40f7-5f253eb058b1	24968099-41bc-e405-40f7-5e0375178840	{"type": "Child", "ordering": 1569665940068.165938700000050600613619776, "deletedAt": null}
+24968099-41bc-e405-40f7-5e0375178840	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+249680a0-aa13-a206-40f7-5fb8f56744d4	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569665959008}
+249680a0-aa13-a206-40f7-5fb8f56744d4	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1569665959008}
+24968088-8f6a-bd03-40f7-5f253eb058b1	249680a0-aa13-a206-40f7-5fb8f56744d4	{"type": "Child", "ordering": 1569665959010.165938700000062479667037396, "deletedAt": null}
+249680a0-aa13-a206-40f7-5fb8f56744d4	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+2496806b-918b-c601-40f7-5ee2611b4bbd	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569667136204}
+2496806b-918b-c601-40f7-5ee2611b4bbd	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569668585553}
+2496806b-918b-c601-40f7-5ee2611b4bbd	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1569668585553}
+2496806b-918b-c601-40f7-5ee2611b4bbd	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+249685c5-7515-3601-40f7-5ec64de10d32	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569669326200}
+2486366b-81c4-b803-3b8f-fbf01cb3a48c	249685c5-7515-3601-40f7-5ec64de10d32	{"type": "Automated"}
+249685c5-7515-3601-40f7-5ec64de10d32	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569669332845}
+249685c5-7515-3601-40f7-5ec64de10d32	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1569669332845}
+249685c5-7515-3601-40f7-5ec64de10d32	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+249685c9-c8a1-cd02-40f7-5f83d28f8f56	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569669337255}
+2486366b-81c4-b803-3b8f-fbf01cb3a48c	249685c9-c8a1-cd02-40f7-5f83d28f8f56	{"type": "Automated"}
+2486366b-81c4-b803-3b8f-fbf01cb3a48c	249685c9-c8a1-cd02-40f7-5f83d28f8f56	{"type": "Child", "ordering": 1569669337261.165938700000022251449208662, "deletedAt": null}
+249685c9-c8a1-cd02-40f7-5f83d28f8f56	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569669343692}
+249685c9-c8a1-cd02-40f7-5f83d28f8f56	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1569669343692}
+249685c9-c8a1-cd02-40f7-5f83d28f8f56	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+249685d9-6cbf-8903-40f7-5fb6bdaf3f18	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569669377251}
+249685d9-6cbf-8903-40f7-5fb6bdaf3f18	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1569669377251}
+249685c5-7515-3601-40f7-5ec64de10d32	249685d9-6cbf-8903-40f7-5fb6bdaf3f18	{"type": "Child", "ordering": 1569669377257.165938700000032470142295832, "deletedAt": null}
+249685d9-6cbf-8903-40f7-5fb6bdaf3f18	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+249685c5-7515-3601-40f7-5ec64de10d32	24967f48-0844-d301-40f7-5e9b17a8bfaa	{"type": "ReferencesTemplate", "isCreate": false, "isRename": false}
+24968601-7f9e-7204-40f7-5f405dbf156d	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569669479723}
+24968601-7f9e-7204-40f7-5f405dbf156d	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1569669479723}
+24968601-7f9e-7204-40f7-5f405dbf156d	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+2496862c-1938-1705-40f7-5daf0c6ac12d	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569669588657}
+2496862c-1938-1705-40f7-5daf0c6ac12d	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1569669588657}
+249685c9-c8a1-cd02-40f7-5f83d28f8f56	2496862c-1938-1705-40f7-5daf0c6ac12d	{"type": "Child", "ordering": 1569669588663.165938700000050238080213293, "deletedAt": null}
+2496862c-1938-1705-40f7-5daf0c6ac12d	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+249685c9-c8a1-cd02-40f7-5f83d28f8f56	24968601-7f9e-7204-40f7-5f405dbf156d	{"type": "Child", "ordering": 1569669588664.165938700000050238080213293, "deletedAt": null}
+24968638-02c2-3406-40f7-5f8a93a276a7	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569669619118}
+2486366d-624f-7804-3b8f-fc381526b2b7	24968638-02c2-3406-40f7-5f8a93a276a7	{"type": "Automated"}
+24968638-b810-2707-40f7-5fab06610122	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569669620929}
+2486366d-624f-7804-3b8f-fc381526b2b7	24968638-b810-2707-40f7-5fab06610122	{"type": "Automated"}
+2486366d-624f-7804-3b8f-fc381526b2b7	24968638-b810-2707-40f7-5fab06610122	{"type": "Child", "ordering": 1569669620935.165938700000072419822297378, "deletedAt": null}
+24968638-02c2-3406-40f7-5f8a93a276a7	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569669628263}
+24968643-a09c-dd08-40f7-5ef427b90d8e	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569669648823}
+24968643-a09c-dd08-40f7-5ef427b90d8e	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1569669648823}
+24968638-02c2-3406-40f7-5f8a93a276a7	24968643-a09c-dd08-40f7-5ef427b90d8e	{"type": "Child", "ordering": 1569669648829.165938700000081634402700686, "deletedAt": null}
+24968643-a09c-dd08-40f7-5ef427b90d8e	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+24968638-02c2-3406-40f7-5f8a93a276a7	24967f48-0844-d301-40f7-5e9b17a8bfaa	{"type": "ReferencesTemplate", "isCreate": false, "isRename": false}
+24968659-8cd7-b809-40f7-5e2282a1e8c8	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569669704882}
+24968659-8cd7-b809-40f7-5e2282a1e8c8	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1569669704882}
+24968638-b810-2707-40f7-5fab06610122	24968659-8cd7-b809-40f7-5e2282a1e8c8	{"type": "Child", "ordering": 1569669704888.16593870000009073398477844, "deletedAt": null}
+24968659-8cd7-b809-40f7-5e2282a1e8c8	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+24968661-898c-800a-40f7-5e4520a9d682	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569669725306}
+2486367b-4e54-8805-3b8f-fbf70cec222b	24968661-898c-800a-40f7-5e4520a9d682	{"type": "Automated"}
+2486367b-4e54-8805-3b8f-fbf70cec222b	24968661-898c-800a-40f7-5e4520a9d682	{"type": "Child", "ordering": 1569669725312.165938700000100882664986242, "deletedAt": null}
+24968661-898c-800a-40f7-5e4520a9d682	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569669731952}
+2496866a-d26d-fe0b-40f7-5e51214673c0	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569669749048}
+24968661-898c-800a-40f7-5e4520a9d682	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569669743545}
+24968661-898c-800a-40f7-5e4520a9d682	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1569669743545}
+24968661-898c-800a-40f7-5e4520a9d682	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+2496866a-d26d-fe0b-40f7-5e51214673c0	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1569669749048}
+24968661-898c-800a-40f7-5e4520a9d682	2496866a-d26d-fe0b-40f7-5e51214673c0	{"type": "Child", "ordering": 1569669749054.165938700000110934214857664, "deletedAt": null}
+24968638-02c2-3406-40f7-5f8a93a276a7	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1569670004782}
+24968638-02c2-3406-40f7-5f8a93a276a7	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+2496866a-d26d-fe0b-40f7-5e51214673c0	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+24968638-b810-2707-40f7-5fab06610122	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569669760042}
+24968638-b810-2707-40f7-5fab06610122	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1569669760042}
+24968638-b810-2707-40f7-5fab06610122	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+24968638-02c2-3406-40f7-5f8a93a276a7	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569670004782}
+249686d4-8df5-6001-40f7-5d850ed01e08	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569670019436}
+249686d4-8df5-6001-40f7-5d850ed01e08	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1569670019436}
+24968638-02c2-3406-40f7-5f8a93a276a7	249686d4-8df5-6001-40f7-5d850ed01e08	{"type": "Child", "ordering": 1569670019424.1659387000000100577317842, "deletedAt": null}
+249686d4-8df5-6001-40f7-5d850ed01e08	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+249686db-0e09-0e02-40f7-5fc2f4420462	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569670036044}
+249686db-0e09-0e02-40f7-5fc2f4420462	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1569670036044}
+24967f48-0844-d301-40f7-5e9b17a8bfaa	249686db-0e09-0e02-40f7-5fc2f4420462	{"type": "Child", "ordering": 1569670036046.16593870000002252259749181, "deletedAt": null}
+249686db-0e09-0e02-40f7-5fc2f4420462	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+249686dd-a3e1-c103-40f7-5ee4ffff2ed1	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Author", "timestamp": 1569670042655}
+249686dd-a3e1-c103-40f7-5ee4ffff2ed1	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Read", "timestamp": 1569670042655}
+24967f48-0844-d301-40f7-5e9b17a8bfaa	249686dd-a3e1-c103-40f7-5ee4ffff2ed1	{"type": "Child", "ordering": 1569670042657.165938700000031569311698641, "deletedAt": null}
+249686dd-a3e1-c103-40f7-5ee4ffff2ed1	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Member", "level": "readwrite"}
+249690da-9042-4601-1520-bce0362f57d0	249690da-9042-4601-1520-bce0362f57d0	{"type": "Member", "level": "readwrite"}
+24967f48-0844-d301-40f7-5e9b17a8bfaa	246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "Notify"}
+24967f48-0844-d301-40f7-5e9b17a8bfaa	249690da-9042-4601-1520-bce0362f57d0	{"type": "Member", "level": "readwrite"}
+24967f48-0844-d301-40f7-5e9b17a8bfaa	249690da-9042-4601-1520-bce0362f57d0	{"type": "Invite"}
 \.
 
 
@@ -2081,7 +2289,6 @@ COPY public.flyway_schema_history (installed_rank, version, description, type, s
 
 COPY public.node (id, data, accesslevel, role, views) FROM stdin;
 00a15824-84ca-ebde-0349-f7f0e8b98ead	{"type": "PlainText", "content": "Woost Feedback"}	readwrite	{"type": "Message"}	\N
-246ded7f-ae61-db00-0beb-c341f9e67fd0	{"name": "Manager", "type": "User", "revision": 0, "isImplicit": false}	restricted	{"type": "Message"}	\N
 246dedc6-243a-0a00-0beb-c4d86329b3b4	{"name": "klaus", "type": "User", "revision": 1, "isImplicit": false}	restricted	{"type": "Message"}	\N
 246dedc9-7a4a-3d00-0beb-c52921a63779	{"name": "laura", "type": "User", "revision": 1, "isImplicit": false}	restricted	{"type": "Message"}	\N
 246dedca-929b-2d00-0beb-c3cb96965ce3	{"name": "michael", "type": "User", "revision": 1, "isImplicit": false}	restricted	{"type": "Message"}	\N
@@ -2236,6 +2443,51 @@ COPY public.node (id, data, accesslevel, role, views) FROM stdin;
 246f70ff-74f9-c309-3f11-48dc20ca1c68	{"type": "Markdown", "content": "Bug"}	\N	{"type": "Tag"}	\N
 246def22-4558-2803-0beb-c3cd98c524d9	{"type": "Markdown", "content": ":loudspeaker: Marketing"}	\N	{"type": "Project"}	{"{\\"type\\": \\"Dashboard\\"}","{\\"type\\": \\"Content\\"}"}
 246fed72-54b1-cc01-3f11-480f760fe40e	{"type": "Markdown", "content": "# Marketing\\n**Marketing** is the study and management of exchange relationships. Marketing is the business process of creating relationships with and satisfying customers. With its focus on the customer, marketing is one of the premier components of business management.\\n\\n\\n## Definition\\nMarketing is defined by the American Marketing Association as \\"the activity, set of institutions, and processes for creating, communicating, delivering, and exchanging offerings that have value for customers, clients, partners, and society at large\\". The term developed from the original meaning which referred literally to going to market with goods for sale. From a sales process engineering perspective, marketing is \\"a set of processes that are interconnected and interdependent with other functions\\" of a business aimed at achieving customer interest and satisfaction\\".\\n\\nPhilip Kotler defines marketing as \\"Satisfying needs and wants through an exchange process\\".\\n\\nThe Chartered Institute of Marketing defines marketing as \\"the management process responsible for identifying, anticipating and satisfying customer requirements profitably\\". A similar concept is the value-based marketing which states the role of marketing to contribute to increasing shareholder value. In this context, marketing can be defined as \\"the management process that seeks to maximise returns to shareholders by developing relationships with valued customers and creating a competitive advantage\\".\\n\\nMarketing practice tended to be seen as a creative industry in the past, which included advertising, distribution and selling. However, because the academic study of marketing makes extensive use of social sciences, psychology, sociology, mathematics, economics, anthropology and neuroscience, the profession is now widely recognized as a science, allowing numerous universities to offer Master-of-Science (MSc) programs.\\n\\nThe process of marketing is that of bringing a product to market, which includes these steps: broad market research; market targeting and market segmentation; determining distribution, pricing and promotion strategies; developing a communications strategy; budgeting; and visioning long-term market development goals. Many parts of the marketing process (e.g. product design, art director, brand management, advertising, copywriting etc.) involve use of the creative arts.\\n\\n\\n## Concept\\nThe 'marketing concept' proposes that in order to complete the organizational objectives, an organization should anticipate the needs and wants of potential consumers and satisfy them more effectively than its competitors. This concept originated from Adam Smith's book The Wealth of Nations,  but would not become widely used until nearly 200 years later. Marketing and Marketing Concepts are directly related.\\n\\nGiven the centrality of customer needs and wants in marketing, a rich understanding of these concepts is essential:\\n\\n- Needs: Something necessary for people to live a healthy, stable and safe life. When needs remain unfulfilled, there is a clear adverse outcome: a dysfunction or death. Needs can be objective and physical, such as the need for food, water, and shelter; or subjective and psychological, such as the need to belong to a family or social group and the need for self-esteem.\\n- Wants: Something that is desired, wished for or aspired to. Wants are not essential for basic survival and are often shaped by culture or peer-groups.\\n- Demands: When needs and wants are backed by the ability to pay, they have the potential to become economic demands.\\n\\nMarketing research, conducted for the purpose of new product development or product improvement, is often concerned with identifying the consumer's unmet needs. Customer needs are central to market segmentation which is concerned with dividing markets into distinct groups of buyers on the basis of \\"distinct needs, characteristics, or behaviors who might require separate products or marketing mixes.\\" Needs-based segmentation (also known as benefit segmentation) \\"places the customers' desires at the forefront of how a company designs and markets products or services.\\" Although needs-based segmentation is difficult to do in practice, it has been proved to be one of the most effective ways to segment a market. In addition, a great deal of advertising and promotion is designed to show how a given product's benefits meet the customer's needs, wants or expectations in a unique way.\\n\\n## Orientations\\n\\nA marketing orientation has been defined as a \\"philosophy of business management.\\" or \\"a corporate state of mind\\" or as an \\"organisation[al] culture\\". Although scholars continue to debate the precise nature of specific orientations that inform marketing practice, the most commonly cited orientations are as follows:\\n\\n### Product\\nA firm employing a product orientation is mainly concerned with the quality of its own product. A product orientation is based on the assumption that, all things being equal, consumers will purchase products of a superior quality. The approach is most effective when the firm has deep insights into customers and their needs and desires derived from research and (or) intuition and understands consumers' quality expectations and price they are willing to pay. For example, Sony Walkman and Apple iPod were innovative product designs that addressed consumers' unmet needs. Although the product orientation has largely been supplanted by the marketing orientation, firms practicing a product orientation can still be found in haute couture and in arts marketing.\\n\\n### Sales\\nFurther information: History of marketing § Selling orientation\\n\\nA firm using a sales orientation focuses primarily on the selling/promotion of the firm's existing products, rather than determining new or unmet consumer needs or desires. Consequently, this entails simply selling existing products, using promotion and direct sales techniques to attain the highest sales possible. The sales orientation \\"is typically practiced with unsought goods.\\" One study found that industrial companies are more likely to hold a sales orientation than consumer goods companies. The approach may also suit scenarios in which a firm holds dead stock, or otherwise sells a product that is in high demand, with little likelihood of changes in consumer tastes diminishing demand.\\n\\nA 2011 meta analyses has found that the factors with the greatest impact on sales performance are a salesperson's sales related knowledge (knowledge of market segments, sales presentation skills, conflict resolution, and products), degree of adaptiveness (changing behavior based on the aforementioned knowledge), role clarity (salesperson's role is to expressly to sell), cognitive aptitude (intelligence) and work engagement (motivation and interest in a sales role).\\n\\n### Production\\nFurther information: History of marketing § Production orientation\\n\\nA firm focusing on a production orientation specializes in producing as much as possible of a given product or service in order to achieve economies of scale or economies of scope. A production orientation may be deployed when a high demand for a product or service exists, coupled with certainty that consumer tastes and preferences remain relatively constant (similar to the sales orientation). The so-called production era is thought to have dominated marketing practice from the 1860s to the 1930s, but other theorists argue that evidence of the production orientation can still be found in some companies or industries. Specifically Kotler and Armstrong note that the production philosophy is \\"one of the oldest philosophies that guides sellers... [and] is still useful in some situations.\\"\\n\\n### Marketing\\n\\nThe marketing orientation is perhaps the most common orientation used in contemporary marketing. It is a customer-centric approach that involves a firm basing its marketing program around products that suit new consumer tastes. Firms adopting a marketing orientation typically engage in extensive market research to gauge consumer desires, use R&D to develop a product attuned to the revealed information, and then utilize promotion techniques to ensure consumers are aware of the product's existence and the benefits it can deliver. Scales designed to measure a firm's overall market orientation have been developed and found to be relatively robust in a variety of contexts.\\n\\nThe marketing orientation often has three prime facets, which are:\\n\\n1. Customer orientation: A firm in the market economy can survive by producing goods that persons are willing and able to buy. Consequently, ascertaining consumer demand is vital for a firm's future viability and even existence as a going concern.\\n2. Organizational orientation: In this sense, a firm's marketing department is often seen as of prime importance within the functional level of an organization. Information from an organization's marketing department would be used to guide the actions of other department's within the firm. As an example, a marketing department could ascertain (via marketing research) that consumers desired a new type of product, or a new usage for an existing product. With this in mind, the marketing department would inform the R&D department to create a prototype of a product/service based on consumers' new desires.\\nThe production department would then start to manufacture the product, while the marketing department would focus on the promotion, distribution, pricing, etc. of the product. Additionally, a firm's finance department would be consulted, with respect to securing appropriate funding for the development, production and promotion of the product. Inter-departmental conflicts may occur, should a firm adhere to the marketing orientation. Production may oppose the installation, support and servicing of new capital stock, which may be needed to manufacture a new product. Finance may oppose the required capital expenditure, since it could undermine a healthy cash flow for the organization.\\n3. Mutually beneficial exchange: In a transaction in the market economy, a firm gains revenue, which thus leads to more profits/market share/sales. A consumer on the other hand gains the satisfaction of a need/want, utility, reliability and value for money from the purchase of a product or service. As no-one has to buy goods from any one supplier in the market economy, firms must entice consumers to buy goods with contemporary marketing ideals.\\n\\n### Societal marketing\\n\\nA number of scholars and practitioners have argued that marketers have a greater social responsibility than simply satisfying customers and providing them with superior value. Instead, marketing activities should strive to benefit society's overall well-being. Marketing organisations that have embraced the societal marketing concept typically identify key stakeholder groups such as employees, customers, and local communities. They should consider the impact of their activities on all stakeholders. Companies that adopt a societal marketing perspective typically practice triple bottom line reporting whereby they publish social impact and environmental impact reports alongside financial performance reports. Sustainable marketing or green marketing is an extension of societal marketing."}	\N	{"type": "Note"}	\N
+246ded7f-ae61-db00-0beb-c341f9e67fd0	{"name": "Julius", "type": "User", "revision": 0, "isImplicit": false}	restricted	{"type": "Message"}	\N
+24863647-eb7e-4001-3b8f-fa6f01e7c5a4	{"type": "Markdown", "content": ":female-teacher: Coaching"}	\N	{"type": "Project"}	{"{\\"type\\": \\"Kanban\\"}","{\\"type\\": \\"Table\\", \\"roles\\": [{\\"type\\": \\"Task\\"}]}"}
+24863668-cefd-4402-3b8f-fba0c2e12b07	{"type": "Markdown", "content": "Preparations"}	\N	{"type": "Stage"}	\N
+2486366b-81c4-b803-3b8f-fbf01cb3a48c	{"type": "Markdown", "content": "1. Milestone"}	\N	{"type": "Stage"}	\N
+2486366d-624f-7804-3b8f-fc381526b2b7	{"type": "Markdown", "content": "2. Milestone"}	\N	{"type": "Stage"}	\N
+2486367b-4e54-8805-3b8f-fbf70cec222b	{"type": "Markdown", "content": "Follow-Up"}	\N	{"type": "Stage"}	\N
+2486369e-9e86-c401-3b8f-fc6936eb8e7f	{"type": "Markdown", "content": "Template in: :female-teacher: ..."}	\N	{"type": "Task"}	\N
+248636a5-4472-2c03-3b8f-fc07066fd8f4	{"type": "Placeholder", "targetType": {"data": "Markdown", "type": "Data"}}	\N	{"type": "Neutral"}	\N
+248636aa-e612-6c05-3b8f-facf368bb5b3	{"type": "Placeholder", "targetType": {"data": "Markdown", "type": "Data"}}	\N	{"type": "Neutral"}	\N
+248636b8-6dfa-9407-3b8f-fc6043c9cda0	{"type": "Markdown", "content": "Julius Elias"}	\N	{"type": "Neutral"}	\N
+248636bd-796f-7809-3b8f-fab82bfc00b1	{"type": "Markdown", "content": "Johannes Karoff"}	\N	{"type": "Neutral"}	\N
+248636c0-f470-bc0b-3b8f-fbbb57fbe5d0	{"type": "Markdown", "content": "Felix Dietze"}	\N	{"type": "Neutral"}	\N
+248636d7-3ee0-640d-3b8f-f9edf5d3da5f	{"type": "Decimal", "content": 52070.0}	\N	{"type": "Neutral"}	\N
+248636db-dc35-7c0f-3b8f-fbf0b4fb2586	{"type": "Markdown", "content": "Aachen"}	\N	{"type": "Neutral"}	\N
+248636e2-3c0c-a811-3b8f-fa014b57c82c	{"type": "Markdown", "content": "Jülicher Str. 72a"}	\N	{"type": "Neutral"}	\N
+248636e9-320f-3013-3b8f-fbdab8af82da	{"type": "Markdown", "content": "Aix Coaching GmbH"}	\N	{"type": "Neutral"}	\N
+2486370c-9647-3415-3b8f-faa5729ab39d	{"type": "RelativeDate", "content": 604800000}	\N	{"type": "Neutral"}	\N
+24863712-ce12-d017-3b8f-fa37f03b1a8b	{"type": "RelativeDate", "content": 3628800000}	\N	{"type": "Neutral"}	\N
+2486371c-9ee8-5c19-3b8f-fc6f78fa1860	{"type": "Placeholder", "targetType": {"data": "Markdown", "type": "Data"}}	\N	{"type": "Neutral"}	\N
+24863727-f62e-a41b-3b8f-fbbcdfa0f2b9	{"type": "Placeholder", "targetType": {"data": "Markdown", "type": "Data"}}	\N	{"type": "Neutral"}	\N
+24863752-285d-a001-3b8f-fa9ebaf39ffb	{"type": "Markdown", "content": "Establish contact with the customer and define participants"}	\N	{"type": "Task"}	\N
+248637b8-f80d-1402-3b8f-fa22725f5717	{"type": "Markdown", "content": "Get in touch with the contact person"}	\N	{"type": "Task"}	\N
+248637b6-9f5f-a401-3b8f-fb73ff1772f6	{"type": "Markdown", "content": "Coach-Template in: Preparations"}	\N	{"type": "Task"}	\N
+24967f48-0844-d301-40f7-5e9b17a8bfaa	{"type": "Markdown", "content": "Woostspace ${woost.original}"}	\N	{"type": "Task"}	{"{\\"type\\": \\"Chat\\"}","{\\"type\\": \\"Kanban\\"}","{\\"type\\": \\"Content\\"}"}
+24968076-2733-c002-40f7-5dca082531b7	{"type": "Markdown", "content": "Hey ${woost.parent.reverseField.field.Contact} :wave:\\n\\nI am ${woost.parent.reverseField.assignee}, your coach for the next 5 weeks. I created a Kanban Board for you and added your tasks for the next week.\\n\\nI added all relevant information into the notes tab.\\n\\nFeel free to ask any question.\\n\\nCheers\\n${woost.parent.reverseField.assignee}"}	\N	{"type": "Message"}	\N
+24968088-8f6a-bd03-40f7-5f253eb058b1	{"type": "Markdown", "content": "Your first task: Create a profile of your business"}	\N	{"type": "Task"}	\N
+2496808c-6b6e-6a04-40f7-5dbcab4f00b4	{"type": "Markdown", "content": "What are your goals?"}	\N	{"type": "Task"}	\N
+24968099-41bc-e405-40f7-5e0375178840	{"type": "Markdown", "content": "What is your target group?"}	\N	{"type": "Task"}	\N
+249680a0-aa13-a206-40f7-5fb8f56744d4	{"type": "Markdown", "content": "What is your philosophy?"}	\N	{"type": "Task"}	\N
+2496806b-918b-c601-40f7-5ee2611b4bbd	{"type": "Markdown", "content": "<div> <img style=\\"width: 100%;\\" src=https://woost.space/wp-content/uploads/2019/06/Woost_Website_backdrop_video_NEW_4.png> </div> <div style=\\"padding: 10px 80px; width: 100%;\\"> <img style=\\"position: relative; margin-top: -80px;\\" src=https://woost.space/wp-content/uploads/2019/03/cropped-logo_large-192x192.png> </div> <div style=\\"padding: 10px 80px; width: 100%; color: rgb(55, 53, 47); font-size: 16px; font-family: Lato, Dejavu Sans, Helvetica;\\"> <div style=\\"padding: 20px 0px;\\"> <h1>Coaching by <span style=\\"font-weight: bold; color: #6636b7;\\">${woost.parent.reverseField.parent.field.Company}</span></h1> <div style=\\"display: flex;\\"> <div style=\\"display: flex; width: 200px; color: rgba(55, 53, 47, 0.6);\\"> <div style=\\"flex-shrink: 0; margin-right: 10px; height: 16px; fill: rgba(55, 53, 47, 0.4);\\">:paperclip:</div> <div>Logo</div> </div> <div style=\\"width: 100%;\\"> <img src=https://woost.space/wp-content/uploads/2019/03/cropped-logo_large-192x192.png style=\\"max-height: 24px;\\"> </div> </div> <div style=\\"display: flex;\\"> <div style=\\"display: flex; width: 200px; color: rgba(55, 53, 47, 0.6);\\"> <div style=\\"flex-shrink: 0; margin-right: 10px; height: 16px; color: rgba(55, 53, 47, 0.4);\\">:calendar:</div> <div>Timeslot</div> </div> <div style=\\"width: 100%;\\"><span style=\\"font-weight: bold; color: #6636b7;\\">${woost.parent.reverseField.field.StartingTime}</span> - <span style=\\"font-weight: bold; color: #6636b7;\\">${woost.parent.reverseField.field.EndTime}</span></div> </div> </div> <hr style=\\"border: 0; height: 1px; background-image: linear-gradient(to right, rgba(0,0,0,0), rgba(55, 53, 47, 0.2), rgba(0,0,0,0));\\"> <div style=\\"display: flex; flex-wrap: wrap; padding: 80px 0px 20px;\\"> <div style=\\"width: 50%; min-width: 240px; background: rgba(235, 236, 237, 0.3); padding: 20px; margin-right: 50px; display: flex;\\"> <div style=\\"margin-right: 10px\\">:wave:</div> <div style=\\"width: 100%; padding-right: 10px;\\"> <p>Hello <span style=\\"font-weight: bold; color: #6636b7;\\">${woost.parent.reverseField}</span> and Welcome to our coaching! I am <span style=\\"font-weight: bold; color: #6636b7;\\">${woost.parent.reverseField.assignee}</span> from <span style=\\"font-weight: bold; color: #6636b7;\\">${woost.parent.reverseField.parent.field.Company}</span> and will be your contact person for the coaching in the next weeks.</p> <p>This information page should give you a clear idea of what to expect in coaching. We have tried to make the information page short and precise without leaving any questions unanswered. Please take a look at every page so that we are all on the same information level. :tada:</p> <p>In case there is still something unclear after reading the information page, please write me a chat message and ping me (@${woost.parent.reverseField.assignee}) or contact me under <a href=mailto:${woost.parent.reverseField.assignee}@aixcoaching.de><span style=\\"font-weight: bold; color: #6636b7;\\">${woost.parent.reverseField.assignee}</span>@aixcoaching.de</a>.</p> </div> </div> <div style=\\"width: 40%; padding: 20px; margin-left: 50px; display: flex; flex-direction: column; align-items: center;\\"> <img style=\\"width: 150px\\" src=https://woost.space/wp-content/uploads/2019/04/Julius_quadrat-300x300.png> <img style=\\"width: 150px\\" src=https://woost.space/wp-content/uploads/2019/04/Johannes_quadrat-300x300.png> <img style=\\"width: 150px\\" src=https://woost.space/wp-content/uploads/2019/04/Felix_quadrat-300x300.png> </div> </div> <div style=\\"padding: 80px 0px 20px;\\"> <h2>Contents</h2> <div style=\\"background: rgba(235, 236, 237, 0.3); margin: 10px 0 10px; padding: 20px; display: flex;\\"> <div style=\\"margin-right: 10px\\">:bulb:</div> <div> <p>In each of the following 4 content points is a hidden small subpage. For a better understanding it is recommended to look at the pages one after another. :wink:</p> </div> </div> <hr style=\\"border: 0; height: 1px; background-image: linear-gradient(to right, rgba(0,0,0,0), rgba(55, 53, 47, 0.2), rgba(0,0,0,0));\\"> <div style=\\"padding-top: 20px;\\"> <div style=\\"display: flex; line-height: 1.5;\\"> <div style=\\"flex-shrink: 0; margin-right: 10px; height: 20px; color: rgba(55, 53, 47, 0.8);\\">:page_facing_up:</div> <div>1. Overview of the 5 weeks.</div> </div> <div style=\\"display: flex; line-height: 1.5;\\"> <div style=\\"flex-shrink: 0; margin-right: 10px; height: 20px; color: rgba(55, 53, 47, 0.8);\\">:page_facing_up:</div> <div>2. What do we coach?</div> </div> <div style=\\"display: flex; line-height: 1.5;\\"> <div style=\\"flex-shrink: 0; margin-right: 10px; height: 20px; color: rgba(55, 53, 47, 0.8);\\">:page_facing_up:</div> <div>3. The workshop weeks</div> </div> <div style=\\"display: flex; line-height: 1.5;\\"> <div style=\\"flex-shrink: 0; margin-right: 10px; height: 20px; color: rgba(55, 53, 47, 0.8);\\">:page_facing_up:</div> <div>4. Further interesting information about the coaching</div> </div> </div> </div> <div style=\\"padding: 80px 0px 20px;\\"> <h2>In a Nutshell</h2> <p style=\\"color: rgba(55, 53, 47, 0.6)\\">Here you will find all logistical and organizational information at a glance</p> <hr style=\\"border: 0; height: 1px; background-image: linear-gradient(to right, rgba(0,0,0,0), rgba(55, 53, 47, 0.2), rgba(0,0,0,0));\\"> <div style=\\"display: flex; padding-top: 20px; flex-wrap: wrap;\\"> <div style=\\"width: 30%; min-width: 200px; padding: 30px 20px;\\"> <div style=\\"display: flex;\\"> <div style=\\"margin-right: 10px;\\">:clock2:</div> <div><span style=\\"font-weight: bold;\\">Timespan</span></div> </div> <div style=\\"color: rgba(55, 53, 47, 0.6)\\"><span style=\\"font-weight: bold; color: #6636b7;\\">${woost.parent.reverseField.field.StartingTime}</span> - <span style=\\"font-weight: bold; color: #6636b7;\\">${woost.parent.reverseField.field.EndTime}</span></div> </div> <div style=\\"width: 30%; min-width: 200px; padding: 30px 20px;\\"> <div style=\\"display: flex;\\"> <div style=\\"margin-right: 10px;\\">:memo:</div> <div><span style=\\"font-weight: bold;\\">Challenge / Problem</span></div> </div> <div style=\\"color: rgba(55, 53, 47, 0.6)\\">TBA</div> </div> <div style=\\"width: 30%; min-width: 200px; padding: 30px 20px;\\"> <div style=\\"display: flex;\\"> <div style=\\"margin-right: 10px;\\">:bar_chart:</div> <div><span style=\\"font-weight: bold;\\">Results</div> </div> <div style=\\"color: rgba(55, 53, 47, 0.6)\\">The files & links are recorded here after the coaching</span></div> </div> </div> <div style=\\"display: flex; padding-top: 20px; flex-wrap: wrap;\\"> <div style=\\"width: 30%; min-width: 200px; padding: 30px 20px;\\"> <div style=\\"display: flex;\\"> <div style=\\"margin-right: 10px;\\">:man-woman-boy:</div> <div><span style=\\"font-weight: bold;\\">Participant of <span style=\\"font-weight: bold; color: #6636b7;\\">${woost.parent.reverseField.parent.field.Company}</span></span></div> </div> <div style=\\"color: rgba(55, 53, 47, 0.6)\\"> <ul> <li><span style=\\"font-weight: bold; color: #6636b7;\\">${woost.parent.reverseField.parent.field.Coach1}</span></li> <li><span style=\\"font-weight: bold; color: #6636b7;\\">${woost.parent.reverseField.parent.field.Coach2}</span></li> <li><span style=\\"font-weight: bold; color: #6636b7;\\">${woost.parent.reverseField.parent.field.Coach3}</span></li> </ul> </div> </div> <div style=\\"width: 30%; min-width: 200px; padding: 30px 20px;\\"> <div style=\\"display: flex;\\"> <div style=\\"margin-right: 10px;\\">:busts_in_silhouette:</div> <div><span style=\\"font-weight: bold;\\">Participant of <span style=\\"font-weight: bold; color: #6636b7;\\">${woost.parent.reverseField}</span></span></div> </div> <div style=\\"color: rgba(55, 53, 47, 0.6)\\"> <ul> ${woost.parent.reverseField.field.Participant.join(\\"\\", \\"<li><span style='font-weight: bold; color: #6636b7;'>\\", \\"</span></li>\\")} </ul> </div> </div> <div style=\\"width: 30%; min-width: 200px; padding: 30px 20px;\\"> <div style=\\"display: flex;\\"> <div style=\\"margin-right: 10px;\\">:round_pushpin:</div> <div><span style=\\"font-weight: bold;\\">Location</span></div> </div> <div style=\\"color: rgba(55, 53, 47, 0.6)\\"> <p><span style=\\"font-weight: bold; color: #6636b7;\\">${woost.parent.reverseField.parent.field.Company}</span> Office<br><span style=\\"font-weight: bold; color: #6636b7;\\">${woost.parent.reverseField.parent.field.Street}</span><br><span style=\\"font-weight: bold; color: #6636b7;\\">${woost.parent.reverseField.parent.field.Zipcode}</span> <span style=\\"font-weight: bold; color: #6636b7;\\">${woost.parent.reverseField.parent.field.City}</span></p> </div> </div> </div> </div> <div style=\\"padding: 80px 0px 20px;\\"> <hr style=\\"border: 0; height: 1px; background-image: linear-gradient(to right, rgba(0,0,0,0), rgba(55, 53, 47, 0.2), rgba(0,0,0,0));\\"> All right's reserved <span style=\\"font-weight: bold; color: #6636b7;\\">${woost.parent.reverseField.parent.field.Company}</span> :copyright: 2019 </div> </div>"}	\N	{"type": "Note"}	\N
+249685c5-7515-3601-40f7-5ec64de10d32	{"type": "Markdown", "content": "Team-Template in: 1. Milestone"}	\N	{"type": "Task"}	\N
+249685c9-c8a1-cd02-40f7-5f83d28f8f56	{"type": "Markdown", "content": "Coach-Template in: 1. Milestone"}	\N	{"type": "Task"}	\N
+249685d9-6cbf-8903-40f7-5fb6bdaf3f18	{"type": "Markdown", "content": "Your task in 1. Milestone"}	\N	{"type": "Task"}	\N
+24968601-7f9e-7204-40f7-5f405dbf156d	{"type": "Markdown", "content": "Introductory presentation"}	\N	{"type": "Task"}	\N
+2496862c-1938-1705-40f7-5daf0c6ac12d	{"type": "Markdown", "content": "Conduct first training"}	\N	{"type": "Task"}	\N
+24968643-a09c-dd08-40f7-5ef427b90d8e	{"type": "Markdown", "content": "Another task for the 2. MS"}	\N	{"type": "Task"}	\N
+24968659-8cd7-b809-40f7-5e2282a1e8c8	{"type": "Markdown", "content": "Summarize result of MS 1"}	\N	{"type": "Task"}	\N
+24968661-898c-800a-40f7-5e4520a9d682	{"type": "Markdown", "content": "Coach-Template in: Follow-Up"}	\N	{"type": "Task"}	\N
+2496866a-d26d-fe0b-40f7-5e51214673c0	{"type": "Markdown", "content": "Final report"}	\N	{"type": "Task"}	\N
+24968638-b810-2707-40f7-5fab06610122	{"type": "Markdown", "content": "Coach-Template in: 2. Milestone"}	\N	{"type": "Task"}	\N
+24968638-02c2-3406-40f7-5f8a93a276a7	{"type": "Markdown", "content": "Team-Template in: 2. Milestone"}	\N	{"type": "Task"}	{"{\\"type\\": \\"List\\"}","{\\"type\\": \\"Chat\\"}"}
+249686d4-8df5-6001-40f7-5d850ed01e08	{"type": "Markdown", "content": "Hey,\\nyou will shortly receive a summary of your results of the 1st Milestone :wink:"}	\N	{"type": "Message"}	\N
+249686db-0e09-0e02-40f7-5fc2f4420462	{"type": "Markdown", "content": "Doing"}	\N	{"type": "Stage"}	\N
+249686dd-a3e1-c103-40f7-5ee4ffff2ed1	{"type": "Markdown", "content": "Done"}	\N	{"type": "Stage"}	\N
+249690da-9042-4601-1520-bce0362f57d0	{"name": "Daniel", "type": "User", "revision": 0, "imageFile": null, "isImplicit": false}	restricted	{"type": "Message"}	\N
 \.
 
 
@@ -2412,6 +2664,371 @@ COPY public.node_can_access_mat (nodeid, userid, complete) FROM stdin;
 246f7092-6b17-9b02-3f11-47fed8991d27	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
 246f7092-6b17-9b02-3f11-47fed8991d27	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
 246f7092-6b17-9b02-3f11-47fed8991d27	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246ded7f-ae61-db00-0beb-c341f9e67fd0	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246df063-4821-c501-0beb-c30c29953475	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246df08d-6316-d903-0beb-c32b118ae54f	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246df08d-6316-d903-0beb-c32b118ae54f	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246df09c-af4e-6705-0beb-c37d90e281e1	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246df09c-af4e-6705-0beb-c37d90e281e1	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246df0bf-eb61-3a06-0beb-c42d83cf6eb6	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246df0bf-eb61-3a06-0beb-c42d83cf6eb6	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246df0c5-a8ef-f108-0beb-c31717c4359a	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246df0c5-a8ef-f108-0beb-c31717c4359a	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246df0e9-03d8-780c-0beb-c51f81463c9d	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
+246df0e9-03d8-780c-0beb-c51f81463c9d	246dedc6-243a-0a00-0beb-c4d86329b3b4	t
+246df0e9-03d8-780c-0beb-c51f81463c9d	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246df0e9-03d8-780c-0beb-c51f81463c9d	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
+246df0e9-03d8-780c-0beb-c51f81463c9d	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246df0e9-ed9b-f70d-0beb-c3962616de23	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246df0e9-ed9b-f70d-0beb-c3962616de23	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
+246df0e9-ed9b-f70d-0beb-c3962616de23	246dedc6-243a-0a00-0beb-c4d86329b3b4	t
+246df0e9-ed9b-f70d-0beb-c3962616de23	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246df0e9-ed9b-f70d-0beb-c3962616de23	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
+246df0ec-3945-a50e-0beb-c4518b8ef3b9	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246df0ec-3945-a50e-0beb-c4518b8ef3b9	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246df0ec-3945-a50e-0beb-c4518b8ef3b9	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
+246df0ec-3945-a50e-0beb-c4518b8ef3b9	246dedc6-243a-0a00-0beb-c4d86329b3b4	t
+246df0ec-3945-a50e-0beb-c4518b8ef3b9	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
+246df0fd-9ab0-c112-0beb-c2daba94f8cd	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246df0fd-9ab0-c112-0beb-c2daba94f8cd	246dedca-929b-2d00-0beb-c3cb96965ce3	t
+246df0fd-9ab0-c112-0beb-c2daba94f8cd	246dedcb-974c-d900-0beb-c4e3a7d0dff6	t
+246e592c-6ced-e702-3f11-23a4149259fc	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e592c-6ced-e702-3f11-23a4149259fc	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e593e-835a-1303-3f11-2403b117bcf7	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e593e-835a-1303-3f11-2403b117bcf7	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e5a2c-7aa9-4d0c-3f11-260b798c2e30	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e5a2c-7aa9-4d0c-3f11-260b798c2e30	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
+246e5a2c-7aa9-4d0c-3f11-260b798c2e30	246dedc6-243a-0a00-0beb-c4d86329b3b4	t
+246e5a2c-7aa9-4d0c-3f11-260b798c2e30	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5a2c-7aa9-4d0c-3f11-260b798c2e30	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
+246e59e1-851e-2e02-3f11-23cc61231036	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e59e1-851e-2e02-3f11-23cc61231036	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e59e1-851e-2e02-3f11-23cc61231036	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
+246e59e1-851e-2e02-3f11-23cc61231036	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
+246e59e1-851e-2e02-3f11-23cc61231036	246dedc6-243a-0a00-0beb-c4d86329b3b4	t
+246e59e2-824d-af03-3f11-23a005bd4630	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
+246e59e2-824d-af03-3f11-23a005bd4630	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e59e2-824d-af03-3f11-23a005bd4630	246dedc6-243a-0a00-0beb-c4d86329b3b4	t
+246e59e2-824d-af03-3f11-23a005bd4630	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
+246e59e2-824d-af03-3f11-23a005bd4630	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e59f1-cc84-a905-3f11-255b12ce45d4	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e59f1-cc84-a905-3f11-255b12ce45d4	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
+246e59f1-cc84-a905-3f11-255b12ce45d4	246dedc6-243a-0a00-0beb-c4d86329b3b4	t
+246e59f1-cc84-a905-3f11-255b12ce45d4	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e59f1-cc84-a905-3f11-255b12ce45d4	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
+246e59fc-6246-4406-3f11-259301538327	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
+246e59fc-6246-4406-3f11-259301538327	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e59fc-6246-4406-3f11-259301538327	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e59fc-6246-4406-3f11-259301538327	246dedc6-243a-0a00-0beb-c4d86329b3b4	t
+246e59fc-6246-4406-3f11-259301538327	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
+246e5a18-a522-6f09-3f11-250bca87bdec	246dedc6-243a-0a00-0beb-c4d86329b3b4	t
+246e5a18-a522-6f09-3f11-250bca87bdec	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e5a18-a522-6f09-3f11-250bca87bdec	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
+246e5a18-a522-6f09-3f11-250bca87bdec	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5a18-a522-6f09-3f11-250bca87bdec	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
+246e5a1c-f2c6-eb0a-3f11-23979f076ced	246dedc6-243a-0a00-0beb-c4d86329b3b4	t
+246e5a1c-f2c6-eb0a-3f11-23979f076ced	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
+246e5a1c-f2c6-eb0a-3f11-23979f076ced	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5a1c-f2c6-eb0a-3f11-23979f076ced	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e5a1c-f2c6-eb0a-3f11-23979f076ced	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
+246e5a2d-7070-440d-3f11-2391a98a7349	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e5a2d-7070-440d-3f11-2391a98a7349	246dedc6-243a-0a00-0beb-c4d86329b3b4	t
+246e5a2d-7070-440d-3f11-2391a98a7349	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5a2d-7070-440d-3f11-2391a98a7349	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
+246e5a2d-7070-440d-3f11-2391a98a7349	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
+246e5a2e-47c8-0b0e-3f11-246cc4033b70	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
+246e5a2e-47c8-0b0e-3f11-246cc4033b70	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
+246e5a2e-47c8-0b0e-3f11-246cc4033b70	246dedc6-243a-0a00-0beb-c4d86329b3b4	t
+246e5a2e-47c8-0b0e-3f11-246cc4033b70	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e5a2e-47c8-0b0e-3f11-246cc4033b70	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5a40-02cd-0611-3f11-243db530640f	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
+246e5a40-02cd-0611-3f11-243db530640f	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e5a40-02cd-0611-3f11-243db530640f	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
+246e5a40-02cd-0611-3f11-243db530640f	246dedc6-243a-0a00-0beb-c4d86329b3b4	t
+246e5a40-02cd-0611-3f11-243db530640f	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5a55-0c93-4b12-3f11-24b93a8e1e6c	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e5a55-0c93-4b12-3f11-24b93a8e1e6c	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
+246e5a55-0c93-4b12-3f11-24b93a8e1e6c	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5a55-0c93-4b12-3f11-24b93a8e1e6c	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
+246e5a55-0c93-4b12-3f11-24b93a8e1e6c	246dedc6-243a-0a00-0beb-c4d86329b3b4	t
+246e5aa8-28ac-1414-3f11-2406f6f2aac6	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5aa8-28ac-1414-3f11-2406f6f2aac6	246dedcb-974c-d900-0beb-c4e3a7d0dff6	t
+246e5aa8-28ac-1414-3f11-2406f6f2aac6	246dedca-929b-2d00-0beb-c3cb96965ce3	t
+246e5ac3-0955-2d17-3f11-2584d953ac42	246dedca-929b-2d00-0beb-c3cb96965ce3	t
+246e5ac3-0955-2d17-3f11-2584d953ac42	246dedcb-974c-d900-0beb-c4e3a7d0dff6	t
+246e5ac3-0955-2d17-3f11-2584d953ac42	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5ac3-7b29-3e18-3f11-23d89a57d139	246dedcb-974c-d900-0beb-c4e3a7d0dff6	t
+246e5ac3-7b29-3e18-3f11-23d89a57d139	246dedca-929b-2d00-0beb-c3cb96965ce3	t
+246e5ac3-7b29-3e18-3f11-23d89a57d139	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5ac6-32f2-2419-3f11-2400a6083c68	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5ac6-32f2-2419-3f11-2400a6083c68	246dedca-929b-2d00-0beb-c3cb96965ce3	t
+246e5ac6-32f2-2419-3f11-2400a6083c68	246dedcb-974c-d900-0beb-c4e3a7d0dff6	t
+246e5ac8-3339-411a-3f11-24d6eff5be62	246dedcb-974c-d900-0beb-c4e3a7d0dff6	t
+246e5ac8-3339-411a-3f11-24d6eff5be62	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5ac8-3339-411a-3f11-24d6eff5be62	246dedca-929b-2d00-0beb-c3cb96965ce3	t
+246e5adb-b1da-3b1d-3f11-261dea95c4f2	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5adb-b1da-3b1d-3f11-261dea95c4f2	246dedca-929b-2d00-0beb-c3cb96965ce3	t
+246e5adb-b1da-3b1d-3f11-261dea95c4f2	246dedcb-974c-d900-0beb-c4e3a7d0dff6	t
+246e5ae8-2b0d-d31f-3f11-260751da15f1	246dedca-929b-2d00-0beb-c3cb96965ce3	t
+246e5ae8-2b0d-d31f-3f11-260751da15f1	246dedcb-974c-d900-0beb-c4e3a7d0dff6	t
+246e5ae8-2b0d-d31f-3f11-260751da15f1	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5ad8-2c09-0b1c-3f11-25e0df1b2cbd	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5ad8-2c09-0b1c-3f11-25e0df1b2cbd	246dedcb-974c-d900-0beb-c4e3a7d0dff6	t
+246e5ad8-2c09-0b1c-3f11-25e0df1b2cbd	246dedca-929b-2d00-0beb-c3cb96965ce3	t
+246e5afd-bb2e-1622-3f11-25cafbc898ed	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5afd-bb2e-1622-3f11-25cafbc898ed	246dedcb-974c-d900-0beb-c4e3a7d0dff6	t
+246e5afd-bb2e-1622-3f11-25cafbc898ed	246dedca-929b-2d00-0beb-c3cb96965ce3	t
+246e5b08-68f6-a123-3f11-25f5adf1dced	246dedcb-974c-d900-0beb-c4e3a7d0dff6	t
+246e5b08-68f6-a123-3f11-25f5adf1dced	246dedca-929b-2d00-0beb-c3cb96965ce3	t
+246e5b08-68f6-a123-3f11-25f5adf1dced	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5b1e-e0f3-7024-3f11-24efbdc303f4	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5b1e-e0f3-7024-3f11-24efbdc303f4	246dedca-929b-2d00-0beb-c3cb96965ce3	t
+246e5b1e-e0f3-7024-3f11-24efbdc303f4	246dedcb-974c-d900-0beb-c4e3a7d0dff6	t
+246e5b33-19ca-2e27-3f11-25db2be6f6fd	246dedcb-974c-d900-0beb-c4e3a7d0dff6	t
+246e5b33-19ca-2e27-3f11-25db2be6f6fd	246dedca-929b-2d00-0beb-c3cb96965ce3	t
+246e5b33-19ca-2e27-3f11-25db2be6f6fd	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5b40-b0b6-ac28-3f11-24bbc9148469	246dedcb-974c-d900-0beb-c4e3a7d0dff6	t
+246e5b40-b0b6-ac28-3f11-24bbc9148469	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5b40-b0b6-ac28-3f11-24bbc9148469	246dedca-929b-2d00-0beb-c3cb96965ce3	t
+246e5b44-be95-8b29-3f11-24e0646555ce	246dedca-929b-2d00-0beb-c3cb96965ce3	t
+246e5b44-be95-8b29-3f11-24e0646555ce	246dedcb-974c-d900-0beb-c4e3a7d0dff6	t
+246e5b44-be95-8b29-3f11-24e0646555ce	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5b6f-0e80-502a-3f11-249340305022	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e5b6f-0e80-502a-3f11-249340305022	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5b7a-005c-832b-3f11-23f35d51bc74	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5b7a-005c-832b-3f11-23f35d51bc74	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e5b91-c051-9e02-3f11-26196575e75b	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5b91-c051-9e02-3f11-26196575e75b	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e5cbd-06ba-fe05-3f11-24643fd81dd2	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5cbd-06ba-fe05-3f11-24643fd81dd2	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e5ccb-5cab-7006-3f11-2608c9423927	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e5ccb-5cab-7006-3f11-2608c9423927	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5cf1-f5ea-1d08-3f11-254bbf0f7d7d	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5cf1-f5ea-1d08-3f11-254bbf0f7d7d	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e5d05-bb05-d709-3f11-23bf6f593df9	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e5d05-bb05-d709-3f11-23bf6f593df9	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5d0d-6723-5a0a-3f11-24ac972fb4a9	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5d0d-6723-5a0a-3f11-24ac972fb4a9	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e5d1f-7c8f-3c0c-3f11-24697d735ac2	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e5d1f-7c8f-3c0c-3f11-24697d735ac2	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5d3a-b785-9b0e-3f11-2424adf15a20	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e5d3a-b785-9b0e-3f11-2424adf15a20	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5d62-32b8-b90f-3f11-24715d4a6f48	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e5d62-32b8-b90f-3f11-24715d4a6f48	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5d62-cfe6-1b10-3f11-24a4ed39a889	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5d62-cfe6-1b10-3f11-24a4ed39a889	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e5d65-a21d-0911-3f11-248b41f6cd32	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e5d65-a21d-0911-3f11-248b41f6cd32	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5d93-e077-3312-3f11-23efb628d24f	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5d93-e077-3312-3f11-23efb628d24f	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e5dbb-fdbf-8414-3f11-26088435221f	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e5dbb-fdbf-8414-3f11-26088435221f	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e5bae-0514-bc04-3f11-257ec75b65c1	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e5bae-0514-bc04-3f11-257ec75b65c1	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e6077-a142-6301-3f11-2399ab4d19b5	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e6077-a142-6301-3f11-2399ab4d19b5	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e608f-5b4f-6302-3f11-24cf9a89be03	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e608f-5b4f-6302-3f11-24cf9a89be03	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e6122-eab7-5305-3f11-24df71c6e1c2	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e6122-eab7-5305-3f11-24df71c6e1c2	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e6122-eab7-5306-3f11-254480b90c6e	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e6122-eab7-5306-3f11-254480b90c6e	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e6122-ea9d-b204-3f11-2554ab0b95d3	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e6122-ea9d-b204-3f11-2554ab0b95d3	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e6122-ea84-1102-3f11-252e6f15e681	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e6122-ea84-1102-3f11-252e6f15e681	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e6122-ea84-1101-3f11-25d4add70289	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e6122-ea84-1101-3f11-25d4add70289	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e617e-84c3-cf05-3f11-256a564f317c	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e617e-84c3-cf05-3f11-256a564f317c	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
+246e617e-84c3-cf05-3f11-256a564f317c	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e617e-84c3-cf05-3f11-256a564f317c	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
+246e617e-84c3-cf05-3f11-256a564f317c	246dedc6-243a-0a00-0beb-c4d86329b3b4	t
+246e617e-84c3-cf03-3f11-259494710bd2	246dedc6-243a-0a00-0beb-c4d86329b3b4	t
+246e617e-84c3-cf03-3f11-259494710bd2	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e617e-84c3-cf03-3f11-259494710bd2	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
+246e617e-84c3-cf03-3f11-259494710bd2	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
+246e617e-84c3-cf03-3f11-259494710bd2	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e617e-84c3-cf02-3f11-243871f5d777	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e617e-84c3-cf02-3f11-243871f5d777	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e617e-84c3-cf02-3f11-243871f5d777	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
+246e617e-84c3-cf02-3f11-243871f5d777	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
+246e617e-84c3-cf02-3f11-243871f5d777	246dedc6-243a-0a00-0beb-c4d86329b3b4	t
+246e617f-5fcf-db08-3f11-23e68e60bf48	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e617f-5fcf-db08-3f11-23e68e60bf48	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
+246e617f-5fcf-db08-3f11-23e68e60bf48	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e617f-5fcf-db08-3f11-23e68e60bf48	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
+246e617f-5fcf-db08-3f11-23e68e60bf48	246dedc6-243a-0a00-0beb-c4d86329b3b4	t
+246e617f-5fcf-db07-3f11-25529d531bf5	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e617f-5fcf-db07-3f11-25529d531bf5	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
+246e617f-5fcf-db07-3f11-25529d531bf5	246dedc6-243a-0a00-0beb-c4d86329b3b4	t
+246e617f-5fcf-db07-3f11-25529d531bf5	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e617f-5fcf-db07-3f11-25529d531bf5	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
+246e617f-5fcf-db0b-3f11-2408b71a2684	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
+246e617f-5fcf-db0b-3f11-2408b71a2684	246dedc6-243a-0a00-0beb-c4d86329b3b4	t
+246e617f-5fcf-db0b-3f11-2408b71a2684	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e617f-5fcf-db0b-3f11-2408b71a2684	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e617f-5fcf-db0b-3f11-2408b71a2684	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
+246e617f-5fcf-db0a-3f11-23ad06880e1f	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e617f-5fcf-db0a-3f11-23ad06880e1f	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
+246e617f-5fcf-db0a-3f11-23ad06880e1f	246dedc6-243a-0a00-0beb-c4d86329b3b4	t
+246e617f-5fcf-db0a-3f11-23ad06880e1f	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e617f-5fcf-db0a-3f11-23ad06880e1f	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
+246e617f-5fcf-db09-3f11-2502e35db6f2	246dedc6-243a-0a00-0beb-c4d86329b3b4	t
+246e617f-5fcf-db09-3f11-2502e35db6f2	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e617f-5fcf-db09-3f11-2502e35db6f2	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e617f-5fcf-db09-3f11-2502e35db6f2	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
+246e617f-5fcf-db09-3f11-2502e35db6f2	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
+246e617f-f82f-0d0c-3f11-25234559f1f6	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e617f-f82f-0d0c-3f11-25234559f1f6	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
+246e617f-f82f-0d0c-3f11-25234559f1f6	246dedc6-243a-0a00-0beb-c4d86329b3b4	t
+246e617f-f82f-0d0c-3f11-25234559f1f6	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e617f-f82f-0d0c-3f11-25234559f1f6	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
+246e617f-f82f-0d0d-3f11-23d0fad077c8	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e617f-f82f-0d0d-3f11-23d0fad077c8	246dedc6-243a-0a00-0beb-c4d86329b3b4	t
+246e617f-f82f-0d0d-3f11-23d0fad077c8	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
+246e617f-f82f-0d0d-3f11-23d0fad077c8	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
+246e617f-f82f-0d0d-3f11-23d0fad077c8	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e61a5-5044-3213-3f11-26087a823003	246dedca-929b-2d00-0beb-c3cb96965ce3	t
+246e61a5-5044-3213-3f11-26087a823003	246dedcb-974c-d900-0beb-c4e3a7d0dff6	t
+246e61a5-5044-3213-3f11-26087a823003	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e61a5-5044-3212-3f11-25a04fd48f11	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e61a5-5044-3212-3f11-25a04fd48f11	246dedca-929b-2d00-0beb-c3cb96965ce3	t
+246e61a5-5044-3212-3f11-25a04fd48f11	246dedcb-974c-d900-0beb-c4e3a7d0dff6	t
+246e61a5-5044-3211-3f11-2521cff85b61	246dedcb-974c-d900-0beb-c4e3a7d0dff6	t
+246e61a5-5044-3211-3f11-2521cff85b61	246dedca-929b-2d00-0beb-c3cb96965ce3	t
+246e61a5-5044-3211-3f11-2521cff85b61	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e61a5-5044-3210-3f11-247569b3c4da	246dedcb-974c-d900-0beb-c4e3a7d0dff6	t
+246e61a5-5044-3210-3f11-247569b3c4da	246dedca-929b-2d00-0beb-c3cb96965ce3	t
+246e61a5-5044-3210-3f11-247569b3c4da	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e61a5-502a-910f-3f11-2423d7ac2bd1	246dedca-929b-2d00-0beb-c3cb96965ce3	t
+246e61a5-502a-910f-3f11-2423d7ac2bd1	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e61a5-502a-910f-3f11-2423d7ac2bd1	246dedcb-974c-d900-0beb-c4e3a7d0dff6	t
+246e61b1-ca5e-7317-3f11-24f6fd78d1d1	246dedca-929b-2d00-0beb-c3cb96965ce3	t
+246e61b1-ca5e-7317-3f11-24f6fd78d1d1	246dedcb-974c-d900-0beb-c4e3a7d0dff6	t
+246e61b1-ca5e-7317-3f11-24f6fd78d1d1	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e61b1-ca5e-7318-3f11-23d6d1b63629	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e61b1-ca5e-7318-3f11-23d6d1b63629	246dedca-929b-2d00-0beb-c3cb96965ce3	t
+246e61b1-ca5e-7318-3f11-23d6d1b63629	246dedcb-974c-d900-0beb-c4e3a7d0dff6	t
+246e61b1-ca5e-7316-3f11-240f0836267b	246dedca-929b-2d00-0beb-c3cb96965ce3	t
+246e61b1-ca5e-7316-3f11-240f0836267b	246dedcb-974c-d900-0beb-c4e3a7d0dff6	t
+246e61b1-ca5e-7316-3f11-240f0836267b	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e61b4-c253-7a1b-3f11-24550f613706	246dedcb-974c-d900-0beb-c4e3a7d0dff6	t
+246e61b4-c253-7a1b-3f11-24550f613706	246dedca-929b-2d00-0beb-c3cb96965ce3	t
+246e61b4-c253-7a1b-3f11-24550f613706	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e61b4-c253-7a1a-3f11-251679c00cf7	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e61b4-c253-7a1a-3f11-251679c00cf7	246dedcb-974c-d900-0beb-c4e3a7d0dff6	t
+246e61b4-c253-7a1a-3f11-251679c00cf7	246dedca-929b-2d00-0beb-c3cb96965ce3	t
+246e61b4-c253-7a19-3f11-24a0f85e1a3d	246dedcb-974c-d900-0beb-c4e3a7d0dff6	t
+246e61b4-c253-7a19-3f11-24a0f85e1a3d	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e61b4-c253-7a19-3f11-24a0f85e1a3d	246dedca-929b-2d00-0beb-c3cb96965ce3	t
+246e6596-b6d1-3101-3f11-24a80f73c202	246dedc6-243a-0a00-0beb-c4d86329b3b4	t
+246e6596-b6d1-3101-3f11-24a80f73c202	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
+246e6596-b6d1-3101-3f11-24a80f73c202	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e6596-b6d1-3101-3f11-24a80f73c202	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e6596-b6d1-3101-3f11-24a80f73c202	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
+246e6598-bc99-e502-3f11-23e4066f9d5c	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246e6598-bc99-e502-3f11-23e4066f9d5c	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
+246e6598-bc99-e502-3f11-23e4066f9d5c	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e6598-bc99-e502-3f11-23e4066f9d5c	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
+246e6598-bc99-e502-3f11-23e4066f9d5c	246dedc6-243a-0a00-0beb-c4d86329b3b4	t
+246e65a2-092f-a803-3f11-25841a2243a6	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
+246e65a2-092f-a803-3f11-25841a2243a6	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
+246e65a2-092f-a803-3f11-25841a2243a6	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246e65a2-092f-a803-3f11-25841a2243a6	246dedc6-243a-0a00-0beb-c4d86329b3b4	t
+246e65a2-092f-a803-3f11-25841a2243a6	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246f7093-9d89-b003-3f11-4836856dae24	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246f7093-9d89-b003-3f11-4836856dae24	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246f7093-9d89-b003-3f11-4836856dae24	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
+246f7093-9d89-b003-3f11-4836856dae24	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
+246f7093-9d89-b003-3f11-4836856dae24	246dedc6-243a-0a00-0beb-c4d86329b3b4	t
+246f7094-b3f3-ad04-3f11-4922ede189a3	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
+246f7094-b3f3-ad04-3f11-4922ede189a3	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246f7094-b3f3-ad04-3f11-4922ede189a3	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
+246f7094-b3f3-ad04-3f11-4922ede189a3	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246f7094-b3f3-ad04-3f11-4922ede189a3	246dedc6-243a-0a00-0beb-c4d86329b3b4	t
+246f70a0-5bea-db05-3f11-49cad99286bd	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246f70a0-5bea-db05-3f11-49cad99286bd	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
+246f70a0-5bea-db05-3f11-49cad99286bd	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246f70a0-5bea-db05-3f11-49cad99286bd	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
+246f70a0-5bea-db05-3f11-49cad99286bd	246dedc6-243a-0a00-0beb-c4d86329b3b4	t
+246f70ed-2549-db06-3f11-48b8a016a56b	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246f70ed-2549-db06-3f11-48b8a016a56b	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
+246f70ed-2549-db06-3f11-48b8a016a56b	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
+246f70ed-2549-db06-3f11-48b8a016a56b	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246f70ed-2549-db06-3f11-48b8a016a56b	246dedc6-243a-0a00-0beb-c4d86329b3b4	t
+246f70f1-9029-fb07-3f11-4991f55b98b6	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246f70f1-9029-fb07-3f11-4991f55b98b6	246dedc6-243a-0a00-0beb-c4d86329b3b4	t
+246f70f1-9029-fb07-3f11-4991f55b98b6	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246f70f1-9029-fb07-3f11-4991f55b98b6	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
+246f70f1-9029-fb07-3f11-4991f55b98b6	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
+246f70fd-07f9-a808-3f11-47854803fecc	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246f70fd-07f9-a808-3f11-47854803fecc	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
+246f70fd-07f9-a808-3f11-47854803fecc	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246f70fd-07f9-a808-3f11-47854803fecc	246dedc6-243a-0a00-0beb-c4d86329b3b4	t
+246f70fd-07f9-a808-3f11-47854803fecc	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
+246f70ff-74f9-c309-3f11-48dc20ca1c68	246dedd2-3468-e900-0beb-c4797c30fedf	t
+246f70ff-74f9-c309-3f11-48dc20ca1c68	246dedcd-cd3d-0e00-0beb-c4d2e6f4f6be	t
+246f70ff-74f9-c309-3f11-48dc20ca1c68	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246f70ff-74f9-c309-3f11-48dc20ca1c68	246dedc6-243a-0a00-0beb-c4d86329b3b4	t
+246f70ff-74f9-c309-3f11-48dc20ca1c68	246dedcc-c055-d000-0beb-c4dbf20d81d0	t
+246fed72-54b1-cc01-3f11-480f760fe40e	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+246fed72-54b1-cc01-3f11-480f760fe40e	246dedca-929b-2d00-0beb-c3cb96965ce3	t
+246fed72-54b1-cc01-3f11-480f760fe40e	246dedcb-974c-d900-0beb-c4e3a7d0dff6	t
+246e6122-ea9d-b203-3f11-24f80f6490c6	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+24863647-eb7e-4001-3b8f-fa6f01e7c5a4	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+24863668-cefd-4402-3b8f-fba0c2e12b07	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+2486366b-81c4-b803-3b8f-fbf01cb3a48c	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+2486366d-624f-7804-3b8f-fc381526b2b7	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+2486367b-4e54-8805-3b8f-fbf70cec222b	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+2486369e-9e86-c401-3b8f-fc6936eb8e7f	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+248636a5-4472-2c03-3b8f-fc07066fd8f4	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+248636aa-e612-6c05-3b8f-facf368bb5b3	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+248636b8-6dfa-9407-3b8f-fc6043c9cda0	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+248636bd-796f-7809-3b8f-fab82bfc00b1	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+248636c0-f470-bc0b-3b8f-fbbb57fbe5d0	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+248636d7-3ee0-640d-3b8f-f9edf5d3da5f	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+248636db-dc35-7c0f-3b8f-fbf0b4fb2586	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+248636e2-3c0c-a811-3b8f-fa014b57c82c	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+248636e9-320f-3013-3b8f-fbdab8af82da	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+2486370c-9647-3415-3b8f-faa5729ab39d	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+24863712-ce12-d017-3b8f-fa37f03b1a8b	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+2486371c-9ee8-5c19-3b8f-fc6f78fa1860	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+24863727-f62e-a41b-3b8f-fbbcdfa0f2b9	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+24863752-285d-a001-3b8f-fa9ebaf39ffb	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+248637b6-9f5f-a401-3b8f-fb73ff1772f6	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+248637b8-f80d-1402-3b8f-fa22725f5717	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+249685c5-7515-3601-40f7-5ec64de10d32	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+249685c9-c8a1-cd02-40f7-5f83d28f8f56	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+249685d9-6cbf-8903-40f7-5fb6bdaf3f18	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+2496862c-1938-1705-40f7-5daf0c6ac12d	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+24968601-7f9e-7204-40f7-5f405dbf156d	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+24968661-898c-800a-40f7-5e4520a9d682	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+2496866a-d26d-fe0b-40f7-5e51214673c0	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+24968638-b810-2707-40f7-5fab06610122	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+24968659-8cd7-b809-40f7-5e2282a1e8c8	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+24968638-02c2-3406-40f7-5f8a93a276a7	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+249686d4-8df5-6001-40f7-5d850ed01e08	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+24968643-a09c-dd08-40f7-5ef427b90d8e	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+249690da-9042-4601-1520-bce0362f57d0	249690da-9042-4601-1520-bce0362f57d0	t
+24967f48-0844-d301-40f7-5e9b17a8bfaa	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+24967f48-0844-d301-40f7-5e9b17a8bfaa	249690da-9042-4601-1520-bce0362f57d0	t
+24968088-8f6a-bd03-40f7-5f253eb058b1	249690da-9042-4601-1520-bce0362f57d0	t
+24968088-8f6a-bd03-40f7-5f253eb058b1	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+2496806b-918b-c601-40f7-5ee2611b4bbd	249690da-9042-4601-1520-bce0362f57d0	t
+2496806b-918b-c601-40f7-5ee2611b4bbd	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+24968076-2733-c002-40f7-5dca082531b7	249690da-9042-4601-1520-bce0362f57d0	t
+24968076-2733-c002-40f7-5dca082531b7	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+2496808c-6b6e-6a04-40f7-5dbcab4f00b4	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+2496808c-6b6e-6a04-40f7-5dbcab4f00b4	249690da-9042-4601-1520-bce0362f57d0	t
+24968099-41bc-e405-40f7-5e0375178840	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+24968099-41bc-e405-40f7-5e0375178840	249690da-9042-4601-1520-bce0362f57d0	t
+249680a0-aa13-a206-40f7-5fb8f56744d4	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+249680a0-aa13-a206-40f7-5fb8f56744d4	249690da-9042-4601-1520-bce0362f57d0	t
+249686db-0e09-0e02-40f7-5fc2f4420462	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
+249686db-0e09-0e02-40f7-5fc2f4420462	249690da-9042-4601-1520-bce0362f57d0	t
+249686dd-a3e1-c103-40f7-5ee4ffff2ed1	249690da-9042-4601-1520-bce0362f57d0	t
+249686dd-a3e1-c103-40f7-5ee4ffff2ed1	246ded7f-ae61-db00-0beb-c341f9e67fd0	t
 \.
 
 
@@ -2439,6 +3056,7 @@ COPY public.password (userid, digest) FROM stdin;
 246dedd0-2236-3900-0beb-c3131fbba3b8	\\x24326124313024306c344571524b622f37364c496f5a737779342f7065587168754778476571423273743345383845583858326e424863302f377336
 246dedd1-194a-5d00-0beb-c5195068e4cc	\\x24326124313024422f79624c367379474a4d49316f36552e4a483556756965756134682e43585345342e42343878704935703052614d6253306e7875
 246dedd2-3468-e900-0beb-c4797c30fedf	\\x2432612431302438534567754a4f4d6e4253345959726d67624253612e3845764b314258304466615a746d304c7258684479706b6c455a78512e4532
+249690da-9042-4601-1520-bce0362f57d0	\\x2432612431302471664158395237387a6f64774a7475645967696a487569494f784c4c6e5a4d78366861475a75714f672e79527a6e494d4e45796b61
 \.
 
 
@@ -2447,6 +3065,34 @@ COPY public.password (userid, digest) FROM stdin;
 --
 
 COPY public.usedfeature (userid, feature, "timestamp") FROM stdin;
+246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "CreateProjectFromExpandedLeftSidebar"}	2019-08-28 11:59:18.707
+246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "CreateProjectFromWelcomeView"}	2019-08-28 12:00:16.007
+246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "SwitchPageFromExpandedLeftSidebar"}	2019-08-28 12:00:29.007
+246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "SwitchToKanbanInPageHeader"}	2019-08-28 12:00:46.507
+246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "FilterAutomationTemplates"}	2019-09-28 12:03:42.927
+246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "OpenTaskInRightSidebar"}	2019-09-28 12:03:54.551
+246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "EditTaskInRightSidebar"}	2019-09-28 12:04:03.664
+246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "CreateAutomationTemplate"}	2019-09-28 12:04:37.807
+246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "AddCustomFieldToTask"}	2019-09-28 12:05:31.544
+246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "SwitchToChatInRightSidebar"}	2019-09-28 12:05:42.338
+246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "AddChatView"}	2019-09-28 12:05:42.357
+246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "SwitchToKanbanInRightSidebar"}	2019-09-28 12:05:48.624
+246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "AddKanbanView"}	2019-09-28 12:05:48.634
+246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "AddNotesView"}	2019-09-28 12:05:56.774
+246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "CreateNoteInNotes"}	2019-09-28 12:17:03.345
+246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "CreateMessageInChat"}	2019-09-28 12:17:30.386
+246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "CreateTaskInKanban"}	2019-09-28 12:18:17.435
+246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "ExpandTaskInKanban"}	2019-09-28 12:18:20.834
+246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "CreateNestedTaskInKanban"}	2019-09-28 12:18:27.303
+246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "EditNote"}	2019-09-28 12:38:53.279
+246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "OpenLeftSidebar"}	2019-09-28 13:14:59.557
+246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "FilterDeleted"}	2019-09-28 13:15:02.43
+246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "CreateTaskInChecklist"}	2019-09-28 13:16:17.323
+246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "ReorderTaskInKanban"}	2019-09-28 13:19:51.648
+246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "CreateColumnInKanban"}	2019-09-28 13:27:16.112
+249690da-9042-4601-1520-bce0362f57d0	{"type": "Signup"}	2019-09-28 15:16:42.495
+249690da-9042-4601-1520-bce0362f57d0	{"type": "ClickSignupInAuthStatus"}	2019-09-28 15:16:34.382
+246ded7f-ae61-db00-0beb-c341f9e67fd0	{"type": "ZoomIntoTask"}	2019-09-28 15:17:43.697
 \.
 
 
@@ -2466,6 +3112,7 @@ COPY public.userdetail (userid, email, verified) FROM stdin;
 246dedd0-2236-3900-0beb-c3131fbba3b8	eva@localhost	t
 246dedd1-194a-5d00-0beb-c5195068e4cc	felix@localhost	t
 246dedd2-3468-e900-0beb-c4797c30fedf	sarah@localhost	t
+249690da-9042-4601-1520-bce0362f57d0	daniel@localhost	t
 \.
 
 
