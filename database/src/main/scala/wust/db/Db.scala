@@ -60,8 +60,8 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       }).flatMap(touched => checkUnexpected(touched.forall(_ == 1), s"Unexpected number of node inserts: ${touched.sum} / ${nodes.size} = ${nodes.zip(touched)}"))
     }
 
-    private val canAccess = quote { (nodeId: NodeId, userId: UserId) =>
-      infix"""node_can_access($nodeId, $userId)""".as[Boolean]
+    private val canAccess = quote { (nodeId: NodeId, userId: UserId, level: AccessLevel) =>
+      infix"""node_can_access($nodeId, $userId, $level)""".as[Boolean]
     }
 
     def resolveMentionedNodesWithAccess(mentionedNodeIds: scala.collection.Seq[NodeId], canAccessNodeId: NodeId)(implicit ec: ExecutionContext): Future[Seq[User]] = {
@@ -69,11 +69,11 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
         infix"""
           (
             select * from node
-            where node.id = ANY(${lift(mentionedNodeIds)} :: uuid[]) and node.data->>'type' = 'User' and node_can_access(${lift(canAccessNodeId)}, node.id)
+            where node.id = ANY(${lift(mentionedNodeIds)} :: uuid[]) and node.data->>'type' = 'User' and node_can_access(${lift(canAccessNodeId)}, node.id, 'read'::accesslevel)
           ) UNION ALL (
             select node.* from node as initial
             join edge on edge.sourceid = initial.id and edge.data->>'type' = 'Member'
-            join node on edge.targetid = node.id and node.data->>'type' = 'User' and node_can_access(${lift(canAccessNodeId)}, node.id)
+            join node on edge.targetid = node.id and node.data->>'type' = 'User' and node_can_access(${lift(canAccessNodeId)}, node.id, 'read'::accesslevel)
             where initial.id = ANY(${lift(mentionedNodeIds)} :: uuid[]) and initial.data->>'type' <> 'User'
           )
         """.as[Query[User]]
@@ -85,7 +85,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     def get(userId: UserId, nodeId: NodeId)(implicit ec: ExecutionContext): Future[Option[Node]] = {
       ctx.run {
         query[NodeRaw].filter(accessedNode =>
-          accessedNode.id == lift(nodeId) && canAccess(lift(nodeId), lift(userId))
+          accessedNode.id == lift(nodeId) && canAccess(lift(nodeId), lift(userId), lift(AccessLevel.Read: AccessLevel))
         ).take(1)
       }.map(_.headOption.map(_.toNode))
     }
@@ -107,7 +107,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       ctx.run(
         for {
           parentId <- query[Edge]
-            .filter(e => e.data.jsonType == lift(EdgeData.Child.tpe) && e.targetId == lift(nodeId) && canAccess(e.sourceId, lift(userId)))
+            .filter(e => e.data.jsonType == lift(EdgeData.Child.tpe) && e.targetId == lift(nodeId) && canAccess(e.sourceId, lift(userId), lift(AccessLevel.Read: AccessLevel)))
             .map(_.sourceId)
           node <- query[Node].filter(node => node.id == parentId && liftQuery(workspaceRoles).contains(node.role))
         } yield node.id
@@ -476,33 +476,33 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       canAccessNodeQuery(lift(nodeId), lift(userId))
     }
 
-    def allowedUsersForNode(nodeId: NodeId)(implicit ec: ExecutionContext): Future[Seq[UserId]] = ctx.run {
-      nodeCanAccessUsers(lift(nodeId))
-    }
-
-    def allowedUsersForNodes(nodeIds: scala.collection.Seq[NodeId])(implicit ec: ExecutionContext): Future[Seq[AllowedNodeAccess]] = ctx.run {
-      nodeCanAccessUsersMultiple(lift(nodeIds))
-    }
-
-    def inaccessibleNodes(userId: UserId, nodeIds: scala.collection.Seq[NodeId])(implicit ec: ExecutionContext): Future[Seq[NodeId]] = ctx.run {
-      inaccessibleNodesQuery(lift(userId), lift(nodeIds))
-    }
-
     private val canAccessNodeQuery = quote { (nodeId: NodeId, userId: UserId) =>
       // TODO why not as[Query[Boolean]] like other functions?
-      infix"select node_can_access($nodeId, $userId)".as[Boolean]
+      infix"select node_can_access($nodeId, $userId, 'read'::accesslevel)".as[Boolean]
     }
 
-    private val inaccessibleNodesQuery = quote { (userId: UserId, nodeIds: scala.collection.Seq[NodeId]) =>
-      infix"select * from inaccessible_nodes($nodeIds, $userId)".as[Query[NodeId]]
+    def allowedReadUsersForNode(nodeId: NodeId)(implicit ec: ExecutionContext): Future[Seq[UserId]] = ctx.run {
+      nodeCanReadUsers(lift(nodeId))
     }
 
-    private val nodeCanAccessUsers = quote { (nodeId: NodeId) =>
-      infix"select * from node_can_access_users($nodeId)".as[Query[UserId]]
+    def allowedReadUsersForNodes(nodeIds: scala.collection.Seq[NodeId])(implicit ec: ExecutionContext): Future[Seq[AllowedNodeAccess]] = ctx.run {
+      nodeCanReadUsersMultiple(lift(nodeIds))
     }
 
-    private val nodeCanAccessUsersMultiple = quote { (nodeIds: scala.collection.Seq[NodeId]) =>
-      infix"select * from node_can_access_users_multiple($nodeIds)".as[Query[AllowedNodeAccess]]
+    def inaccessibleWriteNodesForUser(userId: UserId, nodeIds: scala.collection.Seq[NodeId])(implicit ec: ExecutionContext): Future[Seq[NodeId]] = ctx.run {
+      inaccessibleWriteNodesForUserQuery(lift(userId), lift(nodeIds))
+    }
+
+    private val inaccessibleWriteNodesForUserQuery = quote { (userId: UserId, nodeIds: scala.collection.Seq[NodeId]) =>
+      infix"select * from inaccessible_nodes($nodeIds, $userId, 'readwrite'::accesslevel)".as[Query[NodeId]]
+    }
+
+    private val nodeCanReadUsers = quote { (nodeId: NodeId) =>
+      infix"select * from node_can_access_users($nodeId, 'read'::accesslevel)".as[Query[UserId]]
+    }
+
+    private val nodeCanReadUsersMultiple = quote { (nodeIds: scala.collection.Seq[NodeId]) =>
+      infix"select * from node_can_access_users_multiple($nodeIds, 'read'::accesslevel)".as[Query[AllowedNodeAccess]]
     }
   }
 

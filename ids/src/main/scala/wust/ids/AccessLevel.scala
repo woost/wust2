@@ -13,9 +13,14 @@ object AccessLevel {
     val str = "readwrite"
   }
 
+  case object Read extends AccessLevel {
+    val str = "read"
+  }
+
   val fromString: PartialFunction[String, AccessLevel] = {
     case Restricted.str => Restricted
     case ReadWrite.str  => ReadWrite
+    case Read.str  => Read
   }
 }
 
