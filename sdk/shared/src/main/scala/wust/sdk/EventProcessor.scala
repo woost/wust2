@@ -195,9 +195,23 @@ class EventProcessor private (
 
         Success(success)
       case Failure(t) =>
-        scribe.warn(s"ChangeGraph request failed '${t}': $changes")
+        t match {
+          case e: covenant.ws.WsClient.ErrorException[ApiError@unchecked] =>
+            e.error match {
+              case ApiError.Forbidden =>
+                scribe.warn(s"ChangeGraph request forbidden, will ignore changes: $changes")
+                Success(true) //TODO: we should prompt user for errors and notify him of problem. for now just accept, these changes will be lost.
 
-        Success(false)
+              //TODO: stop processing, prompt for reload. case ApiError.IncompatibleApi =>
+
+              case _ =>
+                scribe.warn(s"ChangeGraph request with error respoonse '${e.error}': $changes")
+                Success(false)
+            }
+          case _ =>
+            scribe.warn(s"ChangeGraph request failed '${t}': $changes")
+            Success(false)
+        }
     }
   }
 }
