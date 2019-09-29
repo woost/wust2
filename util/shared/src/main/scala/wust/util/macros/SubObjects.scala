@@ -28,7 +28,7 @@ object SubObjectsMacro {
     }
 
     val subObjects: Array[Tree] = recursiveSubObjects(traitTag.tpe.typeSymbol).map(utils.fullNameTree)(breakOut)
-    c.Expr[Array[Trait]](q"..$subObjects") 
+    c.Expr[Array[Trait]](q"..$subObjects")
 /* TODO: generates too much runtime code:
   var array = [$m_Lwust_webApp_state_Feature$TaskUnchecked$(), $m_Lwust_webApp_state_Feature$TaskChecked$(), $m_Lwust_webApp_state_Feature$TaskReordered$()];
   var xs = new $c_sjs_js_WrappedArray().init___sjs_js_Array(array);

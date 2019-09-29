@@ -337,7 +337,7 @@ final case class GraphLookup private(
 
   def nodeDeepModified(nodeIdx:Int):EpochMilli = {
     var modified = nodeModified(nodeIdx)
-    dfs.foreach(_(nodeIdx), dfs.withoutStart, childrenIdx, { childIdx => 
+    dfs.foreach(_(nodeIdx), dfs.withoutStart, childrenIdx, { childIdx =>
       val childModified = nodeModified(childIdx)
       if(childModified isAfter modified) modified = childModified
     })
@@ -346,7 +346,7 @@ final case class GraphLookup private(
 
   def nodeDeepCreated(nodeIdx:Int):EpochMilli = {
     var created = nodeCreated(nodeIdx)
-    dfs.foreach(_(nodeIdx), dfs.withoutStart, childrenIdx, { childIdx => 
+    dfs.foreach(_(nodeIdx), dfs.withoutStart, childrenIdx, { childIdx =>
       val childCreated = nodeCreated(childIdx)
       if(childCreated isAfter created) created = childCreated
     })

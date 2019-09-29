@@ -129,7 +129,7 @@ object AWS {
 
     val url = dom.URL.createObjectURL(originalFile)
     Right(UploadableFile(file = originalFile, dataUrl = url, uploadKey = uploadedKey))
-    
+
   }
 
   def uploadFileAndCreateNode(uploadFile: AWS.UploadableFile, extraChanges: NodeId => GraphChanges = _ => GraphChanges.empty): Future[Unit] = {

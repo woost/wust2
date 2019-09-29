@@ -234,7 +234,7 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], serve
       case Data.UsedFeature(_, feature, date) => api.UsedFeature(feature, EpochMilli.fromDate(date))
     }}
   }
-    
+
   override def useFeatureForFirstTime(usedFeature:api.UsedFeature):ApiFunction[Unit] = Action.requireDbUser { (_, user) =>
     db.feature.useFeatureForFirstTime(Data.UsedFeature(user.id, usedFeature.feature, usedFeature.timestamp.toDate)).map(_ => ())
   }

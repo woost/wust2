@@ -470,7 +470,7 @@ object ForceSimulationForces {
   ): Unit = {
     import simData._
     import staticData._
-    
+
     //TODO: speed up with quadtree?
     // make use of eulerZoneAdjacencyMatrix
     for {

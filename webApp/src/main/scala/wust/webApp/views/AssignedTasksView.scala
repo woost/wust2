@@ -87,7 +87,6 @@ object AssignedTasksView  {
         chooseUser(selectableUsers, selectedUserId).apply(Styles.flexStatic),
 
         InputRow(
-          
           Some(focusState),
           addNewTask,
           placeholder = Placeholder("Add Task"),
@@ -126,7 +125,7 @@ object AssignedTasksView  {
   }
 
   private def renderTask(focusState: FocusState, task: AssignedTask) = TaskNodeCard.renderThunk(
-    
+
     focusState,
     TraverseState(task.parentId),
     task.nodeId,

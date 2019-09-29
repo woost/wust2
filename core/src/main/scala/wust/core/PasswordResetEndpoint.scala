@@ -119,9 +119,9 @@ class PasswordResetEndpoint(db: Db, jwt: JWT, config: ServerConfig) {
 .form-style input.input-field, .form-style .select-field{
 	width: 48%;	
 }
-.form-style input.input-field, 
-.form-style .tel-number-field, 
-.form-style .textarea-field, 
+.form-style input.input-field,
+.form-style .tel-number-field,
+.form-style .textarea-field,
  .form-style .select-field{
 	box-sizing: border-box;
 	-webkit-box-sizing: border-box;
@@ -136,9 +136,9 @@ class PasswordResetEndpoint(db: Db, jwt: JWT, config: ServerConfig) {
 	padding: 7px;
 	outline: none;
 }
-.form-style .input-field:focus, 
-.form-style .tel-number-field:focus, 
-.form-style .textarea-field:focus,  
+.form-style .input-field:focus,
+.form-style .tel-number-field:focus,
+.form-style .textarea-field:focus,
 .form-style .select-field:focus{
 	border: 1px solid #0C0;
 }

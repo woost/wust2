@@ -340,7 +340,7 @@ object Elements {
       overrideValue = overrideValue,
       clearValue = clearValue,
       eventHandler = onEnter.filter(_ => filterEvent())
-    ).emitterBuilder 
+    ).emitterBuilder
   }
 
   def valueWithCtrlEnterWithInitial(overrideValue: SourceStream[String], clearValue: Boolean = true, filterEvent: () => Boolean = () => true): EmitterBuilder.Sync[String, VDomModifier] = {

@@ -30,7 +30,7 @@ object NodeColor {
     // |--------------------|
     //      |----|
     //       ugly
-    // 
+    //
     // |----|----------|
     //      ^
     //     removed ugly interval here

@@ -195,7 +195,7 @@ object DebugDraw {
     context.lineTo(-hw+10, -hh+10)
     context.stroke()
     context.closePath()
-   
+
   }
 
   def drawAARect(context: CanvasRenderingContext2D, rect: AARect, color: String, lineWidth: Int): Unit = {

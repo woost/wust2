@@ -483,7 +483,7 @@ object UserSettingsView {
           )
         },
         onClick foreach { _ =>
-          if (isEnabled.now) 
+          if (isEnabled.now)
             Client.auth.deleteOAuthClient(service).foreach { success =>
             if (success) isEnabled() = false
           } else Client.auth.getOAuthConnectUrl(service).onComplete {

@@ -63,7 +63,7 @@ object LeftSidebar {
               newProjectButton().apply(
                 Styles.flexStatic,
                 cls := "newChannelButton-large " + buttonStyles,
-                onClick foreach { 
+                onClick foreach {
                   FeatureState.use(Feature.CreateProjectFromExpandedLeftSidebar)
                 },
                 marginBottom := "15px"
@@ -133,7 +133,7 @@ object LeftSidebar {
             newProjectButton( "+").apply(
               cls := "newChannelButton-small " + buttonStyles,
               UI.tooltip("right center") := "New Project",
-              onClick foreach { 
+              onClick foreach {
                 FeatureState.use(Feature.CreateProjectFromCollapsedLeftSidebar)
               }
             )
@@ -356,7 +356,7 @@ object LeftSidebar {
           }
         },
 
-        onClick foreach { 
+        onClick foreach {
           // needs to be before onChannelClick, because else GlobalState.page is already at the new page
           GlobalState.page.now.parentId match {
             case Some(parentId) if parentId == nodeId => // no switch happening...
@@ -493,7 +493,7 @@ object LeftSidebar {
                     cls := "mini compact ui button",
                     padding := "0.5em",
                     i(cls := "icon fa-fw", freeSolid.faTimes),
-                    onClick.stopPropagation.foreach { 
+                    onClick.stopPropagation.foreach {
                       //TODO: sadly a click here still triggers a channel-focus
                       confirm("Ignore and delete invitation?") {
                         val changes = GraphChanges(delEdges = Array(Edge.Invite(nodeId, userId)))

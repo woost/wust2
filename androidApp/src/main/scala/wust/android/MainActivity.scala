@@ -43,7 +43,7 @@ class MainActivity extends Activity with Contexts[Activity] {
    (chatHistorySlot <~ rvAdapter(new PostsAdapter(posts)) <~ vInvalidate)
   }
 
-  rawGraph.foreach { graph => 
+  rawGraph.foreach { graph =>
     updateChatHistory(graph.chronologicalPostsAscending).run
     rawGraphNow = graph
   }
@@ -55,7 +55,7 @@ class MainActivity extends Activity with Contexts[Activity] {
       w[Button] <~ text("Send") <~
       On.click {
         val content = value.get.getText.toString.trim
-        Ui{ 
+        Ui{
           if(content.nonEmpty) {
             val post = Post(NodeId(cuid), value.get.getText.toString, assumedLogin)
             value.get.getText.clear()

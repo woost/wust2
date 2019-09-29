@@ -127,7 +127,7 @@ object Styles extends StyleSheet.Inline {
 
 //TODO: port over to Style as inline and reference class via Styles
 object CommonStyles extends StyleSheet.Standalone
-  with NotesView 
+  with NotesView
   with BreadCrumbs
   with Hopscotch
   with TaskList
@@ -756,7 +756,7 @@ object CommonStyles extends StyleSheet.Standalone
       backgroundColor.white,
       padding(10 px),
       borderRadius(3 px),
-      
+
       &(".breadcrumbs") - (
         &(".divider") - (
           color(c"rgba(165, 165, 165, 0.78)"),
@@ -1219,7 +1219,7 @@ object CommonStyles extends StyleSheet.Standalone
 
   ".kanbancolumnchildren" - (
     minHeight(50 px), // enough vertical area to drag cards in (most relevant for nested columns)
-    height(100 %%), 
+    height(100 %%),
     minWidth(kanbanColumnWidth), // enough horizontal area to not flicker width when adding cards
     cursor.default,
     overflowY.auto,

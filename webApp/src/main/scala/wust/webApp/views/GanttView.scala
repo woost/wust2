@@ -88,7 +88,7 @@ object GanttView {
       flexDirection.column,
 
       InputRow(
-        
+
         Some(focusState),
         submitAction = { sub =>
           val newNode = Node.MarkdownTask(sub.text)

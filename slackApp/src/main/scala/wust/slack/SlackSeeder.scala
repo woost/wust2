@@ -132,5 +132,5 @@ object SlackSeeder {
   def mpimDataToWust(slackApiClient: SlackApiClient, slackEventMapper: SlackEventMapper, teamId: SlackTeamId)(implicit system: ActorSystem, ec: ExecutionContext) = {
     ???
   }
-  
+
 }

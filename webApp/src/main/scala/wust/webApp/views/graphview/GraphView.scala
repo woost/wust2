@@ -97,12 +97,12 @@ object GraphView {
     val changes = for {
       changes <- DragActions.dragAction.lift((payload, target, ctrl, false))
     } yield changes(graph, GlobalState.user.now.id)
-    
+
     changes match {
-      case Some(changes) => 
+      case Some(changes) =>
         GlobalState.submitChanges(changes)
         true
       case None => false
-    } 
+    }
   }
 }

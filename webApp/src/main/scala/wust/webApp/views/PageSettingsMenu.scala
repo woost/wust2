@@ -236,8 +236,8 @@ object PageSettingsMenu {
       UI.tooltip("left center") := "Bookmark in left Sidebar",
       Icons.bookmark,
       onClick.useLazy(GraphChanges(addEdges = Array(Edge.Pinned(channelId, GlobalState.user.now.id), Edge.Notify(channelId, GlobalState.user.now.id)), delEdges = Array(Edge.Invite(channelId, GlobalState.user.now.id)))) --> GlobalState.eventProcessor.changes,
-      onClick foreach { 
-        GlobalState.graph.now.nodesById(channelId).foreach { node => 
+      onClick foreach {
+        GlobalState.graph.now.nodesById(channelId).foreach { node =>
           node.role match {
             case NodeRole.Project => FeatureState.use(Feature.BookmarkProject)
             case NodeRole.Task => FeatureState.use(Feature.BookmarkTask)

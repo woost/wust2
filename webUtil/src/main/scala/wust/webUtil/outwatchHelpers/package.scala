@@ -224,7 +224,7 @@ package object outwatchHelpers extends KeyHash with RxInstances {
       proxy <- OutWatch.toSnabbdom[SyncIO](vNode)
       //TODO outwatch: allow to render a VNodeProxy directly.
       _ <- OutWatch.renderReplace[SyncIO](document.createElement("div"), dsl.div(new VNodeProxyNode(proxy)))
-    } yield proxy.elm.get).unsafeRunSync() // TODO 
+    } yield proxy.elm.get).unsafeRunSync() // TODO
 
     @inline def append(m: VDomModifier*) = vNode.apply(m: _*)
   }

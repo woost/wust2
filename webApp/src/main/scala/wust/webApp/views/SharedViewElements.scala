@@ -514,7 +514,7 @@ object SharedViewElements {
     onHide: () => Boolean = () => true,
   ) = EmitterBuilder.ofModifier[InputRow.Submission] { sink =>
     VDomModifier(
-      onClick.stopPropagation.use(Ownable { implicit ctx => 
+      onClick.stopPropagation.use(Ownable { implicit ctx =>
         newNamePromptModalConfig(
           sink,
           header,
