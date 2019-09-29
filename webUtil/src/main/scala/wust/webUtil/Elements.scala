@@ -503,7 +503,7 @@ object Elements {
     onPaste.foreach { event =>
       if (event.clipboardData != js.undefined) {
           val htmlText = event.clipboardData.getData("text/html")
-          if (htmlText != js.undefined && htmlText != null && htmlText.lines.size > 1) {
+          if (htmlText != js.undefined && htmlText != null && htmlText.linesIterator.length > 1) {
             event.preventDefault()
             event.currentTarget.asInstanceOf[dom.html.Input].value = htmlText
           }
