@@ -15,7 +15,8 @@ object Data {
     data: NodeData,
     role: NodeRole,
     accessLevel: NodeAccess,
-    views: Option[List[View.Visible]]
+    views: Option[List[View.Visible]],
+    settings: Option[NodeSettings]
   )
 
   //TODO: needed because we cannot parse views properly...
@@ -24,14 +25,16 @@ object Data {
     data: NodeData,
     role: NodeRole,
     accessLevel: NodeAccess,
-    views: Option[String]
+    views: Option[String],
+    settings: Option[NodeSettings]
   ) {
     def toNode: Node = Node(
       id = id,
       data = data,
       role = role,
       accessLevel = accessLevel,
-      views = views.map(NodeRaw.viewsFromString)
+      views = views.map(NodeRaw.viewsFromString),
+      settings = settings
     )
   }
   object NodeRaw {
@@ -106,6 +109,7 @@ object Data {
     role: Option[NodeRole],
     accessLevel: NodeAccess,
     views: Option[String],
+    settings: Option[NodeSettings],
     sourceId: Option[NodeId],
     targetId: Option[NodeId],
     edgeData: Option[EdgeData]
@@ -124,7 +128,7 @@ object Data {
           //TODO this is really ugly, we want views: Option[List[View]], but quill fails when decoding this graph-row.
           //Now we let quill decode views to Option[String] and decode the list ourselves...meh
           val viewList: Option[List[View.Visible]] = row.views.map(NodeRaw.viewsFromString)
-          nodes += Node(row.nodeId.get, row.data.get, row.role.get, row.accessLevel, viewList)
+          nodes += Node(row.nodeId.get, row.data.get, row.role.get, row.accessLevel, viewList, row.settings)
         }
       }
       Graph(nodes.result(), edges.result())

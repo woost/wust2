@@ -54,6 +54,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
             (node, excluded) => node.data -> excluded.data,
             (node, excluded) => node.role -> excluded.role,
             (node, excluded) => node.accessLevel -> excluded.accessLevel,
+            (node, excluded) => node.settings -> excluded.settings,
             (node, excluded) => node.views -> excluded.views
           )
       }).flatMap(touched => checkUnexpected(touched.forall(_ == 1), s"Unexpected number of node inserts: ${touched.sum} / ${nodes.size} = ${nodes.zip(touched)}"))

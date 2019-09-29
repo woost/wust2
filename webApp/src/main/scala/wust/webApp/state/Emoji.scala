@@ -18,7 +18,7 @@ object EmojiReplacer {
   emojiTextConvertor.colons_mode = true
   emojiTextConvertor.text_mode = true
   private def replaceToColons(nodes: Array[Node]): Array[Node] = nodes.map {
-    case n@Node.Content(_, editable: NodeData.EditableText, _, _, _) =>
+    case n@Node.Content(_, editable: NodeData.EditableText, _, _, _, _) =>
       scribe.debug(s"replacing node emoji: ${ n.str }.")
       editable.updateStr(emojiTextConvertor.replace_unified_safe(emojiTextConvertor.replace_emoticons_safe(n.str))) match {
         case Some(emojiData) =>

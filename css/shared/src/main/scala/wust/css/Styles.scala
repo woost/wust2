@@ -1011,14 +1011,13 @@ object CommonStyles extends StyleSheet.Standalone
   val kanbanColumnPaddingPx = 7
   val kanbanColumnPadding = (kanbanColumnPaddingPx px)
   val kanbanRowSpacing = (8 px)
-  val kanbanPageSpacing = (10 px)
   val kanbanCardWidthPx = 250
   val kanbanCardWidth = (kanbanCardWidthPx px)
   val kanbanColumnWidth = ((kanbanColumnPaddingPx + kanbanCardWidthPx + kanbanColumnPaddingPx) px)
   val kanbanColumnBorderRadius = (4 px)
 
   ".kanbanview" - (
-    padding(0 px, kanbanPageSpacing),
+    padding(0 px, 0 px),
     height(100 %%),
   )
 

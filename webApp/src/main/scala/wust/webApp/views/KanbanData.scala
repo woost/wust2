@@ -38,6 +38,34 @@ object KanbanData {
     TaskOrdering.constructOrderingOf[NodeId](graph, traverseState.parentId, inboxTasks.viewMap(graph.nodeIds), identity)
   }
 
+  //TODO: duplicate of above...
+  def inboxNodesCount(graph: Graph, traverseState: TraverseState): Int = graph.idToIdxFold(traverseState.parentId)(0) { parentIdx =>
+    val allStages: ArraySet = {
+      val stages = ArraySet.create(graph.size)
+      dfs.foreachStopLocally(starts = _(parentIdx), dfs.withoutStart, graph.childrenIdx, { idx =>
+        val isStage = graph.nodes(idx).role == NodeRole.Stage
+        if(isStage) stages += idx
+        isStage
+      })
+      stages
+    }
+
+    val inboxTasks: Int = {
+      var inboxTasks = 0
+      graph.childrenIdx.foreachElement(parentIdx) { childIdx =>
+        val node = graph.nodes(childIdx)
+        if(node.role == NodeRole.Task && !traverseState.contains(node.id)) {
+          @inline def hasStageParentInWorkspace = graph.parentsIdx(childIdx).exists(allStages.contains)
+
+          if(!hasStageParentInWorkspace) inboxTasks += 1
+        }
+      }
+      inboxTasks
+    }
+
+    inboxTasks
+  }
+
   def columns(graph: Graph, traverseState: TraverseState): Seq[NodeId] = graph.idToIdxFold(traverseState.parentId)(Seq.empty[NodeId]){ parentIdx =>
     val columnIds = mutable.ArrayBuffer[NodeId]()
     graph.childrenIdx.foreachElement(parentIdx) { idx =>

@@ -400,7 +400,7 @@ object Components {
     def renderProject(node: Node, renderNode: Node => VDomModifier, withIcon: Boolean = false, openFolder: Boolean = false) = {
       if(withIcon) {
         val nodeWithoutFirstEmoji = node match {
-          case n@Node.Content(_, editable: NodeData.EditableText, _, _, _) =>
+          case n@Node.Content(_, editable: NodeData.EditableText, _, _, _, _) =>
             editable.updateStr(EmojiReplacer.emojiAtBeginningRegex.replaceFirstIn(n.str, "")) match {
               case Some(dataWithoutEmoji) =>
                 n.copy(data = dataWithoutEmoji)

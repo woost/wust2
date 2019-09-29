@@ -28,6 +28,20 @@ object KanbanView {
 
     val traverseState = TraverseState(focusState.focusedId)
 
+    val node = Rx {
+      val g = GlobalState.rawGraph()
+      g.nodesById(focusState.focusedId)
+    }
+
+    val kanbanSettings = node.map(_.flatMap(_.settings).fold(KanbanSettings.default)(_.kanbanOrDefault))
+
+    val updateKanbanSettings: (KanbanSettings => KanbanSettings) => Unit = f => node.now.foreach {
+      case node: Node.Content =>
+        val newNode = node.updateSettings(_.updateKanban(f))
+        GlobalState.submitChanges(GraphChanges.addNode(newNode))
+      case _ => ()
+    }
+
     div(
       keyed,
       cls := "kanbanview",
@@ -36,12 +50,15 @@ object KanbanView {
       Styles.flex,
       alignItems.flexStart,
 
-      renderInboxColumn( focusState, traverseState, viewRender, selectedNodeIds),
+      kanbanSettings.map { settings =>
+        if (settings.hideUncategorized) minimizedInboxColumn(traverseState, updateKanbanSettings)
+        else renderInboxColumn(focusState, traverseState, viewRender, selectedNodeIds, updateKanbanSettings)
+      },
 
       // inbox is separated, because it cannot be reordered. The others are in a sortable container
-      renderToplevelColumns( focusState, traverseState, viewRender, selectedNodeIds),
+      renderToplevelColumns(focusState, traverseState, viewRender, selectedNodeIds),
 
-      newColumnArea( focusState).apply(Styles.flexStatic),
+      newColumnArea(focusState).apply(Styles.flexStatic),
     )
   }
 
@@ -88,12 +105,38 @@ object KanbanView {
     )
   }
 
+  private def minimizedInboxColumn(
+    traverseState: TraverseState,
+    updateKanbanSettings: (KanbanSettings => KanbanSettings) => Unit
+  )(implicit ctx: Ctx.Owner): VNode = {
+    val childrenCount = Rx {
+      val graph = GlobalState.graph()
+      KanbanData.inboxNodesCount(graph, traverseState)
+    }
+
+    div(
+      Styles.flex,
+      Styles.flexStatic,
+      flexDirection.column,
+      alignItems.center,
+      onClickDefault.foreach { updateKanbanSettings(_.copy(hideUncategorized = false)) },
+      UI.tooltip("right center") := "Expand Uncategorized",
+
+      div(cls := "fa-fw", Icons.expand),
+
+      childrenCount.map {
+        case 0 => VDomModifier.empty
+        case count => div(cls := "ui tiny label", count, padding := "5px")
+      }
+    )
+  }
 
   private def renderInboxColumn(
     focusState: FocusState,
     traverseState: TraverseState,
     viewRender: ViewRenderLike,
     selectedNodeIds: Var[Set[NodeId]],
+    updateKanbanSettings: (KanbanSettings => KanbanSettings) => Unit
   )(implicit ctx: Ctx.Owner): VNode = {
     val scrollHandler = new ScrollBottomHandler(initialScrollToBottom = false)
 
@@ -101,6 +144,12 @@ object KanbanView {
       val graph = GlobalState.graph()
       KanbanData.inboxNodes(graph, traverseState)
     }
+
+    val collapseButton = div(
+      div(cls := "fa-fw", Icons.collapse),
+      onClickDefault.foreach { updateKanbanSettings(_.copy(hideUncategorized = true)) },
+      UI.tooltip("bottom center") := "Collapse"
+    )
 
     div(
       // sortable: draggable needs to be direct child of container
@@ -121,6 +170,7 @@ object KanbanView {
           VDomModifier.ifTrue(!BrowserDetect.isMobile)(cls := "autohide"),
           DragComponents.drag(DragItem.DisableDrag),
           Styles.flex,
+          collapseButton,
           GraphChangesAutomationUI.settingsButton( focusState.focusedId, activeMod = visibility.visible, viewRender = viewRender),
         ),
       ),

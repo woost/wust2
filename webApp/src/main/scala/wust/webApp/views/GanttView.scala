@@ -27,7 +27,7 @@ object GanttView {
     propertyMap
       .get(search)
       .flatMap(_.collectFirst{
-        case PropertyData.PropertyValue(_, Node.Content(_, data: NodeData.Date, _, _, _)) => data.content
+        case PropertyData.PropertyValue(_, Node.Content(_, data: NodeData.Date, _, _, _, _)) => data.content
       })
   }
 
