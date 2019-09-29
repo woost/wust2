@@ -28,7 +28,7 @@ class CuidSpec extends FreeSpec with MustMatchers {
     val bag = Cuid.fromCuidString(original).right.get
     val converted = bag.toCuidString
 
-    converted mustEqual Right(original)
+    converted mustEqual original
   }
 
   "cuid byte array" in {
