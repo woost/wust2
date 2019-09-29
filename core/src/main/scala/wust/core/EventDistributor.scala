@@ -106,7 +106,7 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
     origin: Option[NotifiableClient[ApiEvent, State]]
   ): Unit = if (graphChanges.nonEmpty) {
     // send out notifications to websocket subscribers
-    db.user.allowedUsersForNodes(graphChanges.involvedNodeIds.toSeq).onComplete {
+    db.user.allowedReadUsersForNodes(graphChanges.involvedNodeIds.toSeq).onComplete {
       case Success(allowedUsersAndNodes) =>
         scribe.info("Sending out websocket notifications")
         val allowedNodesPerUser = allowedUsersAndNodes.groupByMap(access => access.userId -> access.nodeId)
