@@ -1,11 +1,13 @@
 package wust.webApp.views
 
-import wust.webUtil.BrowserDetect
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
+import wust.graph.Node
+import wust.webUtil.BrowserDetect
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{ Ownable, UI }
+import wust.webUtil.Elements._
 import wust.css.Styles
 import wust.ids._
 import wust.sdk.Colors
@@ -72,13 +74,10 @@ object PageHeader {
     val channelMembersList = Rx {
       VDomModifier.ifTrue(GlobalState.screenSize() != ScreenSize.Small)(
         // line-height:0 fixes vertical alignment, minimum fit one member
-        SharedViewElements.channelMembers(pageNodeId).apply(marginLeft := "5px", marginRight := "5px", lineHeight := "0", maxWidth := "200px")
+        SharedViewElements.channelMembers(pageNodeId).apply(marginLeft := "5px", lineHeight := "0", maxWidth := "200px")
       )
     }
 
-    val permissionLevel = Rx {
-      Permission.resolveInherited(GlobalState.rawGraph(), pageNodeId)
-    }
 
     VDomModifier(
       backgroundColor := pageStyle.pageBgColor,
@@ -131,10 +130,10 @@ object PageHeader {
           alignItems.center,
           marginLeft.auto,
 
-          permissionLevel.map(Permission.permissionIndicator(_, marginRight := "5px")),
           channelTitle,
           channelNotification,
           channelMembersList,
+          MembersModal.settingsButton(pageNodeId),
           id := "tutorial-pageheader-title",
           marginBottom := "2px", // else nodecards in title overlap
 

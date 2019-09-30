@@ -39,6 +39,7 @@ object NodeAccess {
   }
 
   val Restricted = Level(AccessLevel.Restricted)
+  val Read = Level(AccessLevel.Read)
   val ReadWrite = Level(AccessLevel.ReadWrite)
 
   val fromString: PartialFunction[String, NodeAccess] = AccessLevel.fromString.andThen[NodeAccess](Level(_)) orElse {

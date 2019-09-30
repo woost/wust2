@@ -363,7 +363,7 @@ object Components {
       )
     }
 
-    def renderUser(user: Node.User, size:String = "20px", enableDrag:Boolean = true): VNode = {
+    def renderUser(user: Node.User, size:String = "20px", enableDrag:Boolean = true, appendName: VDomModifier = VDomModifier.empty): VNode = {
       div(
         padding := "2px",
         borderRadius := "3px",
@@ -372,7 +372,7 @@ object Components {
         Styles.flex,
         alignItems.center,
         Avatar.user(user, size = size, enableDrag = enableDrag),
-        div(marginLeft := "5px", displayUserName(user.data), Styles.wordWrap),
+        div(marginLeft := "5px", displayUserName(user.data), appendName, Styles.wordWrap),
       )
     }
 
@@ -692,7 +692,7 @@ object Components {
         )
       }.map(Some(_))
 
-    def searchInGraph(graph: Rx[Graph], placeholder: String, valid: Rx[Boolean] = Var(true), filter: Node => Boolean = _ => true, completeOnInit: Boolean = true, showNotFound: Boolean = true, elementModifier: VDomModifier = VDomModifier.empty, innerElementModifier: VDomModifier = VDomModifier.empty, inputModifiers: VDomModifier = VDomModifier.empty, resultsModifier: VDomModifier = VDomModifier.empty, createNew: String => Boolean = _ => false)(implicit ctx: Ctx.Owner): EmitterBuilder[NodeId, VDomModifier] = EmitterBuilder.ofModifier(sink => VDomModifier.delay {
+    def searchInGraph(graph: Rx[Graph], placeholder: String, valid: Rx[Boolean] = Var(true), filter: Node => Boolean = _ => true, completeOnInit: Boolean = true, showNotFound: Boolean = true, elementModifier: VDomModifier = VDomModifier.empty, innerElementModifier: VDomModifier = VDomModifier.empty, inputModifiers: VDomModifier = VDomModifier.empty, resultsModifier: VDomModifier = VDomModifier.empty, createNew: String => Boolean = _ => false, addInputDecoration: Boolean = true)(implicit ctx: Ctx.Owner): EmitterBuilder[NodeId, VDomModifier] = EmitterBuilder.ofModifier(sink => VDomModifier.delay {
       var inputElem: dom.html.Element = null
       var resultsElem: dom.html.Element = null
       var elem: JQuerySelection = null
@@ -748,49 +748,42 @@ object Components {
         if (value.nonEmpty && createNew(value)) resetSearch(forceClose)
       }
 
-      div(
-        keyed,
-        elementModifier,
-        cls := "ui search",
-        div(
-          cls := "ui icon input",
-          innerElementModifier,
-          input(
-            borderRadius := "4px",
-            inputModifiers,
-            cls := "prompt",
-            tpe := "text",
-            dsl.placeholder := placeholder,
+      val rawInput = input(
+        borderRadius := "4px",
+        cls := "prompt",
+        tpe := "text",
+        dsl.placeholder := placeholder,
+        inputModifiers,
 
-            onDomMount.asHtml.foreach { e => inputElem = e },
+        onDomMount.asHtml.foreach { e => inputElem = e },
 
-            onEnter.stopPropagation.foreach { e =>
-              val inputElem = e.target.asInstanceOf[dom.html.Input]
-              val searchString = inputElem.value
-              if (resultsElem != null) defer {  // we defer so the new results for the current search are guaranteed to be rendered
-                // ugly: get the title element from the currently active or alternatively first result
-                // the titleElement contains the cuid of the result which we can map back to a search entry to select.
-                val titleElem = Option(resultsElem.querySelector(".result.active > .title")) orElse Option(resultsElem.querySelector(".result > .title"))
-                titleElem match {
-                  case Some(titleElem) => elem.search("get result", titleElem.textContent) match {
-                    case v if v == false || v == js.undefined || v == null => submitNew(searchString, forceClose = true)
-                    case obj => submitResult(obj.asInstanceOf[SearchSourceEntry], forceClose = true)
-                  }
-
-                  case None => submitNew(searchString, forceClose = true)
-                }
+        onEnter.stopPropagation.foreach { e =>
+          val inputElem = e.target.asInstanceOf[dom.html.Input]
+          val searchString = inputElem.value
+          if (resultsElem != null) defer {  // we defer so the new results for the current search are guaranteed to be rendered
+            // ugly: get the title element from the currently active or alternatively first result
+            // the titleElement contains the cuid of the result which we can map back to a search entry to select.
+            val titleElem = Option(resultsElem.querySelector(".result.active > .title")) orElse Option(resultsElem.querySelector(".result > .title"))
+            titleElem match {
+              case Some(titleElem) => elem.search("get result", titleElem.textContent) match {
+                case v if v == false || v == js.undefined || v == null => submitNew(searchString, forceClose = true)
+                case obj => submitResult(obj.asInstanceOf[SearchSourceEntry], forceClose = true)
               }
-            },
 
-            onFocus.foreach { _ =>
-              initSearch()
-              if (completeOnInit) elem.search("search local", "")
-            },
+              case None => submitNew(searchString, forceClose = true)
+            }
+          }
+        },
 
-            valid.map(_.ifFalse[VDomModifier](borderColor := "tomato"))
-          ),
-          i(cls := "search icon"),
-        ),
+        onFocus.foreach { _ =>
+          initSearch()
+          if (completeOnInit) elem.search("search local", "")
+        },
+
+        valid.map(_.ifFalse[VDomModifier](borderColor := "tomato"))
+      )
+
+      val inputAppendix = VDomModifier(
         div(
           cls := "results",
           width := "100%", // overwrite hardcoded width of result from fomantic ui
@@ -802,6 +795,23 @@ object Components {
           elem = e
           cancelable(() => e.search("destroy"))
         }
+      )
+
+      if (addInputDecoration) div(
+        keyed,
+        elementModifier,
+        cls := "ui search",
+        div(
+          cls := "ui icon input",
+          innerElementModifier,
+          rawInput,
+          i(cls := "search icon"),
+        ),
+        inputAppendix,
+      ) else rawInput(
+        elementModifier,
+        innerElementModifier,
+        inputAppendix
       )
     })
 

@@ -5,6 +5,8 @@ import colorado._
 object Colors {
   @inline final def woost = "#6636b7"
 
+  @inline final def warning = "#FAFAD2"
+
   @inline final def unread = "#1F81F3"
   @inline final def unreadBorder = "#66c0ff"
   @inline final def contentBg = "#F2F4F6"

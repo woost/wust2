@@ -141,7 +141,13 @@ object EditableContent {
     }
   }
 
-  def select[T: EditStringParser: ValueStringifier](header: String, activeElement: Var[Option[T]], elements: Seq[(String, T)])(implicit ctx: Ctx.Owner): VNode = {
+  def selectEmitter[T: EditStringParser: ValueStringifier](header: String, activeElement: Option[T], elements: Seq[(String, T)], unselectableMapping: Map[T, T] = Map.empty[T,T])(implicit ctx: Ctx.Owner): EmitterBuilder[T, VNode] = EmitterBuilder { sink =>
+    val variable = Var(activeElement)
+    variable.triggerLater(_.foreach(sink.onNext(_)))
+
+    select[T](header, variable, elements, unselectableMapping)
+  }
+  def select[T: EditStringParser: ValueStringifier](header: String, activeElement: Var[Option[T]], elements: Seq[(String, T)], unselectableMapping: Map[T, T] = Map.empty[T,T])(implicit ctx: Ctx.Owner): VNode = {
     dsl.select(
       option(
         value := "", header,
@@ -149,7 +155,7 @@ object EditableContent {
         disabled,
       ),
       elements.map { case (title, element) =>
-        option(value := ValueStringifier[T].stringify(element), title, selected <-- activeElement.map(_ contains element)),
+        option(value := ValueStringifier[T].stringify(element), title, selected <-- activeElement.map(e => e.contains(element) || e.flatMap(unselectableMapping.get).contains(element))),
       },
       onInput
         .map(e => stringFromSelect(e.currentTarget.asInstanceOf[dom.html.Select]))

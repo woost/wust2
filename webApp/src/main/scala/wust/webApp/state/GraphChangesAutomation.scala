@@ -9,6 +9,7 @@ import wust.util.algorithm.dfs
 import wust.util.collection._
 import wust.util.macros.InlineList
 import wust.webApp.Client
+import wust.webApp.parsers.UrlConfigWriter
 import org.scalajs.dom
 
 import scala.collection.{breakOut, mutable}
@@ -91,7 +92,8 @@ object GraphChangesAutomation {
               nodeStringOption = Some(node => node.id.toBase58)
               true
             case "url" if nodeStringOption.isEmpty =>
-              nodeStringOption = Some(node => s"${dom.window.location.origin}/#page=${node.id.toBase58}")
+              val targetUrlConfig = UrlConfig.default.focus(Page(node.id))
+              nodeStringOption = Some(node => s"${dom.window.location.origin}${UrlConfigWriter.toString(targetUrlConfig)}")
               true
             case "fileUrl" if nodeStringOption.isEmpty =>
               currentReferenceNodes = currentReferenceNodes.filter(_.data match { case _: NodeData.File => true; case _ => false })

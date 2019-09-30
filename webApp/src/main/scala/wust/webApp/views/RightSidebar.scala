@@ -356,7 +356,13 @@ object RightSidebar {
         }
       ),
 
-      nodeAuthor(focusPref.nodeId),
+      div(
+        Styles.flex,
+        alignItems.center,
+        justifyContent.spaceBetween,
+        MembersModal.settingsButton(focusPref.nodeId),
+        nodeAuthor(focusPref.nodeId),
+      )
     )
   }
 
@@ -370,10 +376,7 @@ object RightSidebar {
       }
     }
 
-    div(
-      Styles.flex,
-      justifyContent.flexEnd,
-
+    VDomModifier(
       authorship.map(_.map {
         case (author, creationEpochMillis) =>
           chatMessageHeader(author, creationEpochMillis, nodeId, author.map(smallAuthorAvatar)).apply(marginRight := "5px")

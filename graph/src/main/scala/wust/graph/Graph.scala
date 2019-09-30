@@ -654,7 +654,7 @@ final case class GraphLookup private(
         case None => // if no member edge exists
           // read access level directly from node through inheritance
           nodes(nodeIdx).meta.accessLevel match {
-            case NodeAccess.Inherited | NodeAccess.Level(AccessLevel.ReadWrite) =>
+            case NodeAccess.Inherited | NodeAccess.Level(AccessLevel.ReadWrite) | NodeAccess.Level(AccessLevel.Read) =>
               // recursively inherit permissions from parents. minimum one parent needs to allow access.
               accessEdgeReverseIdx.exists(nodeIdx) { edgeIdx =>
                 val parentIdx = edgesIdx.a(edgeIdx)
@@ -663,7 +663,7 @@ final case class GraphLookup private(
             case NodeAccess.Level(level) => false
           }
         case Some(level) =>
-          level == AccessLevel.ReadWrite
+          level == AccessLevel.ReadWrite || level == AccessLevel.Read
       }
     }
 
@@ -687,6 +687,7 @@ final case class GraphLookup private(
             val parentIdx = edgesIdx.a(edgeIdx)
             inner(parentIdx, visited + nodeIdx) match {
               case Some(AccessLevel.ReadWrite)  => return Some(AccessLevel.ReadWrite) // return outer method, there is at least one public parent
+              case Some(AccessLevel.Read)  => return Some(AccessLevel.ReadWrite) // return outer method, there is at least one public parent
               case Some(AccessLevel.Restricted) => hasPrivateLevel = true
               case None                         => ()
             }

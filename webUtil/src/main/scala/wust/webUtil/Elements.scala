@@ -206,10 +206,11 @@ object Elements {
     }
   }
 
-  val copiableToClipboard: VDomModifier = {
+  def copiableToClipboard(text: String): VDomModifier = {
     import wust.facades.clipboardjs.ClipboardJS
 
     VDomModifier(
+      dataAttr("clipboard-text") := text,
       managedElement.asHtml { elem =>
         val clip = new ClipboardJS(elem)
         cancelable(() => clip.destroy())

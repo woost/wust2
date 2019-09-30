@@ -208,5 +208,11 @@ object UrlConfigWriter {
     // we do not write invitation and focusId: this only reading on url change.
     UrlRoute(search = None, hash = Some(hash))
   }
+  def urlRouteToString(route: UrlRoute): String = {
+    val search = route.search.getOrElse("/") // not empty string, otherwise the old search part is not replaced in the url.
+    val hash = route.hash.fold("")("#" + _)
+    search + hash
+  }
   @inline def toUrlRoute(config: UrlConfig): UrlRoute = UrlConfigWriter.write(config)
+  @inline def toString(config: UrlConfig): String = urlRouteToString(toUrlRoute(config))
 }

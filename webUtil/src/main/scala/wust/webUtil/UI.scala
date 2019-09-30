@@ -318,4 +318,11 @@ object UI {
     )
   )
 
+
+  def toggleButton(active: Rx[Boolean])(implicit ctx: Ctx.Owner): VNode = button(
+    cls := "ui button",
+    active.map(VDomModifier.ifTrue(_)(cls := "active")),
+    onClick.stopPropagation.asHtml.foreach(_.blur())
+  )
+
 }

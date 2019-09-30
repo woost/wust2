@@ -38,6 +38,13 @@ object Permission {
     icon = Icons.permissionPublic,
   )
 
+  val publicRead = PermissionDescription(
+    access = NodeAccess.Level(AccessLevel.Read),
+    value = "Public-Read",
+    description = "Anyone can access this page readonly via URL",
+    icon = Icons.permissionPublic,
+  )
+
   val `private` = PermissionDescription(
     access = NodeAccess.Level(AccessLevel.Restricted),
     value = "Private",
@@ -49,7 +56,7 @@ object Permission {
 
   def resolveInherited(graph: Graph, nodeId: NodeId): PermissionDescription = {
     val level = graph.accessLevelOfNode(nodeId)
-    val isPublic = level.fold(false)(_ == AccessLevel.ReadWrite)
+    val isPublic = level.fold(false)(n => n == AccessLevel.ReadWrite || n == AccessLevel.Read)
 
     if(isPublic) Permission.public else Permission.`private`
   }
@@ -59,7 +66,7 @@ object Permission {
   }
 
   def permissionIndicatorIfPublic(level: PermissionDescription, modifier: VDomModifier = VDomModifier.empty): VDomModifier = {
-    VDomModifier.ifTrue(level.access == NodeAccess.ReadWrite)(div(level.icon, Styles.flexStatic, UI.popup("bottom center") := level.description, modifier))
+    VDomModifier.ifTrue(level.access == NodeAccess.ReadWrite || level.access == NodeAccess.Read)(div(level.icon, Styles.flexStatic, UI.popup("bottom center") := level.description, modifier))
   }
 
   def permissionItem(channel: Node.Content)(implicit ctx: Ctx.Owner): VDomModifier = {

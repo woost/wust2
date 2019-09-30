@@ -64,6 +64,7 @@ object GlobalState {
 
   val mouseClickInMainView = SinkSourceHandler.publish[Unit]
 
+  @inline def changes = eventProcessor.changes
   def submitChanges(changes: GraphChanges) = {
     eventProcessor.changes.onNext(changes)
   }

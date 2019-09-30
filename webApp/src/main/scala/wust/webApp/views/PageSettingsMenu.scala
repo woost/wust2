@@ -13,7 +13,6 @@ import wust.ids._
 import wust.sdk.{BaseColors, NodeColor}
 import wust.util._
 import wust.webApp._
-import wust.webApp.jsdom.{Navigator, ShareData}
 import wust.webApp.state._
 import wust.webApp.views.Components._
 
@@ -55,9 +54,6 @@ object PageSettingsMenu {
     val channelIsContent: Rx[Boolean] = channelAsContent.map(_.isDefined)
     val canWrite: Rx[Boolean] = NodePermission.canWrite( channelId)
 
-    val permissionItem = Rx {
-      VDomModifier.ifTrue(canWrite())(channelAsContent().map(Permission.permissionItem( _)))
-    }
     val nodeRoleItem:VDomModifier = Rx {
       channelAsContent().collect {
         case channel if canWrite() => ConvertSelection.menuItem( channel)
@@ -126,14 +122,6 @@ object PageSettingsMenu {
       })
     }
 
-    val addMemberItem: VDomModifier = Rx {
-      channelAsContent() collect {
-        case channel if canWrite() => manageMembers( channel)
-      }
-    }
-    val shareItem = Rx {
-      channelAsContent().map(shareButton( _))
-    }
     val searchItem = Rx {
       channelAsNode().map(searchModalButton( _))
     }
@@ -141,7 +129,7 @@ object PageSettingsMenu {
       channelAsContent().map(WoostNotification.generateNotificationItem( GlobalState.permissionState(), GlobalState.graph(), GlobalState.user().toNode, _))
     }
 
-    List[VDomModifier](notificationItem, searchItem, addMemberItem, shareItem, importItem, permissionItem, nodeRoleItem, copyItem, /*resyncWithTemplatesItem, */ leaveItem, deleteItem)
+    List[VDomModifier](notificationItem, searchItem, importItem, nodeRoleItem, copyItem, /*resyncWithTemplatesItem, */ leaveItem, deleteItem)
 
   }
 
@@ -158,75 +146,9 @@ object PageSettingsMenu {
     )
   }
 
-  private def shareButton(channel: Node)(implicit ctx: Ctx.Owner): VNode = {
-    import scala.concurrent.duration._
-
-    val shareTitle = StringOps.trimToMaxLength(channel.data.str, 15)
-    val shareUrl = dom.window.location.href
-    val shareDesc = s"Share: $shareTitle"
-
-    def assurePublic(): Unit = {
-      // make channel public if it is not. we are sharing the link, so we want it to be public.
-      channel match {
-        case channel: Node.Content =>
-          if (channel.meta.accessLevel != NodeAccess.ReadWrite) {
-            val changes = GraphChanges.addNode(channel.copy(meta = channel.meta.copy(accessLevel = NodeAccess.ReadWrite)))
-            GlobalState.submitChanges(changes)
-            UI.toast(s"${StringOps.trimToMaxLength(channel.str, 10)} is now public")
-          }
-        case _ => ()
-      }
-    }
-
-    a(
-      cursor.pointer,
-      cls := "item",
-      Elements.icon(Icons.share),
-      dsl.span("Share Link"),
-      onClick.transform(_.delay(200 millis)).foreach { // delay, otherwise the assurePublic changes update interferes with clipboard js
-        assurePublic()
-        FeatureState.use(Feature.ShareLink)
-      },
-
-      if (Navigator.share.isDefined) VDomModifier(
-        onClick.stopPropagation foreach {
-          scribe.info(s"Sharing '$channel'")
-
-          Navigator.share(new ShareData {
-            title = shareTitle
-            text = shareDesc
-            url = shareUrl
-          }).toFuture.onComplete {
-            case Success(()) => ()
-            case Failure(t)  => scribe.warn("Cannot share url via share-api", t)
-          }
-        },
-      ) else VDomModifier(
-        Elements.copiableToClipboard,
-        dataAttr("clipboard-text") := shareUrl,
-        onClick.stopPropagation foreach {
-          scribe.info(s"Copying share-link for '$channel'")
-
-          UI.toast(title = shareDesc, msg = "Link copied to clipboard")
-        },
-      ),
-    )
-  }
-
   private def searchModalButton(node: Node)(implicit ctx: Ctx.Owner): VNode = {
     SharedViewElements.searchButtonWithIcon(
-      onClick.stopPropagation.use(Ownable(implicit ctx => SearchModal.config( node))) --> GlobalState.uiModalConfig
-    )
-  }
-
-  private def manageMembers(node: Node.Content)(implicit ctx: Ctx.Owner): VNode = {
-    a(
-      cls := "item",
-      cursor.pointer,
-      Elements.icon(Icons.users),
-      span("Members"),
-
-      onClick.stopPropagation.use(Ownable(implicit ctx => MembersModal.config( node))) --> GlobalState.uiModalConfig
+      onClick.stopPropagation.use(Ownable(implicit ctx => SearchModal.config(node))) --> GlobalState.uiModalConfig
     )
   }
 

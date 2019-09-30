@@ -138,8 +138,8 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       val insertMembership = quote { (nodeId: NodeId, userId: UserId) =>
         infix"""
           insert into edge(sourceid, data, targetid)
-          select ${nodeId}, jsonb_build_object('type', 'Member', 'level', 'readwrite'::accesslevel), ${userId}
-          where exists(select 1 from node where id = ${nodeId} and accesslevel = 'readwrite')
+          select ${nodeId}, jsonb_build_object('type', 'Member', 'level', accesslevel), ${userId}
+          from node where id = ${nodeId} and (accesslevel = 'readwrite' or accesslevel = 'read')
           ON CONFLICT DO NOTHING
         """.as[Insert[Edge]]
       }

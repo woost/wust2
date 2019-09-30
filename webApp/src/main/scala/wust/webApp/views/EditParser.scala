@@ -44,6 +44,9 @@ object ValueStringifier {
   implicit object accesslevel extends ValueStringifier[AccessLevel] {
     def stringify(current: AccessLevel): String = current.str
   }
+  implicit object nodeAccess extends ValueStringifier[NodeAccess] {
+    def stringify(current: NodeAccess): String = current.str
+  }
 
   implicit object ValueString extends ValueStringifier[String] {
     def stringify(value: String) = value
@@ -123,6 +126,9 @@ object EditStringParser extends EditStringParserInstances0 {
 
   implicit val EditAccessLevel: EditStringParser[AccessLevel] = new EditStringParser[AccessLevel] {
     def parse(elem: String): Task[EditInteraction[AccessLevel]] = Task(EditInteraction.fromOption(AccessLevel.fromString.lift(elem)))
+  }
+  implicit val EditNodeAccess: EditStringParser[NodeAccess] = new EditStringParser[NodeAccess] {
+    def parse(elem: String): Task[EditInteraction[NodeAccess]] = Task(EditInteraction.fromOption(NodeAccess.fromString.lift(elem)))
   }
 
   implicit def EditOption[T: EditStringParser]: EditStringParser[Option[T]] = EditStringParser[T].map(Some(_))
