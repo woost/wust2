@@ -1,6 +1,6 @@
 package wust.webApp.views
 
-import acyclic.file
+//import acyclic.file
 import wust.webUtil.outwatchHelpers._
 import wust.facades.emojijs.EmojiConvertor
 import wust.facades.fomanticui.{SearchOptions, SearchSourceEntry}
@@ -298,9 +298,11 @@ object Components {
     key: Edge.LabeledProperty,
     property: Node,
     pageOnClick: Boolean = false,
+    modifier: VDomModifier = VDomModifier.empty
   )(implicit ctx: Ctx.Owner): VNode = {
 
     span(
+      overflow := "visible !important", //Actually show full dropdown...
       cls := "property",
       Styles.flex,
       alignItems.center,
@@ -315,8 +317,25 @@ object Components {
 
       property.role match {
         case NodeRole.Neutral =>
-          renderNodeData( property, maxLength = Some(50))
-            .apply(cls := "property-value")
+          property.data match {
+            case NodeData.Placeholder(selection) => renderNodeData(property, maxLength = Some(50)).apply(
+              cls := "property-value",
+              cursor.pointer,
+              modifier,
+              ItemProperties.managePropertiesDropdown(
+                ItemProperties.Target.Custom((_, changesf) => changesf(key.sourceId) merge GraphChanges(delEdges = Array(key)), isAutomation = Var(false)),
+                ItemProperties.TypeConfig(prefilledType = selection, hidePrefilledType = true, customOptions = Some(VDomModifier.empty)),
+                ItemProperties.EdgeFactory.labeledProperty(key.data.key, key.data.showOnCard),
+                elementModifier = VDomModifier(marginLeft := "-40px", position := "static", fontSize.small)
+              )
+            )
+            case _ => VDomModifier(
+              renderNodeData(property, maxLength = Some(50)).apply(
+                cls := "property-value",
+              ),
+              modifier
+            )
+          }
         case _ =>
           VDomModifier(
             writeHoveredNode( property.id),
@@ -326,6 +345,7 @@ object Components {
               sidebarNodeFocusMod(GlobalState.rightSidebarNode, property.id),
               cursor.pointer
             ),
+            modifier
           )
       }
     )
@@ -345,7 +365,7 @@ object Components {
   }
 
   def removableNodeCardPropertyCustom(key: Edge.LabeledProperty, propertyNode: Node, action: () => Unit, pageOnClick: Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
-    nodeCardProperty( key, propertyNode, pageOnClick).apply(removableTagMod(action))
+    nodeCardProperty( key, propertyNode, pageOnClick, removableTagMod(action))
   }
 
   def removableNodeCardProperty(key: Edge.LabeledProperty, propertyNode: Node, pageOnClick:Boolean = false)(implicit ctx: Ctx.Owner): VNode = {

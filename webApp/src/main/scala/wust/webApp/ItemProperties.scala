@@ -287,11 +287,12 @@ object ItemProperties {
     description
   }
 
-  def managePropertiesDropdown(target: Target, config: TypeConfig = TypeConfig.default, edgeFactory: EdgeFactory = EdgeFactory.labeledProperty, names: Names = Names.default, descriptionModifier: VDomModifier = VDomModifier.empty, dropdownModifier: VDomModifier = cls := "top left")(implicit ctx: Ctx.Owner): VDomModifier = {
+  def managePropertiesDropdown(target: Target, config: TypeConfig = TypeConfig.default, edgeFactory: EdgeFactory = EdgeFactory.labeledProperty, names: Names = Names.default, descriptionModifier: VDomModifier = VDomModifier.empty, dropdownModifier: VDomModifier = cls := "top left", elementModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
     val closeDropdown = SinkSourceHandler.publish[Unit]
     UI.dropdownMenu(VDomModifier(
       padding := "5px",
       div(cls := "item", display.none), // dropdown menu needs an item
+      elementModifier,
       div(
         managePropertiesContent(target, config, edgeFactory, names).mapResult(_.apply(width := "200px")) --> closeDropdown,
         descriptionModifier
