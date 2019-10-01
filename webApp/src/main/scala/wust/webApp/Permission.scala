@@ -40,7 +40,7 @@ object Permission {
 
   val publicRead = PermissionDescription(
     access = NodeAccess.Level(AccessLevel.Read),
-    value = "Public-Read",
+    value = "Public",
     description = "Anyone can access this page readonly via URL",
     icon = Icons.permissionPublic,
   )
@@ -52,7 +52,7 @@ object Permission {
     icon = Icons.permissionPrivate
   )
 
-  val all: List[PermissionDescription] = `private` :: public :: inherit :: Nil
+  val all: List[PermissionDescription] = `private` :: public :: publicRead :: inherit :: Nil
 
   def resolveInherited(graph: Graph, nodeId: NodeId): PermissionDescription = {
     val level = graph.accessLevelOfNode(nodeId)
@@ -68,31 +68,4 @@ object Permission {
   def permissionIndicatorIfPublic(level: PermissionDescription, modifier: VDomModifier = VDomModifier.empty): VDomModifier = {
     VDomModifier.ifTrue(level.access == NodeAccess.ReadWrite || level.access == NodeAccess.Read)(div(level.icon, Styles.flexStatic, UI.popup("bottom center") := level.description, modifier))
   }
-
-  def permissionItem(channel: Node.Content)(implicit ctx: Ctx.Owner): VDomModifier = {
-    a(
-      cls := "item",
-//      Components.icon(Icons.userPermission),
-      span("Permissions"),
-      Components.horizontalMenu(
-        Permission.all.map { item =>
-          Components.MenuItem(
-            title = Elements.icon(item.icon),
-            description = Rx {
-              item.inherited match {
-                case None => item.value
-                case Some(inheritance) => s"Inherited (${inheritance(GlobalState.rawGraph(), channel.id).value})"
-              }
-            },
-            active = channel.meta.accessLevel == item.access,
-            clickAction = { () =>
-              GlobalState.submitChanges(GraphChanges.addNode(channel.copy(meta = channel.meta.copy(accessLevel = item.access))))
-              FeatureState.use(Feature.ChangeAccessLevel)
-            }
-          )
-        }
-      )
-    )
-  }
-
 }
