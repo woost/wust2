@@ -53,11 +53,15 @@ object EditableContent {
     submitOnEnter: Boolean = !BrowserDetect.isMobile,
     errorMode: ErrorMode = ErrorMode.ShowInline,
     selectTextOnFocus: Boolean = true,
+    autoFocus: Boolean = true
   )
   object Config {
     def default = Config()
     def cancelOnError = Config(
       errorMode = ErrorMode.Cancel
+    )
+    def manual = Config(
+      submitMode = SubmitMode.Manual
     )
     def off = Config(
       submitMode = SubmitMode.Manual,
@@ -124,6 +128,14 @@ object EditableContent {
   def editorOrRender[T: EditElementParser: ValueStringifier](current: T, editMode: Var[Boolean], renderFn: Ctx.Owner => T => VDomModifier, config: Config = Config.default)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VDomModifier] = editOrRender[T](current, editMode, renderFn, implicit ctx => editorHandler(Some(current), _, config, handle = handleEditInteractionInOrRender[T](editMode)))
   def inlineEditorOrRender[T: EditStringParser: ValueStringifier](current: T, editMode: Var[Boolean], renderFn: Ctx.Owner => T => VDomModifier, config: Config = Config.default)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VDomModifier] = editOrRender[T](current, editMode, renderFn, implicit ctx => inlineEditorHandler(Some(current), _, config, handle = handleEditInteractionInOrRender[T](editMode)))
   def customOrRender[T](current: T, editMode: Var[Boolean], renderFn: Ctx.Owner => T => VDomModifier, inputFn: Ctx.Owner => CommonEditHandler[T] => VDomModifier, config: Config = Config.default)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VDomModifier] = editOrRender[T](current, editMode, renderFn, implicit ctx => commonEditStructure(Some(current), _, config, handle = handleEditInteractionInOrRender[T](editMode))(inputFn(ctx)))
+
+  def custom[T](current: T, inputFn: Ctx.Owner => CommonEditHandler[T] => VDomModifier, config: Config = Config.default)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VDomModifier] = EmitterBuilder.ofModifier[EditInteraction[T]] { sink =>
+    val currentVar = Handler.unsafe[EditInteraction[T]](EditInteraction.Input(current))
+
+    commonEditStructure[T](Some(current), currentVar, config, handle = e => e)(handler =>
+      VDomModifier(inputFn(ctx)(handler), managedFunction(() => currentVar.subscribe()))
+    )
+  }
 
   def ofNode(node: Node, config: Config = Config.default)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[Node], VDomModifier] = EmitterBuilder.ofModifier[EditInteraction[Node]] { action =>
     EditStringParser.forNode(node).map { implicit parser =>
@@ -363,8 +375,10 @@ object EditableContent {
     ),
     whiteSpace.preWrap, // preserve white space in Markdown code
     onClick.stopPropagation.discard, // prevent e.g. selecting node, but only when editing
-    onDomMount.asHtml --> inNextAnimationFrame[dom.html.Element] { elem => if (shouldFocusInput) elem.focus() },
-    onDomUpdate.asHtml --> inNextAnimationFrame[dom.html.Element] { elem => if (shouldFocusInput) elem.focus() },
+    VDomModifier.ifTrue (config.autoFocus)(
+      onDomMount.asHtml --> inNextAnimationFrame[dom.html.Element] { elem => if (shouldFocusInput) elem.focus() },
+      onDomUpdate.asHtml --> inNextAnimationFrame[dom.html.Element] { elem => if (shouldFocusInput) elem.focus() },
+    )
   )
 
   private def blurEmitter(config: Config): EmitterBuilder[Any, VDomModifier] = {

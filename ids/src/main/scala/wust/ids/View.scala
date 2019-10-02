@@ -30,6 +30,9 @@ object View {
   case object Files extends Visible {
     def viewKey = "files"
   }
+  case object Form extends Visible {
+    def viewKey = "form"
+  }
   case object Kanban extends Visible {
     override def toString = "Kanban Board"
     def viewKey = "kanban"

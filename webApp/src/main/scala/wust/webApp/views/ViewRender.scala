@@ -28,6 +28,7 @@ object ViewRender extends ViewRenderLike {
       case View.Kanban        => KanbanView(focusState, ViewRender)
       case View.Graph         => GraphView(focusState)
       case View.Dashboard     => DashboardView(focusState)
+      case View.Form          => FormView(focusState)
       case View.Files         => FilesView(focusState)
       case View.Content       => NotesView(focusState)
       case View.Gantt         => GanttView(focusState)
