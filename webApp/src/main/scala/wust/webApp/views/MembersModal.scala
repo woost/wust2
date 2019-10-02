@@ -101,18 +101,23 @@ object MembersModal {
     }
 
     def handleRemoveMember(membership: Edge.Member)(implicit ctx: Ctx.Owner): Unit = {
+      def action(): Unit = {
+        val change: GraphChanges = GraphChanges(delEdges = Array(membership))
+        GlobalState.submitChanges(change)
+      }
+
       if (membership.userId == GlobalState.user.now.id) {
         needAction() = Some(NeedAction(
           { () =>
             GlobalState.urlConfig.update(_.focus(Page.empty))
             GlobalState.uiModalClose.onNext(())
-            val change: GraphChanges = GraphChanges(delEdges = Array(membership))
-            GlobalState.submitChanges(change)
-            ()
+            action()
           },
           reason = "Do you really want to remove yourself from this workspace? You might not be able to access it again.",
           isPositive = false
         ))
+      } else {
+        action()
       }
     }
 
@@ -129,15 +134,19 @@ object MembersModal {
         GlobalState.submitChanges(GraphChanges.addNode(newNode))
       }
       def updateMembership(membership: Edge.Member, level: AccessLevel): Unit = node.now.foreach { node =>
+        def action(): Unit = {
+          val newEdge = membership.copy(data = membership.data.copy(level = level))
+          GlobalState.submitChanges(GraphChanges(addEdges = Array(newEdge)))
+        }
+
         if (membership.userId == GlobalState.user.now.id) {
           needAction() = Some(NeedAction(
-            { () =>
-              val newEdge = membership.copy(data = membership.data.copy(level = level))
-              GlobalState.submitChanges(GraphChanges(addEdges = Array(newEdge)))
-            },
+            action,
             reason = "Do you really want to change your own access to this workspace? You might not be able to change it again.",
             isPositive = false
           ))
+        } else {
+          action()
         }
       }
 
