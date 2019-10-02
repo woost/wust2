@@ -31,7 +31,6 @@ class ContainerSink[T] {
     val index = array.length
     array.push(js.undefined)
     SinkObserver.create[T] { value =>
-      println("JO " + value)
       array(index) = value
       isEmptyHandler.onNext(false)
     }
