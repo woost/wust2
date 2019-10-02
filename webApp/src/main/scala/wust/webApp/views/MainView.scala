@@ -62,7 +62,6 @@ object MainView {
 
           onMouseDown.use(None) --> GlobalState.rightSidebarNode,
 
-          topBannerContainer,
           content(PresentationMode.ContentOnly),
         ),
 
@@ -79,7 +78,9 @@ object MainView {
           color := Colors.woost,
           WoostLogoComponents.woostIcon,
           " Woost",
-          onClickDefault.foreach(GlobalState.urlConfig.update(_.copy(mode = PresentationMode.Full))))
+          // onClickDefault.foreach(GlobalState.urlConfig.update(_.copy(mode = PresentationMode.Full)))
+          onClickDefault.foreach(dom.window.location.href = "https://woost.space")
+        )
       )
     )
   }
