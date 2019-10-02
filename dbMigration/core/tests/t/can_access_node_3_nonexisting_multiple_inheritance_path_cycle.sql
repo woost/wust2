@@ -143,8 +143,8 @@ select node('D1', NULL); -- node with permission multiple inheritance
 select child('B1', 'D1'); -- inheritance happens via this child edge
 select child('C1', 'D1'); -- inheritance happens via this child edge
 
-SELECT cmp_ok(node_can_access(node_to_uuid('D1'), user_to_uuid('A1')), '=', true);
-SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('D1')], user_to_uuid('A1'))), '=', array[]::uuid[]);
+SELECT cmp_ok(node_can_access(node_to_uuid('D1'), user_to_uuid('A1'), 'readwrite'::accesslevel), '=', true);
+SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('D1')], user_to_uuid('A1'), 'readwrite'::accesslevel)), '=', array[]::uuid[]);
 
 
 -- long inheritance chain: readwrite
@@ -157,8 +157,8 @@ select node('D2', NULL);
 select child('B2', 'C2');
 select child('C2', 'D2');
 
-SELECT cmp_ok(node_can_access(node_to_uuid('D2'), user_to_uuid('A2')), '=', true);
-SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('D2')], user_to_uuid('A2'))), '=', array[]::uuid[]);
+SELECT cmp_ok(node_can_access(node_to_uuid('D2'), user_to_uuid('A2'), 'readwrite'::accesslevel), '=', true);
+SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('D2')], user_to_uuid('A2'), 'readwrite'::accesslevel)), '=', array[]::uuid[]);
 
 -- long inheritance chain: restricted
 select cleanup();
@@ -169,8 +169,8 @@ select node('D3', NULL);
 select child('B3', 'C3');
 select child('C3', 'D3');
 
-SELECT cmp_ok(node_can_access(node_to_uuid('D3'), user_to_uuid('A3')), '=', false);
-SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('D3')], user_to_uuid('A3'))), '=', array[node_to_uuid('D3')]::uuid[]);
+SELECT cmp_ok(node_can_access(node_to_uuid('D3'), user_to_uuid('A3'), 'readwrite'::accesslevel), '=', false);
+SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('D3')], user_to_uuid('A3'), 'readwrite'::accesslevel)), '=', array[node_to_uuid('D3')]::uuid[]);
 
 -- inheritance cycle: readwrite
 select cleanup();
@@ -183,10 +183,10 @@ select child('B4', 'C4');
 select child('C4', 'D4');
 select child('D4', 'C4');
 
-SELECT cmp_ok(node_can_access(node_to_uuid('D4'), user_to_uuid('A4')), '=', true);
-SELECT cmp_ok(node_can_access(node_to_uuid('C4'), user_to_uuid('A4')), '=', true);
-SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('D4')], user_to_uuid('A4'))), '=', array[]::uuid[]);
-SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('C4')], user_to_uuid('A4'))), '=', array[]::uuid[]);
+SELECT cmp_ok(node_can_access(node_to_uuid('D4'), user_to_uuid('A4'), 'readwrite'::accesslevel), '=', true);
+SELECT cmp_ok(node_can_access(node_to_uuid('C4'), user_to_uuid('A4'), 'readwrite'::accesslevel), '=', true);
+SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('D4')], user_to_uuid('A4'), 'readwrite'::accesslevel)), '=', array[]::uuid[]);
+SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('C4')], user_to_uuid('A4'), 'readwrite'::accesslevel)), '=', array[]::uuid[]);
 
 -- inheritance cycle: restricted
 select cleanup();
@@ -198,18 +198,18 @@ select child('B5', 'C5');
 select child('C5', 'D5');
 select child('D5', 'C5');
 
-SELECT cmp_ok(node_can_access(node_to_uuid('D5'), user_to_uuid('A5')), '=', false);
-SELECT cmp_ok(node_can_access(node_to_uuid('C5'), user_to_uuid('A5')), '=', false);
-SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('D5')], user_to_uuid('A5'))), '=', array[node_to_uuid('D5')]::uuid[]);
-SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('C5')], user_to_uuid('A5'))), '=', array[node_to_uuid('C5')]::uuid[]);
+SELECT cmp_ok(node_can_access(node_to_uuid('D5'), user_to_uuid('A5'), 'readwrite'::accesslevel), '=', false);
+SELECT cmp_ok(node_can_access(node_to_uuid('C5'), user_to_uuid('A5'), 'readwrite'::accesslevel), '=', false);
+SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('D5')], user_to_uuid('A5'), 'readwrite'::accesslevel)), '=', array[node_to_uuid('D5')]::uuid[]);
+SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('C5')], user_to_uuid('A5'), 'readwrite'::accesslevel)), '=', array[node_to_uuid('C5')]::uuid[]);
 
 
 -- non-existing nodes
 select cleanup();
 select usernode('A6');
 
-SELECT cmp_ok(node_can_access(node_to_uuid('D6'), user_to_uuid('A6')), '=', true);
-SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('D6')], user_to_uuid('A6'))), '=', array[]::uuid[]);
+SELECT cmp_ok(node_can_access(node_to_uuid('D6'), user_to_uuid('A6'), 'readwrite'::accesslevel), '=', true);
+SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('D6')], user_to_uuid('A6'), 'readwrite'::accesslevel)), '=', array[]::uuid[]);
 
 
 -- non-existing user
@@ -221,8 +221,8 @@ select cleanup();
 select usernode('A7'); -- user
 select node('B7', NULL); -- node with permission multiple inheritance
 
-SELECT cmp_ok(node_can_access(node_to_uuid('B7'), user_to_uuid('A7')), '=', false);
-SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('B7')], user_to_uuid('A7'))), '=', array[node_to_uuid('B7')]::uuid[]);
+SELECT cmp_ok(node_can_access(node_to_uuid('B7'), user_to_uuid('A7'), 'readwrite'::accesslevel), '=', false);
+SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('B7')], user_to_uuid('A7'), 'readwrite'::accesslevel)), '=', array[node_to_uuid('B7')]::uuid[]);
 
 
 

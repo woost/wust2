@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(16);
+SELECT plan(24);
 
 -- suppress cascade notices from cleanup()
 SET client_min_messages TO WARNING;
@@ -139,9 +139,9 @@ select node('B1', 'restricted'); -- node with permission
 select member('B1', 'A1', 'restricted'); -- membership with level
 
 -- single node
-SELECT cmp_ok(node_can_access(node_to_uuid('B1'), user_to_uuid('A1')), '=', false);
+SELECT cmp_ok(node_can_access(node_to_uuid('B1'), user_to_uuid('A1'), 'readwrite'::accesslevel), '=', false);
 -- array of nodes, returning conflicting nodes
-SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('B1')], user_to_uuid('A1'))), '=', array[node_to_uuid('B1')]);
+SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('B1')], user_to_uuid('A1'), 'readwrite'::accesslevel)), '=', array[node_to_uuid('B1')]);
 
 
 -- case 2:
@@ -150,8 +150,8 @@ select usernode('A2');
 select node('B2', 'readwrite');
 select member('B2', 'A2', 'restricted');
 
-SELECT cmp_ok(node_can_access(node_to_uuid('B2'), user_to_uuid('A2')), '=', false);
-SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('B2')], user_to_uuid('A2'))), '=', array[node_to_uuid('B2')]);
+SELECT cmp_ok(node_can_access(node_to_uuid('B2'), user_to_uuid('A2'), 'readwrite'::accesslevel), '=', false);
+SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('B2')], user_to_uuid('A2'), 'readwrite'::accesslevel)), '=', array[node_to_uuid('B2')]);
 
 -- case 3:
 select cleanup();
@@ -159,8 +159,8 @@ select usernode('A3');
 select node('B3', null);
 select member('B3', 'A3', 'restricted');
 
-SELECT cmp_ok(node_can_access(node_to_uuid('B3'), user_to_uuid('A3')), '=', false);
-SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('B3')], user_to_uuid('A3'))), '=', array[node_to_uuid('B3')]);
+SELECT cmp_ok(node_can_access(node_to_uuid('B3'), user_to_uuid('A3'), 'readwrite'::accesslevel), '=', false);
+SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('B3')], user_to_uuid('A3'), 'readwrite'::accesslevel)), '=', array[node_to_uuid('B3')]);
 
 
 -- case 4:
@@ -169,8 +169,8 @@ select usernode('A4');
 select node('B4', 'restricted');
 select member('B4', 'A4', 'readwrite');
 
-SELECT cmp_ok(node_can_access(node_to_uuid('B4'), user_to_uuid('A4')), '=', true);
-SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('B4')], user_to_uuid('A4'))), '=', array[]::uuid[]);
+SELECT cmp_ok(node_can_access(node_to_uuid('B4'), user_to_uuid('A4'), 'readwrite'::accesslevel), '=', true);
+SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('B4')], user_to_uuid('A4'), 'readwrite'::accesslevel)), '=', array[]::uuid[]);
 
 
 -- case 5:
@@ -179,8 +179,8 @@ select usernode('A5');
 select node('B5', 'readwrite');
 select member('B5', 'A5', 'readwrite');
 
-SELECT cmp_ok(node_can_access(node_to_uuid('B5'), user_to_uuid('A5')), '=', true);
-SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('B5')], user_to_uuid('A5'))), '=', array[]::uuid[]);
+SELECT cmp_ok(node_can_access(node_to_uuid('B5'), user_to_uuid('A5'), 'readwrite'::accesslevel), '=', true);
+SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('B5')], user_to_uuid('A5'), 'readwrite'::accesslevel)), '=', array[]::uuid[]);
 
 
 -- case 6:
@@ -189,8 +189,8 @@ select usernode('A6');
 select node('B6', null);
 select member('B6', 'A6', 'readwrite');
 
-SELECT cmp_ok(node_can_access(node_to_uuid('B6'), user_to_uuid('A6')), '=', true);
-SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('B6')], user_to_uuid('A6'))), '=', array[]::uuid[]);
+SELECT cmp_ok(node_can_access(node_to_uuid('B6'), user_to_uuid('A6'), 'readwrite'::accesslevel), '=', true);
+SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('B6')], user_to_uuid('A6'), 'readwrite'::accesslevel)), '=', array[]::uuid[]);
 
 
 -- case 7:
@@ -198,8 +198,8 @@ select cleanup();
 select usernode('A7');
 select node('B7', 'restricted');
 
-SELECT cmp_ok(node_can_access(node_to_uuid('B7'), user_to_uuid('A7')), '=', false);
-SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('B7')], user_to_uuid('A7'))), '=', array[node_to_uuid('B7')]);
+SELECT cmp_ok(node_can_access(node_to_uuid('B7'), user_to_uuid('A7'), 'readwrite'::accesslevel), '=', false);
+SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('B7')], user_to_uuid('A7'), 'readwrite'::accesslevel)), '=', array[node_to_uuid('B7')]);
 
 
 -- case 8:
@@ -207,9 +207,29 @@ select cleanup();
 select usernode('A8');
 select node('B8', 'readwrite');
 
-SELECT cmp_ok(node_can_access(node_to_uuid('B8'), user_to_uuid('A8')), '=', false);
-SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('B8')], user_to_uuid('A8'))), '=', array[node_to_uuid('B8')]::uuid[]);
+SELECT cmp_ok(node_can_access(node_to_uuid('B8'), user_to_uuid('A8'), 'readwrite'::accesslevel), '=', false);
+SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('B8')], user_to_uuid('A8'), 'readwrite'::accesslevel)), '=', array[node_to_uuid('B8')]::uuid[]);
 
+-- case 8:
+select cleanup();
+select usernode('A8');
+select node('B8', 'read');
+
+SELECT cmp_ok(node_can_access(node_to_uuid('B8'), user_to_uuid('A8'), 'readwrite'::accesslevel), '=', false);
+SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('B8')], user_to_uuid('A8'), 'readwrite'::accesslevel)), '=', array[node_to_uuid('B8')]::uuid[]);
+SELECT cmp_ok(node_can_access(node_to_uuid('B8'), user_to_uuid('A8'), 'read'::accesslevel), '=', false);
+SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('B8')], user_to_uuid('A8'), 'read'::accesslevel)), '=', array[node_to_uuid('B8')]::uuid[]);
+
+-- case 9:
+select cleanup();
+select usernode('A6');
+select node('B6', null);
+select member('B6', 'A6', 'read');
+
+SELECT cmp_ok(node_can_access(node_to_uuid('B6'), user_to_uuid('A6'), 'readwrite'::accesslevel), '=', false);
+SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('B6')], user_to_uuid('A6'), 'readwrite'::accesslevel)), '=', array[node_to_uuid('B6')]::uuid[]);
+SELECT cmp_ok(node_can_access(node_to_uuid('B6'), user_to_uuid('A6'), 'read'::accesslevel), '=', true);
+SELECT cmp_ok(array(select * from inaccessible_nodes(array[node_to_uuid('B6')], user_to_uuid('A6'), 'read'::accesslevel)), '=', array[]::uuid[]);
 
 SELECT * FROM finish();
 ROLLBACK;
