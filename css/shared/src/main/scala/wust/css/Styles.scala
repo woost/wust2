@@ -537,18 +537,27 @@ object CommonStyles extends StyleSheet.Standalone
       gridTemplateColumns := "repeat(2, 50%)"
     ),
   )
+  ".viewgridAuto > *" - (
+    border := "1px solid white",
+  )
 
   ".viewgridRow" - (
     Styles.flex,
     margin(0 px),
-    padding(0 px)
+    padding(0 px),
+  )
+  ".viewgridRow > *" - (
+    border := "1px solid white",
   )
 
   /* TODO: too many columns overlaps the content because it autofits the screen height */
   ".viewgridColumn" - (
     Styles.gridOpts,
     margin(0 px),
-    padding(0 px)
+    padding(0 px),
+  )
+  ".viewgridColumn > *" - (
+    border := "1px solid white",
   )
 
   ".graphnode," +
