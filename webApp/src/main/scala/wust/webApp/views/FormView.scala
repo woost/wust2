@@ -14,6 +14,7 @@ import wust.css.Styles
 import wust.graph._
 import wust.webApp.Icons
 import wust.ids.{Feature, _}
+import wust.webUtil.Elements._
 import wust.webApp.dragdrop.DragContainer
 import wust.webApp.state.{FocusState, GlobalState, Placeholder, TraverseState}
 import wust.webApp.views.Components._
@@ -57,6 +58,11 @@ object FormView {
 
     val container = new ContainerSink[GraphChanges]
 
+    val node = Rx {
+      val graph = GlobalState.rawGraph()
+      graph.nodesByIdOrThrow(focusState.focusedId)
+    }
+
     val propertySingle = Rx {
       val graph = GlobalState.rawGraph()
       graph.idToIdxMap(focusState.focusedId) { nodeIdx =>
@@ -64,104 +70,122 @@ object FormView {
       }
     }//.filter(_ => container.isEmpty)
 
-    container.isEmptySource.foreach { s => println("CHA " + s) }
+    val propertiesIsEmpty = propertySingle.map(_.forall(_.properties.isEmpty))
+
+    val titleEditMode = Var(false)
 
     form(
+      minWidth := "400px",
       Styles.growFull,
       Styles.flex,
       flexDirection.column,
-      alignItems.flexStart,
+      alignItems.center,
       padding := "20px",
       onSubmit.preventDefault.discard,
       cls := "ui form",
 
+      h3(
+        minHeight := "20px",
+        minWidth := "20px",
+
+        onClickDefault.use(true) --> titleEditMode,
+
+        node.map { node =>
+          EditableContent.inlineEditorOrRender[String](node.settingsOrDefault.formOrDefault.title.getOrElse("Form"), titleEditMode, _ => s => s).editValue.foreach { str =>
+            node match {
+              case node: Node.Content =>
+                val newNode = node.updateSettings(_.updateForm(_.copy(title = Some(str))))
+                GlobalState.submitChanges(GraphChanges.addNode(newNode))
+              case _ => ()
+            }
+          }
+        }
+      ),
+
+
+      table(
+        width := "100%",
+
+        tbody(
+          Rx {
+            container.clear()
+
+            if (propertiesIsEmpty()) div(
+              textAlign.center,
+              "This Item does not have any Fields yet. Add Custom Fields to have a Form to fill-in these fields."
+            ) else VDomModifier(
+              propertySingle().map(propertySingle => propertySingle.properties.map { property =>
+                propertyRow(property.key, property.values, container)
+              })
+            )
+          }
+        )
+      ),
+
       Rx {
-        container.clear()
-
-        propertySingle().map { propertySingle =>
-          propertySingle.properties.map { property =>
-            propertySection(property.key, property.values, container)
+        VDomModifier.ifNot(propertiesIsEmpty())(button(
+          margin := "10px",
+          cls := "ui button primary",
+          disabled <-- container.isEmptySource,
+          "Save",
+          onClick.stopPropagation.foreach { _ =>
+            val current = container.currentValues()
+            if (current.nonEmpty) {
+              GlobalState.submitChanges(current.reduce(_ merge _))
+            }
           }
-        }
-      },
-
-      button(
-        margin := "10px",
-        cls := "ui button primary",
-        disabled <-- container.isEmptySource,
-        "Save",
-        onClick.stopPropagation.foreach { _ =>
-          val current = container.currentValues()
-          if (current.nonEmpty) {
-            GlobalState.submitChanges(current.reduce(_ merge _))
-          }
-        }
-      )
+        ))
+      }
     )
   }
 
-  def propertySection(
+  private def propertyRow(
     key: String,
     properties: Seq[PropertyData.PropertyValue],
     container: ContainerSink[GraphChanges]
   )(implicit ctx: Ctx.Owner): VNode = {
 
-    div(
+    tr(
       padding := "5px",
       width := "100%",
-      Styles.wordWrap,
-      Styles.flex,
-      flexWrap.wrap,
-      alignItems.flexStart,
-      justifyContent.spaceBetween,
 
-      b(key + ":"),
+      td(b(key + ":"), display.inlineFlex, marginRight := "10px"),
 
-      div(
-        flexGrow := 1,
-
+      td(
         properties.map { property =>
           val localChanges = container.register()
 
           div(
-            marginLeft := "20px",
-            Styles.flex,
-            justifyContent.spaceBetween,
-
-            div(
-              Styles.flex,
-              justifyContent.flexEnd,
-              margin := "3px 0px",
-
-              editablePropertyNode( property.node, property.edge) --> localChanges
-            )
+            margin := "3px 0px",
+            editablePropertyCell( property.node, property.edge) --> localChanges
           )
         }
       )
     )
   }
 
-  private def editablePropertyNode(node: Node, edge: Edge.LabeledProperty)(implicit ctx: Ctx.Owner): EmitterBuilder[GraphChanges, VNode] = EmitterBuilder.ofNode { sink =>
+  private def editablePropertyCell(node: Node, edge: Edge.LabeledProperty)(implicit ctx: Ctx.Owner): EmitterBuilder[GraphChanges, VNode] = EmitterBuilder.ofNode { sink =>
     val config = EditableContent.Config(
       submitMode = EditableContent.SubmitMode.Manual,
       emitter = onInput,
       autoFocus = false,
+      autoresizeTextarea = false // autoresize mod breaks initial rendering...go back to own solution...damn...
     )
 
     def contentEditor = EditableContent.ofNode(node, config).editValue.map(GraphChanges.addNode) --> sink
 
-    def refEditor = EditableContent.custom[Node](
-      node,
+    def refEditor = EditableContent.custom[NodeId](
+      node.id,
       implicit ctx => handler => searchAndSelectNodeApplied[Handler](
         ProHandler(
-          handler.edit.contracollect[Option[NodeId]] { case id => EditInteraction.fromOption(id.map(GlobalState.rawGraph.now.nodesByIdOrThrow(_))) },
-          handler.edit.collect[Option[NodeId]] { case EditInteraction.Input(v) => Some(v.id) }.prepend(Some(node.id)),
+          handler.edit.contramap[Option[NodeId]](EditInteraction.fromOption(_)),
+          handler.edit.collect[Option[NodeId]] { case EditInteraction.Input(id) => Some(id) }.prepend(Some(node.id)).shareWithLatest,
         ),
-        filter = (_:Node) => true,
+        filter = (n:Node) => true,
       ),
       config
-    ).editValue.collect { case newNode if newNode.id != edge.propertyId =>
-      GraphChanges(delEdges = Array(edge), addEdges = Array(edge.copy(propertyId = PropertyId(newNode.id))))
+    ).editValue.collect { case newNodeId if newNodeId != edge.propertyId =>
+      GraphChanges(delEdges = Array(edge), addEdges = Array(edge.copy(propertyId = PropertyId(newNodeId))))
     } --> sink
 
     div(

@@ -36,6 +36,7 @@ object ViewSwitcher {
     case View.Content     => TabInfo(View.Content, Icons.notes, "notes", 0)
     case View.Gantt       => TabInfo(View.Gantt, Icons.gantt, "tasks", 0)
     case View.Topological => TabInfo(View.Topological, Icons.topological, "tasks", 0)
+    case View.Form        => TabInfo(View.Form, Icons.form, "", 0)
     case view             => TabInfo(view, freeSolid.faSquare, "", 0) //TODO complete icon definitions
   }
 

@@ -641,19 +641,19 @@ object Components {
 
       def contentEditor = EditableContent.ofNodeOrRender( node, editMode, implicit ctx => node => renderNodeData( node, maxLength), config).editValue.map(GraphChanges.addNode) --> GlobalState.eventProcessor.changes
 
-      def refEditor = EditableContent.customOrRender[Node](
-        node, editMode,
-        implicit ctx => node => nodeCard( node, maxLength = maxLength).apply(Styles.wordWrap, nonPropertyModifier),
+      def refEditor = EditableContent.customOrRender[NodeId](
+        node.id, editMode,
+        implicit ctx => nodeId => GlobalState.rawGraph.map(g => nodeCard(g.nodesByIdOrThrow(nodeId), maxLength = maxLength).apply(Styles.wordWrap, nonPropertyModifier)),
         implicit ctx => handler => searchAndSelectNodeApplied[Handler](
           ProHandler(
-            handler.edit.contracollect[Option[NodeId]] { case id => EditInteraction.fromOption(id.map(GlobalState.rawGraph.now.nodesByIdOrThrow(_))) },
-            handler.edit.collect[Option[NodeId]] { case EditInteraction.Input(v) => Some(v.id) }.prepend(Some(node.id)),
+            handler.edit.contramap[Option[NodeId]](EditInteraction.fromOption(_)),
+            handler.edit.collect[Option[NodeId]] { case EditInteraction.Input(id) => Some(id) }.prepend(Some(node.id)).shareWithLatest,
           ),
           filter = (_:Node) => true
         ),
         config
-      ).editValue.collect { case newNode if newNode.id != edge.propertyId =>
-        GraphChanges(delEdges = Array(edge), addEdges = Array(edge.copy(propertyId = PropertyId(newNode.id))))
+      ).editValue.collect { case newNodeId if newNodeId != edge.propertyId =>
+        GraphChanges(delEdges = Array(edge), addEdges = Array(edge.copy(propertyId = PropertyId(newNodeId))))
       } --> GlobalState.eventProcessor.changes
 
       div(

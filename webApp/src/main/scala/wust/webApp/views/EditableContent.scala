@@ -53,7 +53,8 @@ object EditableContent {
     submitOnEnter: Boolean = !BrowserDetect.isMobile,
     errorMode: ErrorMode = ErrorMode.ShowInline,
     selectTextOnFocus: Boolean = true,
-    autoFocus: Boolean = true
+    autoFocus: Boolean = true,
+    autoresizeTextarea: Boolean = true,
   )
   object Config {
     def default = Config()
@@ -112,7 +113,7 @@ object EditableContent {
   private def inlineEditorHandler[T: EditStringParser: ValueStringifier](initial: Option[T], current: Handler[EditInteraction[T]], config: Config, handle: EditInteraction[T] => EditInteraction[T] = (x: EditInteraction[T]) => x)(implicit ctx: Ctx.Owner): VNode = {
     commonEditStructure(initial, current, config, handle)(handler => textArea(
       rows := 1,
-      Elements.autoresizeTextareaMod,
+      VDomModifier.ifTrue(config.autoresizeTextarea)(Elements.autoresizeTextareaMod),
       outline := "none", // hides textarea outline
       border := "0", // hides textarea border
       minWidth := "36px", minHeight := "36px", // minimal edit area
@@ -133,7 +134,7 @@ object EditableContent {
     val currentVar = Handler.unsafe[EditInteraction[T]](EditInteraction.Input(current))
 
     commonEditStructure[T](Some(current), currentVar, config, handle = e => e)(handler =>
-      VDomModifier(inputFn(ctx)(handler), managedFunction(() => currentVar.subscribe()))
+      VDomModifier(inputFn(ctx)(handler), managedFunction(() => currentVar.subscribe(sink)))
     )
   }
 

@@ -17,6 +17,7 @@ sealed trait Node {
   def role: NodeRole
   def meta: NodeMeta
   def settings: Option[NodeSettings]
+  def settingsOrDefault = settings.getOrElse(NodeSettings.default)
   def views: Option[List[View.Visible]] //TODO: move views into settings or make views configurable...
 
   @inline def as[T <: Node]: T = asInstanceOf[T]
@@ -33,7 +34,6 @@ object Node {
     override def toString = s"""User([${id.shortHumanReadable}]"$name"${if (data.isImplicit) ":implicit" else ""}${if (meta.accessLevel != NodeAccess.Restricted) s":$meta" else ""}  ${id.toBase58}  ${id.toUuid})"""
   }
   final case class Content(id: NodeId, data: NodeData.Content, role: NodeRole, meta: NodeMeta, views: Option[List[View.Visible]] = None, settings: Option[NodeSettings] = None) extends Node {
-    def settingsOrDefault = settings.getOrElse(NodeSettings.default)
     def updateSettings(f: NodeSettings => NodeSettings): Content = copy(settings = Some(f(settingsOrDefault)))
   }
   object Content {

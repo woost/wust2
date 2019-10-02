@@ -122,6 +122,7 @@ object View {
     View.Thread,
     View.Content,
     View.Files,
+    View.Form,
   // View.Gantt,
   // View.Topological,
   )

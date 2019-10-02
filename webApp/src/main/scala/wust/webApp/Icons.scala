@@ -87,6 +87,7 @@ object Icons {
   val gantt: IconDefinition = freeSolid.faStream
   val dashboard: IconDefinition = freeSolid.faChartLine
   val topological: IconDefinition = freeSolid.faSortNumericDown
+  val form: IconDefinition = freeBrands.faWpforms
   val notifications: IconDefinition = freeRegular.faBell
   val activityStream: IconDefinition = freeRegular.faClock
 
