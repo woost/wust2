@@ -137,10 +137,7 @@ object PageHeader {
           channelTitle,
           channelNotification,
           channelMembersList,
-          GlobalState.presentationMode.map {
-            case PresentationMode.Full => MembersModal.settingsButton(pageNodeId)
-            case PresentationMode.ContentOnly => VDomModifier.empty
-          },
+          MembersModal.settingsButton(pageNodeId),
           id := "tutorial-pageheader-title",
           marginBottom := "2px", // else nodecards in title overlap
 

@@ -396,14 +396,17 @@ object MembersModal {
 
     val openSharingModalOnClick = onClickDefault.use(Ownable(implicit ctx => MembersModal.config(nodeId))) --> GlobalState.uiModalConfig
 
-    button(
-      marginLeft := "5px",
-      openSharingModalOnClick,
-      cls := "ui tiny compact primary button",
+    GlobalState.presentationMode.map {
+      case PresentationMode.Full => button(
+        marginLeft := "5px",
+        openSharingModalOnClick,
+        cls := "ui tiny compact primary button",
 
-      openSharingModalOnClick,
-      permissionLevel.map(Permission.permissionIndicator(_)),
-    )
+        openSharingModalOnClick,
+        permissionLevel.map(Permission.permissionIndicator(_)),
+      )
+      case PresentationMode.ContentOnly => VDomModifier.empty
+    }
   }
 
   private def shareModifiers(channel: Node, shareUrl: String)(implicit ctx: Ctx.Owner): EmitterBuilder[NeedAction, VDomModifier] = EmitterBuilder { needAction =>
