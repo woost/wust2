@@ -109,22 +109,26 @@ object PageHeader {
         alignItems.center,
         flexWrap := "wrap-reverse",
 
-        ViewSwitcher(pageNodeId)
-          .mapResult(_.apply(
-            Styles.flexStatic,
-            alignSelf.flexStart,
-            marginRight := "5px",
-            id := "tutorial-pageheader-viewswitcher",
-            MainTutorial.onDomMountContinue,
-          ))
-          .foreach{ view =>
-            view match {
-              case View.Kanban => FeatureState.use(Feature.SwitchToKanbanInPageHeader)
-              case View.List   => FeatureState.use(Feature.SwitchToChecklistInPageHeader)
-              case View.Chat   => FeatureState.use(Feature.SwitchToChatInPageHeader)
-              case _           =>
+        GlobalState.presentationMode.map {
+          case PresentationMode.Full => ViewSwitcher(pageNodeId)
+            .mapResult(_.apply(
+              Styles.flexStatic,
+              alignSelf.flexStart,
+              marginRight := "5px",
+              id := "tutorial-pageheader-viewswitcher",
+              MainTutorial.onDomMountContinue,
+            ))
+            .foreach{ view =>
+              view match {
+                case View.Kanban => FeatureState.use(Feature.SwitchToKanbanInPageHeader)
+                case View.List   => FeatureState.use(Feature.SwitchToChecklistInPageHeader)
+                case View.Chat   => FeatureState.use(Feature.SwitchToChatInPageHeader)
+                case _           =>
+              }
             }
-          },
+          case PresentationMode.ContentOnly => VDomModifier.empty
+        },
+
         div(
           Styles.flex,
           alignItems.center,
@@ -133,12 +137,16 @@ object PageHeader {
           channelTitle,
           channelNotification,
           channelMembersList,
-          MembersModal.settingsButton(pageNodeId),
+          GlobalState.presentationMode.map {
+            case PresentationMode.Full => MembersModal.settingsButton(pageNodeId)
+            case PresentationMode.ContentOnly => VDomModifier.empty
+          },
           id := "tutorial-pageheader-title",
           marginBottom := "2px", // else nodecards in title overlap
 
           marginRight.auto,
         ),
+
         div(
           Styles.flex,
           alignItems.center,
