@@ -692,7 +692,7 @@ object Components {
         )
       }.map(Some(_))
 
-    def searchInGraph(graph: Rx[Graph], placeholder: String, valid: Rx[Boolean] = Var(true), filter: Node => Boolean = _ => true, completeOnInit: Boolean = true, showNotFound: Boolean = true, elementModifier: VDomModifier = VDomModifier.empty, innerElementModifier: VDomModifier = VDomModifier.empty, inputModifiers: VDomModifier = VDomModifier.empty, resultsModifier: VDomModifier = VDomModifier.empty, createNew: String => Boolean = _ => false, addInputDecoration: Boolean = true)(implicit ctx: Ctx.Owner): EmitterBuilder[NodeId, VDomModifier] = EmitterBuilder.ofModifier(sink => VDomModifier.delay {
+    def searchInGraph(graph: Rx[Graph], placeholder: String, valid: Rx[Boolean] = Var(true), filter: Node => Boolean = _ => true, completeOnInit: Boolean = true, showNotFound: Boolean = true, elementModifier: VDomModifier = VDomModifier.empty, innerElementModifier: VDomModifier = VDomModifier.empty, inputModifiers: VDomModifier = VDomModifier.empty, resultsModifier: VDomModifier = VDomModifier.empty, createNew: String => Boolean = _ => false, inputDecoration: Option[VDomModifier] = None)(implicit ctx: Ctx.Owner): EmitterBuilder[NodeId, VDomModifier] = EmitterBuilder.ofModifier(sink => VDomModifier.delay {
       var inputElem: dom.html.Element = null
       var resultsElem: dom.html.Element = null
       var elem: JQuerySelection = null
@@ -797,20 +797,18 @@ object Components {
         }
       )
 
-      if (addInputDecoration) div(
+      div(
         keyed,
         elementModifier,
         cls := "ui search",
         div(
-          cls := "ui icon input",
-          innerElementModifier,
           rawInput,
-          i(cls := "search icon"),
+          innerElementModifier,
+          inputDecoration.getOrElse(VDomModifier(
+            cls := "ui icon input",
+            i(cls := "search icon"),
+          ))
         ),
-        inputAppendix,
-      ) else rawInput(
-        elementModifier,
-        innerElementModifier,
         inputAppendix
       )
     })

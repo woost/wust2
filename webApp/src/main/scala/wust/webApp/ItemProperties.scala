@@ -136,7 +136,7 @@ object ItemProperties {
           label("Type"),
           selfOrParentIsAutomationNode.map { isTemplate =>
             EditableContent.select[NodeTypeSelection](
-              "Select a field type",
+              Some("Select a field type"),
               propertyTypeSelection,
               ("Text", NodeTypeSelection.Data(NodeData.Markdown.tpe)) ::
                 ("Number", NodeTypeSelection.Data(NodeData.Decimal.tpe)) ::

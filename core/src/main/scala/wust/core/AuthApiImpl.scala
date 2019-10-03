@@ -179,7 +179,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow, oAut
   }
 
   // TODO: we just assume, this inviteTargetMail user does not exist. Actually we should check, whether we have a user with this email already in our db. We don't want to send invite mail to existing user. We should add them as member and set invite edge. Currently the frontend does this distinction and we just trust it.
-  override def invitePerMail(inviteTargetMail: String, nodeId: NodeId): ApiFunction[Unit] = Effect.requireRealUser { (state, dbUser) =>
+  override def invitePerMail(inviteTargetMail: String, nodeId: NodeId, accesslevel: AccessLevel): ApiFunction[Unit] = Effect.requireRealUser { (state, dbUser) =>
     db.user.getUserDetail(dbUser.id).flatMap{
       case Some(Data.UserDetail(userId, Some(inviterEmail), true)) => // only allow verified user with an email to send out invitations
         db.node.get(dbUser.id, nodeId).flatMap{
@@ -189,7 +189,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow, oAut
               // make him a member of this node and create an invite edge
               val invitedUserId = UserId.fresh
               val invitedName = inviteTargetMail.split("@").head
-              val invitedEdges = Array[Edge](Edge.Member(nodeId = node.id, EdgeData.Member(AccessLevel.ReadWrite), userId = invitedUserId), Edge.Invite(nodeId = node.id, userId = invitedUserId))
+              val invitedEdges = Array[Edge](Edge.Member(nodeId = node.id, EdgeData.Member(accesslevel), userId = invitedUserId), Edge.Invite(nodeId = node.id, userId = invitedUserId))
               db.ctx.transaction { implicit ec =>
                 for {
                   invitedUser <- db.user.createImplicitUser(invitedUserId, invitedName)

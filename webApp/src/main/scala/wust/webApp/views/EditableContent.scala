@@ -154,19 +154,22 @@ object EditableContent {
     }
   }
 
-  def selectEmitter[T: EditStringParser: ValueStringifier](header: String, activeElement: Option[T], elements: Seq[(String, T)], unselectableMapping: Map[T, T] = Map.empty[T,T])(implicit ctx: Ctx.Owner): EmitterBuilder[T, VNode] = EmitterBuilder { sink =>
+  def selectEmitter[T: EditStringParser: ValueStringifier](header: Option[String], activeElement: Option[T], elements: Seq[(String, T)], unselectableMapping: Map[T, T] = Map.empty[T,T])(implicit ctx: Ctx.Owner): EmitterBuilder[T, VNode] = EmitterBuilder { sink =>
     val variable = Var(activeElement)
     variable.triggerLater(_.foreach(sink.onNext(_)))
 
     select[T](header, variable, elements, unselectableMapping)
   }
-  def select[T: EditStringParser: ValueStringifier](header: String, activeElement: Var[Option[T]], elements: Seq[(String, T)], unselectableMapping: Map[T, T] = Map.empty[T,T])(implicit ctx: Ctx.Owner): VNode = {
+  def select[T: EditStringParser: ValueStringifier](header: Option[String], activeElement: Var[Option[T]], elements: Seq[(String, T)], unselectableMapping: Map[T, T] = Map.empty[T,T])(implicit ctx: Ctx.Owner): VNode = {
     dsl.select(
-      option(
-        value := "", header,
-        selected <-- activeElement.map(_.isEmpty),
-        disabled,
-      ),
+      cls := "ui mini dropdown",
+      header.map { header =>
+        option(
+          value := "", header,
+          selected <-- activeElement.map(_.isEmpty),
+          disabled,
+        )
+      },
       elements.map { case (title, element) =>
         option(value := ValueStringifier[T].stringify(element), title, selected <-- activeElement.map(e => e.contains(element) || e.flatMap(unselectableMapping.get).contains(element))),
       },

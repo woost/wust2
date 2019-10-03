@@ -69,7 +69,7 @@ trait AuthApi[Result[_]] {
   def getUserDetail(id: UserId): Result[Option[UserDetail]]
   def updateUserEmail(id: UserId, newEmail: String): Result[Boolean]
   def resendEmailVerification(id: UserId): Result[Unit]
-  def invitePerMail(address: String, nodeId:NodeId): Result[Unit]
+  def invitePerMail(address: String, nodeId:NodeId, accesslevel: AccessLevel): Result[Unit]
 
   def getOAuthConnectUrl(service: OAuthClientService): Result[Option[String]]
   def getOAuthClients(): Result[Seq[OAuthClientService]]

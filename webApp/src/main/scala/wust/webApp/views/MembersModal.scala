@@ -56,10 +56,10 @@ object MembersModal {
       s"${dom.window.location.origin}${UrlConfigWriter.toString(targetUrlConfig())}"
     }
 
-    def addUserMember(userId: UserId): Unit = node.now.foreach { node =>
+    def addUserMember(userId: UserId, accesslevel: AccessLevel): Unit = node.now.foreach { node =>
       val change: GraphChanges = GraphChanges(addEdges = Array(
         Edge.Invite(node.id, userId),
-        Edge.Member(node.id, EdgeData.Member(AccessLevel.ReadWrite), userId)
+        Edge.Member(node.id, EdgeData.Member(accesslevel), userId)
       ))
       GlobalState.submitChanges(change)
       clear.onNext(())
@@ -73,13 +73,11 @@ object MembersModal {
           clear.onNext(())
           ()
         case Success(Some(u)) => // user exists with this email
-          addUserMember(u.id)
-          //manually add this user into our local graph
-          GlobalState.eventProcessor.localEvents.onNext(ApiEvent.NewGraphChanges.forPrivate(GlobalState.user.now.toNode, GraphChanges(addNodes = Array(u))))
+          addUserMember(u.id, accesslevel: AccessLevel)
         case Success(None) => // user does not exist with this email
           Client.auth.getUserDetail(GlobalState.user.now.id).onComplete {
             case Success(Some(userDetail)) if userDetail.verified =>
-              Client.auth.invitePerMail(address = email, node.id).onComplete {
+              Client.auth.invitePerMail(address = email, node.id, accesslevel).onComplete {
                 case Success(()) =>
                   statusMessageHandler.onNext(Some(("positive", "New member was invited", s"Invitation mail has been sent to '$email'.")))
                   clear.onNext(())
@@ -125,6 +123,8 @@ object MembersModal {
       var formElement: dom.html.Form = null
       var inputElement: dom.html.Input = null
 
+      val addUserAccessLevel: Var[Option[AccessLevel]] = Var(Some(AccessLevel.ReadWrite))
+
       val nodeAccessIsPrivate = nodeAccess.map(_ == Some(NodeAccess.Level(AccessLevel.Restricted)))
       val nodeAccessIsInherited = nodeAccess.map(n => n == Some(NodeAccess.Inherited) || n == Some(NodeAccess.Level(AccessLevel.Read)) || n == Some(NodeAccess.Level(AccessLevel.ReadWrite)))
       val nodeAccessIsPublic = nodeAccess.map(n => n == Some(NodeAccess.Level(AccessLevel.Read)) || n == Some(NodeAccess.Level(AccessLevel.ReadWrite)))
@@ -153,7 +153,7 @@ object MembersModal {
       def addUserEmailFromInput(): Unit = {
         val str = inputElement.value
         if (str.nonEmpty && FormValidator.reportValidity(formElement)) {
-          handleAddMember(str, AccessLevel.ReadWrite)
+          addUserAccessLevel.now.foreach(handleAddMember(str, _))
         }
       }
 
@@ -170,7 +170,7 @@ object MembersModal {
             Styles.flex,
 
             EditableContent.selectEmitter[AccessLevel](
-              "Select Access Level",
+              Some("Select Access Level"),
               accesslevel,
               ("can read", AccessLevel.Read) ::
               ("can write", AccessLevel.ReadWrite) ::
@@ -246,7 +246,7 @@ object MembersModal {
                 ),
 
                 EditableContent.selectEmitter[NodeAccess](
-                  "Select Permission Setting",
+                  Some("Select Permission Setting"),
                   Some(node.meta.accessLevel),
                   ("is Private", NodeAccess.Restricted) ::
                   ("inherits Permissions", NodeAccess.Inherited) ::
@@ -333,30 +333,33 @@ object MembersModal {
             alignItems.center,
 
             label("Invite another User:", Styles.flexStatic, marginRight := "15px"),
-            div(
-              marginRight := "50px", //WHY? do we overflow otherwise? What kind of sorcery does fomantic-ui do?
-            flexGrow := 1,
-
-              cls := "ui action input",
-
-              searchInGraph(
-                GlobalState.rawGraph,
-                "Add user or invite by Email",
-                filter = u => u.isInstanceOf[Node.User] && !GlobalState.graph.now.members(nodeId).exists(_.id == u.id),
-                showNotFound = false,
-                addInputDecoration = false,
-                inputModifiers = VDomModifier(
-                  onDomMount.asHtml.foreach { e => inputElement = e.asInstanceOf[dom.html.Input] },
-                  tpe := "email",
-                )
-              ).foreach { userId => addUserMember(UserId(userId)) },
-
-              button(
-                cls := "ui basic button",
-                freeSolid.faPlus,
-                onClick.stopPropagation foreach(addUserEmailFromInput())
+            searchInGraph(
+              GlobalState.rawGraph,
+              "Add user or invite by Email",
+              filter = u => u.isInstanceOf[Node.User] && !GlobalState.graph.now.members(nodeId).exists(_.id == u.id),
+              showNotFound = false,
+              inputModifiers = VDomModifier(
+                onDomMount.asHtml.foreach { e => inputElement = e.asInstanceOf[dom.html.Input] },
+                tpe := "email",
               ),
-            )
+              inputDecoration = Some(VDomModifier(
+                cls := "ui action input",
+
+                EditableContent.select[AccessLevel](
+                  None,
+                  addUserAccessLevel,
+                  ("can read", AccessLevel.Read) ::
+                  ("can write", AccessLevel.ReadWrite) ::
+                  Nil
+                ).apply(minWidth := "100px"),
+
+                button(
+                  cls := "ui basic button",
+                  freeSolid.faPlus,
+                  onClick.stopPropagation foreach(addUserEmailFromInput())
+                ),
+              ))
+            ).foreach { userId => addUserAccessLevel.now.foreach(addUserMember(UserId(userId), _)) },
           ),
 
           statusMessageHandler.map {
