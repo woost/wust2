@@ -81,7 +81,6 @@ object ViewSwitcher {
     val addNewViewTab = div(
       cls := "viewswitcher-item",
       addNewTabDropdown,
-      zIndex := ZIndex.menu
     )
 
     VDomModifier(
