@@ -191,10 +191,9 @@ object MembersModal {
 
         needAction.map(_.map(need =>
           div(
+            cls := "ui message yellow",
             marginBottom := "25px",
             padding := "5px",
-            backgroundColor := Colors.warning,
-            borderRadius := "4px",
             b(need.reason),
             div(
               padding := "5px",
@@ -322,39 +321,42 @@ object MembersModal {
 
         form(
           onSubmit.preventDefault.discard,
-          marginBottom := "25px",
-
-          Styles.flex,
-          alignItems.center,
-
           onDomMount.asHtml.foreach { e => formElement = e.asInstanceOf[dom.html.Form] },
+
+          width := "100%",
+          marginBottom := "25px",
 
           input(tpe := "text", position.fixed, left := "-10000000px", disabled := true), // prevent autofocus of input elements. it might not be pretty, but it works.
 
-          label("Invite another User:", Styles.flexStatic, marginRight := "15px"),
           div(
-            marginRight := "50px", //WHY? do we overflow otherwise? What kind of sorcery does fomantic-ui do?
-          flexGrow := 1,
+            Styles.flex,
+            alignItems.center,
 
-            cls := "ui action input",
+            label("Invite another User:", Styles.flexStatic, marginRight := "15px"),
+            div(
+              marginRight := "50px", //WHY? do we overflow otherwise? What kind of sorcery does fomantic-ui do?
+            flexGrow := 1,
 
-            searchInGraph(
-              GlobalState.rawGraph,
-              "Add user or invite by Email",
-              filter = u => u.isInstanceOf[Node.User] && !node.now.forall(node => GlobalState.graph.now.members(node.id).exists(_.id == u.id)),
-              showNotFound = false,
-              addInputDecoration = false,
-              inputModifiers = VDomModifier(
-                onDomMount.asHtml.foreach { e => inputElement = e.asInstanceOf[dom.html.Input] },
-                tpe := "email",
-              )
-            ).foreach { userId => addUserMember(UserId(userId)) },
+              cls := "ui action input",
 
-            button(
-              cls := "ui basic button",
-              freeSolid.faPlus,
-              onClick.stopPropagation foreach(addUserEmailFromInput())
-            ),
+              searchInGraph(
+                GlobalState.rawGraph,
+                "Add user or invite by Email",
+                filter = u => u.isInstanceOf[Node.User] && !GlobalState.graph.now.members(nodeId).exists(_.id == u.id),
+                showNotFound = false,
+                addInputDecoration = false,
+                inputModifiers = VDomModifier(
+                  onDomMount.asHtml.foreach { e => inputElement = e.asInstanceOf[dom.html.Input] },
+                  tpe := "email",
+                )
+              ).foreach { userId => addUserMember(UserId(userId)) },
+
+              button(
+                cls := "ui basic button",
+                freeSolid.faPlus,
+                onClick.stopPropagation foreach(addUserEmailFromInput())
+              ),
+            )
           ),
 
           statusMessageHandler.map {
