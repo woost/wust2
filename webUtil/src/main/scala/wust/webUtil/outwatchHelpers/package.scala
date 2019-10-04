@@ -99,26 +99,10 @@ package object outwatchHelpers extends KeyHash with RxInstances {
       }
     }
 
-    def toLazyTailObservable: Observable[T] = {
-      Observable.create[T](Unbounded) { observer =>
-        implicit val ctx = Ctx.Owner.Unsafe
-
-        val obs = rx.triggerLater(observer.onNext(_))
-
-        Cancelable(() => obs.kill())
-      }
-    }
-
     def toTailObservable: Observable[T] = {
-      val callNow = rx.now // now at call-time
       Observable.create[T](Unbounded) { observer =>
         implicit val ctx = Ctx.Owner.Unsafe
 
-        // workaround: push now into the observer if it changed in between
-        // calling this method and the observable being subscribed.
-        // TODO: better alternative?
-        // - maybe just triggerLater with implicit owner at call-time and push into ReplaySubject(limit = 1)?
-        if (rx.now != callNow) observer.onNext(rx.now)
         val obs = rx.triggerLater(observer.onNext(_))
 
         Cancelable(() => obs.kill())
@@ -130,12 +114,6 @@ package object outwatchHelpers extends KeyHash with RxInstances {
       implicit val ctx = Ctx.Owner.Unsafe
       val obs = rx.foreach(observer.onNext)
       Cancelable(() => obs.kill())
-    }
-
-    def toObservable[A](f: Ctx.Owner => Rx[T] => Rx[A]): Observable[A] = Observable.create[A](Unbounded) { observer =>
-      implicit val ctx = createManualOwner()
-      f(ctx)(rx).foreach(observer.onNext)(ctx)
-      Cancelable(() => ctx.contextualRx.kill())
     }
 
     def toSourceStream: SourceStream[T] = SourceStream.create[T] { observer =>
@@ -152,8 +130,7 @@ package object outwatchHelpers extends KeyHash with RxInstances {
       Subscription(() => obs.kill())
     }
 
-    @inline def subscribe(that: Var[T])(implicit ctx: Ctx.Owner): Obs = rx.foreach(that() = _)
-    @inline def subscribe(that: Observer[T])(implicit ctx: Ctx.Owner): Obs = rx.foreach(that.onNext)
+    @inline def subscribe[G[_]: Sink](that: G[T])(implicit ctx: Ctx.Owner): Obs = rx.foreach(Sink[G].onNext(that)(_))
 
     @inline def debug(implicit ctx: Ctx.Owner): Obs = { debug() }
     @inline def debug(name: String = "")(implicit ctx: Ctx.Owner): Obs = {
@@ -269,7 +246,7 @@ package object outwatchHelpers extends KeyHash with RxInstances {
     //for rx that are created only once in the app lifetime (e.g. in globalState)
     def unsafeToRx(seed: T): rx.Rx[T] = Rx.create(seed) { o.subscribe(_) }
 
-    def subscribe(that: Var[T]): Cancelable = o.subscribe(new VarObserver[T](that))
+    def subscribe[G[_] : Sink](that: G[T]): Cancelable = o.subscribe(value => { Sink[G].onNext(that)(value); Ack.Continue }, Sink[G].onError(that)(_))
 
     def onErrorThrow: Cancelable = o.subscribe(_ => Ack.Continue, throw _)
     def foreachSafe(callback: T => Unit): Cancelable = o.map(callback).onErrorRecover{ case NonFatal(e) => scribe.warn(e); Unit }.subscribe()
@@ -305,14 +282,9 @@ package object outwatchHelpers extends KeyHash with RxInstances {
     () => requester(code)
   }
 
-  def inNextAnimationFrame[T](next: T => Unit): Observer[T] = new Observer.Sync[T] {
-    private val requester = requestSingleAnimationFrame()
-    override def onNext(elem: T): Ack = {
-      requester(next(elem))
-      Ack.Continue
-    }
-    override def onError(ex: Throwable): Unit = throw ex
-    override def onComplete(): Unit = ()
+  def inNextAnimationFrame[T](next: T => Unit): SinkObserver[T] = {
+    val requester = requestSingleAnimationFrame()
+    SinkObserver.create[T](elem => requester(next(elem)))
   }
 
   implicit class RichEmitterBuilderEvent[R](val builder: EmitterBuilder[dom.Event, R]) extends AnyVal {
@@ -345,13 +317,4 @@ package object outwatchHelpers extends KeyHash with RxInstances {
   @inline implicit def renderFontAwesomeObject(icon: FontawesomeObject): VNode = {
     abstractTreeToVNode(icon.`abstract`(0))
   }
-}
-
-@inline class VarObserver[T](rx: Var[T]) extends Observer.Sync[T] {
-  @inline override def onNext(elem: T): Ack = {
-    rx() = elem
-    Ack.Continue
-  }
-  @inline override def onError(ex: Throwable): Unit = throw ex
-  @inline override def onComplete(): Unit = ()
 }
