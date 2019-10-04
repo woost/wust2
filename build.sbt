@@ -565,7 +565,6 @@ lazy val webApp = project
       Deps.npm.juration ::
       Deps.npm.wdtEmojiBundle ::
       Deps.npm.tribute ::
-      Deps.npm.autoresizeTextarea ::
       Deps.npm.chartJs ::
       Deps.npm.hopscotch ::
       Deps.npm.canvasImageUploader ::

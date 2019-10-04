@@ -70,18 +70,14 @@ object InputRow {
       markdownHelpOpened() = false
     }
 
-    def onAutoResize(): Unit = {
+    val autoResizer = new TextAreaAutoResizer(callback = _ => {
       val rect = currentTextArea.getBoundingClientRect()
       val inTopHalf = rect.bottom <= dom.window.innerHeight / 2
       markdownHelpModifiers() = {
         if (inTopHalf) VDomModifier(top := rect.height + "px")
         else VDomModifier(bottom := rect.height + "px")
       }
-    }
-    def triggerAutoResize(): Unit = {
-      currentTextArea.style.height = "0px"
-      onAutoResize()
-    }
+    })
 
     val collectedMentions = new mutable.HashMap[String, Node]
 
@@ -89,7 +85,7 @@ object InputRow {
       rows := 1,
       resize := "none",
       minHeight := "42px",
-      Elements.autoresizeTextareaMod(onResize = Some(() => onAutoResize()))
+      autoResizer.modifiers
     )
 
     def handleInput(str: String): Unit = if (allowEmptyString || str.trim.nonEmpty || fileUploadHandler.exists(_.now.isDefined)) {
@@ -238,7 +234,7 @@ object InputRow {
     def submit():Unit = {
       handleInput(currentTextArea.value)
       currentTextArea.value = ""
-      triggerAutoResize()
+      autoResizer.trigger()
     }
 
     def submitButton = div( // clickable box around circular button
@@ -317,7 +313,7 @@ object InputRow {
         textArea(
           onPasteHtmlOrTextIntoValue,
           onDomMount foreach { e => currentTextArea = e.asInstanceOf[dom.html.TextArea] },
-          onDomUpdate foreach { triggerAutoResize() },
+          onDomUpdate.foreach { autoResizer.trigger() },
           maxHeight := "400px",
           cls := "field",
           cls := "inputrow",

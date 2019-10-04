@@ -168,7 +168,6 @@ object FormView {
       submitMode = EditableContent.SubmitMode.Manual,
       emitter = onInput,
       autoFocus = false,
-      autoresizeTextarea = false // autoresize mod breaks initial rendering...go back to own solution...damn...
     )
 
     def contentEditor = EditableContent.ofNode(node, config).editValue.map(GraphChanges.addNode) --> sink

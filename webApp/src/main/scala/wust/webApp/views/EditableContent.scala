@@ -113,7 +113,7 @@ object EditableContent {
   private def inlineEditorHandler[T: EditStringParser: ValueStringifier](initial: Option[T], current: Handler[EditInteraction[T]], config: Config, handle: EditInteraction[T] => EditInteraction[T] = (x: EditInteraction[T]) => x)(implicit ctx: Ctx.Owner): VNode = {
     commonEditStructure(initial, current, config, handle)(handler => textArea(
       rows := 1,
-      VDomModifier.ifTrue(config.autoresizeTextarea)(Elements.autoresizeTextareaMod),
+      VDomModifier.ifTrue(config.autoresizeTextarea)((new TextAreaAutoResizer).modifiers),
       outline := "none", // hides textarea outline
       border := "0", // hides textarea border
       minWidth := "36px", minHeight := "36px", // minimal edit area

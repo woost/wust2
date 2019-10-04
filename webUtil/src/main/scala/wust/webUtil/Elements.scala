@@ -2,7 +2,6 @@ package wust.webUtil
 
 import typings.chartDotJs.chartDotJsMod.ChartConfiguration
 import fontAwesome.{IconLookup, Params, Transform, fontawesome, freeSolid}
-import wust.facades.fomanticui.AutoResizeConfig
 import wust.facades.dateFns.DateFns
 import wust.facades.hammerjs
 import org.scalajs.dom
@@ -352,6 +351,36 @@ object Elements {
     ).emitterBuilder
   }
 
+  final class TextAreaAutoResizer(callback: Int => Unit = (_:Int) => ()) {
+    // https://stackoverflow.com/questions/454202/creating-a-textarea-with-auto-resize/25621277#25621277
+    var elem:HTMLElement = _
+    var lastScrollHeight: Int = 0
+
+    val trigger: () => Unit = requestSingleAnimationFrame {
+      if(lastScrollHeight != elem.scrollHeight) {
+        elem.style.height = "auto" // fixes the behaviour of scrollHeight
+        lastScrollHeight = elem.scrollHeight
+        val newHeight = lastScrollHeight + 4 // 4 avoids a scrollbar
+        elem.style.height = newHeight + "px"
+        callback(newHeight)
+      }
+    }
+
+    val modifiers = VDomModifier(
+      onDomMount.asHtml --> inNextAnimationFrame[dom.html.Element] { textAreaElem =>
+        elem = textAreaElem
+        elem.style.height = "auto" // fixes the behaviour of scrollHeight
+        lastScrollHeight = elem.scrollHeight
+        val newHeight = lastScrollHeight + 4 // 4 avoids a scrollbar
+        elem.style.height = newHeight + "px"
+        callback(newHeight)
+      },
+      onInput.foreach { trigger() },
+      onKeyDown.filter(e => e.keyCode == KeyCode.Enter).foreach{ trigger() },
+    )
+  }
+
+
   def escapeHtml(content: String): String = {
     // assure html in text is escaped by creating a text node, appending it to an element and reading the escaped innerHTML.
     val text = dom.window.document.createTextNode(content)
@@ -423,21 +452,6 @@ object Elements {
   def confirm(message:String)(code: => Unit):Unit = {
     if(dom.window.confirm(message))
       code
-  }
-
-  def autoresizeTextareaMod: VDomModifier = autoresizeTextareaMod()
-  def autoresizeTextareaMod(maxHeight: Option[Int] = None, onResize: Option[() => Unit] = None): VDomModifier = {
-    val _maxHeight = maxHeight.map(_.toDouble).orUndefined
-    val _onResize = onResize.map[js.ThisFunction1[dom.html.TextArea, Double, Unit]](f => (_: dom.html.TextArea, _: Double) => f()).orUndefined
-
-    VDomModifier(
-      managedElement.asJquery { e =>
-        val subscription = e.autoResize(new AutoResizeConfig { maxHeight = _maxHeight; onresizeheight = _onResize })
-        cancelable(() => subscription.reset())
-      },
-      resize := "none",
-      height := "0px"
-    )
   }
 
   // create a canvas with a chart using chart.js
