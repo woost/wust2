@@ -51,7 +51,7 @@ object Deps {
   val d3v4 = dep("com.github.fdietze" %% "scala-js-d3v4" % "e9ce7a9")
   // val d3v4 = dep("com.github.fdietze" %%% "scala-js-d3v4" % "master-SNAPSHOT")
   val fontawesome = dep("com.github.grburst" % "scala-js-fontawesome" % "d673579a18")
-  val vectory = dep("com.github.fdietze.vectory" %%% "vectory" % "9c901a6")
+  val vectory = dep("com.github.fdietze.vectory" %%% "vectory" % "4931100")
   // val scalarx = dep("com.github.lihaoyi" %%% "scalarx" % "0.4.0")
   val scalarx = dep("com.github.cornerman.scalarx" %%% "scalarx" % "7daef55")
   // val scalarx = dep("com.github.fdietze.duality" %%% "scalarx" % "fc761c9")
@@ -90,7 +90,7 @@ object Deps {
     val core = dep("com.nrinaudo" %%% "kantan.csv" % version)
     val generic = dep("com.nrinaudo" %%% "kantan.csv-generic" % version)
   }
-  val flatland = dep("com.github.fdietze.flatland" %%% "flatland" % "caa2daa")
+  val flatland = dep("com.github.fdietze.flatland" %%% "flatland" % "7868da7")
   val caseApp = dep("com.github.alexarchambault" %%% "case-app" % "2.0.0-M3")
 
   // graalvm
