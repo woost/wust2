@@ -77,31 +77,24 @@ class EventProcessor private (
   }
 
   // public reader
-  val (localChanges, localChangesRemoteOnly, graphEvents, graph): (Observable[GraphChanges], Observable[GraphChanges], Observable[LocalGraphUpdateEvent], Observable[Graph]) = {
-    val rawGraph = PublishToOneSubject[Graph]()
-    val sharedRawGraph = rawGraph.share //TODO: when we get rid of enrichment, move to GlobalState
+  val (localChanges, localChangesRemoteOnly, graph): (Observable[GraphChanges], Observable[GraphChanges], Observable[Graph]) = {
+    val rawGraph = PublishSubject[Graph]()
 
-    def enrichedChangesf(changes: Observable[GraphChanges]) = changes.withLatestFrom2(currentUser.prepend(initialAuth.user), sharedRawGraph.prepend(Graph.empty)) { (changes, user, graph) =>
+    def enrichedChangesf(changes: Observable[GraphChanges]) = changes.withLatestFrom2(currentUser.prepend(initialAuth.user), rawGraph.prepend(Graph.empty)) { (changes, user, graph) =>
       val newChanges = enrichChanges(changes, user.id, graph)
       scribe.info(s"Local Graphchanges: ${newChanges.toPrettyString(graph)}")
-      newChanges
-    }
+      NewGraphChanges.forPrivate(user.toNode, newChanges.consistent.withAuthor(user.id))
+    }.filter(_.changes.nonEmpty).share
 
-    val enrichedChanges = enrichedChangesf(changes)
-    val enrichedChangesRemoteOnly = enrichedChangesf(changesRemoteOnly)
+    val localChanges = enrichedChangesf(changes)
+    val localChangesRemoteOnly = enrichedChangesf(changesRemoteOnly)
 
-    def localChangesf(changes: Observable[GraphChanges]): Observable[(GraphChanges, AuthUser)] = changes.withLatestFrom(currentUser.prepend(initialAuth.user))((g, u) => (g, u)).collect {
-      case (changes, user) if changes.nonEmpty => (changes.consistent.withAuthor(user.id), user)
-    }.share
+    var lastGraph = Graph.empty
+    val graphEvents = BufferWhenTrue(Observable(eventStream, localEvents.map(Seq(_)), localChanges.map(Seq(_))).merge, stopEventProcessing).share
 
-    val localChanges = localChangesf(enrichedChanges)
-    val localChangesRemoteOnly = localChangesf(enrichedChangesRemoteOnly)
-
-    val localChangesAsEvents = localChanges.map { case (changes, user) => Seq(NewGraphChanges.forPrivate(user.toNode, changes)) }
-    val graphEvents = BufferWhenTrue(Observable(eventStream, localEvents.map(Seq(_)), localChangesAsEvents).merge, stopEventProcessing)
-      .scan((Graph.empty, LocalGraphUpdateEvent.empty)) { (lastGraphWithLastEvents, events) =>
-        scribe.debug("EventProcessor scan: " + lastGraphWithLastEvents + ", " + events)
-        val (lastGraph, _) = lastGraphWithLastEvents
+    graphEvents.subscribe(
+      { events =>
+        scribe.debug("EventProcessor scan: " + lastGraph + ", " + events)
         val localEvents = LocalGraphUpdateEvent.deconstruct(lastGraph, events)
         val newGraph = localEvents match {
           case LocalGraphUpdateEvent.NewGraph(graph)     =>
@@ -113,16 +106,16 @@ class EventProcessor private (
 
           case LocalGraphUpdateEvent.NewChanges(changes) => lastGraph applyChanges changes
         }
-        (newGraph, localEvents)
-      }.share
-
-    graphEvents.map(_._1) subscribe rawGraph
+        lastGraph = newGraph
+        rawGraph.onNext(newGraph)
+      },
+      error => scribe.error("Error while processing graph events", error)
+    )
 
     (
-      localChanges.map(_._1),
-      localChangesRemoteOnly.map(_._1),
-      graphEvents.map(_._2),
-      sharedRawGraph
+      localChanges.map(_.changes),
+      localChangesRemoteOnly.map(_.changes),
+      rawGraph
     )
   }
 
