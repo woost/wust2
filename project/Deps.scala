@@ -52,9 +52,9 @@ object Deps {
   // val d3v4 = dep("com.github.fdietze" %%% "scala-js-d3v4" % "master-SNAPSHOT")
   val fontawesome = dep("com.github.grburst" % "scala-js-fontawesome" % "d673579a18")
   val vectory = dep("com.github.fdietze.vectory" %%% "vectory" % "9c901a6")
-  // val scalarx = dep("com.lihaoyi" %%% "scalarx" % "0.4.0")
-  val scalarx = dep("com.github.fdietze.duality" %%% "scalarx" % "fc761c9")
-  // val scalarx = dep("com.github.fdietze.duality" %%% "scalarx" % "94c6d80") // jitpack cannot handle the . in repo name scala.rx
+  // val scalarx = dep("com.github.lihaoyi" %%% "scalarx" % "0.4.0")
+  val scalarx = dep("com.github.cornerman.scalarx" %%% "scalarx" % "7daef55")
+  // val scalarx = dep("com.github.fdietze.duality" %%% "scalarx" % "fc761c9")
   val outwatch = new {
     private val version = "047de1c0"
     // val core = dep("io.github.outwatch" %%% "outwatch" % "0.11.1-SNAPSHOT")
