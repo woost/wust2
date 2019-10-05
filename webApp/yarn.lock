@@ -5707,10 +5707,10 @@ osenv@^0.1.4:
     os-homedir "^1.0.0"
     os-tmpdir "^1.0.0"
 
-outwatch-snabbdom@0.7.6:
-  version "0.7.6"
-  resolved "https://registry.yarnpkg.com/outwatch-snabbdom/-/outwatch-snabbdom-0.7.6.tgz#2a4a61353971ac8d5c71e913a12ca3f423014cda"
-  integrity sha512-sH/n2mYrWMzVUAvxH8ijfK9etyEaBOfPgO/cyLVgPIzz6Vrg0HXLCkXC6v/1OgHDZCGiwbbT/kKzRbOV0tf1ZA==
+outwatch-snabbdom@0.7.7:
+  version "0.7.7"
+  resolved "https://registry.yarnpkg.com/outwatch-snabbdom/-/outwatch-snabbdom-0.7.7.tgz#00d024c8faa35822482d01d60b4856141d0300f2"
+  integrity sha512-aA2gXvOmGCW5ztjh6NoodxcjlD8sFJcIYTdInPVMvL36wu8oAradyciVQyraNhcYuJnw14QZ1dtLxaY0pR5qaw==
 
 p-cancelable@^0.3.0:
   version "0.3.0"
