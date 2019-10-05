@@ -131,13 +131,14 @@ object InputRow {
     }
 
     val emojiPicker = if (enableEmojiPicker && !BrowserDetect.isMobile) {
+      val randomId = "emoji-picker-" + scala.util.Random.nextInt
       Some(VDomModifier(
         snabbdom.VNodeProxy.repairDomBeforePatch, // the emoji-picker modifies the dom
+        cls := randomId,
         onDomMount.foreach {
-          //TODO: only init for this element? not do whole initialization?
-          wdtEmojiBundle.init(".inputrow.field.enabled-emoji-picker")
+          //TODO: how to cleanup?
+          wdtEmojiBundle.init("." + randomId)
         },
-        cls := "enabled-emoji-picker",
         cls := "wdt-emoji-open-on-colon"
       ))
     } else None
