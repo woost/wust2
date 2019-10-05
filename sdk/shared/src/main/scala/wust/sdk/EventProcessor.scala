@@ -79,19 +79,29 @@ class EventProcessor private (
   // public reader
   val (localChanges, localChangesRemoteOnly, graph): (Observable[GraphChanges], Observable[GraphChanges], Observable[Graph]) = {
     val rawGraph = PublishSubject[Graph]()
+    var lastGraph = Graph.empty
+    var lastUser: AuthUser = initialAuth.user
 
-    def enrichedChangesf(changes: Observable[GraphChanges]) = changes.withLatestFrom2(currentUser.prepend(initialAuth.user), rawGraph.prepend(Graph.empty)) { (changes, user, graph) =>
+    def enrichedChangesf(changes: Observable[GraphChanges]) = changes.map { changes =>
+      val graph = lastGraph
+      val user = lastUser
       val newChanges = enrichChanges(changes, user.id, graph)
       scribe.info(s"Local Graphchanges: ${newChanges.toPrettyString(graph)}")
       NewGraphChanges.forPrivate(user.toNode, newChanges.consistent.withAuthor(user.id))
-    }.filter(_.changes.nonEmpty).share
+    }.filter(_.changes.nonEmpty)
 
-    val localChanges = enrichedChangesf(changes)
-    val localChangesRemoteOnly = enrichedChangesf(changesRemoteOnly)
+    val localChanges = enrichedChangesf(changes).share
+    val localChangesRemoteOnly = enrichedChangesf(changesRemoteOnly).share
 
-    var lastGraph = Graph.empty
-    val graphEvents = BufferWhenTrue(Observable(eventStream, localEvents.map(Seq(_)), localChanges.map(Seq(_))).merge, stopEventProcessing).share
+    val graphEvents = BufferWhenTrue(Observable(eventStream, localEvents.map(Seq(_)), localChanges.map(Seq(_))).merge, stopEventProcessing)
 
+    currentUser.subscribe(
+      { user =>
+        lastUser = user
+        Ack.Continue
+      },
+      error => scribe.error("Error while processing current user", error)
+    )
     graphEvents.subscribe(
       { events =>
         scribe.debug("EventProcessor scan: " + lastGraph + ", " + events)
