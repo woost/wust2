@@ -31,9 +31,7 @@ object BufferWhenTrue {
     def onNext(elem: Boolean): Future[Ack] = out.changeBufferState(elem)
   }
 
-  final class SourceSubscriber[A](out: Subscriber[Seq[A]], conn: CompositeCancelable)
-    (implicit val scheduler: Scheduler)
-    extends Subscriber[Seq[A]] {
+  final class SourceSubscriber[A](out: Subscriber[Seq[A]], conn: CompositeCancelable) (implicit val scheduler: Scheduler) extends Subscriber[Seq[A]] {
 
     @volatile var shouldBuffer = false
     private[this] var buffer = ArrayBuffer.empty[A]
