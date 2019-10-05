@@ -71,7 +71,7 @@ object TaskNodeCard {
       def toggleDeleteClickAction(): Unit = {
         val graph = GlobalState.graph.now
         val focusedIdx = graph.idToIdxOrThrow(focusState.focusedId)
-        val stageParents = graph.getRoleParentsIdx(nodeIdx.now, NodeRole.Stage).filter(graph.workspacesForParent(_).contains(focusedIdx)).viewMap(graph.nodeIds)
+        val stageParents = graph.stageParentsIdx.collect(nodeIdx.now) { case p if graph.workspacesForParent(p).contains(focusedIdx) => graph.nodeIds(p) }
         val hasMultipleStagesInFocusedNode = stageParents.exists(_ != traverseState.parentId)
         val removeFromWorkspaces = if (hasMultipleStagesInFocusedNode) GraphChanges.empty else deleteOrUndelete(ChildId(nodeId), ParentId(focusState.focusedId))
 

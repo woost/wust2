@@ -179,10 +179,8 @@ final case class GraphLookup private(
   idToIdxHashMap: mutable.Map[NodeId, Int],
   consistentEdges: ArraySet,
   edgesIdx: InterleavedArrayInt,
-  parentsIdx: NestedArrayInt,
   parentEdgeIdx: NestedArrayInt,
   readEdgeIdx: NestedArrayInt,
-  childrenIdx: NestedArrayInt,
   childEdgeIdx: NestedArrayInt,
   accessEdgeReverseIdx: NestedArrayInt,
   contentsEdgeIdx: NestedArrayInt,
@@ -198,7 +196,6 @@ final case class GraphLookup private(
   authorshipEdgeIdx: NestedArrayInt,
   membershipEdgeForNodeIdx: NestedArrayInt,
   notifyByUserIdx: NestedArrayInt,
-  authorsIdx: NestedArrayInt,
   pinnedNodeIdx: NestedArrayInt,
   inviteNodeIdx: NestedArrayInt,
   expandedEdgeIdx: NestedArrayInt,
@@ -209,7 +206,6 @@ final case class GraphLookup private(
   automatedEdgeIdx: NestedArrayInt,
   automatedEdgeReverseIdx: NestedArrayInt,
   derivedFromTemplateEdgeIdx: NestedArrayInt,
-  derivedFromTemplateEdgeReverseIdx: NestedArrayInt,
   referencesTemplateEdgeIdx: NestedArrayInt,
   mentionsEdgeIdx: NestedArrayInt,
   buildNow: EpochMilli
@@ -221,6 +217,10 @@ final case class GraphLookup private(
   @inline def edges = graph.edges
 
   val nodeIds: MappedArray[Node, NodeId] = nodes.viewMap(_.id)
+
+  val parentsIdx = parentEdgeIdx.viewMapInt(edgesIdx.a(_))
+  val childrenIdx = childEdgeIdx.viewMapInt(edgesIdx.b(_))
+  val authorsIdx = authorshipEdgeIdx.viewMapInt(edgesIdx.b(_))
 
   @inline private def n = nodes.length
   @inline private def m = edges.length
@@ -479,23 +479,6 @@ final case class GraphLookup private(
     }
   }
 
-  def getRoleParents(nodeId: NodeId, nodeRole: NodeRole): IndexedSeq[NodeId] = idToIdxFold(nodeId)(IndexedSeq.empty[NodeId]) { nodeIdx =>
-    parentsIdx(nodeIdx).collect{ case idx if nodes(idx).role == nodeRole => nodeIds(idx) }
-  }
-
-  def getRoleParentsIdx(nodeIdx: Int, nodeRole: NodeRole): IndexedSeq[Int] =
-    parentsIdx(nodeIdx).collect{ case idx if nodes(idx).role == nodeRole => idx }
-
-  def partiallyDeletedParents(nodeId: NodeId): IndexedSeq[Edge.Child] = idToIdxFold(nodeId)(IndexedSeq.empty[Edge.Child]) { nodeIdx =>
-    val now = EpochMilli.now
-    graph.parentEdgeIdx(nodeIdx).flatMap { edgeIdx =>
-      val parentEdge = edges(edgeIdx).as[Edge.Child]
-      val deleted = parentEdge.data.deletedAt.exists(_ isBefore now)
-      if (deleted) Some(parentEdge) else None
-    }
-  }
-  def isPartiallyDeleted(nodeId: NodeId): Boolean = idToIdxFold(nodeId)(false)(nodeIdx => parentEdgeIdx(nodeIdx).exists{ edgeIdx => edges(edgeIdx).as[Edge.Child].data.deletedAt.fold(false)(_ isBefore buildNow) })
-
   @inline def isDeletedNowIdx(nodeIdx: Int, parentIdx: Int): Boolean = !notDeletedChildrenIdx.contains(parentIdx)(nodeIdx)
   def isDeletedNowIdx(nodeIdx: Int, parentIndices: Iterable[Int]): Boolean = parentIndices.nonEmpty && parentIndices.forall(parentIdx => isDeletedNowIdx(nodeIdx, parentIdx))
   def isDeletedNow(nodeId: NodeId, parentId: NodeId): Boolean = idToIdxFold(nodeId)(false)(nodeIdx => idToIdxFold(parentId)(false)(parentIdx => isDeletedNowIdx(nodeIdx, parentIdx)))
@@ -540,9 +523,7 @@ final case class GraphLookup private(
     Array.range(0, nodes.length).sortBy(nodeCreated)
   }
 
-  def chronologicalNodesAscending: IndexedSeq[Node] = {
-    chronologicalNodesAscendingIdx.viewMap(nodes)
-  }
+  lazy val chronologicalNodesAscending: IndexedSeq[Node] = chronologicalNodesAscendingIdx.viewMap(nodes)
 
   def topologicalSortByIdx[T](seq: Seq[T], extractIdx: T => Int, liftIdx: Int => Option[T]): Seq[T] = {
     if (seq.isEmpty || nodes.isEmpty) return seq
@@ -741,16 +722,6 @@ final case class GraphLookup private(
 
   def isDone(nodeIdx: Int): Boolean = isDoneInAllWorkspaces(nodeIdx, workspacesForNode(nodeIdx))
 
-  //  lazy val containmentNeighbours
-  //  : collection.Map[NodeId, collection.Set[NodeId]] = nodeDefaultNeighbourhood ++ adjacencyList[
-  //    NodeId,
-  //    Edge
-  //    ](containments, _.targetId, _.sourceId)
-  // Get connected components by only considering containment edges
-  //  lazy val connectedContainmentComponents: List[Set[NodeId]] = {
-  //    connectedComponents(nodeIds, containmentNeighbours)
-  //  }
-
   lazy val childDepth: Array[Int] = longestPathsIdx(childrenIdx)
   lazy val parentDepth: Array[Int] = longestPathsIdx(parentsIdx)
 
@@ -890,9 +861,7 @@ object GraphLookup {
           }
         })
 
-        val parentsIdxBuilder = NestedArrayInt.builder(parentsDegree)
         val parentEdgeIdxBuilder = NestedArrayInt.builder(parentsDegree)
-        val childrenIdxBuilder = NestedArrayInt.builder(childrenDegree)
         val childEdgeIdxBuilder = NestedArrayInt.builder(childrenDegree)
         val messageChildrenIdxBuilder = NestedArrayInt.builder(messageChildrenDegree)
         val taskChildrenIdxBuilder = NestedArrayInt.builder(taskChildrenDegree)
@@ -917,9 +886,7 @@ object GraphLookup {
             val childIsProject = nodes(targetIdx).role == NodeRole.Project
             val parentIsTag = nodes(sourceIdx).role == NodeRole.Tag
             val parentIsStage = nodes(sourceIdx).role == NodeRole.Stage
-            parentsIdxBuilder.add(targetIdx, sourceIdx)
             parentEdgeIdxBuilder.add(targetIdx, edgeIdx)
-            childrenIdxBuilder.add(sourceIdx, targetIdx)
             childEdgeIdxBuilder.add(sourceIdx, edgeIdx)
 
             if (childIsProject) projectChildrenIdxBuilder.add(sourceIdx, targetIdx)
@@ -949,9 +916,7 @@ object GraphLookup {
         })
 
         graph.lookup.copy(
-          parentsIdx = parentsIdxBuilder.result(),
           parentEdgeIdx = parentEdgeIdxBuilder.result(),
-          childrenIdx = childrenIdxBuilder.result(),
           childEdgeIdx = childEdgeIdxBuilder.result(),
           messageChildrenIdx = messageChildrenIdxBuilder.result(),
           taskChildrenIdx = taskChildrenIdxBuilder.result(),
@@ -1014,7 +979,6 @@ object GraphLookup {
     val automatedDegree = new Array[Int](n)
     val automatedReverseDegree = new Array[Int](n)
     val derivedFromTemplateDegree = new Array[Int](n)
-    val derivedFromTemplateReverseDegree = new Array[Int](n)
     val referencesTemplateDegree = new Array[Int](n)
     val mentionsDegree = new Array[Int](n)
 
@@ -1092,7 +1056,6 @@ object GraphLookup {
               automatedReverseDegree(targetIdx) += 1
             case _: Edge.DerivedFromTemplate =>
               derivedFromTemplateDegree(sourceIdx) += 1
-              derivedFromTemplateReverseDegree(targetIdx) += 1
             case _: Edge.ReferencesTemplate =>
               referencesTemplateDegree(sourceIdx) += 1
             case _: Edge.Mention =>
@@ -1105,12 +1068,10 @@ object GraphLookup {
       }
     }
 
-    val parentsIdxBuilder = NestedArrayInt.builder(parentsDegree)
     val parentEdgeIdxBuilder = NestedArrayInt.builder(parentsDegree)
     val contentsEdgeIdxBuilder = NestedArrayInt.builder(contentsDegree)
     val accessEdgeReverseIdxBuilder = NestedArrayInt.builder(accessEdgeReverseDegree)
     val readEdgeIdxBuilder = NestedArrayInt.builder(readDegree)
-    val childrenIdxBuilder = NestedArrayInt.builder(childrenDegree)
     val childEdgeIdxBuilder = NestedArrayInt.builder(childrenDegree)
     val messageChildrenIdxBuilder = NestedArrayInt.builder(messageChildrenDegree)
     val taskChildrenIdxBuilder = NestedArrayInt.builder(taskChildrenDegree)
@@ -1122,7 +1083,6 @@ object GraphLookup {
     val notDeletedParentsIdxBuilder = NestedArrayInt.builder(notDeletedParentsDegree)
     val notDeletedChildrenIdxBuilder = NestedArrayInt.builder(notDeletedChildrenDegree)
     val authorshipEdgeIdxBuilder = NestedArrayInt.builder(authorshipDegree)
-    val authorIdxBuilder = NestedArrayInt.builder(authorshipDegree)
     val membershipEdgeForNodeIdxBuilder = NestedArrayInt.builder(membershipsForNodeDegree)
     val notifyByUserIdxBuilder = NestedArrayInt.builder(notifyByUserDegree)
     val pinnedNodeIdxBuilder = NestedArrayInt.builder(pinnedNodeDegree)
@@ -1135,7 +1095,6 @@ object GraphLookup {
     val automatedEdgeIdxBuilder = NestedArrayInt.builder(automatedDegree)
     val automatedEdgeReverseIdxBuilder = NestedArrayInt.builder(automatedReverseDegree)
     val derivedFromTemplateEdgeIdxBuilder = NestedArrayInt.builder(derivedFromTemplateDegree)
-    val derivedFromTemplateReverseEdgeIdxBuilder = NestedArrayInt.builder(derivedFromTemplateReverseDegree)
     val referencesTemplateEdgeIdxBuilder = NestedArrayInt.builder(referencesTemplateDegree)
     val mentionsEdgeIdxBuilder = NestedArrayInt.builder(mentionsDegree)
 
@@ -1157,7 +1116,6 @@ object GraphLookup {
       edge match {
         case _: Edge.Author =>
           authorshipEdgeIdxBuilder.add(sourceIdx, edgeIdx)
-          authorIdxBuilder.add(sourceIdx, targetIdx)
         case _: Edge.Member =>
           membershipEdgeForNodeIdxBuilder.add(sourceIdx, edgeIdx)
         case e: Edge.Child =>
@@ -1168,9 +1126,7 @@ object GraphLookup {
           val childIsProject = nodes(targetIdx).role == NodeRole.Project
           val parentIsTag = nodes(sourceIdx).role == NodeRole.Tag
           val parentIsStage = nodes(sourceIdx).role == NodeRole.Stage
-          parentsIdxBuilder.add(targetIdx, sourceIdx)
           parentEdgeIdxBuilder.add(targetIdx, edgeIdx)
-          childrenIdxBuilder.add(sourceIdx, targetIdx)
           childEdgeIdxBuilder.add(sourceIdx, edgeIdx)
 
           if (childIsProject) projectChildrenIdxBuilder.add(sourceIdx, targetIdx)
@@ -1215,7 +1171,6 @@ object GraphLookup {
           automatedEdgeReverseIdxBuilder.add(targetIdx, edgeIdx)
         case _: Edge.DerivedFromTemplate =>
           derivedFromTemplateEdgeIdxBuilder.add(sourceIdx, edgeIdx)
-          derivedFromTemplateReverseEdgeIdxBuilder.add(targetIdx, edgeIdx)
         case _: Edge.ReferencesTemplate =>
           referencesTemplateEdgeIdxBuilder.add(sourceIdx, edgeIdx)
         case _: Edge.Mention =>
@@ -1226,49 +1181,13 @@ object GraphLookup {
       }
     }
 
-    val parentsIdx: NestedArrayInt = parentsIdxBuilder.result()
-    val parentEdgeIdx: NestedArrayInt = parentEdgeIdxBuilder.result()
-    val readEdgeIdx: NestedArrayInt = readEdgeIdxBuilder.result()
-    val childrenIdx: NestedArrayInt = childrenIdxBuilder.result()
-    val childEdgeIdx: NestedArrayInt = childEdgeIdxBuilder.result()
-    val accessEdgeReverseIdx: NestedArrayInt = accessEdgeReverseIdxBuilder.result()
-    val contentsEdgeIdx: NestedArrayInt = contentsEdgeIdxBuilder.result()
-    val messageChildrenIdx: NestedArrayInt = messageChildrenIdxBuilder.result()
-    val taskChildrenIdx: NestedArrayInt = taskChildrenIdxBuilder.result()
-    val noteChildrenIdx: NestedArrayInt = noteChildrenIdxBuilder.result()
-    val tagChildrenIdx: NestedArrayInt = tagChildrenIdxBuilder.result()
-    val projectChildrenIdx: NestedArrayInt = projectChildrenIdxBuilder.result()
-    val tagParentsIdx: NestedArrayInt = tagParentsIdxBuilder.result()
-    val stageParentsIdx: NestedArrayInt = stageParentsIdxBuilder.result()
-    val notDeletedParentsIdx: NestedArrayInt = notDeletedParentsIdxBuilder.result()
-    val notDeletedChildrenIdx: NestedArrayInt = notDeletedChildrenIdxBuilder.result()
-    val authorshipEdgeIdx: NestedArrayInt = authorshipEdgeIdxBuilder.result()
-    val membershipEdgeForNodeIdx: NestedArrayInt = membershipEdgeForNodeIdxBuilder.result()
-    val notifyByUserIdx: NestedArrayInt = notifyByUserIdxBuilder.result()
-    val authorsIdx: NestedArrayInt = authorIdxBuilder.result()
-    val pinnedNodeIdx: NestedArrayInt = pinnedNodeIdxBuilder.result()
-    val inviteNodeIdx: NestedArrayInt = inviteNodeIdxBuilder.result()
-    val expandedEdgeIdx: NestedArrayInt = expandedEdgeIdxBuilder.result()
-    val assignedNodesIdx: NestedArrayInt = assignedNodesIdxBuilder.result() // user -> node
-    val assignedUsersIdx: NestedArrayInt = assignedUsersIdxBuilder.result() // node -> user
-    val propertiesEdgeIdx: NestedArrayInt = propertiesEdgeIdxBuilder.result() // node -> property edge
-    val propertiesEdgeReverseIdx: NestedArrayInt = propertiesEdgeReverseIdxBuilder.result() // node -> property edge
-    val automatedEdgeIdx: NestedArrayInt = automatedEdgeIdxBuilder.result()
-    val automatedEdgeReverseIdx: NestedArrayInt = automatedEdgeReverseIdxBuilder.result()
-    val derivedFromTemplateEdgeIdx: NestedArrayInt = derivedFromTemplateEdgeIdxBuilder.result()
-    val derivedFromTemplateEdgeReverseIdx: NestedArrayInt = derivedFromTemplateReverseEdgeIdxBuilder.result()
-    val referencesTemplateEdgeIdx: NestedArrayInt = referencesTemplateEdgeIdxBuilder.result()
-    val mentionsEdgeIdx: NestedArrayInt = mentionsEdgeIdxBuilder.result()
-
     new GraphLookup(
       graph,
       idToIdxMap,
       consistentEdges = consistentEdges,
       edgesIdx = edgesIdx,
-      parentsIdx = parentsIdxBuilder.result(),
       parentEdgeIdx = parentEdgeIdxBuilder.result(),
       readEdgeIdx = readEdgeIdxBuilder.result(),
-      childrenIdx = childrenIdxBuilder.result(),
       childEdgeIdx = childEdgeIdxBuilder.result(),
       accessEdgeReverseIdx = accessEdgeReverseIdxBuilder.result(),
       contentsEdgeIdx = contentsEdgeIdxBuilder.result(),
@@ -1284,7 +1203,6 @@ object GraphLookup {
       authorshipEdgeIdx = authorshipEdgeIdxBuilder.result(),
       membershipEdgeForNodeIdx = membershipEdgeForNodeIdxBuilder.result(),
       notifyByUserIdx = notifyByUserIdxBuilder.result(),
-      authorsIdx = authorIdxBuilder.result(),
       pinnedNodeIdx = pinnedNodeIdxBuilder.result(),
       inviteNodeIdx = inviteNodeIdxBuilder.result(),
       expandedEdgeIdx = expandedEdgeIdxBuilder.result(),
@@ -1295,7 +1213,6 @@ object GraphLookup {
       automatedEdgeIdx = automatedEdgeIdxBuilder.result(),
       automatedEdgeReverseIdx = automatedEdgeReverseIdxBuilder.result(),
       derivedFromTemplateEdgeIdx = derivedFromTemplateEdgeIdxBuilder.result(),
-      derivedFromTemplateEdgeReverseIdx = derivedFromTemplateReverseEdgeIdxBuilder.result(),
       referencesTemplateEdgeIdx = referencesTemplateEdgeIdxBuilder.result(),
       mentionsEdgeIdx = mentionsEdgeIdxBuilder.result(),
       buildNow = buildNow
