@@ -165,8 +165,8 @@ object ListView {
     div.thunkStatic(nodeId.hashCode)(Ownable { implicit ctx =>
       val isExpanded = Rx {
         val graph = GlobalState.graph()
-        val user = GlobalState.user()
-        graph.isExpanded(user.id, nodeId).getOrElse(true)
+        val userId = GlobalState.userId()
+        graph.isExpanded(userId, nodeId).getOrElse(true)
       }
 
       val stage = Rx {

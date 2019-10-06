@@ -230,8 +230,8 @@ object ThreadView {
               val isExpanded = Rx {
                 // we need to get the newest node content from the graph
                 val graph = GlobalState.graph()
-                val user = GlobalState.user()
-                graph.isExpanded(user.id, nodeId).getOrElse(graph.hasChildren(nodeId))
+                val userId = GlobalState.userId()
+                graph.isExpanded(userId, nodeId).getOrElse(graph.hasChildren(nodeId))
               }
 
               val showExpandedThread = Rx {

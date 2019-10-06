@@ -25,7 +25,7 @@ object SelectedNodes {
         val graph = GlobalState.graph()
         val sortedNodes = GlobalState.selectedNodes() //.sortBy(data => graph.nodeCreated(graph.idToIdx(data.nodeId)): Long)
         val sortedNodeIds = sortedNodes.map(_.nodeId)
-        val canWriteAll = NodePermission.canWriteAll(GlobalState.user(), graph, sortedNodeIds)
+        val canWriteAll = NodePermission.canWriteAll(GlobalState.userId(), graph, sortedNodeIds)
         VDomModifier.ifTrue(sortedNodes.nonEmpty)(VDomModifier(
           cls := "selectednodes",
           Styles.flex,

@@ -203,8 +203,8 @@ object KanbanView {
     }
     val isExpanded = Rx {
       val graph = GlobalState.graph()
-      val user = GlobalState.user()
-      graph.isExpanded(user.id, nodeId).getOrElse(true)
+      val userId = GlobalState.userId()
+      graph.isExpanded(userId, nodeId).getOrElse(true)
     }
 
     val nextTraverseState = traverseState.step(nodeId)
@@ -235,7 +235,7 @@ object KanbanView {
               cls := "fa-fw",
               if (isExpanded()) Icons.collapse else Icons.expand
             ),
-            onClick.stopPropagation.useLazy(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(!isExpanded.now), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes,
+            onClick.stopPropagation.useLazy(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(!isExpanded.now), GlobalState.userId.now)) --> GlobalState.eventProcessor.changes,
             cursor.pointer,
             UI.tooltip("bottom center") := "Collapse"
           ),
@@ -308,7 +308,7 @@ object KanbanView {
               Styles.flex,
               justifyContent.center,
               div(cls := "fa-fw", Icons.expand, UI.tooltip("bottom center") := "Expand"),
-              onClick.stopPropagation.useLazy(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(true), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes,
+              onClick.stopPropagation.useLazy(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(true), GlobalState.userId.now)) --> GlobalState.eventProcessor.changes,
               cursor.pointer,
               paddingBottom := "7px",
             ),

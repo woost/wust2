@@ -163,16 +163,16 @@ object UnreadComponents {
 
     val isUnread = Rx {
       val graph = GlobalState.graph()
-      val user = GlobalState.user()
+      val userId = GlobalState.userId()
 
-      nodeIsUnread(graph, user.id, nodeIdx())
+      nodeIsUnread(graph, userId, nodeIdx())
     }
 
     val unreadChildren = Rx {
       val graph = GlobalState.graph()
-      val user = GlobalState.user()
+      val userId = GlobalState.userId()
 
-      graph.descendantsIdxCount(nodeIdx())(idx => nodeIsUnread(graph, user.id, idx))
+      graph.descendantsIdxCount(nodeIdx())(idx => nodeIsUnread(graph, userId, idx))
     }
 
 
@@ -237,8 +237,8 @@ object UnreadComponents {
 
     val haveUnreadNotifications = Rx {
       val graph = GlobalState.graph()
-      val user = GlobalState.user()
-      hasUnreadChildren(graph, nodeId, deep = true, user)
+      val userId = GlobalState.userId()
+      hasUnreadChildren(graph, nodeId, deep = true, userId)
     }
 
     val channelNotification = Rx {
@@ -268,7 +268,7 @@ object UnreadComponents {
   }
 
   // check whether there are unread nodes for the user within parentNodeId
-  private def hasUnreadChildren(graph: Graph, parentNodeId: NodeId, deep: Boolean, user: AuthUser): Boolean = {
+  private def hasUnreadChildren(graph: Graph, parentNodeId: NodeId, deep: Boolean, userId: UserId): Boolean = {
     @inline def foreachChildren(parentNodeIdx: Int)(code: Int => Unit) = {
       if (deep) graph.descendantsIdxForeach(parentNodeIdx)(code)
       else graph.childrenIdx.foreachElement(parentNodeIdx)(code)
@@ -276,7 +276,7 @@ object UnreadComponents {
 
     graph.idToIdx(parentNodeId).foreach { parentNodeIdx =>
       foreachChildren(parentNodeIdx) { nodeIdx =>
-        if (UnreadComponents.nodeIsUnread(graph, user.id, nodeIdx))
+        if (UnreadComponents.nodeIsUnread(graph, userId, nodeIdx))
           return true
       }
     }

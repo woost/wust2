@@ -67,11 +67,11 @@ object PageSettingsMenu {
         if (isBookmarked()) VDomModifier(
           Elements.icon(Icons.unbookmark),
           span("Remove Bookmark"),
-          onClick.stopPropagation.useLazy(GraphChanges.disconnect(Edge.Pinned)(channelId, GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes
+          onClick.stopPropagation.useLazy(GraphChanges.disconnect(Edge.Pinned)(channelId, GlobalState.userId.now)) --> GlobalState.eventProcessor.changes
         ) else VDomModifier(
           Elements.icon(Icons.bookmark),
           span("Bookmark"),
-          onClick.stopPropagation.useLazy(GraphChanges(addEdges = Array(Edge.Pinned(channelId, GlobalState.user.now.id), Edge.Notify(channelId, GlobalState.user.now.id)), delEdges = Array(Edge.Invite(channelId, GlobalState.user.now.id)))) --> GlobalState.eventProcessor.changes
+          onClick.stopPropagation.useLazy(GraphChanges(addEdges = Array(Edge.Pinned(channelId, GlobalState.userId.now), Edge.Notify(channelId, GlobalState.userId.now)), delEdges = Array(Edge.Invite(channelId, GlobalState.userId.now)))) --> GlobalState.eventProcessor.changes
         )
       ))
     }
@@ -86,7 +86,7 @@ object PageSettingsMenu {
           onClick.stopPropagation foreach {
             GlobalState.submitChanges(
               GraphChanges.delete(ChildId(channelId), GlobalState.graph.now.parents(channelId).map(ParentId(_))(breakOut))
-                .merge(GraphChanges.disconnect(Edge.Pinned)(channelId, GlobalState.user.now.id))
+                .merge(GraphChanges.disconnect(Edge.Pinned)(channelId, GlobalState.userId.now))
             )
             UI.toast(s"Archived '${ StringOps.trimToMaxLength(channel.str, 10) }' at all places", level = UI.ToastLevel.Success)
           }
@@ -157,7 +157,7 @@ object PageSettingsMenu {
       cls := "ui compact inverted button",
       UI.tooltip("left center") := "Bookmark in left Sidebar",
       Icons.bookmark,
-      onClick.useLazy(GraphChanges(addEdges = Array(Edge.Pinned(channelId, GlobalState.user.now.id), Edge.Notify(channelId, GlobalState.user.now.id)), delEdges = Array(Edge.Invite(channelId, GlobalState.user.now.id)))) --> GlobalState.eventProcessor.changes,
+      onClick.useLazy(GraphChanges(addEdges = Array(Edge.Pinned(channelId, GlobalState.userId.now), Edge.Notify(channelId, GlobalState.userId.now)), delEdges = Array(Edge.Invite(channelId, GlobalState.userId.now)))) --> GlobalState.eventProcessor.changes,
       onClick foreach {
         GlobalState.graph.now.nodesById(channelId).foreach { node =>
           node.role match {
