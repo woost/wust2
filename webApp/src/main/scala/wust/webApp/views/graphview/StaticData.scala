@@ -250,7 +250,7 @@ object StaticData {
         val eulerSetConnectedComponents = eulerSetConnectedComponentsBuilder.result()
         staticData.eulerSetConnectedComponentCount = eulerSetConnectedComponents.length
         staticData.eulerSetConnectedComponentNodes = NestedArrayInt(eulerSetConnectedComponents)
-        println(s"COUNT: ${eulerSetConnectedComponents.length}")
+        // println(s"COUNT: ${eulerSetConnectedComponents.length}")
       }
 
       {
@@ -258,7 +258,7 @@ object StaticData {
       // each zone represents a node,
       // every two zones which are separated by a line of the euler diagram become an edge
         // for each node, the set of parent nodes identifies its zone
-        println(graph.toDetailedString)
+        // println(graph.toDetailedString)
         val (eulerZones, eulerZoneNodes, edges) = algorithm.eulerDiagramDualGraph(graph.parentsIdx, graph.childrenIdx, graph.nodes.indices.filter(idx => graph.nodes(idx).role == NodeRole.Tag).toSet)
         staticData.eulerZoneCount = eulerZones.length
         staticData.eulerZones = eulerZones
