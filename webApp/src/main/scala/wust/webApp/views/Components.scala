@@ -798,7 +798,7 @@ object Components {
       )
 
       div(
-        keyed,
+        keyed, // because search does weird things to the dom element.
         elementModifier,
         cls := "ui search",
         div(

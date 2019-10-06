@@ -25,7 +25,6 @@ object StatisticsView  {
 
   def apply(focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
     div(
-      keyed,
       width := "100%",
       Styles.flex,
       flexWrap.wrap,

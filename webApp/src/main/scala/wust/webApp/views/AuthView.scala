@@ -91,7 +91,6 @@ object AuthView {
 
           needUserName.ifTrue[VDomModifier](div(
             cls := "ui fluid input",
-            keyed,
             input(
               placeholder := "Username",
               value <-- userValue.map(_.username),
@@ -107,7 +106,6 @@ object AuthView {
 
           div(
             cls := "ui fluid input",
-            keyed,
             input(
               placeholder := "Email",
               value <-- userValue.map(_.email),
@@ -153,7 +151,6 @@ object AuthView {
             case false => VDomModifier(
               div(
                 cls := "ui fluid input",
-                keyed,
                 input(
                   placeholder := "Password",
                   value <-- userValue.map(_.password),

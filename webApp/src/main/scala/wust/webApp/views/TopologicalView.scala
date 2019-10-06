@@ -43,7 +43,6 @@ object TopologicalView {
     }
 
     div(
-      keyed,
       Styles.growFull,
       overflow.auto,
       padding := "20px",

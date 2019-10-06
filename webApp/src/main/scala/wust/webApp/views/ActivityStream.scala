@@ -60,7 +60,6 @@ object ActivityStream {
     val markAllReadButton = markAllAsReadButton("Mark all as read", activityNodes, userId)
 
     div(
-      keyed,
       Styles.growFull,
       overflow.auto,
 

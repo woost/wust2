@@ -172,7 +172,6 @@ object TagList {
 
     div(
       cls := "kanbanaddnodefield",
-      keyed(parentId),
       Rx {
         if (newTagFieldActive())
           InputRow(

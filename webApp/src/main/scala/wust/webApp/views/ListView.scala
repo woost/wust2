@@ -45,8 +45,6 @@ object ListView {
     lastElementModifier: VDomModifier = VDomModifier.empty,
   )(implicit ctx: Ctx.Owner):VNode = {
     div(
-      keyed,
-
       addListItemInputField( focusState, autoFocusInsert = !focusState.isNested),
       renderInboxColumn( focusState, traverseState, inOneLine, isCompact),
       renderToplevelColumns( focusState, traverseState, inOneLine, isCompact)

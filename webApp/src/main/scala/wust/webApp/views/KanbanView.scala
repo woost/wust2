@@ -43,7 +43,6 @@ object KanbanView {
     }
 
     div(
-      keyed,
       cls := "kanbanview",
       height := "100%",
       overflow.auto,
@@ -266,6 +265,7 @@ object KanbanView {
     VDomModifier(
       // sortable: draggable needs to be direct child of container
       cls := "kanbancolumn",
+      keyed(nodeId),
       if(isTopLevel) cls := "kanbantoplevelcolumn" else cls := "kanbansubcolumn",
       Rx{
         VDomModifier.ifNot(editable())(DragComponents.dragWithHandle(DragItem.Stage(nodeId))) // prevents dragging when selecting text
@@ -357,7 +357,6 @@ object KanbanView {
 
     div(
       cls := "kanbanaddnodefield",
-      keyed(nodeId),
       Rx {
         if(active())
           InputRow(
@@ -405,7 +404,6 @@ object KanbanView {
 
     div(
       cls := s"kanbannewcolumnarea",
-      keyed,
       Rx {
         if(fieldActive()) {
           InputRow(

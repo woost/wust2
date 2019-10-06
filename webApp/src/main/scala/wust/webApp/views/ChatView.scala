@@ -46,7 +46,6 @@ object ChatView {
     val shouldLoadInfinite = Var[Boolean](false)
 
     div(
-      keyed,
       Styles.flex,
       flexDirection.column,
 

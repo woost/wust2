@@ -44,7 +44,6 @@ object ThreadView {
     div(
       cls := "threadview",
 
-      keyed,
       Styles.flex,
       flexDirection.column,
 

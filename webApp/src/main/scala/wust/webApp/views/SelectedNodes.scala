@@ -44,7 +44,6 @@ object SelectedNodes {
         ))
       },
       registerDragContainer,
-      keyed,
       zIndex := ZIndex.selected,
       onGlobalEscape.foreach { GlobalState.clearSelectedNodes() },
     )
