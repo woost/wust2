@@ -33,9 +33,10 @@ final case class GraphChanges(
 
   def merge(other: GraphChanges): GraphChanges = {
     val delEdgesBuilder = Array.newBuilder[Edge]
-    val otherAddEdgesSet = HashSetFromArray(other.addEdges)
+    //TODO: the foreach has bad complexity iterating over graph.addEdges, but creating a hashset is overkill for most cases...
+    //TODO: do we really need this check anyhow?
     delEdges.foreach { delEdge =>
-      if (!otherAddEdgesSet(delEdge)) delEdgesBuilder += delEdge
+      if (!other.addEdges.exists(_ == delEdge)) delEdgesBuilder += delEdge
     }
     delEdgesBuilder ++= other.delEdges
 
