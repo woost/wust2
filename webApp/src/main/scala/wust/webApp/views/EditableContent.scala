@@ -162,7 +162,7 @@ object EditableContent {
   }
   def select[T: EditStringParser: ValueStringifier](header: Option[String], activeElement: Var[Option[T]], elements: Seq[(String, T)], unselectableMapping: Map[T, T] = Map.empty[T,T])(implicit ctx: Ctx.Owner): VNode = {
     dsl.select(
-      padding := "0 0.2em 0 0.2em",
+      padding := "0.2em",
       header.map { header =>
         option(
           value := "", header,

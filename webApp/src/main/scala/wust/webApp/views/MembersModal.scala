@@ -362,7 +362,7 @@ object MembersModal {
                   ("can read", AccessLevel.Read) ::
                   ("can write", AccessLevel.ReadWrite) ::
                   Nil
-                ).apply(cls := "ui mini dropdown", minWidth := "70px", maxWidth := "70px"),
+                ).apply(cls := "ui mini dropdown", minWidth := "75px", maxWidth := "75px"),
 
                 button(
                   cls := "ui basic compact button",
@@ -399,7 +399,7 @@ object MembersModal {
       description = description,
       modalModifier = VDomModifier(
         cls := "mini form",
-        VDomModifier.ifNot(BrowserDetect.isMobile)(minWidth := "600px")
+        width := "600px",
       ),
       contentModifier = VDomModifier.empty
     )
