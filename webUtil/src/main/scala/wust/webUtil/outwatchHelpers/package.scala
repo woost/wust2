@@ -244,7 +244,7 @@ package object outwatchHelpers extends KeyHash with RxInstances {
   implicit class WustRichObservable[T](val o: Observable[T]) extends AnyVal {
     //This is unsafe, as we leak the subscription here, this should only be done
     //for rx that are created only once in the app lifetime (e.g. in globalState)
-    def unsafeToRx(seed: T): rx.Rx[T] = Rx.create(seed) { o.subscribe(_) }
+    def unsafeToRx(seed: T): rx.Rx[T] = Rx.create(seed) { subscribe(_) }
 
     def subscribe[G[_] : Sink](that: G[T]): Cancelable = o.subscribe(value => { Sink[G].onNext(that)(value); Ack.Continue }, Sink[G].onError(that)(_))
 
