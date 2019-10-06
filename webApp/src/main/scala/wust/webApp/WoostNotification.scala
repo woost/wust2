@@ -138,7 +138,7 @@ object WoostNotification {
     )
   }
 
-  def banner(permissionState: PermissionState, projectName: Option[String])(implicit ctx: Ctx.Owner): VDomModifier = Rx {
+  def banner(permissionState: PermissionState)(implicit ctx: Ctx.Owner): VDomModifier = Rx {
     if(!GlobalState.askedForNotifications() && permissionState == PermissionState.prompt) {
       def mobileText = div(
         marginLeft.auto,

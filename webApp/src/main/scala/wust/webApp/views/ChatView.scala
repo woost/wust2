@@ -446,14 +446,13 @@ object ChatView {
         Styles.flex,
         currentReply().map { replyNodeId =>
           val isDeletedNow = graph.isDeletedNow(replyNodeId, focusState.focusedId)
-          val node = graph.nodesByIdOrThrow(replyNodeId)
           div(
             padding := "5px",
             minWidth := "0", // fixes overflow-wrap for parent preview
             backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(replyNodeId)).toHex,
             div(
               Styles.flex,
-              renderParentMessage( node.id, isDeletedNow, currentReply, inputFieldFocusTrigger, Some(pinReply)),
+              renderParentMessage(replyNodeId, isDeletedNow, currentReply, inputFieldFocusTrigger, Some(pinReply)),
               closeButton(
                 marginLeft.auto,
                 onTap foreach { currentReply.update(_ - replyNodeId) }

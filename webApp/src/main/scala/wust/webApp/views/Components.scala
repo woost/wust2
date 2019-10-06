@@ -684,7 +684,7 @@ object Components {
               span("Selected:", color.gray, margin := "0px 5px 0px 5px"),
               GlobalState.graph.map { g =>
                 val node = g.nodesByIdOrThrow(nodeId)
-                Components.nodeCard( node, maxLength = Some(100)).apply(Styles.wordWrap)
+                Components.nodeCard(node, maxLength = Some(100)).apply(Styles.wordWrap)
               }
             )
             case None => VDomModifier.empty

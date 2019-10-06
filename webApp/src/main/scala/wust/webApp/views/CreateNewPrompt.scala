@@ -219,7 +219,6 @@ object CreateNewPrompt {
             val nodes = childNodes().flatMap { id =>
               GlobalState.graph().nodesById(id).map { node =>
                 nodeCard(
-
                   node,
                   contentInject = VDomModifier(
                     Styles.flex,

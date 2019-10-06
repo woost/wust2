@@ -35,7 +35,7 @@ object GraphChangesAutomationUI {
   def modalConfig(focusedId: NodeId, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): ModalConfig = {
     val header: VDomModifier = Rx {
       GlobalState.rawGraph().nodesById(focusedId).map { node =>
-        Modal.defaultHeader( node, "Automation", Icons.automate)
+        Modal.defaultHeader(node, "Automation", Icons.automate)
       }
     }
 

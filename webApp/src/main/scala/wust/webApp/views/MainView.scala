@@ -117,14 +117,10 @@ object MainView {
   }
 
   def topBannerContainer(implicit ctx: Ctx.Owner) = {
-    val projectName = Rx {
-      GlobalState.page().parentId.map(pid => GlobalState.graph().nodesByIdOrThrow(pid).str)
-    }
-
     div(
       cls := "topBannerContainer",
       Rx {
-        WoostNotification.banner(GlobalState.permissionState(), projectName())
+        WoostNotification.banner(GlobalState.permissionState())
       }
     )
   }
