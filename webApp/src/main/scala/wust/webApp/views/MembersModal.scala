@@ -8,7 +8,7 @@ import outwatch.reactive.handler._
 import outwatch.ext.monix._
 import outwatch.dom.helpers.EmitterBuilder
 import wust.webApp.parsers.UrlConfigWriter
-import wust.webUtil.{ Ownable, UI }
+import wust.webUtil.{ Ownable, UI, BrowserDetect}
 import outwatch.dom.dsl._
 import rx._
 import wust.webUtil.{Elements, ModalConfig}
@@ -169,13 +169,13 @@ object MembersModal {
           div(
             Styles.flex,
 
-            EditableContent.selectEmitter[AccessLevel](
-              Some("Select Access Level"),
+            (EditableContent.selectEmitter[AccessLevel](
+              Some("Access Level"),
               accesslevel,
               ("can read", AccessLevel.Read) ::
               ("can write", AccessLevel.ReadWrite) ::
               Nil
-            ) --> sink,
+            ) --> sink).apply(minWidth := "80px", maxWidth := "80px"),
 
             button(
               marginLeft := "10px",
@@ -188,6 +188,8 @@ object MembersModal {
       }
 
       VDomModifier(
+        Styles.flex,
+        flexDirection.column,
 
         needAction.map(_.map(need =>
           div(
@@ -210,14 +212,15 @@ object MembersModal {
           flexWrap.wrap,
           alignItems.center,
 
-          label("Link to share:", Styles.flexStatic, marginRight := "15px"),
+          label("Link to share:", Styles.flexStatic, margin := "0 15px 5px 0"),
           div(
+            minWidth := "250px",
             marginRight := "50px", //WHY? do we overflow otherwise? What kind of sorcery does fomantic-ui do?
-            flexGrow := 1,
+            flex := "1",
             cls := "ui action input",
             input(tpe := "text", readOnly := true, value <-- targetUrl),
             button(
-              cls := "ui button",
+              cls := "ui compact button",
               freeRegular.faCopy,
               Rx {
                 node() map { node =>
@@ -231,37 +234,41 @@ object MembersModal {
         b("Who has access?"),
 
         div(
-          margin := "10px 0 25px 10px",
+          margin := "0px 0 25px 10px",
 
           div(
             Styles.flex,
-            alignItems.center,
+            flexDirection.column,
             marginBottom := "15px",
 
             node.map(_.map { node =>
               VDomModifier(
-                div(
-                  Styles.flexStatic,
-                  s"This ${node.role.toString} ",
+                span(
+                  marginBottom := "5px",
+                  alignSelf.flexEnd,
+                  Styles.flex,
+                  alignItems.center,
+
+                  label(
+                    Styles.flexStatic,
+                    marginRight := "10px",
+                    "Permission Setting:"
+                  ),
+
+                  EditableContent.selectEmitter[NodeAccess](
+                    None,
+                    Some(node.meta.accessLevel),
+                    ("Private", NodeAccess.Restricted) ::
+                    ("Inherit", NodeAccess.Inherited) ::
+                    ("Public", NodeAccess.Read) ::
+                    Nil,
+                    unselectableMapping = Map(NodeAccess.ReadWrite -> NodeAccess.Read)
+                  ).foreach { nodeAccess =>
+                    updateNodeAccess(nodeAccess)
+                  }
                 ),
 
-                EditableContent.selectEmitter[NodeAccess](
-                  Some("Select Permission Setting"),
-                  Some(node.meta.accessLevel),
-                  ("is Private", NodeAccess.Restricted) ::
-                  ("inherits Permissions", NodeAccess.Inherited) ::
-                  ("is Public", NodeAccess.Read) ::
-                  Nil,
-                  unselectableMapping = Map(NodeAccess.ReadWrite -> NodeAccess.Read)
-                ).foreach { nodeAccess =>
-                  updateNodeAccess(nodeAccess)
-                }.apply(
-                  Styles.flexStatic,
-                  width := "150px", // TODO why need explicit width?
-                  margin := "0 5px 0 5px"
-                ),
-
-                node.meta.accessLevel match {
+                i(node.meta.accessLevel match {
                   case NodeAccess.Inherited =>
                     VDomModifier(Rx {
                       //TODO: share this code...
@@ -269,19 +276,16 @@ object MembersModal {
                         case AccessLevel.Restricted => "Private"
                         case AccessLevel.ReadWrite | AccessLevel.Read => "Public"
                       }
-                      s" and is accessible for members of parent folders (${level}) and the members listed below."
+                      s"This ${node.role.toString} is accessible for members of parent folders (${level}) and the members listed below."
                     })
                   case NodeAccess.Level(AccessLevel.Restricted) =>
-                    " and is only accessible for the members listed below."
+                    s"This ${node.role.toString} is only accessible for the members listed below."
                   case NodeAccess.Level(AccessLevel.Read | AccessLevel.ReadWrite) =>
-                    " and is accessible for members of parent folders and anyone with link."
-                }
+                    s"This ${node.role.toString} is accessible for members of parent folders and anyone with link."
+                })
               )
             })
           ),
-
-          Styles.flex,
-          flexDirection.column,
 
           Rx {
             node().map { node =>
@@ -331,19 +335,26 @@ object MembersModal {
           div(
             Styles.flex,
             alignItems.center,
+            flexWrap.wrap,
 
-            label("Invite another User:", Styles.flexStatic, marginRight := "15px"),
+            label("Invite another User:", Styles.flexStatic, margin := "0 15px 5px 0"),
             searchInGraph(
               GlobalState.rawGraph,
               "Add user or invite by Email",
               filter = u => u.isInstanceOf[Node.User] && !GlobalState.graph.now.members(nodeId).exists(_.id == u.id),
               showNotFound = false,
+              elementModifier = VDomModifier(
+                flex := "1",
+                minWidth := "250px",
+              ),
               inputModifiers = VDomModifier(
                 onDomMount.asHtml.foreach { e => inputElement = e.asInstanceOf[dom.html.Input] },
                 tpe := "email",
+                flex := "1",
               ),
               inputDecoration = Some(VDomModifier(
                 cls := "ui action input",
+                width := "100%",
 
                 EditableContent.select[AccessLevel](
                   None,
@@ -351,10 +362,10 @@ object MembersModal {
                   ("can read", AccessLevel.Read) ::
                   ("can write", AccessLevel.ReadWrite) ::
                   Nil
-                ).apply(minWidth := "100px"),
+                ).apply(cls := "ui mini dropdown", minWidth := "70px", maxWidth := "70px"),
 
                 button(
-                  cls := "ui basic button",
+                  cls := "ui basic compact button",
                   freeSolid.faPlus,
                   onClick.stopPropagation foreach(addUserEmailFromInput())
                 ),
@@ -387,8 +398,8 @@ object MembersModal {
       header = node.map(_.map(Modal.defaultHeader(_, "Sharing Settings", Icons.users))),
       description = description,
       modalModifier = VDomModifier(
-        minWidth := "600px",
         cls := "mini form",
+        VDomModifier.ifNot(BrowserDetect.isMobile)(minWidth := "600px")
       ),
       contentModifier = VDomModifier.empty
     )
