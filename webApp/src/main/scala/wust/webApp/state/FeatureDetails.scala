@@ -24,7 +24,7 @@ case class FeatureDetails(
 object FeatureDetails {
   def addView(view: View.Visible) = FeatureDetails(
     title = s"Add ${view.toString} View",
-    description = VDomModifier(s"When creating a new project, select ", em(view.toString), ". Or: press ", em(ViewSwitcher.addViewIcon), " next to the view tabs of a project.")
+    description = VDomModifier(s"When creating a new project, select ", em(view.toString), ". Or: press ", em(Icons.addViewIcon), " next to the view tabs of a project.")
   )
 
   def activateFilter(transformation: ViewGraphTransformation) = FeatureDetails(

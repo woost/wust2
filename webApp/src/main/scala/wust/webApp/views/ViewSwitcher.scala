@@ -66,9 +66,11 @@ object ViewSwitcher {
   def modifier(channelId: NodeId, currentView: Var[View], initialView: Option[View.Visible])(implicit ctx: Ctx.Owner): VDomModifier = {
     val closeDropdown = SinkSourceHandler.publish[Unit]
 
-    def addNewTabDropdown = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
-      VDomModifier(
+    val addNewViewTab = div(
+      cls := "viewswitcher-item",
+      div(
         div(addViewIcon, fontSize := "16px", color := Colors.pageHeaderControl, paddingLeft := "2px", paddingRight := "2px"),
+
         UI.dropdownMenu(VDomModifier(
           padding := "5px",
           div(cls := "item", display.none), //TODO ui dropdown needs at least one element
@@ -76,11 +78,6 @@ object ViewSwitcher {
           ViewModificationMenu.selector(channelId, currentView, initialView, closeDropdown)
         ), close = closeDropdown, dropdownModifier = cls := "top left")
       )
-    })
-
-    val addNewViewTab = div(
-      cls := "viewswitcher-item",
-      addNewTabDropdown,
     )
 
     VDomModifier(
@@ -92,30 +89,28 @@ object ViewSwitcher {
 
       Rx {
         val graph = GlobalState.graph()
-        val channelNode = graph.nodesById(channelId)
-        val user = GlobalState.user()
+        graph.idToIdx(channelId).map { nodeIdx =>
+          val channelNode = graph.nodes(nodeIdx)
+          val userId = GlobalState.userId()
 
-        def bestView = graph.nodesById(channelId).flatMap(ViewHeuristic.bestView(graph, _, user.id)).getOrElse(View.Empty)
+          def bestView = ViewHeuristic.bestView(graph, channelNode, userId).getOrElse(View.Empty)
 
-        val nodeIdx = graph.idToIdx(channelId)
-        val (numMsg, numTasks, numFiles) = (for {
-          nodeIdx <- nodeIdx
-          if !BrowserDetect.isPhone
-        } yield {
-          val messageChildrenCount = graph.messageChildrenIdx.sliceLength(nodeIdx)
-          val taskChildrenCount = graph.taskChildrenIdx.sliceLength(nodeIdx)
-          val filesCount = graph.pageFilesIdx(nodeIdx).length
-          (messageChildrenCount, taskChildrenCount, filesCount)
-        }) getOrElse ((0, 0, 0))
+          val (numMsg, numTasks, numFiles) = if (BrowserDetect.isMobile) (0,0,0) else {
+            val messageChildrenCount = graph.messageChildrenIdx.sliceLength(nodeIdx)
+            val taskChildrenCount = graph.taskChildrenIdx.sliceLength(nodeIdx)
+            val filesCount = graph.pageFilesIdx(nodeIdx).length
+            (messageChildrenCount, taskChildrenCount, filesCount)
+          }
 
-        VDomModifier(
-          channelNode.flatMap(_.views).getOrElse(bestView :: Nil).map { view =>
-            singleTab(currentView, ViewSwitcher.viewToTabInfo(view, numMsg = numMsg, numTasks = numTasks, numFiles = numFiles))
-          },
-          addNewViewTab
-        )
+          VDomModifier(
+            channelNode.views.getOrElse(bestView :: Nil).map { view =>
+              singleTab(currentView, ViewSwitcher.viewToTabInfo(view, numMsg = numMsg, numTasks = numTasks, numFiles = numFiles))
+            },
+          )
+        }
       },
 
+      addNewViewTab
     )
   }
 
@@ -152,12 +147,14 @@ object ViewSwitcher {
     }
   }
 
-  def tabSkeleton(currentView: Var[View], tabInfo: TabInfo)(implicit ctx: Ctx.Owner): BasicVNode = {
-    div(
+  def singleTab(currentView: Var[View], tabInfo: TabInfo): VNode = div.thunkStatic(tabInfo.targetView.toString)(Ownable { implicit ctx =>
+    VDomModifier(
       // modifiers
-      cls := "viewswitcher-item",
+      cls := "viewswitcher-item single",
       modifiers.modActivityStateCssClass(currentView, tabInfo),
       modifiers.modTooltip(tabInfo),
+
+      // VDomModifier.ifTrue(tabInfo.numItems > 0)(span(tabInfo.numItems, paddingLeft := "7px")),
 
       // actions
       onClick.stopPropagation.foreach { e =>
@@ -183,13 +180,5 @@ object ViewSwitcher {
       // content
       div(cls := "fa-fw", tabInfo.icon),
     )
-  }
-
-  /// @return a single iconized tab for switching to the respective view
-  def singleTab(currentView: Var[View], tabInfo: TabInfo)(implicit ctx: Ctx.Owner) = {
-    tabSkeleton(currentView, tabInfo).apply(
-      cls := "single",
-    // VDomModifier.ifTrue(tabInfo.numItems > 0)(span(tabInfo.numItems, paddingLeft := "7px")),
-    )
-  }
+  })
 }

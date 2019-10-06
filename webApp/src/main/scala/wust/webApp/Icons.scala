@@ -90,6 +90,7 @@ object Icons {
   val form: IconDefinition = freeBrands.faWpforms
   val notifications: IconDefinition = freeRegular.faBell
   val activityStream: IconDefinition = freeRegular.faClock
+  val addViewIcon = freeSolid.faPlus
 
   val task: IconDefinition = freeRegular.faCheckSquare
   val message: IconDefinition = freeRegular.faComment
