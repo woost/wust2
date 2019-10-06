@@ -203,18 +203,16 @@ object MainView {
         fontSize.xSmall,
         marginTop := "20px",
 
-        Rx {
-          if (GlobalState.isClientOnline())
-            div(
-              cls := "animated-late-fadein",
-              span("Loading forever?", marginRight := "10px"),
-              Components.reloadButton
-            )
-          else
-            div(
-              cls := "animated-alternating-fade",
-              span("CONNECTING"),
-            )
+        GlobalState.isClientOnline.map {
+          case true => div(
+            cls := "animated-late-fadein",
+            span("Loading forever?", marginRight := "10px"),
+            Components.reloadButton
+          )
+          case false => div(
+            cls := "animated-alternating-fade",
+            span("CONNECTING"),
+          )
         }
       )
     )

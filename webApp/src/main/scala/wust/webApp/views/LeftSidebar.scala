@@ -264,11 +264,10 @@ object LeftSidebar {
     )
 
     val status = {
-      val rx = Rx {
-        (GlobalState.isClientOnline(), GlobalState.isSynced() && !GlobalState.isLoading())
+      val isSynced = Rx {
+        GlobalState.isSynced() && !GlobalState.isLoading()
       }
-      //TODO: scala.rx debounce is not working correctly
-      rx.toTailSourceStream.debounce(300 milliseconds).prepend(rx.now)
+      SourceStream.combineLatest(GlobalState.isClientOnline)(isSynced.toTailSourceStream).debounce(300 milliseconds).prepend((true, isSynced.now))
     }
 
     val syncStatusIcon = status.map { status =>

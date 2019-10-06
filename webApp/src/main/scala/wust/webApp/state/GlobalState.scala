@@ -44,11 +44,11 @@ import scala.collection.{ breakOut, mutable }
 object GlobalState {
   implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
 
-  val isClientOnlineObservable = SourceStream.merge(Client.observable.connected.map(_ => true), Client.observable.closed.map(_ => false))
-  val isClientOnline = isClientOnlineObservable.unsafeToRx(true)
+  val isClientOnline = SourceStream.merge(Client.observable.connected.map(_ => true), Client.observable.closed.map(_ => false))
+    .shareWithLatestAndSeed(false).distinctOnEquals
   //TODO: is browser does not trigger?!
-  val isBrowserOnlineObservable = SourceStream.merge(events.window.onOffline.map(_ => false), events.window.onOnline.map(_ => true))
-  val isBrowserOnline = isBrowserOnlineObservable.unsafeToRx(true)
+  val isBrowserOnline = SourceStream.merge(events.window.onOffline.map(_ => false), events.window.onOnline.map(_ => true))
+    .shareWithLatestAndSeed(false).distinctOnEquals
 
   // register the serviceworker and get an update observable when serviceworker updates are available.
   val serviceWorkerIsActivated: SourceStream[Unit] = if (LinkingInfo.productionMode) ServiceWorker.register(WoostConfig.value.urls.serviceworker) else SourceStream.empty
@@ -208,7 +208,7 @@ object GlobalState {
     }
   }
 
-  val isSynced: Rx[Boolean] = eventProcessor.changesInTransit.map(_.isEmpty).unsafeToRx(true)
+  val isSynced: Rx[Boolean] = addNodesInTransit.map(_.isEmpty)
 
   //TODO: wait for https://github.com/raquo/scala-dom-types/pull/36
   //  val documentIsVisible: Rx[Boolean] = {
