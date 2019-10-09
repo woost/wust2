@@ -260,9 +260,9 @@ object MembersModal {
                     Some(node.meta.accessLevel),
                     ("Private", NodeAccess.Restricted) ::
                     ("Inherit", NodeAccess.Inherited) ::
-                    ("Public", NodeAccess.Read) ::
+                    ("Public", NodeAccess.ReadWrite) ::
                     Nil,
-                    unselectableMapping = Map(NodeAccess.ReadWrite -> NodeAccess.Read)
+                    unselectableMapping = Map(NodeAccess.Read -> NodeAccess.ReadWrite)
                   ).foreach { nodeAccess =>
                     updateNodeAccess(nodeAccess)
                   }
@@ -359,8 +359,8 @@ object MembersModal {
                 EditableContent.select[AccessLevel](
                   None,
                   addUserAccessLevel,
-                  ("can read", AccessLevel.Read) ::
                   ("can write", AccessLevel.ReadWrite) ::
+                  ("can read", AccessLevel.Read) ::
                   Nil
                 ).apply(cls := "ui mini dropdown", minWidth := "75px", maxWidth := "75px"),
 
@@ -436,8 +436,8 @@ object MembersModal {
       channel match {
         case node: Node.Content if node.meta.accessLevel != NodeAccess.Read && node.meta.accessLevel != NodeAccess.ReadWrite =>
           needAction.onNext(NeedAction(
-            GraphChanges.addNode(node.copy(meta = node.meta.copy(accessLevel = NodeAccess.Read))),
-            reason = s"This ${node.role.toString} is currently not public and therefore will not be accessible for other people with Link. Do you want to make it public?"
+            GraphChanges.addNode(node.copy(meta = node.meta.copy(accessLevel = NodeAccess.ReadWrite))),
+            reason = s"This ${node.role.toString} is currently not public and therefore will not be accessible for other people with Link. Do you want to make it publicly accessible?"
           ))
         case _ => ()
       }
