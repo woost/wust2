@@ -62,6 +62,9 @@ class EventProcessor private (
 
   val stopEventProcessing = PublishSubject[Boolean]
 
+  private val forbiddenChangesSubject = PublishSubject[Seq[GraphChanges]]
+  val forbiddenChanges: Observable[Seq[GraphChanges]] = forbiddenChangesSubject
+
   private val currentAuthUpdate = PublishSubject[Authentication]
   val currentAuth: Observable[Authentication] = Observable(currentAuthUpdate, authEventStream.collect {
     case events if events.nonEmpty => EventUpdate.createAuthFromEvent(events.last)
@@ -203,6 +206,9 @@ class EventProcessor private (
             e.error match {
               case ApiError.Forbidden =>
                 scribe.warn(s"ChangeGraph request forbidden, will ignore changes: $changes")
+
+                forbiddenChangesSubject.onNext(changes)
+
                 Success(true) //TODO: we should prompt user for errors and notify him of problem. for now just accept, these changes will be lost.
 
               //TODO: stop processing, prompt for reload. case ApiError.IncompatibleApi =>

@@ -38,6 +38,19 @@ object GlobalStateFactory {
 
     import GlobalState._
 
+    eventProcessor.forbiddenChanges.foreach { changesList =>
+      val changes = changesList.foldLeft(GraphChanges.empty)(_ merge _)
+
+      // TODO: this is imperfect, but currently our permission detection in the frontend is
+      // bad and we do changes even when reading -- so need to not show these errors there.
+      val showHeuristic =
+        changes.addNodes.nonEmpty || changes.delEdges.nonEmpty || changes.addEdges.exists(_.data.tpe == EdgeData.Child.tpe)
+
+      if (showHeuristic) {
+        UI.toast("You do need have sufficient permissions to do this.", title = "Forbidden", level = ToastLevel.Error)
+      }
+    }
+
     SourceStream.merge(EditableContent.currentlyEditing, UI.currentlyEditing).subscribe(eventProcessor.stopEventProcessing)
 
     // on mobile left and right sidebars overlay the screen.
