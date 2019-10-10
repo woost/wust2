@@ -301,25 +301,19 @@ object Components {
   )(implicit ctx: Ctx.Owner): VNode = {
 
     span(
-      cls := "property",
-      Styles.flex,
-      alignItems.center,
+      cls := "ui label property",
 
-      div(
-        alignSelf.flexStart,
-        s"${key.data.key}:",
-        marginRight := "4px",
-      ),
+      s"${key.data.key}:",
 
       property.role match {
         case NodeRole.Neutral =>
           renderNodeData( property, maxLength = Some(50))
-            .apply(cls := "property-value")
+            .apply(cls := "detail")
         case _ =>
           VDomModifier(
             writeHoveredNode( property.id),
             nodeCard( property, maxLength = Some(50)).apply(
-              cls := "property-value",
+              cls := "detail",
               margin := "3px 0",
               sidebarNodeFocusMod(GlobalState.rightSidebarNode, property.id),
               cursor.pointer

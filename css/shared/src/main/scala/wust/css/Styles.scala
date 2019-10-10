@@ -973,15 +973,11 @@ object CommonStyles extends StyleSheet.Standalone
   )
 
   ".property" - (
-    color.gray,
-    fontSize.small,
-    padding(0 px, 3 px),
-    marginRight(3 px),
-    display.inlineBlock,
-
-    &(".property-value") - (
-      color(Color(Colors.fgColor)),
-    )
+    margin(2 px).important,
+  )
+  // unset line-heigt of p for equal height in properties
+  ".property p" - (
+    lineHeight.unset.important
   )
 
   ".tags" - (
