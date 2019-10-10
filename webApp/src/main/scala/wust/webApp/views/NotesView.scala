@@ -22,6 +22,7 @@ object NotesView {
   //TODO: button in each sidebar line to jump directly to view (conversation / tasks)
   def apply(focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
     div(
+      keyed,
       Styles.growFull,
       overflow.auto,
 

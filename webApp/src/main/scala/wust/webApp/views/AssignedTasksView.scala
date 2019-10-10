@@ -71,6 +71,7 @@ object AssignedTasksView  {
     }
 
     div(
+      uniqueKeyed(focusState.focusedId.toStringFast), // needed for thunks below to be unique in nodeid
       width := "100%",
       Styles.flex,
       flexDirection.column,

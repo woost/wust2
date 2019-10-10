@@ -52,6 +52,7 @@ object NotificationView {
     def markAllReadButton(graph: Graph, userId: UserId) = markAllAsReadButton("Mark everything as read", focusState.focusedId, graph, userId, renderTime)
 
     div(
+      keyed,
       Styles.growFull,
       overflow.auto,
 

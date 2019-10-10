@@ -79,6 +79,7 @@ object GanttView {
     val xAxis = d3.axisBottom(x)
 
     div(
+      keyed,
       Styles.growFull,
       overflow.auto,
       padding := "20px",

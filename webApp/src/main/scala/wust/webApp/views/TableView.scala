@@ -27,6 +27,7 @@ object TableView {
     val sort = Var[Option[UI.ColumnSort]](None)
 
     div(
+      keyed,
       Styles.growFull,
       overflow.auto,
       paddingTop := "20px",

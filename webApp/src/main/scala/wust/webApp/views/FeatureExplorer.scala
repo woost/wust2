@@ -147,6 +147,7 @@ object FeatureExplorer {
     )
 
     div(
+      keyed,
       cls := "feature-explorer",
       stats(marginTop := "5px"),
       tryNextList(marginTop := "30px"),
