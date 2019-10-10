@@ -215,8 +215,9 @@ object KanbanView {
       val graph = GlobalState.graph()
       KanbanData.columnNodes(graph, nextTraverseState)
     }
+    val titleEditConfig = EditableContent.Config.cancelOnError.copy(saveDialogAtTop = false)
     val columnTitle = Rx {
-      editableNode( node(), editable, maxLength = Some(TaskNodeCard.maxLength))(ctx)(cls := "kanbancolumntitle")
+      editableNode( node(), editable, config = titleEditConfig, maxLength = Some(TaskNodeCard.maxLength))(ctx)(cls := "kanbancolumntitle")
     }
 
     val canWrite = NodePermission.canWrite( nodeId)

@@ -55,6 +55,7 @@ object EditableContent {
     selectTextOnFocus: Boolean = true,
     autoFocus: Boolean = true,
     autoresizeTextarea: Boolean = true,
+    saveDialogAtTop: Boolean = true
   )
   object Config {
     def default = Config()
@@ -225,8 +226,8 @@ object EditableContent {
           case SubmitMode.Automatic => div(
             position.absolute,
             padding := "2px",
+            if (config.saveDialogAtTop) marginTop := "-30px" else bottom := "-30px", // hopefully always correct
             right := "4px",
-            marginTop := "-30px", // hopefully always correct
             backgroundColor := "rgba(255, 255, 255, 0.75)",
             boxShadow := "0px 0px 3px 0px rgba(0, 0, 0, 0.75)",
             borderRadius := "3px",
