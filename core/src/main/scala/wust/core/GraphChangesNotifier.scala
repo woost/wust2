@@ -43,11 +43,12 @@ class GraphChangesNotifier(db: Db, emailFlow: AppEmailFlow) {
   private def notifyMentions(author: AuthUser, authorEmail: String, groupedMentions: Seq[MentionsWithNode])(implicit ec:ExecutionContext): Unit = {
     groupedMentions.foreach { groupedMention =>
       val mentionedIds: List[NodeId] = groupedMention.mentions.map(_.mentionedId)(breakOut)
+      val mentionsAuthorDirectly = mentionedIds.contains(author.id)
       db.node.resolveMentionedNodesWithAccess(mentionedIds, canAccessNodeId = groupedMention.node.id).onComplete {
         case Success(targetUsers) =>
           scribe.info(s"Resolved mentionedNodeId '$mentionedIds' to users: $targetUsers")
-          targetUsers.foreach { user =>
-            if (author.id != user.id) db.user.getUserDetail(user.id).onComplete {
+          targetUsers.distinct.foreach { user =>
+            if (mentionsAuthorDirectly || author.id != user.id) db.user.getUserDetail(user.id).onComplete {
               case Success(Some(userDetail)) if userDetail.verified => userDetail.email match {
                 case Some(email) => db.node.getAccessibleWorkspaces(author.id, groupedMention.node.id).onComplete {
                   case Success(parentIds) => emailFlow.sendMentionNotification(email = email, authorName = author.name, authorEmail = authorEmail, mentionedIn = parentIds, node = groupedMention.node)

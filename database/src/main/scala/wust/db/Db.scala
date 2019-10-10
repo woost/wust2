@@ -64,6 +64,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       infix"""node_can_access($nodeId, $userId, $level)""".as[Boolean]
     }
 
+    //TODO distinct?
     def resolveMentionedNodesWithAccess(mentionedNodeIds: scala.collection.Seq[NodeId], canAccessNodeId: NodeId)(implicit ec: ExecutionContext): Future[Seq[User]] = {
       val q = quote {
         infix"""

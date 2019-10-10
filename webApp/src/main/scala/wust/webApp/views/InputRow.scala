@@ -156,7 +156,14 @@ object InputRow {
           }
         }: js.Function1[js.UndefOr[TributeItem[Node]], String]
         menuItemTemplate = { item =>
-          Components.nodeCard( item.original, projectWithIcon = true, maxLength = Some(200)).render.outerHTML
+          val card = Components.nodeCard(item.original, contentInject = VDomModifier.ifTrue(item.original.id == GlobalState.userId.now)(i(" (yourself)")), projectWithIcon = true, maxLength = Some(200))
+          val entry = if (item.original.id == GlobalState.userId.now) card.apply(
+            Styles.flex,
+            alignItems.center,
+            i("- yourself", fontSize.xxSmall, paddingLeft := "5px")
+          ) else card
+
+          entry.render.outerHTML
         }: js.Function1[TributeItem[Node], String]
         noMatchTemplate = { () =>
           i("Not Found").render.outerHTML
@@ -166,7 +173,7 @@ object InputRow {
           val graph = GlobalState.graph.now
           cb(
             focusState.flatMap(f => graph.nodesById(f.focusedId).collect { case node: Node.Content if node.role == NodeRole.Project => node.copy(data = NodeData.Markdown("all")) }).toJSArray ++
-              graph.nodes.collect { case item if (item.role == NodeRole.Project || item.isInstanceOf[Node.User] && item.id != GlobalState.userId.now) && EmojiReplacer.emojiAtBeginningRegex.replaceFirstIn(item.str, "").trim.toLowerCase.startsWith(text.toLowerCase) => item }.take(50)
+              graph.nodes.collect { case item if (item.role == NodeRole.Project || item.isInstanceOf[Node.User]) && EmojiReplacer.emojiAtBeginningRegex.replaceFirstIn(item.str, "").trim.toLowerCase.startsWith(text.toLowerCase) => item }.take(50)
           )
         }: js.Function2[String, js.Function1[js.Array[Node], Unit], Unit]
         searchOpts = new TributeSearchOpts {
