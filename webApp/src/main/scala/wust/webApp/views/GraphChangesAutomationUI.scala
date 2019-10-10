@@ -207,7 +207,7 @@ object GraphChangesAutomationUI {
 
                       propertySingle.properties.map { property =>
                         property.values.map { value =>
-                          Components.removableNodeCardProperty( value.edge, value.node)
+                          Components.nodeCardProperty( value.edge, value.node)
                         }
                       },
 

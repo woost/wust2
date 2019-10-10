@@ -278,12 +278,6 @@ object ItemProperties {
       sink.onNext(())
     }
 
-    def propertyRow(propertyKey: Edge.LabeledProperty, propertyValue: Node)(implicit ctx: Ctx.Owner): VNode = div(
-      Styles.flex,
-      alignItems.center,
-      Components.removableNodeCardProperty(propertyKey, propertyValue),
-    )
-
     description
   }
 

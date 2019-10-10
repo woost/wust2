@@ -43,7 +43,7 @@ object NodeDetails {
           propertySingle().properties.map { property =>
             property.values.map { value =>
               VDomModifier.ifTrue(value.edge.data.showOnCard) {
-                Components.removableNodeCardProperty(value.edge, value.node)
+                Components.nodeCardProperty(value.edge, value.node)
               }
             }
           },

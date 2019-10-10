@@ -305,8 +305,6 @@ object Components {
       Styles.flex,
       alignItems.center,
 
-      DragComponents.drag(DragItem.Property(key), target = DragItem.DisableDrag),
-
       div(
         alignSelf.flexStart,
         s"${key.data.key}:",
@@ -343,19 +341,6 @@ object Components {
       onClick.stopPropagation.useLazy(GraphChanges.disconnect(Edge.Assigned)(targetNodeId, userNode.id)) --> GlobalState.eventProcessor.changes,
     )
   }
-
-  def removableNodeCardPropertyCustom(key: Edge.LabeledProperty, propertyNode: Node, action: () => Unit, pageOnClick: Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
-    nodeCardProperty( key, propertyNode, pageOnClick).apply(removableTagMod(action))
-  }
-
-  def removableNodeCardProperty(key: Edge.LabeledProperty, propertyNode: Node, pageOnClick:Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
-    removableNodeCardPropertyCustom( key, propertyNode, () => {
-      GlobalState.submitChanges(
-        GraphChanges(delEdges = Array(key))
-      )
-    }, pageOnClick)
-  }
-
 
     def removableAssignedUser(user: Node.User, assignedNodeId: NodeId): VNode = {
       renderUser(user).apply(
