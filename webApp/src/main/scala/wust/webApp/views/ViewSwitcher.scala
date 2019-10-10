@@ -58,12 +58,8 @@ object ViewSwitcher {
     }
   }
 
-  def apply(channelId: NodeId, currentView: Var[View], initialView: Option[View.Visible] = None): VNode = {
-    div.thunk(uniqueKey(channelId.toStringFast))(initialView)(Ownable { implicit ctx => modifier(channelId, currentView, initialView) })
-  }
-
   val addViewIcon = freeSolid.faPlus
-  def modifier(channelId: NodeId, currentView: Var[View], initialView: Option[View.Visible])(implicit ctx: Ctx.Owner): VDomModifier = {
+  def apply(channelId: NodeId, currentView: Var[View], initialView: Option[View.Visible] = None)(implicit ctx: Ctx.Owner): VNode = {
     val closeDropdown = SinkSourceHandler.publish[Unit]
 
     val addNewViewTab = div(
@@ -80,7 +76,7 @@ object ViewSwitcher {
       )
     )
 
-    VDomModifier(
+    div(
       marginLeft := "5px",
       Styles.flex,
       justifyContent.center,
