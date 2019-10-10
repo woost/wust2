@@ -203,7 +203,7 @@ object MainView {
         fontSize.xSmall,
         marginTop := "20px",
 
-        GlobalState.isClientOnline.map {
+        GlobalState.isClientOnline.distinctOnEquals.map {
           case true => div(
             cls := "animated-late-fadein",
             span("Loading forever?", marginRight := "10px"),

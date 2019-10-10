@@ -277,7 +277,6 @@ object GlobalStateFactory {
 
     // we know that an update is available if the client is offline but the browser is online. This happens, because
     // every update bumps the version of the endpoint url: core-v1_2-3.app.woost.space.
-    //TODO with is browseronline: isBrowserOnlineObservable
     isClientOnline
       .sample(2.minutes)
       .foreach { isOnline =>

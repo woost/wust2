@@ -45,10 +45,10 @@ object GlobalState {
   implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
 
   val isClientOnline = SourceStream.merge(Client.observable.connected.map(_ => true), Client.observable.closed.map(_ => false))
-    .shareWithLatestAndSeed(false).distinctOnEquals
+    .shareWithLatestAndSeed(false)
   //TODO: is browser does not trigger?!
   val isBrowserOnline = SourceStream.merge(events.window.onOffline.map(_ => false), events.window.onOnline.map(_ => true))
-    .shareWithLatestAndSeed(false).distinctOnEquals
+    .shareWithLatestAndSeed(false)
 
   // register the serviceworker and get an update observable when serviceworker updates are available.
   val serviceWorkerIsActivated: SourceStream[Unit] = if (LinkingInfo.productionMode) ServiceWorker.register(WoostConfig.value.urls.serviceworker) else SourceStream.empty
