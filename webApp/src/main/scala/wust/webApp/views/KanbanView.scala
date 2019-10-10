@@ -17,6 +17,7 @@ import wust.util.collection._
 import wust.webApp.Icons
 import wust.webApp.dragdrop.{DragContainer, DragItem}
 import wust.webApp.state._
+import wust.webUtil.Elements
 import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.registerDragContainer
 
@@ -245,9 +246,18 @@ object KanbanView {
             div(
               div(cls := "fa-fw", if (isDeletedNow()) Icons.undelete else Icons.delete),
               onClick.stopPropagation foreach {
-                val deleteChanges = if (isDeletedNow.now) GraphChanges.undelete(ChildId(nodeId), ParentId(traverseState.parentId)) else GraphChanges.delete(ChildId(nodeId), ParentId(traverseState.parentId))
-                GlobalState.submitChanges(deleteChanges)
-                if (!isDeletedNow.now) selectedNodeIds.update(_ - nodeId)
+                if (isDeletedNow.now) {
+                  val deleteChanges = GraphChanges.undelete(ChildId(nodeId), ParentId(traverseState.parentId))
+                  GlobalState.submitChanges(deleteChanges)
+                } else {
+                  Elements.confirm("Delete this column?") {
+                    val deleteChanges = GraphChanges.delete(ChildId(nodeId), ParentId(traverseState.parentId))
+                    GlobalState.submitChanges(deleteChanges)
+                    selectedNodeIds.update(_ - nodeId)
+                  }
+                }
+
+                ()
               },
               cursor.pointer,
               UI.tooltip("bottom center") := (if (isDeletedNow()) "Recover" else "Archive")
