@@ -82,7 +82,8 @@ object Components {
     case data: NodeData.RelativeDate => div(displayRelativeDate(data))
     case data: NodeData.Date         => div(displayDate(data))
     case data: NodeData.DateTime     => div(displayDateTime(data))
-    case data: NodeData.Placeholder   => div(displayPlaceholder(data))
+    case data: NodeData.Placeholder  => div(displayPlaceholder(data))
+    case data: NodeData.Duration     => div(displayDuration(data))
     case d                           => div(trimToMaxLength(d.str, maxLength))
   }
 
