@@ -22,15 +22,17 @@ import scala.reflect.ClassTag
 
 object ViewModificationMenu {
   def selectForm(channelId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
-    val currentView = Var[View](View.Empty)
-    GlobalState.viewConfig
-      .foreach({
-        case config if config.page.parentId.contains(channelId) => currentView() = config.view
-        case _ => ()
-      }: ViewConfig => Unit)
-    currentView.triggerLater { view => GlobalState.urlConfig.update(_.focus(view)) }
-
     div.thunkStatic(uniqueKey(channelId.toStringFast))(Ownable { implicit ctx =>
+      val currentView = Var[View](GlobalState.viewConfig.now.view)
+      GlobalState.viewConfig.triggerLater { config =>
+        println("GOT NEW CONFIG VIEW " + config.view)
+        if (currentView.now != config.view) currentView() = config.view
+      }
+      currentView.triggerLater { view =>
+        println("GOT NEW CURRENT VIEW " + view)
+        if (view != GlobalState.viewConfig.now.view) GlobalState.urlConfig.update(_.focus(view))
+      }
+
       selector(channelId, currentView, None, SinkObserver.empty)
     })
   }
@@ -189,12 +191,15 @@ object ViewModificationMenu {
   private def addNewView(currentView: Var[View], done: SinkObserver[Unit], nodeRx: Rx[Option[Node]], existingViews: Rx[List[View.Visible]], newView: View.Visible): Unit = {
     scribe.info(s"ViewModificationMenu.addNewView($newView)")
     if (View.selectableList.contains(newView)) { // only allow defined views
+      println("SELECTABLE")
       done.onNext(())
       val node = nodeRx.now
+      println("FOUND NODE" + node)
       node.foreach { node =>
         val currentViews = existingViews.now
 
         if (!currentViews.contains(newView)) {
+          println("NOT CONTAINED" + node)
           val newNode = node match {
             case n: Node.Content => n.copy(views = Some(currentViews :+ newView))
             case n: Node.User    => n.copy(views = Some(currentViews :+ newView))
@@ -203,7 +208,9 @@ object ViewModificationMenu {
           GlobalState.submitChanges(GraphChanges.addNode(newNode))
         }
 
+        println("SWITCH THERE" + newView + currentView.now)
         if (currentView.now != newView) {
+        println("SWITCH THERE YES!!!" )
           currentView() = newView
         }
       }
