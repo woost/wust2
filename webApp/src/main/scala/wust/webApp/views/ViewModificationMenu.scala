@@ -60,8 +60,8 @@ object ViewModificationMenu {
     }
 
     //TODO rewrite this in a less sideeffecting way
-    currentView.triggerLater { view => addNewView(currentView, done, nodeRx, existingViews, view.asInstanceOf[View.Visible]) }
     initialView.foreach(addNewView(currentView, done, nodeRx, existingViews, _))
+    currentView.triggerLater { view => addNewView(currentView, done, nodeRx, existingViews, view.asInstanceOf[View.Visible]) }
 
     VDomModifier(
       div(
