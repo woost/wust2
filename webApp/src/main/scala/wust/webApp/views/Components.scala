@@ -1,6 +1,6 @@
 package wust.webApp.views
 
-import acyclic.file
+//import acyclic.file
 import wust.webUtil.outwatchHelpers._
 import wust.facades.emojijs.EmojiConvertor
 import wust.facades.fomanticui.{SearchOptions, SearchSourceEntry}
@@ -299,6 +299,7 @@ object Components {
     key: Edge.LabeledProperty,
     property: Node,
     pageOnClick: Boolean = false,
+    modifier: VDomModifier = VDomModifier.empty
   )(implicit ctx: Ctx.Owner): VNode = {
 
     span(
@@ -306,20 +307,27 @@ object Components {
 
       s"${key.data.key}:",
 
+      modifier,
+      position.relative, // for editing dialog
+
       property.role match {
-        case NodeRole.Neutral =>
-          renderNodeData( property, maxLength = Some(50))
-            .apply(cls := "detail")
-        case _ =>
-          VDomModifier(
-            writeHoveredNode( property.id),
-            nodeCard( property, maxLength = Some(50)).apply(
-              cls := "detail",
-              margin := "3px 0",
-              sidebarNodeFocusMod(GlobalState.rightSidebarNode, property.id),
-              cursor.pointer
-            ),
+        case NodeRole.Neutral => property.data match {
+          case NodeData.Placeholder(selection) => editableNodeOnClick(property, maxLength = Some(50)).apply(
+            cls := "detail",
+            cursor.pointer,
           )
+          case _ => renderNodeData( property, maxLength = Some(50)).apply(cls := "detail"),
+        }
+        case _ => VDomModifier(
+          writeHoveredNode( property.id),
+          nodeCard( property, maxLength = Some(50)).apply(
+            marginLeft := "5px",
+            cls := "detail",
+            margin := "3px 0",
+            sidebarNodeFocusMod(GlobalState.rightSidebarNode, property.id),
+            cursor.pointer
+          )
+        )
       }
     )
   }
@@ -584,7 +592,7 @@ object Components {
             editMode() = true
           }
         },
-        minWidth := "20px", minHeight := "20px", // minimal clicking area
+        minWidth := "20px", minHeight := "10px", // minimal clicking area
       )
     }
 
@@ -597,7 +605,7 @@ object Components {
             editMode() = true
           }
         },
-        minWidth := "20px", minHeight := "20px", // minimal clicking area
+        minWidth := "20px", minHeight := "10px", // minimal clicking area
       )
     }
 
