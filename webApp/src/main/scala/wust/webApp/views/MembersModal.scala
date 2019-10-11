@@ -1,6 +1,7 @@
 package wust.webApp.views
 
 import fontAwesome._
+import cats.data.NonEmptyList
 import wust.webApp.jsdom.{Navigator, ShareData}
 import org.scalajs.dom
 import outwatch.dom._
@@ -52,8 +53,18 @@ object MembersModal {
     val targetUrlConfig = Rx {
       node().fold(UrlConfig.default)(node => UrlConfig.default.focus(Page(node.id)))
     }
+    def urlConfigToUrl(urlConfig: UrlConfig) = s"${dom.window.location.origin}${UrlConfigWriter.toString(urlConfig)}"
     val targetUrl = Rx {
-      s"${dom.window.location.origin}${UrlConfigWriter.toString(targetUrlConfig())}"
+      urlConfigToUrl(targetUrlConfig())
+    }
+    val targetUrlWithPresentation = Rx {
+      @inline def default = targetUrlConfig.now
+      val config = node.now.fold(default)(_.views.fold(default) {
+        case Nil => default
+        case _ :: Nil => default
+        case head :: tail => default.focus(View.Tiled(ViewOperator.Row, NonEmptyList(head, tail)))
+      })
+      urlConfigToUrl(config.presentationContent)
     }
 
     def addUserMember(userId: UserId, accesslevel: AccessLevel): Unit = node.now.foreach { node =>
@@ -215,10 +226,10 @@ object MembersModal {
           label("Link to share:", Styles.flexStatic, margin := "0 15px 5px 0"),
           div(
             minWidth := "250px",
-            marginRight := "50px", //WHY? do we overflow otherwise? What kind of sorcery does fomantic-ui do?
+            width := "100%",
             flex := "1",
             cls := "ui action input",
-            input(tpe := "text", readOnly := true, value <-- targetUrl),
+            input(tpe := "text", readOnly := true, value <-- targetUrl, flex := "1"),
             button(
               cls := "ui compact button",
               freeRegular.faCopy,
@@ -227,6 +238,24 @@ object MembersModal {
                   shareModifiers(node, targetUrl()) foreach { need => needAction() = Some(need) }
                 }
               }
+            ),
+            button(
+              cls := "ui compact button",
+              padding := "2px",
+              borderLeft :=  "1px solid lightgray",
+              UI.dropdownMenu(VDomModifier(
+                padding := "5px",
+                div(
+                  cls := "item",
+                  "Share Presentation Link",
+                  Rx {
+                    node() map { node =>
+                      shareModifiers(node, targetUrlWithPresentation()) foreach { need => needAction() = Some(need) }
+                    }
+                  }
+                )
+              ), dropdownModifier = cls := "right top"),
+              i(cls := "dropdown icon"),
             )
           )
         ),
@@ -444,11 +473,6 @@ object MembersModal {
     }
 
     VDomModifier(
-      onClick.transform(_.delay(200 millis)).foreach { // delay, otherwise the assurePublic changes update interferes with clipboard js
-        assurePublic()
-        FeatureState.use(Feature.ShareLink)
-      },
-
       if (Navigator.share.isDefined) VDomModifier(
         onClick.stopPropagation foreach {
           scribe.info(s"Sharing '$channel'")
@@ -470,6 +494,11 @@ object MembersModal {
           UI.toast(title = shareDesc, msg = "Link copied to clipboard")
         },
       ),
+
+      onClick.stopPropagation.foreach {
+        assurePublic()
+        FeatureState.use(Feature.ShareLink)
+      },
     )
   }
 }

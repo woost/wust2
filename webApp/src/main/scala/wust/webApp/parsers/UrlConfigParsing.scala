@@ -51,9 +51,9 @@ private object UrlOption {
       result.fold[DecodeResult[View]](Left(DecodeError.TypeError(s"Unknown view '$s")))(Right(_))
     }
 
-    val regex = Regex[String](rx"^(\w|\:|\||,|\?|/)+$$")
+    val regex = Regex[String](rx"^(\w|\:|\||,|\?|/|\+)+$$")
       .map(_.flatMap { viewStr =>
-        val views = viewStr.split("\\||,|\\?|/").filter(_.nonEmpty)
+        val views = viewStr.split("\\||,|\\?|/|\\+").filter(_.nonEmpty)
         val view = views.head
         val opsViews = views.drop(1)
         if(opsViews.isEmpty) decodeView(view)

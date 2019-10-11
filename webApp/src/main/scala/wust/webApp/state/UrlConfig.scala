@@ -35,6 +35,8 @@ final case class UrlConfig(view: Option[View], pageChange: PageChange, redirectT
   @inline def focus(view: Option[View]): UrlConfig = copy(view = view, redirectTo = None, focusId = None)
   @inline def focus(page: Page, view: View, needsGet: Boolean): UrlConfig = focus(page, Some(view), needsGet)
   def focus(page: Page, view: Option[View] = None, needsGet: Boolean = true): UrlConfig = copy(pageChange = PageChange(page, needsGet = needsGet), view = view, redirectTo = None, focusId = None)
+
+  def presentationContent = copy(mode = PresentationMode.ContentOnly)
 }
 
 object UrlConfig {

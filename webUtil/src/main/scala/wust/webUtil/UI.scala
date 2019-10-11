@@ -159,7 +159,7 @@ object UI {
   val verticalDivider = div(cls := "ui vertical divider")
   def verticalDivider(text:String) = div(cls := "ui vertical divider", text)
 
-  def dropdownMenu(items: VDomModifier, close: SourceStream[Unit], dropdownModifier: VDomModifier = VDomModifier.empty): VDomModifier = VDomModifier(
+  def dropdownMenu(items: VDomModifier, close: SourceStream[Unit] = SourceStream.empty, dropdownModifier: VDomModifier = VDomModifier.empty): VDomModifier = VDomModifier(
     cls := "ui pointing link inline dropdown",
     dropdownModifier,
     Elements.withoutDefaultPassiveEvents, // revert default passive events, else dropdown is not working

@@ -152,13 +152,14 @@ sealed trait ViewOperator {
   val separator: String
 }
 object ViewOperator {
-  case object Row extends ViewOperator { override val separator = "|" }
+  case object Row extends ViewOperator { override val separator = "+" }
   case object Column extends ViewOperator { override val separator = "/" }
   case object Auto extends ViewOperator { override val separator = "," }
   case object Optional extends ViewOperator { override val separator = "?" }
 
   val fromString: PartialFunction[String, ViewOperator] = {
     case Row.separator      => Row
+    case "|"                => Row // old representation
     case Column.separator   => Column
     case Auto.separator     => Auto
     case Optional.separator => Optional

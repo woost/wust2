@@ -14,10 +14,22 @@ class UrlConfigParsingSpec extends FreeSpec with MustMatchers {
 
   def freshNodeId(i:Int) = NodeId(Cuid(i, i))
 
-  "from string to viewconfig - row" in {
+  "from string to viewconfig - row old" in {
     pending
     val cuid1 = freshNodeId(1)
     val str = s"view=graph|chat&page=${cuid1.toCuidString}"
+    val cfg = UrlConfigParser.fromUrlRoute(UrlRoute(None, Some(str)))
+    val expected = createUrlConfig(
+      Some(View.Tiled(ViewOperator.Row, NonEmptyList[View.Visible](View.Graph, View.Thread :: Nil))),
+      Page(NodeId(cuid1)), None)
+    cfg.pageChange mustEqual expected.pageChange
+    cfg.view.get.viewKey mustEqual expected.view.get.viewKey
+  }
+
+  "from string to viewconfig - row" in {
+    pending
+    val cuid1 = freshNodeId(1)
+    val str = s"view=graph+chat&page=${cuid1.toCuidString}"
     val cfg = UrlConfigParser.fromUrlRoute(UrlRoute(None, Some(str)))
     val expected = createUrlConfig(
       Some(View.Tiled(ViewOperator.Row, NonEmptyList[View.Visible](View.Graph, View.Thread :: Nil))),
