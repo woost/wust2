@@ -973,6 +973,7 @@ object CommonStyles extends StyleSheet.Standalone
   )
 
   ".property" - (
+    backgroundColor(c"#F2F5F8").important,
     margin(2 px).important,
     padding(0.2 em, 0.3 em, 0.3 em, 0.4 em).important,
   )
