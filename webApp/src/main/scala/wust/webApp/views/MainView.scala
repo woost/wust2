@@ -71,13 +71,17 @@ object MainView {
       ),
 
       div(
+        Styles.flex,
+        alignItems.center,
         marginLeft := "auto",
         marginRight := "10px",
-        "Brought to you by ",
-        b(
+        span("Brought to you by"),
+        span(
+          Styles.flex,
+          alignItems.center,
           color := Colors.woost,
-          WoostLogoComponents.woostIcon,
-          " Woost",
+          div(WoostLogoComponents.woostIcon, margin := "0 0 0 3px"),
+          b("Woost"),
           // onClickDefault.foreach(GlobalState.urlConfig.update(_.copy(mode = PresentationMode.Full)))
           onClickDefault.foreach(dom.window.location.href = "https://woost.space")
         )
