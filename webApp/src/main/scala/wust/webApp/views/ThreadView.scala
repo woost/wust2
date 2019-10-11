@@ -370,7 +370,6 @@ object ThreadView {
       selectByClickingOnRow,
 
       renderedMessage,
-      messageTags( nodeId),
       checkbox,
       controls,
     )

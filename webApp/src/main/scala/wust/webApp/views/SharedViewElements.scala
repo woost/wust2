@@ -174,12 +174,6 @@ object SharedViewElements {
       graph.nodesById(nodeId) //TODO: why option? shouldn't the node always exist?
     }
 
-    val propertyData = Rx {
-      val graph = GlobalState.graph()
-      PropertyData.Single(graph, graph.idToIdxOrThrow(nodeId))
-    }
-
-
     val isSynced: Rx[Boolean] = {
       // when a node is not in transit, avoid rx subscription
       val nodeInTransit = GlobalState.addNodesInTransit.now contains nodeId
@@ -207,15 +201,8 @@ object SharedViewElements {
           case _ =>
             nodeCard( node,
               contentInject = div(
-                Styles.flex,
-                flexDirection.column,
-                propertyData.map { propertySingle =>
-                  propertySingle.properties.map { property =>
-                    property.values.map { value =>
-                      Components.nodeCardProperty( value.edge, value.node)
-                    }
-                  },
-                }
+                alignItems.center,
+                NodeDetails.tagsPropertiesAssignments(nodeId)
               )
             ).apply(
               Styles.flex,
@@ -322,23 +309,6 @@ object SharedViewElements {
                 }
               },
             )),
-          )
-        )
-      }
-    }
-  }
-
-  def messageTags(nodeId: NodeId)(implicit ctx: Ctx.Owner): Rx[VDomModifier] = {
-    Rx {
-      val graph = GlobalState.graph()
-      graph.idToIdx(nodeId).map{ nodeIdx =>
-        val directNodeTags = graph.directNodeTags(nodeIdx)
-        VDomModifier.ifTrue(directNodeTags.nonEmpty)(
-          div(
-            cls := "tags",
-            directNodeTags.map { tag =>
-              removableNodeTag( tag, nodeId, pageOnClick = true)(Styles.flexStatic)
-            },
           )
         )
       }

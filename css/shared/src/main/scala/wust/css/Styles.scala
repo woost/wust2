@@ -974,6 +974,7 @@ object CommonStyles extends StyleSheet.Standalone
 
   ".property" - (
     margin(2 px).important,
+    padding(0.2 em, 0.3 em, 0.3 em, 0.4 em).important,
   )
   // unset line-heigt of p for equal height in properties
   ".property p" - (
