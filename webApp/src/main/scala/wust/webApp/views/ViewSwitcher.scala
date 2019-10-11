@@ -143,38 +143,36 @@ object ViewSwitcher {
     }
   }
 
-  def singleTab(currentView: Var[View], tabInfo: TabInfo): VNode = div.thunkStatic(tabInfo.targetView.toString)(Ownable { implicit ctx =>
-    VDomModifier(
-      // modifiers
-      cls := "viewswitcher-item single",
-      modifiers.modActivityStateCssClass(currentView, tabInfo),
-      modifiers.modTooltip(tabInfo),
+  def singleTab(currentView: Var[View], tabInfo: TabInfo)(implicit ctx: Ctx.Owner): VNode = div(
+    // modifiers
+    cls := "viewswitcher-item single",
+    modifiers.modActivityStateCssClass(currentView, tabInfo),
+    modifiers.modTooltip(tabInfo),
 
-      // VDomModifier.ifTrue(tabInfo.numItems > 0)(span(tabInfo.numItems, paddingLeft := "7px")),
+    // VDomModifier.ifTrue(tabInfo.numItems > 0)(span(tabInfo.numItems, paddingLeft := "7px")),
 
-      // actions
-      onClick.stopPropagation.foreach { e =>
-        val clickedView = tabInfo.targetView.asInstanceOf[View.Visible]
-        if (e.ctrlKey) {
-          currentView.update{ oldView =>
-            oldView match {
-              case View.Empty                                => clickedView
-              case view: View.Visible if view == clickedView => View.Empty
-              case view: View.Tiled if view.views.toList.contains(clickedView) =>
-                if (view.views.toList.distinct.length == 1) View.Empty
-                else view.copy(views = NonEmptyList.fromList(view.views.filterNot(_ == clickedView)).get)
-              case view: View.Tiled                          => view.copy(views = view.views :+ clickedView)
-              case view: View.Visible if view != clickedView => View.Tiled(ViewOperator.Row, NonEmptyList.of(view, clickedView))
-              case view                                      => view
-            }
+    // actions
+    onClick.stopPropagation.foreach { e =>
+      val clickedView = tabInfo.targetView.asInstanceOf[View.Visible]
+      if (e.ctrlKey) {
+        currentView.update{ oldView =>
+          oldView match {
+            case View.Empty                                => clickedView
+            case view: View.Visible if view == clickedView => View.Empty
+            case view: View.Tiled if view.views.toList.contains(clickedView) =>
+              if (view.views.toList.distinct.length == 1) View.Empty
+              else view.copy(views = NonEmptyList.fromList(view.views.filterNot(_ == clickedView)).get)
+            case view: View.Tiled                          => view.copy(views = view.views :+ clickedView)
+            case view: View.Visible if view != clickedView => View.Tiled(ViewOperator.Row, NonEmptyList.of(view, clickedView))
+            case view                                      => view
           }
-        } else {
-          currentView() = clickedView
         }
-      },
+      } else {
+        currentView() = clickedView
+      }
+    },
 
-      // content
-      div(cls := "fa-fw", tabInfo.icon),
-    )
-  })
+    // content
+    div(cls := "fa-fw", tabInfo.icon),
+  )
 }
