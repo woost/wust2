@@ -235,13 +235,13 @@ object EditElementParser {
   implicit object EditInteger extends EditElementParser[Int] {
     def render(config: Config, initial: Task[Option[Int]], handler: Handler[EditInteraction[Int]])(implicit ctx: Ctx.Owner) = renderSimpleInput(
       initial, handler, EmitterBuilder.combine(config.emitter, config.inputEmitter, config.blurEmitter), VDomModifier(config.inputModifier, config.modifier, Elements.integerInputMod),
-      elem => Task.pure(EditInteraction.fromEither(Try(elem.valueAsNumber.toInt).toOption.toRight("Not an Integer Number")))
+      elem => Task.pure(EditInteraction.fromEither(Try(elem.valueAsNumber).toOption.collect { case num if !num.isNaN => num.toInt }.toRight("Not an Integer Number")))
     )
   }
   implicit object EditDouble extends EditElementParser[Double] {
     def render(config: Config, initial: Task[Option[Double]], handler: Handler[EditInteraction[Double]])(implicit ctx: Ctx.Owner) = renderSimpleInput(
       initial, handler, EmitterBuilder.combine(config.emitter, config.inputEmitter, config.blurEmitter), VDomModifier(config.inputModifier, config.modifier, Elements.decimalInputMod),
-      elem => Task.pure(EditInteraction.fromEither(Try(elem.valueAsNumber).toOption.toRight("Not a Double Number")))
+      elem => Task.pure(EditInteraction.fromEither(Try(elem.valueAsNumber).toOption.filterNot(_.isNaN).toRight("Not a Double Number")))
     )
   }
   implicit object EditDateMilli extends EditElementParser[DateMilli] {
