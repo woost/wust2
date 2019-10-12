@@ -224,6 +224,7 @@ object TableView {
         UI.sortableTable(nodeColumns ++ propertyColumns, sort),
 
         VDomModifier.ifTrue(propertyGroup.infos.nonEmpty)(div(
+          Styles.flexStatic,
           Styles.flex,
           flexDirection.column,
           margin := "10px",
