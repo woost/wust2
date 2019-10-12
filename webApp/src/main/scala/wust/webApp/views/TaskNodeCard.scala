@@ -168,8 +168,7 @@ object TaskNodeCard {
       VDomModifier.ifTrue(isDone)(opacity := 0.6),
       DragComponents.drag(payload = dragPayload(nodeId), target = dragTarget(nodeId)),
 
-      // fixes unecessary scrollbar, when card has assignment
-      overflow.hidden,
+      overflow.visible, // make edit dialogs visible even if going outside of this card
 
       VDomModifier.ifNot(inOneLine)(div(
         margin := "0 3px",
