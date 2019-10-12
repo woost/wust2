@@ -46,7 +46,7 @@ object EditableContent {
     // then you set your desired emitter, and in the end use the current value in your submit logic
     case object Manual extends SubmitMode
 
-    // explicit submit mode is special in that it is built for edit fields without any submit button.
+    // automatic submit mode is special in that it is built for edit fields without any submit button.
     // we only emit a new value (input or error) when onBlur or onEnter were triggered. If the value has
     // not changed, it will emit cancel. It will additionally emit cancel when escape is pressed.
     // furthermore a small x-button is embedded into the ui.
@@ -59,6 +59,7 @@ object EditableContent {
     submitMode: SubmitMode = SubmitMode.Automatic,
     emitter: EmitterBuilder[dom.Event, VDomModifier] = EmitterBuilder.empty,
     submitOnEnter: Boolean = !BrowserDetect.isMobile,
+    submitOnBlur: Boolean = true,
     errorMode: ErrorMode = ErrorMode.ShowInline,
     selectTextOnFocus: Boolean = true,
     autoFocus: Boolean = true,
@@ -401,8 +402,8 @@ object EditableContent {
 
   private def blurEmitter(config: Config): EmitterBuilder[Any, VDomModifier] = {
     config.submitMode match {
-      case SubmitMode.Automatic => onBlur.transform(_.delay(200 millis))
-      case SubmitMode.Manual => EmitterBuilder.empty
+      case SubmitMode.Automatic if config.submitOnBlur => onBlur.transform(_.delay(200 millis))
+      case _ => EmitterBuilder.empty
     }
   }
 

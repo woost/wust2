@@ -312,7 +312,7 @@ object Components {
 
       property.role match {
         case NodeRole.Neutral => property.data match {
-          case NodeData.Placeholder(selection) => editableNodeOnClick(property, maxLength = Some(50)).apply(
+          case NodeData.Placeholder(selection) => editableNodeOnClick(property, maxLength = Some(50), config = EditableContent.Config.cancelOnError.copy(submitOnBlur = false)).apply(
             onDblClick.stopPropagation.discard, // do not propagate dbl click which would focus the nodecard.
             cls := "detail",
             cursor.pointer,
