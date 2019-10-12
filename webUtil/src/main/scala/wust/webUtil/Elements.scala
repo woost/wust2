@@ -275,18 +275,12 @@ object Elements {
   }
 
   val integerInputMod = VDomModifier(
-      tpe := "number",
-      step := "1",
-      min := Int.MinValue.toString,
-      max := Int.MaxValue.toString,
-      placeholder := "Integer Number",
-    )
+    tpe := "number",
+    placeholder := "Integer Number",
+  )
 
   val decimalInputMod = VDomModifier(
     tpe := "number",
-    step := "any",
-    min := Double.MinValue.toString,
-    max := Double.MaxValue.toString,
     placeholder := "Decimal Number",
   )
 
