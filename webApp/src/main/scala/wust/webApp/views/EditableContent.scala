@@ -23,6 +23,14 @@ object EditableContent {
   private val currentlyEditingSubject = SinkSourceHandler.publish[Boolean]
   def currentlyEditing: SourceStream[Boolean] = currentlyEditingSubject
 
+  sealed trait Position
+  object Position {
+    case object Top extends Position
+    case object Bottom extends Position
+    case object Right extends Position
+    case object Left extends Position
+  }
+
   sealed trait ErrorMode
   object ErrorMode {
     case object Cancel extends ErrorMode
@@ -55,7 +63,7 @@ object EditableContent {
     selectTextOnFocus: Boolean = true,
     autoFocus: Boolean = true,
     autoresizeTextarea: Boolean = true,
-    saveDialogAtTop: Boolean = true
+    saveDialogPosition: Position = Position.Top
   )
   object Config {
     def default = Config()
@@ -226,8 +234,13 @@ object EditableContent {
           case SubmitMode.Automatic => div(
             position.absolute,
             padding := "2px",
-            if (config.saveDialogAtTop) marginTop := "-30px" else bottom := "-30px", // hopefully always correct
-            right := "4px",
+            config.saveDialogPosition match { // hopefully always correct
+              case Position.Top => VDomModifier(marginTop := "-30px", right := "4px")
+              case Position.Bottom => VDomModifier(bottom := "-30px", right := "4px")
+              case Position.Right => VDomModifier(right := "-100px")
+              case Position.Left => VDomModifier(left := "-100px")
+
+            },
             backgroundColor := "rgba(255, 255, 255, 0.75)",
             boxShadow := "0px 0px 3px 0px rgba(0, 0, 0, 0.75)",
             borderRadius := "3px",
