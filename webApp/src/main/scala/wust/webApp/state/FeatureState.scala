@@ -149,12 +149,10 @@ object FeatureState {
           firstTimeUsed.update(_ + (feature -> timestamp))
           persistFirstTimeUsage(feature, timestamp)
           if (Feature.allWithoutSecretsSet.contains(feature)) usedNewFeatureTrigger.onNext(())
-          Analytics.sendEvent("first-time-feature", feature.toString)
-          FS.event("first-time-feature", js.Dynamic.literal(feature_str = feature.toString))
         }
         recentlyUsed.update(recentlyUsed => (feature +: recentlyUsed).take(recentlyUsedLimit).distinct)
         Analytics.sendEvent("feature", feature.toString)
-        FS.event("feature", js.Dynamic.literal(feature_str = feature.toString))
+        FS.event(feature.toString)
         Amplitude.logEvent(feature.toString)
 
         scribe.debug("Used Feature: " + feature.toString)

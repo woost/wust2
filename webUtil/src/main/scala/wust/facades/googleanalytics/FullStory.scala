@@ -9,6 +9,7 @@ import scala.scalajs.js.annotation.JSGlobalScope
 object FS {
   def identify(uid: String): Unit = ifLoaded { _.identify(uid) }
   def identify(state: Boolean): Unit = ifLoaded { _.identify(state) }
+  def event(eventName: String): Unit = ifLoaded { _.event(eventName) }
   def event(eventName: String, eventProperties: js.Object): Unit = ifLoaded { _.event(eventName, eventProperties) }
 
   @inline private def ifLoaded(f: FS => Unit): Unit = FullStory.FS.foreach(f)
@@ -24,5 +25,6 @@ object FullStory extends js.Object {
 trait FS extends js.Object {
   def identify(uid: String): Unit = js.native
   def identify(state: Boolean): Unit = js.native
+  def event(eventName: String): Unit = js.native
   def event(eventName: String, eventProperties: js.Object): Unit = js.native
 }
