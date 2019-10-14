@@ -189,10 +189,6 @@ object GlobalStateFactory {
       clearTrigger.foreach { _ => clearSelectedNodes() }
     }
 
-    GlobalState.auth.foreach { auth =>
-      Analytics.setUserId(auth.user.id.toUuid.toString)
-    }
-
     //TODO: better in rx/obs operations
     // store auth in localstore and send to serviceworker
     val authWithPrev = auth.fold((auth.now, auth.now)) { (prev, auth) => (prev._2, auth) }
@@ -327,6 +323,7 @@ object GlobalStateFactory {
       // https://help.fullstory.com/hc/en-us/articles/360020828113-FS-identify-Identifying-users
       FS.identify(userIdBase58)
       Amplitude.setUserId(userIdBase58)
+      Analytics.setUserId(userIdBase58)
     }
   }
 
