@@ -6,7 +6,6 @@ import wust.webApp.views.MainTutorial
 
 import wust.facades.fullstory.FS
 import wust.facades.googleanalytics.Analytics
-import wust.facades.hotjar
 import monix.eval.Task
 import monix.reactive.Observable
 import org.scalajs.dom
@@ -310,9 +309,6 @@ object GlobalStateFactory {
     OutwatchTracing.error.foreach{ t =>
       scribe.error("Error in outwatch component", t)
       hasError() = true
-    }
-    hasError.foreach { error =>
-      if (error) hotjar.pageView("/js-error")
     }
 
     // we send client errors from javascript to the backend

@@ -1,6 +1,5 @@
 package wust.webApp.jsdom
 
-import wust.facades.hotjar
 import org.scalajs.dom.experimental
 import org.scalajs.dom.experimental.NotificationOptions
 import org.scalajs.dom.experimental.permissions._
@@ -35,7 +34,6 @@ object Notifications {
       scribe.info("Will not subscribe web push, no permission")
   }
   def requestPermissionsAndSubscribe(onSuccess: => Unit = ())(implicit ec: ExecutionContext): Unit = {
-    hotjar.pageView("/request-notification-permission")
     Notification.foreach { n =>
       n.requestPermission { (state: String) =>
         scribe.info(s"Requested notification permission: $state")

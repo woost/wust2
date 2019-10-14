@@ -2,7 +2,6 @@ package wust.webApp.views
 
 import fontAwesome._
 import wust.facades.googleanalytics.Analytics
-import wust.facades.hotjar
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -253,13 +252,11 @@ object AuthView {
   }
 
   def login(implicit ctx: Ctx.Owner) = {
-    hotjar.pageView("/login")
     apply(
       header = "Login",
       submitText = "Login",
       needUserName = false,
       submitAction = {userValue =>
-        hotjar.pageView("/login/submit")
         Client.auth.login(userValue.email, Password(userValue.password)).map {
           case AuthResult.BadPassword  => Some("Wrong password.")
           case AuthResult.BadEmail     => Some("No account with this email address exists. Please check spelling and capitalization.")
@@ -278,13 +275,11 @@ object AuthView {
   }
 
   def signup(implicit ctx: Ctx.Owner) = {
-    hotjar.pageView("/signup")
     apply(
       header = "Create an account",
       submitText = "Signup",
       needUserName = true,
       submitAction = {userValue =>
-        hotjar.pageView("/signup/submit")
         Client.auth.register(name = userValue.username, email = userValue.email, password = Password(userValue.password)).map {
           case AuthResult.BadPassword  => Some("Insufficient password")
           case AuthResult.BadEmail     => Some("Email address already taken")
