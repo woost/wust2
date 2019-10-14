@@ -468,7 +468,7 @@ object RightSidebar {
         ItemProperties.managePropertiesInline(
           ItemProperties.Target.Node(focusPref.nodeId),
           ItemProperties.TypeConfig(prefilledType = Some(NodeTypeSelection.Data(tpe)), hidePrefilledType = true),
-          ItemProperties.EdgeFactory.labeledProperty(key),
+          ItemProperties.EdgeFactory.labeledProperty(key, showOnCard = true),
           names = ItemProperties.Names(addButton = title)
         ).map(_ => AddProperty.None) --> addFieldMode
       case AddProperty.None => VDomModifier(
