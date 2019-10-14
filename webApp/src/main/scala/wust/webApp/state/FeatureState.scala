@@ -22,6 +22,7 @@ import scala.concurrent.ExecutionContext
 import wust.api.AuthUser
 import scala.util.Success
 import wust.facades.fullstory.FS
+import wust.facades.amplitude.Amplitude
 
 object FeatureState {
   //TODO: show next on loading screen?
@@ -154,6 +155,7 @@ object FeatureState {
         recentlyUsed.update(recentlyUsed => (feature +: recentlyUsed).take(recentlyUsedLimit).distinct)
         Analytics.sendEvent("feature", feature.toString)
         FS.event("feature", js.Dynamic.literal(feature_str = feature.toString))
+        Amplitude.logEvent(feature.toString)
 
         scribe.debug("Used Feature: " + feature.toString)
         DebugOnly {

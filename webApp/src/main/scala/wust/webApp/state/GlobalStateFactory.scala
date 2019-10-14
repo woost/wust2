@@ -5,6 +5,7 @@ import java.util.concurrent.TimeUnit
 import wust.webApp.views.MainTutorial
 
 import wust.facades.fullstory.FS
+import wust.facades.amplitude.Amplitude
 import wust.facades.googleanalytics.Analytics
 import monix.eval.Task
 import monix.reactive.Observable
@@ -322,8 +323,10 @@ object GlobalStateFactory {
     }
 
     GlobalState.userId.foreach {userId => 
+      val userIdBase58 = userId.toBase58
       // https://help.fullstory.com/hc/en-us/articles/360020828113-FS-identify-Identifying-users
-      FS.identify(userId.toBase58)
+      FS.identify(userIdBase58)
+      Amplitude.setUserId(userIdBase58)
     }
   }
 
