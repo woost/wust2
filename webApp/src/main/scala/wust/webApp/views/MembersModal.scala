@@ -288,8 +288,8 @@ object MembersModal {
                     None,
                     Some(node.meta.accessLevel),
                     ("Private", NodeAccess.Restricted) ::
-                    ("Inherit", NodeAccess.Inherited) ::
-                    ("Public", NodeAccess.ReadWrite) ::
+                    ("Inherit Permissions", NodeAccess.Inherited) ::
+                    ("Anyone with Link", NodeAccess.ReadWrite) ::
                     Nil,
                     unselectableMapping = Map(NodeAccess.Read -> NodeAccess.ReadWrite)
                   ).foreach { nodeAccess =>
@@ -303,7 +303,7 @@ object MembersModal {
                       //TODO: share this code...
                       val level = GlobalState.rawGraph().accessLevelOfNode(nodeId).getOrElse(AccessLevel.Restricted) match {
                         case AccessLevel.Restricted => "Private"
-                        case AccessLevel.ReadWrite | AccessLevel.Read => "Public"
+                        case AccessLevel.ReadWrite | AccessLevel.Read => "Anyone with Link"
                       }
                       s"This ${node.role.toString} is accessible for members of parent folders (${level}) and the members listed below."
                     })
