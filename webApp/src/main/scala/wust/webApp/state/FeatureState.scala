@@ -21,6 +21,7 @@ import scala.collection.breakOut
 import scala.concurrent.ExecutionContext
 import wust.api.AuthUser
 import scala.util.Success
+import wust.facades.fullstory.FS
 
 object FeatureState {
   //TODO: show next on loading screen?
@@ -148,10 +149,11 @@ object FeatureState {
           persistFirstTimeUsage(feature, timestamp)
           if (Feature.allWithoutSecretsSet.contains(feature)) usedNewFeatureTrigger.onNext(())
           Analytics.sendEvent("first-time-feature", feature.toString)
-          //TODO: add tags corresponding to features / categories to hotjar
+          FS.event("first-time-feature", js.Dynamic.literal(feature_str = feature.toString))
         }
         recentlyUsed.update(recentlyUsed => (feature +: recentlyUsed).take(recentlyUsedLimit).distinct)
         Analytics.sendEvent("feature", feature.toString)
+        FS.event("feature", js.Dynamic.literal(feature_str = feature.toString))
 
         scribe.debug("Used Feature: " + feature.toString)
         DebugOnly {

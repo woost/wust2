@@ -4,6 +4,7 @@ import java.util.concurrent.TimeUnit
 
 import wust.webApp.views.MainTutorial
 
+import wust.facades.fullstory.FS
 import wust.facades.googleanalytics.Analytics
 import wust.facades.hotjar
 import monix.eval.Task
@@ -324,6 +325,10 @@ object GlobalStateFactory {
       setupStateDebugLogging()
     }
 
+    GlobalState.userId.foreach {userId => 
+      // https://help.fullstory.com/hc/en-us/articles/360020828113-FS-identify-Identifying-users
+      FS.identify(userId.toBase58)
+    }
   }
 
   private var stateDebugLoggingEnabled = false
