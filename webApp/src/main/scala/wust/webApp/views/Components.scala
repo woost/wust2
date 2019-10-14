@@ -310,26 +310,24 @@ object Components {
       modifier,
       position.relative, // for editing dialog
 
-      property.role match {
-        case NodeRole.Neutral => property.data match {
-          case NodeData.Placeholder(selection) => editableNodeOnClick(property, maxLength = Some(50), config = EditableContent.Config.cancelOnError.copy(submitOnBlur = false)).apply(
-            onDblClick.stopPropagation.discard, // do not propagate dbl click which would focus the nodecard.
-            cls := "detail",
-            cursor.pointer,
-          )
-          case _ => renderNodeData( property, maxLength = Some(50)).apply(cls := "detail"),
-        }
-        case _ => VDomModifier(
-          writeHoveredNode( property.id),
-          nodeCard( property, maxLength = Some(50)).apply(
-            marginLeft := "5px",
-            cls := "detail",
-            margin := "3px 0",
+      div(
+        cls := "detail",
+
+        property.role match {
+          case NodeRole.Neutral => property.data match {
+            case NodeData.Placeholder(selection) => editableNodeOnClick(property, maxLength = Some(50), config = EditableContent.Config.cancelOnError.copy(submitOnBlur = false)).apply(
+              onDblClick.stopPropagation.discard, // do not propagate dbl click which would focus the nodecard.
+              cursor.pointer,
+            )
+            case _ => renderNodeData( property, maxLength = Some(50)).apply(cls := "detail"),
+          }
+          case _ => nodeCard( property, maxLength = Some(50)).apply(
+            writeHoveredNode( property.id),
             sidebarNodeFocusMod(GlobalState.rightSidebarNode, property.id),
             cursor.pointer
           )
-        )
-      }
+        }
+      )
     )
   }
 
