@@ -104,7 +104,7 @@ object AssignedTasksView  {
             foundSomething = true
             VDomModifier(
               h3(coloringHeader, bucketName, cls := "tasklist-header"),
-              div(cls := "tasklist",dueTasks.map(renderTask( focusState, _))),
+              div(cls := "tasklist",dueTasks.sortBy(_.dueDate).map(renderTask( focusState, _))),
             )
           }
         }
