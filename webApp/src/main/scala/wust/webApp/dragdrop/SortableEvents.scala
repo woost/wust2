@@ -100,9 +100,9 @@ class SortableEvents(draggable: Draggable) {
         val overSortcontainer = readDragContainer(sortableSortEvent.dragEvent.overContainer).exists(_.isInstanceOf[SortableContainer])
 
         if (overSortcontainer) {
-          val currentEvent = dom.window.asInstanceOf[js.Dynamic].event.detail.originalEvent
-          val ctrlDown = currentEvent.ctrlKey.asInstanceOf[Boolean]
-          val shiftDown = currentEvent.shiftKey.asInstanceOf[Boolean]
+          val currentEvent = dom.window.asInstanceOf[js.Dynamic].event.asInstanceOf[js.UndefOr[js.Dynamic]].map(_.detail.originalEvent)
+          val ctrlDown = currentEvent.exists(_.ctrlKey.asInstanceOf[Boolean])
+          val shiftDown = currentEvent.exists(_.shiftKey.asInstanceOf[Boolean])
           validateSortInformation(sortableSortEvent, currentOverContainerEvent, ctrlDown, shiftDown)
         } else {
           // drag action is handled by dragOverEvent instead
@@ -122,9 +122,9 @@ class SortableEvents(draggable: Draggable) {
     val notOverSortContainer = !readDragContainer(dragOverEvent.overContainer).exists(_.isInstanceOf[SortableContainer])
 
     if (notOverSortContainer) {
-      val currentEvent = dom.window.asInstanceOf[js.Dynamic].event.detail.originalEvent
-      val ctrlDown = currentEvent.ctrlKey.asInstanceOf[Boolean]
-      val shiftDown = currentEvent.shiftKey.asInstanceOf[Boolean]
+      val currentEvent = dom.window.asInstanceOf[js.Dynamic].event.asInstanceOf[js.UndefOr[js.Dynamic]].map(_.detail.originalEvent)
+      val ctrlDown = currentEvent.exists(_.ctrlKey.asInstanceOf[Boolean])
+      val shiftDown = currentEvent.exists(_.shiftKey.asInstanceOf[Boolean])
       validateDragInformation(dragOverEvent, ctrlDown, shiftDown)
     } else {
       // drag action is handled by sortableSortEvent instead
@@ -141,9 +141,9 @@ class SortableEvents(draggable: Draggable) {
         case (sortableStopEvent, JSDefined(currentOverContainerEvent), JSDefined(currentOverEvent)) =>
           val overSortcontainer = currentOverContainerEvent.overContainer.exists(overContainer => readDragContainer(overContainer).exists(_.isInstanceOf[SortableContainer]))
 
-          val currentEvent = dom.window.asInstanceOf[js.Dynamic].event.detail.originalEvent
-          val ctrlDown = currentEvent.ctrlKey.asInstanceOf[Boolean]
-          val shiftDown = currentEvent.shiftKey.asInstanceOf[Boolean]
+          val currentEvent = dom.window.asInstanceOf[js.Dynamic].event.asInstanceOf[js.UndefOr[js.Dynamic]].map(_.detail.originalEvent)
+          val ctrlDown = currentEvent.exists(_.ctrlKey.asInstanceOf[Boolean])
+          val shiftDown = currentEvent.exists(_.shiftKey.asInstanceOf[Boolean])
           if (overSortcontainer) {
             performSort( sortableStopEvent, currentOverContainerEvent, currentOverEvent, ctrlDown, shiftDown)
             // actively repair the containers, since drags can be aborted / emit empty graphchanges
