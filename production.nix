@@ -11,7 +11,7 @@ in
       sbt
       docker docker_compose
       #ngrok # github app -> webhooks to localhost
-      nodejs-11_x yarn
+      nodejs-12_x yarn
       # phantomjs
       # gnumake gcc # required for some weird npm things
     ];
