@@ -35,16 +35,10 @@ object DashboardView {
       margin := "10px"
     )
 
-    val configWidgets = VDomModifier(
-      Styles.flex,
-      UI.segment("Views", ViewModificationMenu.selectForm(focusState.focusedId)).apply(Styles.flexStatic, segmentMod),
-    )
-
     val projectNodes = Rx { getProjectList(GlobalState.graph(), focusState.focusedId) }
 
     val detailWidgets = VDomModifier(
       Styles.flex,
-      div(StatisticsView(focusState).apply(padding := "0px"), Styles.flexStatic, segmentMod),
 
       //TODO: renderSubprojects mit summary
       UI.segment("Subprojects", VDomModifier(renderSubprojects(focusState), overflowX.auto)).apply(Styles.flexStatic, segmentMod),
@@ -52,28 +46,14 @@ object DashboardView {
     )
 
     val dashboard = if (BrowserDetect.isMobile) VDomModifier(
-      Styles.flex,
       flexDirection.column,
-
-      detailWidgets,
-      configWidgets
+      detailWidgets
     )
     else VDomModifier(
       padding := "20px",
-      Styles.flex,
-
-      div(
-        flexDirection.column,
-        flex := "1",
-        minWidth := "500px",
-        detailWidgets
-      ),
-
-      div(
-        minWidth := "250px",
-        flexDirection.column,
-        configWidgets
-      )
+      minWidth := "500px",
+      flexDirection.column,
+      detailWidgets
     )
 
     div(
