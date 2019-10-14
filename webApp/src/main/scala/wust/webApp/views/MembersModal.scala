@@ -444,11 +444,23 @@ object MembersModal {
     GlobalState.presentationMode.map {
       case PresentationMode.Full => button(
         marginLeft := "5px",
-        openSharingModalOnClick,
         cls := "ui tiny compact primary button",
 
         openSharingModalOnClick,
+
+        display.flex,
+        alignItems.flexStart,
+        padding := "0.5em 0.7em",
+
         permissionLevel.map(Permission.permissionIndicator(_)),
+
+        //TODO: better transform, icon...
+        div(
+          marginLeft := "4px",
+          fontSize := "8px",
+          lineHeight := "8px",
+          freeSolid.faUserPlus
+        )
       )
       case PresentationMode.ContentOnly => VDomModifier.empty
     }
