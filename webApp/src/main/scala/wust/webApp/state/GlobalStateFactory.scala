@@ -4,6 +4,8 @@ import java.util.concurrent.TimeUnit
 
 import wust.webApp.views.MainTutorial
 
+import scala.scalajs.js
+import wust.api.AuthUser
 import wust.facades.fullstory.FS
 import wust.facades.amplitude.Amplitude
 import wust.facades.googleanalytics.GoogleAnalytics
@@ -108,7 +110,7 @@ object GlobalStateFactory {
       graphTransformations() = defaultTransformations
       GlobalState.clearSelectedNodes()
       // The current step is createProject, because the page change happens before the viewswitcher is rendered. The rendering of the viewswitcher causes the tutoraial to advance to the next step via onDomMountContinue.
-      if(!MainTutorial.currentStep.contains(MainTutorial.step.createProject)) {
+      if (!MainTutorial.currentStep.contains(MainTutorial.step.createProject)) {
         MainTutorial.endTour()
       }
     }
@@ -318,12 +320,17 @@ object GlobalStateFactory {
       setupStateDebugLogging()
     }
 
-    GlobalState.userId.foreach {userId => 
-      val userIdBase58 = userId.toBase58
-      // https://help.fullstory.com/hc/en-us/articles/360020828113-FS-identify-Identifying-users
-      FS.identify(userIdBase58)
-      Amplitude.setUserId(userIdBase58)
-      GoogleAnalytics.setUserId(userIdBase58)
+    GlobalState.auth.foreach { auth =>
+      val userId = auth.user.id.toBase58
+
+      GoogleAnalytics.setUserId(userId) // https://support.google.com/analytics/answer/3123662?hl=en
+      Amplitude.setUserId(userId) // https://developers.amplitude.com/?javascript#setting-custom-user-ids
+
+      auth.user match {
+        case signedUpUser: AuthUser.Real => FS.identify(userId, js.Dynamic.literal(displayName = signedUpUser.name)) // https://help.fullstory.com/hc/en-us/articles/360020828113-FS-identify-Identifying-users
+        case _                           => FS.identify(userId)
+      }
+
     }
   }
 
