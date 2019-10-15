@@ -5,7 +5,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.css.Styles
-import wust.facades.googleanalytics.Analytics
+import wust.facades.googleanalytics.GoogleAnalytics
 import wust.graph._
 import wust.ids._
 import wust.webApp.state._

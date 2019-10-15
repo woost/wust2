@@ -3,7 +3,7 @@ package wust.webApp.views
 import wust.facades.crisp._
 import scala.util.Try
 import scala.scalajs.js
-import wust.facades.googleanalytics.Analytics
+import wust.facades.googleanalytics.GoogleAnalytics
 import wust.facades.nolt.{ NoltData, nolt }
 import fontAwesome._
 import org.scalajs.dom.window

@@ -6,7 +6,7 @@ import acyclic.file
 import org.scalajs.dom.experimental.permissions.PermissionState
 import rx._
 import wust.api._
-import wust.facades.googleanalytics.Analytics
+import wust.facades.googleanalytics.GoogleAnalytics
 import wust.graph._
 import wust.ids._
 import wust.sdk._
@@ -16,7 +16,7 @@ import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{ ModalConfig, Ownable }
 import scala.scalajs.{ LinkingInfo, js }
 import wust.webApp.jsdom.ServiceWorker
-import wust.facades.googleanalytics.Analytics
+import wust.facades.googleanalytics.GoogleAnalytics
 import wust.facades.hotjar
 import monix.eval.Task
 import org.scalajs.dom

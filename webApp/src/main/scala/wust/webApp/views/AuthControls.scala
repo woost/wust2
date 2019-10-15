@@ -1,6 +1,6 @@
 package wust.webApp.views
 
-import wust.facades.googleanalytics.Analytics
+import wust.facades.googleanalytics.GoogleAnalytics
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._

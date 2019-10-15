@@ -3,7 +3,7 @@ package wust.webApp.views
 import fontAwesome.IconLookup
 import outwatch.dom._
 import outwatch.dom.dsl._
-import wust.facades.googleanalytics.Analytics
+import wust.facades.googleanalytics.GoogleAnalytics
 import wust.graph.{GraphChanges, Node}
 import wust.ids.NodeRole
 import wust.webApp.Icons

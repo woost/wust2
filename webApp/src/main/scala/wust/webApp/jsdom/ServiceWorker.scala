@@ -1,6 +1,6 @@
 package wust.webApp.jsdom
 
-import wust.facades.googleanalytics.Analytics
+import wust.facades.googleanalytics.GoogleAnalytics
 import io.circe.{Decoder, Encoder, Json}
 import outwatch.reactive._
 import org.scalajs.dom.window
@@ -70,7 +70,7 @@ object ServiceWorker {
     subject.recoverOption{
       case e: Throwable =>
         scribe.debug("SW could not register:", e)
-        Analytics.sendEvent("serviceworker", "register", "error")
+        GoogleAnalytics.sendEvent("serviceworker", "register", "error")
         None
     }
   }

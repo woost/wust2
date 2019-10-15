@@ -1,7 +1,7 @@
 package wust.webApp.views
 
 import wust.webApp.Icons
-import wust.facades.googleanalytics.Analytics
+import wust.facades.googleanalytics.GoogleAnalytics
 import fontAwesome.{freeSolid, _}
 import org.scalajs.dom
 import org.scalajs.dom.window

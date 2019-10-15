@@ -4,7 +4,7 @@ import wust.css.Styles
 import outwatch.dom.{ VDomModifier, _ }
 import outwatch.dom.dsl._
 import rx.{ Ctx, Rx }
-import wust.facades.googleanalytics.Analytics
+import wust.facades.googleanalytics.GoogleAnalytics
 import wust.webApp.Icons
 import wust.webApp.state.GlobalState
 import wust.webUtil.outwatchHelpers._

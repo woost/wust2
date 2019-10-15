@@ -6,7 +6,7 @@ import wust.webApp.views.MainTutorial
 
 import wust.facades.fullstory.FS
 import wust.facades.amplitude.Amplitude
-import wust.facades.googleanalytics.Analytics
+import wust.facades.googleanalytics.GoogleAnalytics
 import monix.eval.Task
 import monix.reactive.Observable
 import org.scalajs.dom
@@ -255,7 +255,7 @@ object GlobalStateFactory {
 
     GlobalState.permissionState.triggerLater { state =>
       if (state == PermissionState.granted || state == PermissionState.denied)
-        Analytics.sendEvent("browser-notification", state.asInstanceOf[String])
+        GoogleAnalytics.sendEvent("browser-notification", state.asInstanceOf[String])
 
       if (state == PermissionState.granted)
         FeatureState.use(Feature.EnableBrowserNotifications)
@@ -323,7 +323,7 @@ object GlobalStateFactory {
       // https://help.fullstory.com/hc/en-us/articles/360020828113-FS-identify-Identifying-users
       FS.identify(userIdBase58)
       Amplitude.setUserId(userIdBase58)
-      Analytics.setUserId(userIdBase58)
+      GoogleAnalytics.setUserId(userIdBase58)
     }
   }
 

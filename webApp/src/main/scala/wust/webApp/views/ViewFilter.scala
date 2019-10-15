@@ -5,7 +5,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.ext.monix._
 import rx._
-import wust.facades.googleanalytics.Analytics
+import wust.facades.googleanalytics.GoogleAnalytics
 import wust.graph.{ Edge, Graph, GraphChanges }
 import wust.ids._
 import wust.util.macros.InlineList

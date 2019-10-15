@@ -1,7 +1,7 @@
 package wust.webApp.views
 
 import fontAwesome._
-import wust.facades.googleanalytics.Analytics
+import wust.facades.googleanalytics.GoogleAnalytics
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._

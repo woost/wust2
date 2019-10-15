@@ -2,7 +2,7 @@ package wust.webApp.views
 
 import acyclic.file
 import wust.facades.crisp._
-import wust.facades.googleanalytics.Analytics
+import wust.facades.googleanalytics.GoogleAnalytics
 import wust.webApp.{ DeployedOnly}
 import scala.scalajs.js
 import scala.util.Try
@@ -62,7 +62,7 @@ object FeatureExplorer {
           crisp.push(js.Array("do", "chat:show"))
           crisp.push(js.Array("do", "chat:open"))
         }
-        Analytics.sendEvent("unclear-feature", feature.toString)
+        GoogleAnalytics.sendEvent("unclear-feature", feature.toString)
       }
     )
 

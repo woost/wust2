@@ -13,7 +13,7 @@ import wust.webApp.Client
 import wust.webUtil.UI
 import UI.ToastLevel
 import wust.api.UsedFeature
-import wust.facades.googleanalytics.Analytics
+import wust.facades.googleanalytics.GoogleAnalytics
 
 import outwatch.reactive._
 
@@ -151,7 +151,7 @@ object FeatureState {
           if (Feature.allWithoutSecretsSet.contains(feature)) usedNewFeatureTrigger.onNext(())
         }
         recentlyUsed.update(recentlyUsed => (feature +: recentlyUsed).take(recentlyUsedLimit).distinct)
-        Analytics.sendEvent("feature", feature.toString)
+        GoogleAnalytics.sendEvent("feature", feature.toString)
         FS.event(feature.toString)
         Amplitude.logEvent(feature.toString)
 

@@ -1,7 +1,7 @@
 package wust.webApp
 
 import cats.effect.SyncIO
-import wust.facades.googleanalytics.Analytics
+import wust.facades.googleanalytics.GoogleAnalytics
 import io.circe._
 import io.circe.parser._
 import io.circe.syntax._
@@ -42,7 +42,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
       case Success(_) =>
         true
       case Failure(_) =>
-        Analytics.sendEvent("localstorage", "access-error")
+        GoogleAnalytics.sendEvent("localstorage", "access-error")
         scribe.warn("Beware: Localstorage is not accessible!")
         false
     }

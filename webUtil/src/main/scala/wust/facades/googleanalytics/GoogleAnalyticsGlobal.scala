@@ -6,9 +6,9 @@ import scala.scalajs.js.annotation.JSGlobalScope
 // Google Analytics Event Tracking documentation:
 // https://developers.google.com/analytics/devguides/collection/analyticsjs/field-reference
 
-object Analytics {
+object GoogleAnalytics {
   // https://stackoverflow.com/questions/15744042/events-not-being-tracked-in-new-google-analytics-analytics-js-setup/40761709#40761709
-  lazy val tracker: js.UndefOr[Tracker] = GoogleAnalytics.ga.flatMap { ga =>
+  lazy val tracker: js.UndefOr[Tracker] = GoogleAnalyticsGlobal.ga.flatMap { ga =>
     if(ga.asInstanceOf[js.Dynamic].getAll.asInstanceOf[js.UndefOr[js.Any]] != js.undefined) {
       ga.getAll().apply(0)
     } else js.undefined
@@ -35,7 +35,7 @@ object Analytics {
 
 @js.native
 @JSGlobalScope
-object GoogleAnalytics extends js.Object {
+object GoogleAnalyticsGlobal extends js.Object {
   def ga: js.UndefOr[GA] = js.native
 }
 

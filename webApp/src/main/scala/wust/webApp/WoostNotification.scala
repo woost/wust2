@@ -1,6 +1,6 @@
 package wust.webApp
 
-import wust.facades.googleanalytics.Analytics
+import wust.facades.googleanalytics.GoogleAnalytics
 import fontAwesome._
 import org.scalajs.dom.experimental.permissions.PermissionState
 import rx.{Ctx, Rx}

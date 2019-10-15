@@ -11,7 +11,7 @@ import outwatch.ext.monix._
 import rx._
 import wust.api._
 import wust.css.Styles
-import wust.facades.googleanalytics.Analytics
+import wust.facades.googleanalytics.GoogleAnalytics
 import wust.ids._
 import wust.graph._
 import wust.webApp._
@@ -490,7 +490,7 @@ object UserSettingsView {
             case Success(Some(redirectUrl)) => dom.window.location.href = redirectUrl
             case _ => UI.toast(s"Sorry, the OAuth Service for '${service.identifier}' is currently not available. Please try again later.", level = ToastLevel.Error)
           }
-          Analytics.sendEvent(service.identifier, "enableplugin")
+          GoogleAnalytics.sendEvent(service.identifier, "enableplugin")
         }
       ),
       div(
