@@ -77,6 +77,7 @@ object WelcomeView {
       alignItems.center,
       flexDirection.column,
       button(
+        cls := "welcome-tutorial-button",
         marginTop := "20px",
         cls := "ui pink basic button", replaceEmoji(" Show me the basics"),
         onClick.stopPropagation.foreach {
