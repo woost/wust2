@@ -325,12 +325,7 @@ object GlobalStateFactory {
 
       GoogleAnalytics.setUserId(userId) // https://support.google.com/analytics/answer/3123662?hl=en
       Amplitude.setUserId(userId) // https://developers.amplitude.com/?javascript#setting-custom-user-ids
-
-      auth.user match {
-        case signedUpUser: AuthUser.Real => FS.identify(userId, js.Dynamic.literal(displayName = signedUpUser.name)) // https://help.fullstory.com/hc/en-us/articles/360020828113-FS-identify-Identifying-users
-        case _                           => FS.identify(userId)
-      }
-
+      FS.identify(userId) // https://help.fullstory.com/hc/en-us/articles/360020828113-FS-identify-Identifying-users
     }
   }
 
