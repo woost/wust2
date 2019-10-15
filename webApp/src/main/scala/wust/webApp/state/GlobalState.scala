@@ -17,7 +17,6 @@ import wust.webUtil.{ ModalConfig, Ownable }
 import scala.scalajs.{ LinkingInfo, js }
 import wust.webApp.jsdom.ServiceWorker
 import wust.facades.googleanalytics.GoogleAnalytics
-import wust.facades.hotjar
 import monix.eval.Task
 import org.scalajs.dom
 import org.scalajs.dom.window
