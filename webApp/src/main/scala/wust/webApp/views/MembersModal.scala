@@ -454,11 +454,8 @@ object MembersModal {
 
         permissionLevel.map(Permission.permissionIndicator(_)),
 
-        //TODO: better transform, icon...
         div(
           marginLeft := "4px",
-          fontSize := "8px",
-          lineHeight := "8px",
           freeSolid.faUserPlus
         )
       )
