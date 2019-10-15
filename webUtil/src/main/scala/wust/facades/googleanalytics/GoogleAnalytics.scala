@@ -9,7 +9,7 @@ import scala.scalajs.js.annotation.JSGlobalScope
 object GoogleAnalytics {
   // https://stackoverflow.com/questions/15744042/events-not-being-tracked-in-new-google-analytics-analytics-js-setup/40761709#40761709
   lazy val tracker: js.UndefOr[Tracker] = GoogleAnalyticsGlobal.ga.flatMap { ga =>
-    if(ga.asInstanceOf[js.Dynamic].getAll.asInstanceOf[js.UndefOr[js.Any]] != js.undefined) {
+    if (ga.asInstanceOf[js.Dynamic].getAll.asInstanceOf[js.UndefOr[js.Any]] != js.undefined) {
       ga.getAll().apply(0)
     } else js.undefined
   }
@@ -27,9 +27,8 @@ object GoogleAnalytics {
   }
 
   def setUserId(userId: String): Unit = {
-    tracker.foreach { tracker =>
-      tracker.set("userId", userId)
-    }
+    // https://www.analyticsmania.com/post/google-analytics-user-id-with-google-tag-manager/#ask-for-dev-help
+    GoogleAnalyticsGlobal.dataLayer.foreach(_.push(js.Dynamic.literal(userId = userId)))
   }
 }
 
@@ -37,6 +36,7 @@ object GoogleAnalytics {
 @JSGlobalScope
 object GoogleAnalyticsGlobal extends js.Object {
   def ga: js.UndefOr[GA] = js.native
+  def dataLayer: js.UndefOr[js.Dynamic] = js.native
 }
 
 trait EventOptions extends js.Object {
@@ -45,7 +45,6 @@ trait EventOptions extends js.Object {
   var eventLabel: js.UndefOr[String] = js.undefined
   var eventValue: js.UndefOr[Int] = js.undefined
 }
-
 
 trait GA extends js.Object {
   def getAll(): js.Array[Tracker]

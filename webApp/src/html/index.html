@@ -7,7 +7,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no"/>
     <meta name="robots" content="noindex">
 
-    <% if (audience != "dev") { %>
+    <!-- Google Tag Manager Data Layer (https://developers.google.com/tag-manager/devguide) -->
+    <script>
+        dataLayer = [];
+    </script>
+    <% if (audience == "dev") { %>
     <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
