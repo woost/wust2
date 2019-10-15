@@ -356,7 +356,7 @@ object UserSettingsView {
         Styles.flexStatic,
         padding := "4px",
       ),
-      editableNode(nodeUser, editMode).apply(marginLeft := "20px", marginBottom := "0px", fontSize := "30px", alignItems.center, cls := "enable-text-selection"),
+      editableNode(nodeUser, editMode).apply(cls := "username", marginLeft := "20px", marginBottom := "0px", fontSize := "30px", alignItems.center, cls := "enable-text-selection"),
       button(
         cls := "ui button primary tiny",
         marginLeft := "20px",
@@ -548,7 +548,7 @@ object UserSettingsView {
     // TODO: Show button if not linked, else show linked data
     div(
       p(s"UserId: ${ user.id.toString }"),
-      p(s"Username: ${ user.name }"),
+      p(s"Username: ${ user.name }", cls := "username"),
       div(
         p("Connect Woost with a Service"),
 

@@ -32,6 +32,7 @@ object AuthControls {
           alignItems.center,
           Avatar.user(user.toNode, size = "20px"),
           span(
+            cls := "username",
             user.name,
             padding := "0 5px",
             Styles.wordWrap
