@@ -165,24 +165,42 @@ object EditableContent {
     val variable = Var(activeElement)
     variable.triggerLater(_.foreach(sink.onNext(_)))
 
-    select[T](header, variable, elements, unselectableMapping)
+    select[Var, T](header, variable, elements, unselectableMapping)
   }
-  def select[T: EditStringParser: ValueStringifier](header: Option[String], activeElement: Var[Option[T]], elements: Seq[(String, T)], unselectableMapping: Map[T, T] = Map.empty[T,T])(implicit ctx: Ctx.Owner): VNode = {
+  def select[F[_]: Sink : Source, T: EditStringParser: ValueStringifier](header: Option[String], activeElement: F[Option[T]], elements: Seq[(String, T)], unselectableMapping: Map[T, T] = Map.empty[T,T])(implicit ctx: Ctx.Owner): VNode = {
     dsl.select(
       padding := "0.2em",
       header.map { header =>
         option(
           value := "", header,
-          selected <-- activeElement.map(_.isEmpty),
+          selected <-- SourceStream.map(activeElement)(_.isEmpty),
           disabled,
         )
       },
       elements.map { case (title, element) =>
-        option(value := ValueStringifier[T].stringify(element), title, selected <-- activeElement.map(e => e.contains(element) || e.flatMap(unselectableMapping.get).contains(element))),
+        option(value := ValueStringifier[T].stringify(element), title, selected <-- SourceStream.map(activeElement)(e => e.contains(element) || e.flatMap(unselectableMapping.get).contains(element))),
       },
       onInput
         .map(e => stringFromSelect(e.currentTarget.asInstanceOf[dom.html.Select]))
         .concatMapAsync(str => EditStringParser[T].parse(str)).editValueOption --> activeElement,
+    )
+  }
+  def selectAlways[F[_]: Sink : Source, T: EditStringParser: ValueStringifier](header: Option[String], activeElement: F[T], elements: Seq[(String, T)], unselectableMapping: Map[T, T] = Map.empty[T,T])(implicit ctx: Ctx.Owner): VNode = {
+    dsl.select(
+      padding := "0.2em",
+      header.map { header =>
+        option(
+          value := "", header,
+          selected := false,
+          disabled,
+        )
+      },
+      elements.map { case (title, element) =>
+        option(value := ValueStringifier[T].stringify(element), title, selected <-- SourceStream.map(activeElement)(e => e == element || unselectableMapping.get(e).contains(element))),
+      },
+      onInput
+        .map(e => stringFromSelect(e.currentTarget.asInstanceOf[dom.html.Select]))
+        .concatMapAsync(str => EditStringParser[T].parse(str)).editValue --> activeElement,
     )
   }
 

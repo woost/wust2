@@ -69,6 +69,10 @@ object Edge {
     def copyId(sourceId: NodeId, targetId: NodeId) = copy(nodeId = sourceId, userId = UserId(targetId))
   }
 
+  final case class Remind(nodeId: NodeId, data: EdgeData.Remind, userId: UserId) extends Edge.User {
+    def copyId(sourceId: NodeId, targetId: NodeId) = copy(nodeId = sourceId, userId = UserId(targetId))
+  }
+
   // Content-Edges
   final case class Automated(nodeId: NodeId, templateNodeId: TemplateId) extends Edge.Content {
     def sourceId = nodeId
@@ -123,6 +127,7 @@ object Edge {
     case data: EdgeData.Author              => new Edge.Author(sourceId, data, UserId(targetId))
     case data: EdgeData.Member              => new Edge.Member(sourceId, data, UserId(targetId))
     case data: EdgeData.Read                => new Edge.Read(sourceId, data, UserId(targetId))
+    case data: EdgeData.Remind              => new Edge.Remind(sourceId, data, UserId(targetId))
 
     case EdgeData.Automated                 => new Edge.Automated(sourceId, TemplateId(targetId))
     case data: EdgeData.ReferencesTemplate  => new Edge.ReferencesTemplate(sourceId, data, TemplateId(targetId))
@@ -145,6 +150,7 @@ object EdgeEquality {
     // unique constraints how they are defined in the database for edges
     def apply(edge: Edge): Option[Unique] = edge match {
       case _: Edge.Author          => None
+      case _: Edge.Remind => None
       case e: Edge.LabeledProperty => Some(Unique(e.sourceId, e.data.tpe, e.data.key, e.targetId))
       case e                       => Some(Unique(e.sourceId, e.data.tpe, null, e.targetId))
     }

@@ -99,6 +99,7 @@ object DashboardView {
     div(
       Styles.growFull,
       overflow.auto,
+      keyed,
 
       dashboard
     )

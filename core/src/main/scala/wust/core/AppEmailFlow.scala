@@ -248,7 +248,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
     MailMessage(recipient, subject = subject, fromPersonal = s"$authorName via Woost", body = body, bodyHtml = Some(bodyHtml), replyTo = Some(authorEmail.value))
   }
 
-  private def reminderMailMessage(email: EmailAddress, node: Node.Content): MailMessage = {
+  private def reminderMailMessage(email: EmailAddress, node: Node.Content, reason: String): MailMessage = {
     val recipient = MailRecipient(to = email.value :: Nil)
     val subject = s"Reminder: '${StringOps.trimToMaxLength(node.str, 50)}'"
 
@@ -258,6 +258,8 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
     val body =
       s"""
         |We were told to remind you of this:
+        |
+        |$reason
         |
         |"$escapedContent"
         |
@@ -272,7 +274,9 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
 
     val bodyHtml =
       s"""
-        |<p>We were told to remind you of this::</p>
+        |<p>We were told to remind you of this:</p>
+
+        |<p>$reason</p>
         |
         |<blockquote>$escapedContent</blockquote>
         |
@@ -312,8 +316,8 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
     emailSubject.onNext(message)
   }
 
-  def sendReminder(email: EmailAddress, node: Node.Content)(implicit ec: ExecutionContext): Unit = {
-    val message = reminderMailMessage(email = email, node = node)
+  def sendReminder(email: EmailAddress, node: Node.Content, reason: String)(implicit ec: ExecutionContext): Unit = {
+    val message = reminderMailMessage(email = email, node = node, reason = reason)
     emailSubject.onNext(message)
   }
 

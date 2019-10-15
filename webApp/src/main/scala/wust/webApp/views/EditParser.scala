@@ -38,6 +38,12 @@ object ValueStringifier {
     }
   }
 
+  implicit object remindTarget extends ValueStringifier[RemindTarget] {
+    def stringify(current: RemindTarget): String = RemindTarget.asString(current)
+  }
+  implicit object remindMedium extends ValueStringifier[RemindMedium] {
+    def stringify(current: RemindMedium): String = RemindMedium.asString(current)
+  }
   implicit object accesslevel extends ValueStringifier[AccessLevel] {
     def stringify(current: AccessLevel): String = current.str
   }
@@ -121,6 +127,12 @@ object EditStringParser extends EditStringParserInstances0 {
   implicit val EditNodeDataMarkdown: EditStringParser[NodeData.Markdown] = EditString.map[NodeData.Markdown](NodeData.Markdown.apply)
   implicit def EditNodeDataUser(user: NodeData.User): EditStringParser[NodeData.User] = EditNonEmptyString.flatMap[NodeData.User](s => EditInteraction.fromOption(user.updateName(s.string)))
 
+  implicit val EditRemindTarget: EditStringParser[RemindTarget] = new EditStringParser[RemindTarget] {
+    def parse(elem: String): Task[EditInteraction[RemindTarget]] = Task(EditInteraction.fromOption(RemindTarget.fromString.lift(elem)))
+  }
+  implicit val EditRemindMedium: EditStringParser[RemindMedium] = new EditStringParser[RemindMedium] {
+    def parse(elem: String): Task[EditInteraction[RemindMedium]] = Task(EditInteraction.fromOption(RemindMedium.fromString.lift(elem)))
+  }
   implicit val EditAccessLevel: EditStringParser[AccessLevel] = new EditStringParser[AccessLevel] {
     def parse(elem: String): Task[EditInteraction[AccessLevel]] = Task(EditInteraction.fromOption(AccessLevel.fromString.lift(elem)))
   }

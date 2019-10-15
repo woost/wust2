@@ -136,7 +136,7 @@ object ItemProperties {
           cls := "field",
           label("Type"),
           selfOrParentIsAutomationNode.map { isTemplate =>
-            EditableContent.select[NodeTypeSelection](
+            EditableContent.select(
               Some("Select a field type"),
               propertyTypeSelection,
               ("Text", NodeTypeSelection.Data(NodeData.Markdown.tpe)) ::

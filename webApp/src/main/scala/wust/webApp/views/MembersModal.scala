@@ -185,7 +185,7 @@ object MembersModal {
           div(
             Styles.flex,
 
-            (EditableContent.selectEmitter[AccessLevel](
+            (EditableContent.selectEmitter(
               Some("Access Level"),
               accesslevel,
               ("can read", AccessLevel.Read) ::
@@ -396,7 +396,7 @@ object MembersModal {
                 cls := "ui action input",
                 width := "100%",
 
-                EditableContent.select[AccessLevel](
+                EditableContent.select(
                   None,
                   addUserAccessLevel,
                   ("can write", AccessLevel.ReadWrite) ::

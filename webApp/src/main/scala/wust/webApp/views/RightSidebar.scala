@@ -69,7 +69,7 @@ object RightSidebar {
     )
   }
 
-  val propertiesAccordionText = "Properties & Custom Fields"
+  val propertiesAccordionText = "Properties & Custom Fields & Reminders"
   val addCustomFieldText = "Add Custom Field"
 
   private val buttonMods = VDomModifier(
@@ -443,6 +443,7 @@ object RightSidebar {
     sealed trait AddProperty
     object AddProperty {
       case object None extends AddProperty
+      case object Reminder extends AddProperty
       case object CustomField extends AddProperty
       final case class DefinedField(title: String, key: String, tpe: NodeData.Type) extends AddProperty
       final case class EdgeReference(title: String, create: (NodeId, NodeId) => Edge) extends AddProperty
@@ -461,6 +462,13 @@ object RightSidebar {
     val isRenameReference = Var(false)
 
     addFieldMode.map[VDomModifier] {
+      case AddProperty.Reminder =>
+        ReminderSetup.form(focusPref.nodeId).foreach({
+          case Some(changes) =>
+            GlobalState.submitChanges(changes)
+            addFieldMode() = AddProperty.None
+          case None => addFieldMode() = AddProperty.None
+        }: Option[GraphChanges] => Unit)
       case AddProperty.CustomField =>
         ItemProperties.managePropertiesInline(
           ItemProperties.Target.Node(focusPref.nodeId)
@@ -528,6 +536,7 @@ object RightSidebar {
         div(
           div(
             Styles.flex,
+            flexWrap.wrap,
             justifyContent.center,
 
             button(
@@ -552,7 +561,14 @@ object RightSidebar {
               s"+ $addCustomFieldText",
               cursor.pointer,
               onClick.stopPropagation.use(AddProperty.CustomField) --> addFieldMode
-            )
+            ),
+
+            button(
+              cls := "ui compact basic primary button mini",
+              "+ Add Reminder",
+              cursor.pointer,
+              onClick.stopPropagation.use(AddProperty.Reminder) --> addFieldMode
+            ),
           ),
 
           selfOrParentIsAutomationTemplate.map {
@@ -613,6 +629,7 @@ object RightSidebar {
               )
           }
         ),
+        ReminderSetup.list(focusPref.nodeId),
         renderSplit(
           left = VDomModifier(
             searchInput("Add Tag", filter = _.role == NodeRole.Tag, createNew = createNewTag(_), showNotFound = false).foreach { tagId =>

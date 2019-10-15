@@ -10,44 +10,62 @@ import DbConversions._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
+import scala.util.control.NonFatal
 import scala.concurrent.duration.FiniteDuration
+
+sealed trait ReminderInfo
+object ReminderInfo {
+  final case class DateTime(timestamp: EpochMilli, medium: RemindMedium, target: RemindTarget, edge: Edge) extends ReminderInfo
+}
+
+final case class ReminderContext(userDetail: Data.UserDetail, node: Node, reason: String)
 
 class PollingNotifier(db: Db, emailFlow: AppEmailFlow) {
 
-  private def runStep()(implicit ec: ExecutionContext): Future[Ack] = {
+  private def runStep(interval: FiniteDuration)(implicit ec: ExecutionContext): Future[Ack] = {
     scribe.info("Checking for reminders")
 
+    val currentTime = EpochMilli.now
+
     // TODO: get actual reminders
-    val reminders: Future[Seq[Data.Reminder]] = ???
+    val reminders: Future[Seq[ReminderInfo.DateTime]] = ???
 
-    reminders.transform {
+    reminders.flatMap { reminders =>
+      val reminderToSend = reminders.filter { reminder =>
+        //TOOD what should the jitter be? polling is imperfect in the end...
+        reminder.timestamp > currentTime - interval.toMillis * 2 && reminder.timestamp <= currentTime
+      }
 
-      case Success(reminders) =>
-        scribe.info(s"Sending out ${reminders.size} reminders")
-        reminders.foreach { reminder =>
-          notify(reminder)
-        }
+      // TODO: get actual reminders
+      val reminderContexts: Future[Seq[ReminderContext]] = ???
 
-        // TODO: store that we have reminded
+      scribe.info(s"Sending out ${reminderToSend.size} reminders")
+      reminderContexts.flatMap { reminderContexts =>
+        reminderContexts.foreach(notify)
 
-        Success(Ack.Continue)
+        // db.edge.delete(reminderContexts.map(_.edge)).map { _ =>
+        //   Ack.Continue
+        // }
+        ???
+      }
+    }.recover { case NonFatal(err) =>
+      scribe.warn("Failed to get reminders for polling, will retry.", err)
 
-      case Failure(err) =>
-        scribe.warn("Failed to get reminders for polling, will retry.", err)
-
-        Success(Ack.Continue)
-
+      Ack.Continue
     }
   }
 
-  private def notify(reminder: Data.Reminder)(implicit ec: ExecutionContext): Unit = forClient(reminder.node) match {
-    case node: Node.Content => emailFlow.sendReminder(reminder.email, node)
+  private def notify(reminder: ReminderContext)(implicit ec: ExecutionContext): Unit = forClient(reminder.node) match {
+    case node: Node.Content => reminder.userDetail.email match {
+      case Some(email) => emailFlow.sendReminder(email, node, reminder.reason)
+      case None => scribe.warn(s"Cannot send reminder, because user has no email address: $reminder")
+    }
     case _ => scribe.warn(s"Reminder on user, this is unexpected, will ignore: $reminder")
   }
 
   def start(interval: FiniteDuration)(implicit scheduler: Scheduler): Cancelable =
     Observable.intervalAtFixedRate(interval).subscribe(
-      _ => runStep(),
-      err => scribe.error("Error in polling for notifications", err)
+      _ => runStep(interval),
+      err => scribe.error("Error in polling for notifications. Reminder processing is stopped!", err)
     )
 }

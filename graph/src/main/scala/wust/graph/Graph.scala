@@ -182,6 +182,7 @@ final case class GraphLookup private(
   parentEdgeIdx: NestedArrayInt,
   readEdgeIdx: NestedArrayInt,
   childEdgeIdx: NestedArrayInt,
+  remindEdgeIdx: NestedArrayInt,
   accessEdgeReverseIdx: NestedArrayInt,
   contentsEdgeIdx: NestedArrayInt,
   messageChildrenIdx: NestedArrayInt,
@@ -954,6 +955,7 @@ object GraphLookup {
     // than using one loop with arraybuilders. (A lot less allocations)
     val outDegree = new Array[Int](n)
     val parentsDegree = new Array[Int](n)
+    val reminderDegree = new Array[Int](n)
     val contentsDegree = new Array[Int](n)
     val accessEdgeReverseDegree = new Array[Int](n)
     val readDegree = new Array[Int](n)
@@ -1002,6 +1004,8 @@ object GraphLookup {
           edge match {
             case _: Edge.Author =>
               authorshipDegree(sourceIdx) += 1
+            case _: Edge.Remind =>
+              reminderDegree(sourceIdx) += 1
             case _: Edge.Member =>
               membershipsForNodeDegree(sourceIdx) += 1
             case e: Edge.Child =>
@@ -1070,6 +1074,7 @@ object GraphLookup {
     }
 
     val parentEdgeIdxBuilder = NestedArrayInt.builder(parentsDegree)
+    val remindEdgeIdxBuilder = NestedArrayInt.builder(reminderDegree)
     val contentsEdgeIdxBuilder = NestedArrayInt.builder(contentsDegree)
     val accessEdgeReverseIdxBuilder = NestedArrayInt.builder(accessEdgeReverseDegree)
     val readEdgeIdxBuilder = NestedArrayInt.builder(readDegree)
@@ -1117,6 +1122,8 @@ object GraphLookup {
       edge match {
         case _: Edge.Author =>
           authorshipEdgeIdxBuilder.add(sourceIdx, edgeIdx)
+        case _: Edge.Remind =>
+          remindEdgeIdxBuilder.add(sourceIdx, edgeIdx)
         case _: Edge.Member =>
           membershipEdgeForNodeIdxBuilder.add(sourceIdx, edgeIdx)
         case e: Edge.Child =>
@@ -1190,6 +1197,7 @@ object GraphLookup {
       parentEdgeIdx = parentEdgeIdxBuilder.result(),
       readEdgeIdx = readEdgeIdxBuilder.result(),
       childEdgeIdx = childEdgeIdxBuilder.result(),
+      remindEdgeIdx = remindEdgeIdxBuilder.result(),
       accessEdgeReverseIdx = accessEdgeReverseIdxBuilder.result(),
       contentsEdgeIdx = contentsEdgeIdxBuilder.result(),
       messageChildrenIdx = messageChildrenIdxBuilder.result(),

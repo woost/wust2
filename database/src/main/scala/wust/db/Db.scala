@@ -153,7 +153,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
         infix"""
           insert into edge(sourceid, data, targetid) values
           (${nodeId}, jsonb_build_object('type', 'Member', 'level', ${lift(accessLevel)}::accesslevel), ${lift(userId)})
-          ON CONFLICT(sourceid,(data->>'type'),coalesce(data->>'key', ''),targetid) WHERE data->>'type' <> 'Author' DO UPDATE set data = EXCLUDED.data
+          ON CONFLICT(sourceid,(data->>'type'),coalesce(data->>'key', ''),targetid) WHERE data->>'type' <> 'Author' and data->>'type' <> 'Remind' DO UPDATE set data = EXCLUDED.data
         """.as[Insert[Edge]].returning(_.sourceId)
       }
       ctx.run(liftQuery(nodeIds).foreach(insertMembership(_))).map { x =>
@@ -226,7 +226,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     private val upsert = quote { e: Edge =>
       val q = query[Edge].insert(e)
       // if there is unique conflict, we update the data which might contain new values
-      infix"$q ON CONFLICT(sourceid,(data->>'type'),coalesce(data->>'key', ''),targetid) WHERE data->>'type' <> 'Author' DO UPDATE SET data = EXCLUDED.data"
+      infix"$q ON CONFLICT(sourceid,(data->>'type'),coalesce(data->>'key', ''),targetid) WHERE data->>'type' <> 'Author' and data->>'type' <> 'Remind' DO UPDATE SET data = EXCLUDED.data"
         .as[Insert[Edge]]
     }
 
@@ -250,16 +250,17 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     def delete(edges: Seq[Edge])(implicit ec: TransactionalExecutionContext): Future[SuccessResult.type] = {
       if (edges.isEmpty) return Future.successful(SuccessResult)
 
-      val dbEdges: Seq[(NodeId, EdgeData.Type, String, NodeId)] = edges.map {
-        case Data.Edge(sourceId, data: EdgeData.LabeledProperty, targetId) => (sourceId, data.tpe, data.key, targetId)
-        case Data.Edge(sourceId, data, targetId) => (sourceId, data.tpe, null, targetId)
+      val dbEdges: Seq[(NodeId, EdgeData.Type, String, EdgeData, NodeId)] = edges.map {
+        case Data.Edge(sourceId, data: EdgeData.LabeledProperty, targetId) => (sourceId, data.tpe, data.key, null, targetId)
+        case Data.Edge(sourceId, data: EdgeData.Remind, targetId) => (sourceId, data.tpe, null, data, targetId)
+        case Data.Edge(sourceId, data, targetId) => (sourceId, data.tpe, null, null, targetId)
       }
 
       for {
         touched <- if(dbEdges.nonEmpty) {
           ctx.run {
-            liftQuery(dbEdges).foreach { case (sourceId, tpe, key, targetId) =>
-              query[Edge].filter(e => e.sourceId == sourceId && e.targetId == targetId && e.data.jsonType == tpe && infix"coalesce(${e.data}->>'key' = $key, true)".as[Boolean]).delete
+            liftQuery(dbEdges).foreach { case (sourceId, tpe, key, data, targetId) =>
+              query[Edge].filter(e => e.sourceId == sourceId && e.targetId == targetId && e.data.jsonType == tpe && infix"coalesce(${e.data}->>'key' = $key, true)".as[Boolean] && infix"coalesce(${e.data} = $data, true)".as[Boolean]).delete
             }
           }
         } else Future.successful(Nil)
