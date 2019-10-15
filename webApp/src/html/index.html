@@ -58,16 +58,16 @@
         };
     </script>
 
-    <noscript>
-        <div id="noscriptmsg">
-            <p>Welcome to Woost!</p>
-            <p>You don't have javascript enabled. Good luck with that.</p>
-        </div>
-    </noscript>
-
   </head>
 
   <body>
+    <noscript>
+        <div id="noscriptmsg">
+            <p>Welcome to Woost!</p>
+            <p>You don't have JavaScript enabled, but Woost needs JavaScript to work.</p>
+        </div>
+    </noscript>
+
     <% if (audience != "dev") { %>
     <!-- Google Tag Manager (noscript) -->
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=<% if (audience == "app") { %>GTM-PWQZ2GB<% } else { %>GTM-M2GCQLN<% } %>"
