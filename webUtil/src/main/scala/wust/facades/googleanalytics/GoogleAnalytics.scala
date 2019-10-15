@@ -28,7 +28,10 @@ object GoogleAnalytics {
 
   def setUserId(userId: String): Unit = {
     // https://www.analyticsmania.com/post/google-analytics-user-id-with-google-tag-manager/#ask-for-dev-help
-    GoogleAnalyticsGlobal.dataLayer.foreach(_.push(js.Dynamic.literal(userId = userId)))
+    GoogleAnalyticsGlobal.dataLayer.foreach(_.push(js.Dynamic.literal(
+      event = "userIdUpdated", // manual event trigger in Google Tag Manager to load Google Analytics
+      userId = userId
+    )))
   }
 }
 
