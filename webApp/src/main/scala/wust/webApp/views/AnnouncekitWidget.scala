@@ -1,29 +1,17 @@
 package wust.webApp.views
 
-import scala.util.Try
-import wust.webUtil.BrowserDetect
+import fontAwesome.freeSolid
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{ Ownable, UI }
-import wust.css.Styles
-import wust.ids._
-import wust.sdk.Colors
-import wust.util._
-import wust.webApp._
-import wust.webApp.dragdrop.DragItem
-import wust.webApp.state._
-import wust.webApp.views.Components._
-import wust.webApp.views.DragComponents.{ drag, registerDragContainer }
-
-import scala.collection.breakOut
-import scala.scalajs.js
-import snabbdom.VNodeProxy
 import wust.facades.announcekit._
-import org.scalajs.dom.console
-import fontAwesome.freeSolid
+import wust.webApp._
+import wust.webApp.state._
 import wust.webUtil.Elements.safeTargetBlank
+import wust.webUtil.outwatchHelpers._
+
+import scala.scalajs.js
+import scala.util.Try
 
 // https://announcekit.app/docs
 

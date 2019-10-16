@@ -10,8 +10,6 @@ import outwatch.dom.dsl.events
 import outwatch.reactive._
 import rx._
 import vectory._
-import wust.webUtil.BrowserDetect
-import wust.webUtil.outwatchHelpers._
 import wust.graph._
 import wust.ids._
 import wust.util.macros.InlineList
@@ -20,6 +18,8 @@ import wust.webApp.dragdrop.{DragItem, DragPayload, DragTarget}
 import wust.webApp.state.{FocusPreference, FocusState, GlobalState}
 import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.{drag, registerDragContainer}
+import wust.webUtil.BrowserDetect
+import wust.webUtil.outwatchHelpers._
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._

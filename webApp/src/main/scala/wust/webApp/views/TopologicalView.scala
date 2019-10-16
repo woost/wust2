@@ -1,6 +1,5 @@
 package wust.webApp.views
 
-import outwatch.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
@@ -8,7 +7,6 @@ import wust.css.Styles
 import wust.graph._
 import wust.ids._
 import wust.util._
-import wust.webApp.dragdrop.DragItem
 import wust.webApp.state.{FocusState, GlobalState}
 import wust.webApp.views.DragComponents.registerDragContainer
 import wust.webUtil.outwatchHelpers._

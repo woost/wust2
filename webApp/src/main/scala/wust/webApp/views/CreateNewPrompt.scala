@@ -1,27 +1,20 @@
 package wust.webApp.views
 
-import colorado.{ Color, RGB }
-import wust.facades.fomanticui.DropdownEntry
-import fontAwesome.{ IconLookup, freeRegular, freeSolid }
+import fontAwesome.{IconLookup, freeSolid}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.reactive._
 import rx._
-import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{ ModalConfig, Ownable, UI }
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
-import wust.sdk.NodeColor
 import wust.util._
+import wust.util.macros.SubObjects
+import wust.webApp.Icons
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
-
-import scala.concurrent.Future
-import wust.webApp.Icons
-import wust.sdk.Colors
-import shapeless.Select
-import wust.util.macros.SubObjects
+import wust.webUtil.outwatchHelpers._
+import wust.webUtil.{ModalConfig, Ownable, UI}
 
 object CreateNewPrompt {
 

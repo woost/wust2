@@ -3,15 +3,10 @@ package wust.webApp
 import fontAwesome._
 import outwatch.dom._
 import outwatch.dom.dsl._
-import rx._
 import wust.css.Styles
-import wust.facades.googleanalytics.GoogleAnalytics
 import wust.graph._
 import wust.ids._
-import wust.webApp.state._
-import wust.webApp.views.Components
-import wust.webApp.views.Components._
-import wust.webUtil.{Elements, UI}
+import wust.webUtil.UI
 import wust.webUtil.outwatchHelpers._
 
 final case class PermissionDescription(

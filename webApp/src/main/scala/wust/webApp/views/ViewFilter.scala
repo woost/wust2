@@ -1,19 +1,12 @@
 package wust.webApp.views
 
-import flatland.ArraySet
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.ext.monix._
 import rx._
-import wust.facades.googleanalytics.GoogleAnalytics
-import wust.graph.{ Edge, Graph, GraphChanges }
+import wust.graph.GraphChanges
 import wust.ids._
-import wust.util.macros.InlineList
-import wust.webApp.Icons
-import wust.webApp.search.Search
-import wust.webApp.state.{ GlobalState, ScreenSize }
+import wust.webApp.state.{FeatureState, GlobalState, ScreenSize}
 import wust.webUtil.outwatchHelpers._
-import wust.webApp.state.FeatureState
 
 object ViewFilter {
 

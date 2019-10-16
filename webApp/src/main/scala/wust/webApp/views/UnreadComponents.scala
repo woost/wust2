@@ -1,39 +1,21 @@
 package wust.webApp.views
 
-import wust.api.AuthUser
 import acyclic.file
-import wust.webUtil.outwatchHelpers._
-import wust.facades.emojijs.EmojiConvertor
-import wust.facades.fomanticui.{SearchOptions, SearchSourceEntry}
-import wust.facades.jquery.JQuerySelection
-import wust.facades.marked.Marked
 import fontAwesome._
-import org.scalajs.dom
-import outwatch.reactive._
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
+import outwatch.reactive._
 import rx._
-import wust.webUtil.Elements._
-import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{BrowserDetect, Elements, Ownable, UI}
-import wust.css.{CommonStyles, Styles}
 import wust.graph._
 import wust.ids._
-import wust.sdk.NodeColor._
-import wust.sdk.{BaseColors, Colors, NodeColor}
-import wust.util.StringOps._
-import wust.util._
+import wust.sdk.Colors
 import wust.util.macros.InlineList
 import wust.webApp._
-import wust.webApp.dragdrop._
 import wust.webApp.jsdom.{IntersectionObserver, IntersectionObserverOptions}
-import wust.webApp.state.{EmojiReplacer, FocusPreference, GlobalState}
-import wust.webApp.views.UploadComponents._
-
-import scala.collection.breakOut
-import scala.scalajs.js
-import scala.scalajs.js.JSConverters._
+import wust.webApp.state.GlobalState
+import wust.webUtil.UI
+import wust.webUtil.outwatchHelpers._
 
 // This file contains woost-related UI helpers.
 

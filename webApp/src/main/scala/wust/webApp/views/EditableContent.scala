@@ -4,20 +4,17 @@ import monix.eval.Task
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl.{emitter, _}
-import outwatch.ext.monix._
+import outwatch.dom.helpers.EmitterBuilder
 import outwatch.reactive._
 import outwatch.reactive.handler._
-import outwatch.dom.helpers.EmitterBuilder
 import rx._
+import wust.css.ZIndex
+import wust.graph._
 import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{BrowserDetect, Elements, UI}
-import wust.graph._
-import wust.webApp.state.GlobalState
-import wust.css.{Styles, ZIndex}
+import wust.webUtil.{BrowserDetect, UI}
 
 import scala.concurrent.duration._
-import scala.scalajs.js
 
 object EditableContent {
   private val currentlyEditingSubject = SinkSourceHandler.publish[Boolean]

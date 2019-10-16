@@ -3,19 +3,17 @@ package wust.webApp.views
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.css.{ Styles, ZIndex }
+import wust.css.{Styles, ZIndex}
 import wust.graph._
 import wust.ids._
 import wust.util._
 import wust.webApp.dragdrop.DragItem
-import wust.webApp.state.{ GlobalState, NodePermission, ScreenSize }
+import wust.webApp.state.GlobalState.SelectedNode
+import wust.webApp.state.{GlobalState, NodePermission, ScreenSize}
 import wust.webApp.views.Components._
-import wust.webApp.views.DragComponents.{ drag, registerDragContainer }
+import wust.webApp.views.DragComponents.{drag, registerDragContainer}
 import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
-import GlobalState.SelectedNode
-
-import scala.collection.breakOut
 
 object SelectedNodes {
   def apply(nodeActions: (Vector[SelectedNode], Boolean) => List[VNode] = (_: Vector[SelectedNode], _: Boolean) => Nil, singleNodeActions: (SelectedNode, Boolean) => List[VNode] = (_: SelectedNode, _: Boolean) => Nil)(implicit ctx: Ctx.Owner): VNode = {

@@ -1,22 +1,19 @@
 package wust.webApp.views
 
 import monix.eval.Task
-import wust.webUtil.UI
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.ext.monix._
+import outwatch.dom.helpers.EmitterBuilder
 import outwatch.reactive._
 import outwatch.reactive.handler._
-import outwatch.dom.helpers.EmitterBuilder
 import rx._
-import wust.webUtil.Elements
-import wust.webUtil.outwatchHelpers._
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
 import wust.webApp._
-import wust.webApp.state.GlobalState
+import wust.webUtil.{Elements, UI}
+import wust.webUtil.outwatchHelpers._
 
 import scala.reflect.ClassTag
 import scala.scalajs.js

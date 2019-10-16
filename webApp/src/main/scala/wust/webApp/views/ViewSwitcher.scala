@@ -1,11 +1,6 @@
 package wust.webApp.views
 
-import outwatch.dom.helpers.{ EmitterBuilder, PropBuilder, SyncEmitterBuilder }
 import cats.data.NonEmptyList
-import cats.syntax._
-import cats.implicits._
-import wust.css.{ Styles, ZIndex }
-import flatland._
 import fontAwesome._
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -13,15 +8,12 @@ import outwatch.dom.helpers.EmitterBuilder
 import outwatch.reactive._
 import rx._
 import wust.css.Styles
-import wust.graph.{ GraphChanges, Node }
 import wust.ids._
 import wust.sdk.Colors
 import wust.webApp._
 import wust.webApp.state._
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{ BrowserDetect, Elements, Ownable, UI }
-
-import scala.reflect.ClassTag
+import wust.webUtil.{BrowserDetect, UI}
 
 object ViewSwitcher {
   def viewToTabInfo(view: View, numMsg: Int, numTasks: Int, numFiles: Int): TabInfo = view match {

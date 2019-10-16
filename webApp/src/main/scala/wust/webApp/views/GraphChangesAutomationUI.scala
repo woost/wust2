@@ -1,29 +1,25 @@
 package wust.webApp.views
 
-import wust.css.ZIndex
-import outwatch.dom.helpers.EmitterBuilder
-import outwatch.reactive._
+import com.github.ghik.silencer.silent
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.dom.helpers.EmitterBuilder
 import outwatch.ext.monix._
+import outwatch.reactive._
 import rx.{Ctx, Rx, Var}
-import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{BrowserDetect, ModalConfig, Ownable, UI}
-import wust.css.Styles
+import wust.css.{Styles, ZIndex}
 import wust.graph.{Edge, GraphChanges, Node}
 import wust.ids._
 import wust.sdk.BaseColors
 import wust.sdk.NodeColor._
+import wust.util.StringOps
 import wust.webApp.Icons
 import wust.webApp.dragdrop.DragItem
-import wust.webApp.state.{FocusPreference, GlobalState, GraphChangesAutomation}
-import wust.webApp.views.Components._
-import wust.webUtil.Elements
-import wust.util.StringOps
-import com.github.ghik.silencer.silent
+import wust.webApp.state.{FeatureState, FocusPreference, GlobalState, GraphChangesAutomation}
+import wust.webUtil.outwatchHelpers._
+import wust.webUtil._
 
 import scala.collection.breakOut
-import wust.webApp.state.FeatureState
 
 // Offers methods for rendering components for the GraphChangesAutomation.
 

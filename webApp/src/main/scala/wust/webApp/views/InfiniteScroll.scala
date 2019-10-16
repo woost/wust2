@@ -1,15 +1,14 @@
 package wust.webApp.views
 
-import outwatch.reactive._
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.ext.monix._
 import outwatch.dom.helpers.EmitterBuilder
+import outwatch.reactive._
 import rx.{Ctx, Rx}
-import wust.webUtil.outwatchHelpers._
 import wust.css.Styles
 import wust.webApp.jsdom.{IntersectionObserver, IntersectionObserverOptions}
+import wust.webUtil.outwatchHelpers._
 
 object InfiniteScroll {
 

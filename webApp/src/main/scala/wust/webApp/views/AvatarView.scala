@@ -3,11 +3,9 @@ package wust.webApp.views
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx.Ctx
-import wust.webUtil.outwatchHelpers._
 import wust.css.Styles
-import wust.ids.{Cuid, NodeId}
 import wust.util.time.StopWatch
-import wust.webApp.state.GlobalState
+import wust.webUtil.outwatchHelpers._
 
 object AvatarView {
   def apply(implicit ctx: Ctx.Owner) = {

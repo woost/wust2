@@ -1,18 +1,15 @@
 package wust.webApp.state
 
-import wust.webApp.views._
-import flatland._
 import acyclic.file
+import org.scalajs.dom.console
 import outwatch.dom._
 import outwatch.dom.dsl._
-import scala.scalajs.js
-import wust.webApp.{ DevOnly, DebugOnly }
-import org.scalajs.dom.console
-import wust.ids.{ Feature, View }
-import wust.util.macros.SubObjects
-import wust.webApp.views.ViewGraphTransformation
+import wust.ids.{Feature, View}
+import wust.webApp.{DebugOnly, Icons}
+import wust.webApp.views.{ViewGraphTransformation, _}
 import wust.webUtil.outwatchHelpers._
-import wust.webApp.Icons
+
+import scala.scalajs.js
 
 case class FeatureDetails(
   title: String,

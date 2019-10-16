@@ -3,11 +3,11 @@ package wust.webApp.views.graphview
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.webUtil.outwatchHelpers._
 import wust.css.ZIndex
 import wust.ids._
 import wust.webApp.dragdrop.{DragActions, DragItem, DragPayload, DragTarget}
 import wust.webApp.state.{FocusState, GlobalState, PageStyle}
+import wust.webUtil.outwatchHelpers._
 
 import scala.scalajs.LinkingInfo
 

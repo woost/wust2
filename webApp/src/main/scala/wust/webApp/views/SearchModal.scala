@@ -1,18 +1,17 @@
 package wust.webApp.views
 
 import flatland.ArraySet
-import outwatch.reactive._
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.reactive._
 import rx._
 import wust.graph._
 import wust.webApp._
 import wust.webApp.search.Search
 import wust.webApp.state._
-import wust.webApp.views.Components._
-import wust.webUtil.{Elements, ModalConfig}
 import wust.webUtil.outwatchHelpers._
+import wust.webUtil.{Elements, ModalConfig}
 
 object SearchModal {
 

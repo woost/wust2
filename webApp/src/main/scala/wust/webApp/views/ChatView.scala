@@ -6,9 +6,6 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.reactive._
 import rx._
-import wust.webUtil.Elements._
-import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{BrowserDetect, Ownable}
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
@@ -20,10 +17,13 @@ import wust.util.collection._
 import wust.util.macros.InlineList
 import wust.webApp.Icons
 import wust.webApp.dragdrop.{DragItem, _}
+import wust.webApp.state.GlobalState.SelectedNode
 import wust.webApp.state._
 import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.{drag, registerDragContainer}
-import GlobalState.SelectedNode
+import wust.webUtil.Elements._
+import wust.webUtil.outwatchHelpers._
+import wust.webUtil.{BrowserDetect, Ownable}
 
 import scala.collection.{breakOut, mutable}
 import scala.scalajs.js

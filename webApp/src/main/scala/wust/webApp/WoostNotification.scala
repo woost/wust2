@@ -1,22 +1,17 @@
 package wust.webApp
 
-import wust.facades.googleanalytics.GoogleAnalytics
 import fontAwesome._
 import org.scalajs.dom.experimental.permissions.PermissionState
+import outwatch.dom._
+import outwatch.dom.dsl._
+import outwatch.ext.monix._
 import rx.{Ctx, Rx}
 import wust.graph.Node.User
 import wust.graph._
 import wust.webApp.jsdom.Notifications
 import wust.webApp.state._
-import wust.webApp.views.Components._
-import wust.webApp.views._
 import wust.webUtil.Elements
 import wust.webUtil.outwatchHelpers._
-import wust.ids.Feature
-
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.ext.monix._
 
 final case class NotificationState(
   permissionState: PermissionState,

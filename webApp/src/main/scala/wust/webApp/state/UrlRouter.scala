@@ -2,9 +2,9 @@ package wust.webApp.state
 
 import org.scalajs.dom.raw.HashChangeEvent
 import org.scalajs.dom.window
-import wust.webApp.parsers.UrlConfigWriter
 import outwatch.dom.dsl._
 import rx._
+import wust.webApp.parsers.UrlConfigWriter
 
 object UrlRouter {
   private def locationRoute = {

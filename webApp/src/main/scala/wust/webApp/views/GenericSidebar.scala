@@ -1,14 +1,14 @@
 package wust.webApp.views
 
-import wust.facades.fomanticui.{JQuerySelectionWithFomanticUI, SidebarOptions}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.reactive._
 import rx._
+import wust.css.ZIndex
+import wust.facades.fomanticui.SidebarOptions
 import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{BrowserDetect, Ownable}
-import wust.css.ZIndex
 
 import scala.scalajs.js.JSConverters._
 

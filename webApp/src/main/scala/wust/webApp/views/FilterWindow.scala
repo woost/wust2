@@ -1,16 +1,14 @@
 package wust.webApp.views
 
-import wust.css.Styles
-import outwatch.dom.{ VDomModifier, _ }
 import outwatch.dom.dsl._
-import rx.{ Ctx, Rx }
-import wust.facades.googleanalytics.GoogleAnalytics
-import wust.webApp.Icons
-import wust.webApp.state.GlobalState
-import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{ Elements, Ownable }
-import wust.webApp.state.FeatureState
+import outwatch.dom.{VDomModifier, _}
+import rx.{Ctx, Rx}
+import wust.css.Styles
 import wust.ids.Feature
+import wust.webApp.Icons
+import wust.webApp.state.{FeatureState, GlobalState}
+import wust.webUtil.outwatchHelpers._
+import wust.webUtil.{Elements, Ownable}
 
 object FilterWindow {
   val resetAllFiltersText = "Reset all filters"

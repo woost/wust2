@@ -5,9 +5,6 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.ext.monix._
 import rx._
-import wust.webUtil.Elements._
-import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{BrowserDetect, Ownable, UI}
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
@@ -17,9 +14,11 @@ import wust.util.collection._
 import wust.webApp.Icons
 import wust.webApp.dragdrop.{DragContainer, DragItem}
 import wust.webApp.state._
-import wust.webUtil.Elements
 import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.registerDragContainer
+import wust.webUtil.Elements._
+import wust.webUtil.outwatchHelpers._
+import wust.webUtil.{BrowserDetect, Elements, Ownable, UI}
 
 object KanbanView {
 

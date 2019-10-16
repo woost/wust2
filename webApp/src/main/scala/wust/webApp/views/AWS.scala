@@ -1,26 +1,23 @@
 package wust.webApp.views
 
-import wust.facades.googleanalytics.GoogleAnalytics
-import wust.facades.jsSha256.Sha256
 import monix.eval.Task
 import org.scalajs.dom
 import org.scalajs.dom.FormData
 import org.scalajs.dom.raw.XMLHttpRequest
-import wust.webUtil.UI
-import wust.webUtil.outwatchHelpers._
 import wust.api.{ApiEvent, AuthUser, FileUploadConfiguration}
+import wust.facades.canvasImageUploader._
+import wust.facades.googleanalytics.GoogleAnalytics
+import wust.facades.jsSha256.Sha256
 import wust.graph._
 import wust.ids._
-import wust.webApp.Client
+import wust.webApp.{Client, DebugOnly}
 import wust.webApp.jsdom.FileReaderOps
 import wust.webApp.state.{GlobalState, UploadingFile}
-import wust.webApp.DebugOnly
+import wust.webUtil.UI
+import wust.webUtil.outwatchHelpers._
 
 import scala.concurrent.{Future, Promise}
 import scala.util.{Failure, Success}
-import scala.scalajs.js
-import scala.scalajs.js.annotation.JSImport
-import wust.facades.canvasImageUploader._
 
 object AWS {
   private def rotateImageByExifOrientation(file:dom.File):Future[dom.Blob] = {

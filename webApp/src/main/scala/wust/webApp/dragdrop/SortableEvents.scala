@@ -1,15 +1,13 @@
 package wust.webApp.dragdrop
 
 import org.scalajs.dom
-import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.raw.HTMLElement
 import wust.facades.draggable._
 import wust.webApp.DebugOnly
 import wust.webApp.dragdrop.DragValidation._
 import wust.webApp.state.GlobalState
-import wust.webApp.views.DragComponents.{ readDragContainer, readDragPayload, readDragTarget, writeDragPayload }
-import wust.webUtil.{ BrowserDetect, JSDefined }
-import wust.webUtil.outwatchHelpers._
+import wust.webApp.views.DragComponents.{readDragContainer, readDragPayload, readDragTarget, writeDragPayload}
+import wust.webUtil.JSDefined
 
 import scala.scalajs.js
 

@@ -1,30 +1,27 @@
 package wust.webApp
 
 import cats.effect.IO
-import wust.facades.wdtEmojiBundle._
 import colorado.HCL
+import org.scalajs.dom
+import org.scalajs.dom.{console, document}
+import outwatch.dom._
+import rx._
+import wust.api.ApiEvent
 import wust.facades.defaultPassiveEvents.DefaultPassiveEvents
 import wust.facades.dompurify.DOMPurify
-import wust.facades.intersectionObserver.IntersectionObserver
 import wust.facades.emojijs.EmojiConvertor
 import wust.facades.fomanticui.SearchResults
 import wust.facades.highlightjs.Highlight
+import wust.facades.intersectionObserver.IntersectionObserver
 import wust.facades.jquery.JQuery
 import wust.facades.marked.{Marked, MarkedOptions, Renderer}
-import org.scalajs.dom.{console, document}
-import org.scalajs.dom
-import outwatch.dom._
-import rx._
-import wust.webUtil.Elements
-import wust.webUtil.outwatchHelpers._
-import wust.api.ApiEvent
+import wust.facades.wdtEmojiBundle._
 import wust.graph.Node
-import wust.ids._
 import wust.webApp.dragdrop.SortableEvents
-import wust.webApp.jsdom.ServiceWorker
 import wust.webApp.state.{GlobalState, GlobalStateFactory}
 import wust.webApp.views.{GenericSidebar, MainView, Modal}
-import wust.webUtil.JSDefined
+import wust.webUtil.{Elements, JSDefined}
+import wust.webUtil.outwatchHelpers._
 
 import scala.scalajs.js.JSON
 import scala.scalajs.{LinkingInfo, js}

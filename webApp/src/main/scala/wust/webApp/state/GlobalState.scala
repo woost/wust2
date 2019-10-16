@@ -1,44 +1,28 @@
 package wust.webApp.state
 
-import scala.util.Try
-import com.github.ghik.silencer.silent
 import acyclic.file
+import com.github.ghik.silencer.silent
 import org.scalajs.dom.experimental.permissions.PermissionState
+import org.scalajs.dom.window
+import outwatch.dom.dsl.events
+import outwatch.ext.monix._
+import outwatch.reactive._
 import rx._
 import wust.api._
-import wust.facades.googleanalytics.GoogleAnalytics
 import wust.graph._
 import wust.ids._
 import wust.sdk._
-import wust.webApp.jsdom.Notifications
+import wust.webApp.jsdom.{Notifications, ServiceWorker}
+import wust.webApp.parsers.{UrlConfigParser, UrlConfigWriter}
 import wust.webApp.views._
+import wust.webApp.{Client, WoostConfig}
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{ ModalConfig, Ownable }
-import scala.scalajs.{ LinkingInfo, js }
-import wust.webApp.jsdom.ServiceWorker
-import wust.facades.googleanalytics.GoogleAnalytics
-import monix.eval.Task
-import org.scalajs.dom
-import org.scalajs.dom.window
-import rx._
-import outwatch.dom.dsl.events
-import outwatch.reactive._
-import outwatch.ext.monix._
-import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{ BrowserDetect, UI }
-import wust.api.ApiEvent.ReplaceGraph
-import wust.graph._
-import wust.ids._
-import wust.sdk._
-import wust.util.StringOps
-import wust.webApp.jsdom.{ Navigator, ServiceWorker }
-import wust.webApp.parsers.{ UrlConfigParser, UrlConfigWriter }
-import wust.webApp.{ Client, DevOnly, WoostConfig }
-import wust.facades.wdtEmojiBundle.wdtEmojiBundle
-import scala.concurrent.duration._
-import scala.util.{ Failure, Success }
+import wust.webUtil.{BrowserDetect, ModalConfig, Ownable}
 
-import scala.collection.{ breakOut, mutable }
+import scala.collection.{breakOut, mutable}
+import scala.concurrent.duration._
+import scala.scalajs.{LinkingInfo, js}
+import scala.util.Try
 
 object GlobalState {
   implicit val ctx: Ctx.Owner = Ctx.Owner.safe()

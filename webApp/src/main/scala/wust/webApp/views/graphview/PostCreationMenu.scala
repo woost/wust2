@@ -7,11 +7,11 @@ import outwatch.dom.dsl.styles.extra._
 import outwatch.reactive.handler._
 import rx._
 import vectory._
-import wust.webUtil.Elements._
-import wust.webUtil.outwatchHelpers._
 import wust.graph._
 import wust.ids._
 import wust.webApp.state.{FocusState, GlobalState, Placeholder}
+import wust.webUtil.Elements._
+import wust.webUtil.outwatchHelpers._
 
 object PostCreationMenu {
   def apply(focusState: FocusState, pos: Vec2, transformRx: Rx[d3.Transform])(

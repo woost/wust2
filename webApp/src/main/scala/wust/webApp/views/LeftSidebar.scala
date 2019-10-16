@@ -1,31 +1,26 @@
 package wust.webApp.views
 
-import wust.webApp.Icons
-import wust.facades.googleanalytics.GoogleAnalytics
 import fontAwesome.{freeSolid, _}
 import org.scalajs.dom
-import org.scalajs.dom.window
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.reactive._
 import outwatch.ext.monix._
+import outwatch.reactive._
 import rx._
-import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{Ownable, UI}
 import wust.css.{CommonStyles, Styles}
 import wust.graph._
-import wust.ids._
+import wust.ids.{Feature, _}
 import wust.sdk.{BaseColors, Colors, NodeColor}
-import wust.webApp.{Client, Permission}
 import wust.webApp.dragdrop.{DragItem, _}
 import wust.webApp.state._
 import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.{drag, registerDragContainer}
+import wust.webApp.views.NewProjectPrompt._
 import wust.webApp.views.SharedViewElements._
+import wust.webApp.{Client, Icons, Permission}
 import wust.webUtil.Elements._
-import NewProjectPrompt._
-import wust.ids.Feature
-import scala.concurrent.duration._
+import wust.webUtil.outwatchHelpers._
+import wust.webUtil.{Ownable, UI}
 
 import scala.concurrent.duration.DurationInt
 import scala.scalajs.js

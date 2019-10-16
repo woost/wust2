@@ -1,33 +1,27 @@
 package wust.webApp.views
 
-import fontAwesome._
 import cats.data.NonEmptyList
-import wust.webApp.jsdom.{Navigator, ShareData}
+import fontAwesome._
 import org.scalajs.dom
 import outwatch.dom._
-import outwatch.reactive.handler._
-import outwatch.ext.monix._
-import outwatch.dom.helpers.EmitterBuilder
-import wust.webApp.parsers.UrlConfigWriter
-import wust.webUtil.{ Ownable, UI, BrowserDetect}
 import outwatch.dom.dsl._
+import outwatch.dom.helpers.EmitterBuilder
+import outwatch.reactive.handler._
 import rx._
-import wust.webUtil.{Elements, ModalConfig}
-import wust.webUtil.outwatchHelpers._
-import wust.api.ApiEvent
+import wust.css.Styles
 import wust.graph.Node.User
 import wust.graph._
 import wust.ids._
-import wust.css.Styles
-import wust.sdk.Colors
 import wust.util.StringOps
 import wust.webApp._
-import wust.webApp.jsdom.FormValidator
+import wust.webApp.jsdom.{FormValidator, Navigator, ShareData}
+import wust.webApp.parsers.UrlConfigWriter
 import wust.webApp.state._
 import wust.webApp.views.Components._
 import wust.webUtil.Elements._
+import wust.webUtil.outwatchHelpers._
+import wust.webUtil.{Elements, ModalConfig, Ownable, UI}
 
-import scala.scalajs.js
 import scala.util.{Failure, Success}
 
 object MembersModal {
@@ -464,7 +458,7 @@ object MembersModal {
   }
 
   private def shareModifiers(channel: Node, shareUrl: String)(implicit ctx: Ctx.Owner): EmitterBuilder[NeedAction, VDomModifier] = EmitterBuilder { needAction =>
-    import scala.concurrent.duration._
+
 
     val shareTitle = StringOps.trimToMaxLength(channel.data.str, 15)
     val shareDesc = s"Share: $shareTitle"

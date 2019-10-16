@@ -1,23 +1,20 @@
 package wust.webApp.views
 
-import wust.facades.googleanalytics.GoogleAnalytics
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.ext.monix._
 import rx._
-import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{BrowserDetect, Elements, Ownable, UI}
 import wust.graph._
 import wust.ids._
 import wust.sdk.{BaseColors, NodeColor}
 import wust.util._
 import wust.webApp._
 import wust.webApp.state._
-import wust.webApp.views.Components._
+import wust.webUtil.outwatchHelpers._
+import wust.webUtil.{Elements, Ownable, UI}
 
 import scala.collection.breakOut
-import scala.util.{Failure, Success}
 
 
 object PageSettingsMenu {

@@ -1,11 +1,11 @@
 package wust.webApp.views
 
 import flatland.{ArraySet, _}
-import wust.graph.{Node, Graph}
+import wust.graph.{Graph, Node}
 import wust.ids.{NodeId, NodeRole, UserId}
 import wust.util.algorithm.dfs
-import wust.webApp.state.TraverseState
 import wust.util.collection._
+import wust.webApp.state.TraverseState
 
 import scala.collection.{breakOut, mutable}
 

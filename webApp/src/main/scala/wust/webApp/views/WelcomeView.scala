@@ -4,16 +4,12 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.css.Styles
-import wust.facades.googleanalytics.GoogleAnalytics
-import wust.ids.View
-import wust.util._
-import wust.webApp.state.{ GlobalState, ScreenSize }
-import wust.webApp.views.Components._
-import wust.webApp.views.SharedViewElements._
-import wust.webUtil.outwatchHelpers._
-import wust.webApp.state.FeatureState
-import wust.ids.Feature
 import wust.graph.Node
+import wust.ids.Feature
+import wust.util._
+import wust.webApp.state.{FeatureState, GlobalState, ScreenSize}
+import wust.webApp.views.Components._
+import wust.webUtil.outwatchHelpers._
 
 object WelcomeView {
   def apply(implicit ctx: Ctx.Owner) = {

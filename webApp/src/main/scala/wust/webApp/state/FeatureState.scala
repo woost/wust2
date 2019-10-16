@@ -1,28 +1,21 @@
 package wust.webApp.state
 
-import org.scalajs.dom.console
-import scala.scalajs.js
-import wust.util.time.time
-import collection.mutable
-import wust.webApp.{ DevOnly, DebugOnly }
 import acyclic.file
-import rx._
-import wust.ids.{ Feature, _ }
-import wust.webUtil.Elements.defer
-import wust.webApp.Client
-import wust.webUtil.UI
-import UI.ToastLevel
-import wust.api.UsedFeature
-import wust.facades.googleanalytics.GoogleAnalytics
-
 import outwatch.reactive._
-
-import scala.collection.breakOut
-import scala.concurrent.ExecutionContext
-import wust.api.AuthUser
-import scala.util.Success
-import wust.facades.fullstory.FS
+import rx._
+import wust.api.{AuthUser, UsedFeature}
 import wust.facades.amplitude.Amplitude
+import wust.facades.fullstory.FS
+import wust.facades.googleanalytics.GoogleAnalytics
+import wust.ids.{Feature, _}
+import wust.util.time.time
+import wust.webApp.{Client, DebugOnly, DevOnly}
+import wust.webUtil.Elements.defer
+import wust.webUtil.UI
+import wust.webUtil.UI.ToastLevel
+
+import scala.collection.{breakOut, mutable}
+import scala.concurrent.ExecutionContext
 
 object FeatureState {
   //TODO: show next on loading screen?

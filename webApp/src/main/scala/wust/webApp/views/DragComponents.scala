@@ -4,13 +4,12 @@ import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
+import snabbdom.VNodeProxy
+import wust.webApp.dragdrop._
 import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
-import wust.webApp.dragdrop._
-import wust.webApp.state.GlobalState
 
 import scala.scalajs.js
-import snabbdom.VNodeProxy
 
 object DragComponents {
   def onAfterPayloadWasDragged: EmitterBuilder[Unit, VDomModifier] =

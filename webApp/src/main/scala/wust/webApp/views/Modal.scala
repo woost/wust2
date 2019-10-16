@@ -1,14 +1,14 @@
 package wust.webApp.views
 
-import outwatch.dom.dsl._
 import outwatch.dom._
+import outwatch.dom.dsl._
 import outwatch.reactive._
 import rx._
 import wust.css.Styles
 import wust.facades.fomanticui.ModalOptions
 import wust.webApp.views.Components._
-import wust.webUtil.{ModalConfig, Ownable}
 import wust.webUtil.outwatchHelpers._
+import wust.webUtil.{ModalConfig, Ownable}
 
 import scala.scalajs.js
 
@@ -16,7 +16,6 @@ import scala.scalajs.js
 object Modal {
   import wust.graph.Node
   import wust.sdk.{BaseColors, NodeColor}
-  import wust.webApp.state.GlobalState
 
   @inline def defaultHeader(node: Node, modalHeader: VDomModifier, icon: VDomModifier)(implicit ctx: Ctx.Owner): VDomModifier = defaultHeader( Some(node), modalHeader, icon)
   @inline def defaultHeader(modalHeader: VDomModifier, icon: VDomModifier)(implicit ctx: Ctx.Owner): VDomModifier = defaultHeader( None, modalHeader, icon)

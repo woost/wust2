@@ -1,19 +1,9 @@
 package wust.webApp.views
 
-import fontAwesome.freeSolid
-import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
-import rx._
-import wust.webUtil.BrowserDetect
-import wust.webUtil.outwatchHelpers._
-import wust.css.{ Styles, ZIndex }
-import wust.sdk.Colors
-import wust.webApp.WoostNotification
-import wust.webApp.state.{ GlobalState, ScreenSize }
-import wust.webApp.views.Components._
 import wust.facades.wdtEmojiBundle._
-import wust.webUtil.Elements.{onGlobalEscape, onGlobalClick}
+import wust.webUtil.Elements.onGlobalEscape
 
 object EmojiPicker {
   def apply() = {

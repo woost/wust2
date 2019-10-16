@@ -1,7 +1,7 @@
 package wust.webApp.dragdrop
 
-import wust.facades.draggable.SortableStopEvent
 import org.scalajs.dom.raw.HTMLElement
+import wust.facades.draggable.SortableStopEvent
 import wust.graph.{Edge, GraphChanges, _}
 import wust.ids._
 

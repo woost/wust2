@@ -9,7 +9,6 @@ import wust.graph.SemanticNodeRole
 import wust.ids.{NodeRole, View}
 import wust.webApp.Icons
 import wust.webApp.state.{FocusState, GlobalState, _}
-import wust.webApp.views.Components._
 import wust.webUtil.Elements
 import wust.webUtil.outwatchHelpers._
 

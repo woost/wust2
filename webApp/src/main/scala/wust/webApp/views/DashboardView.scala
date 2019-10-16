@@ -1,21 +1,20 @@
 package wust.webApp.views
 
-import fontAwesome.freeSolid
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.ext.monix._
 import rx._
-import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{ BrowserDetect, Elements, UI }
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
 import wust.util.collection._
-import wust.webApp.{Permission, Icons}
 import wust.webApp.dragdrop.DragItem
-import wust.webApp.state.{ FocusState, GlobalState, Placeholder, EmojiReplacer, FeatureState }
+import wust.webApp.state.{EmojiReplacer, FeatureState, FocusState, GlobalState}
 import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.registerDragContainer
+import wust.webApp.{Icons, Permission}
+import wust.webUtil.outwatchHelpers._
+import wust.webUtil.{BrowserDetect, UI}
 
 // Shows overview over a project:
 // - subprojects

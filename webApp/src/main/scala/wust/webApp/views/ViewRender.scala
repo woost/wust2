@@ -4,7 +4,7 @@ import acyclic.file
 import outwatch.dom.{VNode, dsl}
 import rx._
 import wust.ids.View
-import wust.webApp.state.{FocusState, GlobalState}
+import wust.webApp.state.FocusState
 import wust.webApp.views.graphview.GraphView
 
 object ViewRender extends ViewRenderLike {

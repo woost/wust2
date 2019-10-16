@@ -1,24 +1,23 @@
 package wust.webApp.views
 
-import wust.ids.Feature
-import wust.webApp.state.FeatureState
 import fontAwesome.IconDefinition
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.reactive.handler._
 import outwatch.ext.monix._
+import outwatch.reactive.handler._
 import rx._
 import wust.api._
 import wust.css.Styles
 import wust.facades.googleanalytics.GoogleAnalytics
-import wust.ids._
 import wust.graph._
+import wust.ids.{Feature, _}
 import wust.webApp._
 import wust.webApp.jsdom.FormValidator
-import wust.webApp.state.GlobalState
+import wust.webApp.state.{FeatureState, GlobalState}
 import wust.webApp.views.Components._
 import wust.webUtil.Elements._
+import wust.webUtil.UI.ToastLevel
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{Elements, UI}
 
@@ -26,7 +25,6 @@ import scala.concurrent.Future
 import scala.scalajs.js
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success}
-import wust.webUtil.UI.ToastLevel
 
 object UserSettingsView {
 

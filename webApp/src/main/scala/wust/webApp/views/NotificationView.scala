@@ -1,31 +1,25 @@
 package wust.webApp.views
 
-import wust.webApp.state._
-import wust.util.collection._
-import scala.scalajs.js
-import wust.facades.dateFns.DateFns
 import flatland._
-import fontAwesome.{ IconDefinition, freeRegular, freeSolid }
+import fontAwesome.{IconDefinition, freeRegular, freeSolid}
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.dom.helpers.EmitterBuilder
 import rx._
-import wust.webUtil.Elements.onClickDefault
-import wust.webUtil.BrowserDetect
-import wust.webUtil.outwatchHelpers._
-import wust.api.AuthUser
 import wust.css.Styles
+import wust.facades.dateFns.DateFns
 import wust.graph._
 import wust.ids._
 import wust.sdk.Colors
-import wust.util.macros.InlineList
+import wust.util.collection._
 import wust.webApp.Icons
-import wust.webApp.state.{ FocusState, GlobalState }
+import wust.webApp.state.{FocusState, GlobalState, _}
 import wust.webApp.views.Components._
-import SharedViewElements._
-import wust.webUtil.UI
+import wust.webUtil.Elements.onClickDefault
+import wust.webUtil.{BrowserDetect, UI}
+import wust.webUtil.outwatchHelpers._
 
-import scala.collection.{ breakOut, mutable }
+import scala.collection.breakOut
+import scala.scalajs.js
 import scala.scalajs.js.Date
 
 // Unread view, this view is for showing all new unread items in the current page.

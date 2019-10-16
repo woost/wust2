@@ -1,33 +1,24 @@
 package wust.webApp.views
 
-import wust.facades.crisp._
-import scala.util.Try
-import scala.scalajs.js
-import wust.facades.googleanalytics.GoogleAnalytics
-import wust.facades.nolt.{ NoltData, nolt }
 import fontAwesome._
-import org.scalajs.dom.window
-import org.scalajs.dom.window.{ clearTimeout, navigator, setTimeout }
+import org.scalajs.dom.window.{clearTimeout, setTimeout}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.reactive.handler._
 import rx._
+import wust.api.AuthUser.{Implicit, Real}
+import wust.css.{Styles, ZIndex}
+import wust.facades.crisp._
+import wust.facades.nolt.{NoltData, nolt}
+import wust.ids.Feature
+import wust.sdk.Colors
+import wust.webApp.{Client, DeployedOnly}
+import wust.webApp.state.{FeatureState, GlobalState}
 import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
-import wust.api.ClientInfo
-import wust.css.{ Styles, ZIndex }
-import wust.sdk.Colors
-import wust.webApp.Client
-import wust.webApp.state.{ GlobalState, ScreenSize }
-import wust.webApp.views.Components._
-import wust.ids.Feature
-import wust.webApp.state.FeatureState
 
-import scala.scalajs.LinkingInfo
-import scala.util.{ Failure, Success }
-import wust.webApp.DeployedOnly
-import wust.api.AuthUser.Implicit
-import wust.api.AuthUser.Real
+import scala.scalajs.js
+import scala.util.{Failure, Success, Try}
 
 object FeedbackForm {
 

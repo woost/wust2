@@ -6,24 +6,21 @@ import org.scalajs.dom
 import org.scalajs.dom.experimental._
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.reactive._
-import outwatch.ext.monix._
 import outwatch.dom.helpers.EmitterBuilder
+import outwatch.ext.monix._
+import outwatch.reactive._
 import rx.{Ctx, Rx, Var}
-import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{Elements, ModalConfig, Ownable, UI}
 import wust.css.Styles
 import wust.external.{meistertask, trello, wunderlist}
 import wust.graph._
 import wust.ids._
 import wust.util.StringOps
-import wust.util.collection._
-import wust.webApp.{WoostConfig, Icons}
 import wust.webApp.jsdom.FileReaderOps
 import wust.webApp.state.GlobalState
-import wust.webApp.views.Components._
+import wust.webApp.{Icons, WoostConfig}
+import wust.webUtil.outwatchHelpers._
+import wust.webUtil.{Elements, ModalConfig, Ownable, UI}
 
-import scala.collection.breakOut
 import scala.scalajs.js.JSON
 import scala.util.Try
 import scala.util.control.NonFatal

@@ -3,7 +3,7 @@ package wust.webApp.state
 import acyclic.file
 import wust.api.Authentication
 import wust.graph.Page
-import wust.ids.{View, NodeId}
+import wust.ids.{NodeId, View}
 
 sealed trait PresentationMode
 object PresentationMode {

@@ -1,31 +1,25 @@
 package wust.webApp.views
 
-import fontAwesome._
-import wust.facades.googleanalytics.GoogleAnalytics
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.reactive.handler._
-import outwatch.ext.monix._
 import rx._
-import wust.webUtil.Elements._
-import wust.webUtil.UI
-import wust.webUtil.outwatchHelpers._
 import wust.api.{AuthResult, AuthUser, Password}
 import wust.css.Styles
 import wust.graph.Page
-import wust.ids.View
+import wust.ids.{Feature, View}
 import wust.util._
 import wust.webApp._
 import wust.webApp.jsdom.FormValidator
-import wust.webApp.state.{GlobalState, PageChange}
+import wust.webApp.state.{FeatureState, GlobalState, PageChange}
 import wust.webApp.views.Components._
+import wust.webUtil.Elements._
+import wust.webUtil.UI
+import wust.webUtil.outwatchHelpers._
 
 import scala.concurrent.Future
-import scala.scalajs.js
 import scala.util.{Failure, Success}
-import wust.webApp.state.FeatureState
-import wust.ids.Feature
 
 
 // an html view for the authentication. That is login and signup.

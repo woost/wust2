@@ -1,8 +1,9 @@
 package wust.webApp.jsdom
 
 import org.scalajs.dom
-import scala.scalajs.js
 import wust.webUtil.UI
+
+import scala.scalajs.js
 
 object FormValidator {
   // wrapper around reportValidity/checkValidity. Some browsers (webview with safari) do not support reportValidity. We then fallback to checkValidity with a warning toast about invalid forms.

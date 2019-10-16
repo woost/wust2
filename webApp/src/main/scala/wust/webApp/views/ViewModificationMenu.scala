@@ -1,24 +1,15 @@
 package wust.webApp.views
 
-import wust.css.{ Styles, ZIndex }
-import flatland._
-import fontAwesome._
-import outwatch.reactive._
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.dom.helpers.EmitterBuilder
 import outwatch.reactive._
 import rx._
 import wust.css.Styles
-import wust.graph.{ GraphChanges, Node }
-import wust.ids.{ Feature, _ }
-import wust.sdk.Colors
-import wust.webApp._
+import wust.graph.{GraphChanges, Node}
+import wust.ids.{Feature, _}
 import wust.webApp.state._
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{ BrowserDetect, Elements, Ownable, UI }
-
-import scala.reflect.ClassTag
+import wust.webUtil.{Elements, Ownable}
 
 object ViewModificationMenu {
   def selectForm(channelId: NodeId)(implicit ctx: Ctx.Owner): VNode = {

@@ -1,7 +1,7 @@
 package wust.webApp.state
 
+import org.scalajs.dom
 import rx.Var
-import wust.webUtil.UI
 import wust.graph._
 import wust.ids._
 import wust.util.StringOps
@@ -10,9 +10,9 @@ import wust.util.collection._
 import wust.util.macros.InlineList
 import wust.webApp.Client
 import wust.webApp.parsers.UrlConfigWriter
-import org.scalajs.dom
+import wust.webUtil.UI
 
-import scala.collection.{breakOut, mutable}
+import scala.collection.mutable
 import scala.util.control.NonFatal
 
 // This file is about automation. We want to automate changes to the graph and emit additional changes

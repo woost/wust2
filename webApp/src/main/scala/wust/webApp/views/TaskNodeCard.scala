@@ -1,6 +1,5 @@
 package wust.webApp.views
 
-import wust.webApp.state.FeatureState
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.ext.monix._
@@ -9,13 +8,11 @@ import wust.css.{CommonStyles, Styles}
 import wust.graph._
 import wust.ids.{Feature, _}
 import wust.sdk.Colors
-import wust.util.collection._
 import wust.webApp.Icons
 import wust.webApp.dragdrop.{DragItem, DragPayload, DragTarget}
-import wust.webApp.state.{FocusPreference, FocusState, GlobalState, TraverseState}
-import wust.webApp.views.Components._
+import wust.webApp.state.{FeatureState, FocusState, GlobalState, TraverseState}
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{BrowserDetect, Ownable, UI, Elements}
+import wust.webUtil.{BrowserDetect, Elements, Ownable, UI}
 
 object TaskNodeCard {
 

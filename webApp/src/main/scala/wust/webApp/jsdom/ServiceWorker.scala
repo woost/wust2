@@ -1,12 +1,12 @@
 package wust.webApp.jsdom
 
-import wust.facades.googleanalytics.GoogleAnalytics
 import io.circe.{Decoder, Encoder, Json}
-import outwatch.reactive._
-import org.scalajs.dom.window
 import org.scalajs.dom.experimental.serviceworkers
-import wust.webUtil.outwatchHelpers._
+import org.scalajs.dom.window
+import outwatch.reactive._
 import wust.api.Authentication
+import wust.facades.googleanalytics.GoogleAnalytics
+import wust.webUtil.outwatchHelpers._
 
 import scala.util.{Failure, Success, Try}
 

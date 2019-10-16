@@ -2,7 +2,6 @@ package wust.webApp.views
 
 import flatland._
 import fontAwesome._
-import org.scalajs.dom.window
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.reactive._
@@ -13,19 +12,18 @@ import wust.ids._
 import wust.sdk.{BaseColors, NodeColor}
 import wust.util._
 import wust.util.collection._
+import wust.webApp.Icons
 import wust.webApp.dragdrop.DragItem
+import wust.webApp.state.GlobalState.SelectedNode
 import wust.webApp.state.{FocusState, GlobalState, Placeholder}
 import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.{drag, registerDragContainer}
 import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{BrowserDetect, Ownable}
-import GlobalState.SelectedNode
 
 import scala.collection.mutable
-import scala.concurrent.Future
 import scala.scalajs.js
-import wust.webApp.Icons
 
 object ThreadView {
   import SharedViewElements._

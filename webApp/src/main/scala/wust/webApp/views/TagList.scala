@@ -12,9 +12,9 @@ import wust.webApp._
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.state._
 import wust.webApp.views.Components._
-import wust.webApp.views.DragComponents.{ drag, registerDragContainer }
-import wust.webUtil.outwatchHelpers._
+import wust.webApp.views.DragComponents.{drag, registerDragContainer}
 import wust.webUtil.Ownable
+import wust.webUtil.outwatchHelpers._
 
 object TagList {
   val addTagText = "Add Tag"

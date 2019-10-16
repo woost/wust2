@@ -1,9 +1,8 @@
 package wust.webApp.dragdrop
 
-import wust.graph.Edge
-import wust.ids.{ NodeId, NodeRole, UserId }
-
 import outwatch.reactive._
+import wust.graph.Edge
+import wust.ids.{NodeId, NodeRole, UserId}
 
 sealed trait DragPayload extends Product with Serializable { def nodeIds: Seq[NodeId] }
 sealed trait DragTarget extends Product with Serializable { def nodeIds: Seq[NodeId] }

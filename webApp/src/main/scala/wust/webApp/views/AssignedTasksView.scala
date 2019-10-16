@@ -1,11 +1,9 @@
 package wust.webApp.views
 
-import outwatch.dom.dsl._
 import outwatch.dom._
+import outwatch.dom.dsl._
 import outwatch.reactive._
 import rx._
-import wust.webUtil.UI
-import wust.webUtil.outwatchHelpers._
 import wust.css.Styles
 import wust.graph.{Edge, GraphChanges, Node}
 import wust.ids.{ChildId, EpochMilli, ParentId, UserId}
@@ -13,6 +11,8 @@ import wust.util.collection._
 import wust.webApp.state.{FocusState, GlobalState, Placeholder, TraverseState}
 import wust.webApp.views.AssignedTasksData.AssignedTask
 import wust.webApp.views.DragComponents.registerDragContainer
+import wust.webUtil.UI
+import wust.webUtil.outwatchHelpers._
 
 import scala.scalajs.js
 

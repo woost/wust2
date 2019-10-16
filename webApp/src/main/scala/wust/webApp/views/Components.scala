@@ -1,42 +1,36 @@
 package wust.webApp.views
 
 //import acyclic.file
-import wust.webUtil.outwatchHelpers._
+import fontAwesome._
+import org.scalajs.dom
+import outwatch.dom._
+import outwatch.dom.dsl._
+import outwatch.dom.helpers.EmitterBuilder
+import outwatch.ext.monix._
+import outwatch.reactive.{SinkObserver, _}
+import outwatch.reactive.handler._
+import rx._
+import wust.css.{CommonStyles, Styles}
 import wust.facades.emojijs.EmojiConvertor
 import wust.facades.fomanticui.{SearchOptions, SearchSourceEntry}
 import wust.facades.jquery.JQuerySelection
-import wust.facades.marked.Marked
-import fontAwesome._
-import org.scalajs.dom
-import outwatch.reactive.SinkObserver
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.reactive._
-import outwatch.reactive.handler._
-import outwatch.ext.monix._
-import outwatch.dom.helpers.EmitterBuilder
-import rx._
-import wust.webUtil.Elements._
-import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{BrowserDetect, Elements, Ownable, UI}
-import wust.css.{CommonStyles, Styles}
 import wust.graph._
 import wust.ids.{Feature, _}
 import wust.sdk.NodeColor._
-import wust.sdk.{BaseColors, Colors, NodeColor}
+import wust.sdk.{BaseColors, NodeColor}
 import wust.util.StringOps._
 import wust.util._
 import wust.util.macros.InlineList
 import wust.webApp._
 import wust.webApp.dragdrop._
-import wust.webApp.jsdom.{IntersectionObserver, IntersectionObserverOptions}
-import wust.webApp.state.{PageStyle, EmojiReplacer, FocusPreference, GlobalState, InputMention}
+import wust.webApp.state._
 import wust.webApp.views.UploadComponents._
+import wust.webUtil.Elements._
+import wust.webUtil.outwatchHelpers._
+import wust.webUtil.{BrowserDetect, Elements, UI}
 
-import scala.collection.{breakOut, mutable}
+import scala.collection.breakOut
 import scala.scalajs.js
-import scala.scalajs.js.JSConverters._
-import state.FeatureState
 
 // This file contains woost-related UI helpers.
 

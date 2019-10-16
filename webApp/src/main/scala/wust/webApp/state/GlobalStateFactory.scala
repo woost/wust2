@@ -1,40 +1,28 @@
 package wust.webApp.state
 
-import java.util.concurrent.TimeUnit
-
-import wust.webApp.views.MainTutorial
-
-import scala.scalajs.js
-import wust.api.AuthUser
-import wust.facades.fullstory.FS
-import wust.facades.amplitude.Amplitude
-import wust.facades.googleanalytics.GoogleAnalytics
-import monix.eval.Task
-import monix.reactive.Observable
 import org.scalajs.dom
+import org.scalajs.dom.experimental.permissions.PermissionState
 import org.scalajs.dom.window
+import outwatch.dom.helpers.OutwatchTracing
 import outwatch.ext.monix._
 import outwatch.reactive._
-import outwatch.dom.helpers.OutwatchTracing
 import rx._
-import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{ BrowserDetect, UI }
-import UI.ToastLevel
 import wust.api.ApiEvent.ReplaceGraph
+import wust.facades.amplitude.Amplitude
+import wust.facades.fullstory.FS
+import wust.facades.googleanalytics.GoogleAnalytics
+import wust.facades.wdtEmojiBundle.wdtEmojiBundle
 import wust.graph._
 import wust.ids._
-import wust.sdk._
 import wust.util.StringOps
-import wust.webApp.jsdom.{ Navigator, ServiceWorker }
-import wust.webApp.parsers.{ UrlConfigParser, UrlConfigWriter }
-import wust.webApp.views.EditableContent
-import wust.webApp.{ Client, DevOnly }
-import wust.facades.wdtEmojiBundle.wdtEmojiBundle
-import UI.ToastLevel
-import org.scalajs.dom.experimental.permissions.PermissionState
+import wust.webApp.jsdom.ServiceWorker
+import wust.webApp.views.{EditableContent, MainTutorial}
+import wust.webApp.{Client, DevOnly}
+import wust.webUtil.UI.ToastLevel
+import wust.webUtil.outwatchHelpers._
+import wust.webUtil.{BrowserDetect, UI}
 
 import scala.concurrent.duration._
-import scala.util.{ Failure, Success }
 
 object GlobalStateFactory {
   def init(): Unit = {

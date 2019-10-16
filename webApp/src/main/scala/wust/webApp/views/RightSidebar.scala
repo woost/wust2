@@ -1,6 +1,7 @@
 package wust.webApp.views
 
 import acyclic.file
+import com.github.ghik.silencer.silent
 import fontAwesome.freeSolid
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -11,15 +12,10 @@ import wust.graph._
 import wust.ids._
 import wust.sdk.Colors
 import wust.webApp.state._
-import wust.webApp.views.Components._
-import wust.webUtil.Elements
-import wust.webUtil.BrowserDetect
 import wust.webApp.views.SharedViewElements._
-import wust.webApp.{ Icons, ItemProperties }
-import wust.webUtil.Elements._
+import wust.webApp.{Icons, ItemProperties}
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{ Ownable, UI }
-import com.github.ghik.silencer.silent
+import wust.webUtil.{BrowserDetect, Elements, Ownable, UI}
 
 object RightSidebar {
 

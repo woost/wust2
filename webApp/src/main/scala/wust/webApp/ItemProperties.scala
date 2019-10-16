@@ -6,13 +6,13 @@ import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
 import outwatch.reactive._
 import rx._
-import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{ Elements, UI }
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
 import wust.webApp.state._
 import wust.webApp.views._
+import wust.webUtil.outwatchHelpers._
+import wust.webUtil.{Elements, UI}
 
 /*
  * Here, the managing of node properties is done.

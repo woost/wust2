@@ -1,19 +1,18 @@
 package wust.webApp
 
 import cats.effect.SyncIO
-import wust.facades.googleanalytics.GoogleAnalytics
 import io.circe._
 import io.circe.parser._
 import io.circe.syntax._
-import outwatch.dom._
 import outwatch.ext.monix._
 import outwatch.ext.monix.handler._
 import outwatch.ext.monix.util.LocalStorage
 import rx._
-import wust.webUtil.outwatchHelpers._
 import wust.api.Authentication
 import wust.api.serialize.Circe._
+import wust.facades.googleanalytics.GoogleAnalytics
 import wust.graph.GraphChanges
+import wust.webUtil.outwatchHelpers._
 
 import scala.util.{Failure, Success, Try}
 

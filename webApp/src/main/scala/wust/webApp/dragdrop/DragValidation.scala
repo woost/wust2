@@ -1,19 +1,17 @@
 package wust.webApp.dragdrop
 
-import wust.util.algorithm.dfs
+import org.scalajs.dom
 import wust.facades.draggable._
 import wust.facades.googleanalytics.GoogleAnalytics
-import org.scalajs.dom
-import wust.util._
-import wust.webApp.dragdrop.DragActions._
-import wust.webApp.state.GlobalState
-import wust.webApp.views.DragComponents.{ readDragContainer, readDragPayload, readDragTarget, readDraggableDraggedAction }
-import wust.webUtil.JSDefined
-import wust.ids.{ NodeId, NodeRole }
 import wust.graph.Graph
+import wust.ids.{Feature, NodeId, NodeRole}
+import wust.util._
+import wust.util.algorithm.dfs
+import wust.webApp.dragdrop.DragActions._
+import wust.webApp.state.{FeatureState, GlobalState}
+import wust.webApp.views.DragComponents.{readDragContainer, readDragPayload, readDragTarget, readDraggableDraggedAction}
 import wust.webUtil.Elements.defer
-import wust.ids.Feature
-import wust.webApp.state.FeatureState
+import wust.webUtil.JSDefined
 
 import scala.scalajs.js
 

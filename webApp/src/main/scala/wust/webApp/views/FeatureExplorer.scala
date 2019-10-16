@@ -1,25 +1,23 @@
 package wust.webApp.views
 
 import acyclic.file
-import wust.facades.crisp._
-import wust.facades.googleanalytics.GoogleAnalytics
-import wust.webApp.{ DeployedOnly}
-import scala.scalajs.js
-import scala.util.Try
-import wust.webApp.{ DevOnly, DebugOnly }
 import fontAwesome._
 import monix.eval.Task
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.reactive._
 import rx._
-import wust.css.{ Styles, ZIndex }
+import wust.css.Styles
+import wust.facades.crisp._
+import wust.facades.googleanalytics.GoogleAnalytics
 import wust.ids.Feature
-import wust.sdk.Colors
-import wust.webApp.state.{ FeatureDetails, FeatureState, GlobalState, ScreenSize }
-import wust.webUtil.Elements
-import wust.webUtil.outwatchHelpers._
+import wust.webApp.{DebugOnly, DeployedOnly}
+import wust.webApp.state.{FeatureDetails, FeatureState}
 import wust.webUtil.UI
+import wust.webUtil.outwatchHelpers._
+
+import scala.scalajs.js
+import scala.util.Try
 
 object FeatureExplorer {
   //TODO: rating for completed features: "I liked it", "too complicated", "not useful"
@@ -196,6 +194,7 @@ object FeatureExplorer {
 
   val usedFeatureAnimation = {
     import outwatch.dom.dsl.styles.extra._
+
     import scala.concurrent.duration._
 
     val shake = 0.2

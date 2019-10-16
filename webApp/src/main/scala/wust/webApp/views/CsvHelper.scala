@@ -1,10 +1,8 @@
 package wust.webApp.views
 
-import wust.ids._
-import wust.graph._
 import kantan.csv._
-import kantan.csv.ops._
-
+import wust.graph._
+import wust.ids._
 import wust.util.collection._
 
 // importing and exporting from csv and table. uses kantan.csv library to parse and write csv.

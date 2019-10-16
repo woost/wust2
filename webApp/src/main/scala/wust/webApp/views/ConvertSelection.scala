@@ -3,16 +3,13 @@ package wust.webApp.views
 import fontAwesome.IconLookup
 import outwatch.dom._
 import outwatch.dom.dsl._
-import wust.facades.googleanalytics.GoogleAnalytics
+import rx._
 import wust.graph.{GraphChanges, Node}
-import wust.ids.NodeRole
+import wust.ids.{Feature, NodeRole}
 import wust.webApp.Icons
-import wust.webApp.state.GlobalState
+import wust.webApp.state.{FeatureState, GlobalState}
 import wust.webUtil.Elements
 import wust.webUtil.outwatchHelpers._
-import wust.webApp.state.FeatureState
-import wust.ids.Feature
-import rx._
 
 final case class ConvertSelection(
   role: NodeRole,

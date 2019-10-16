@@ -5,13 +5,10 @@ import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.reactive._
-import outwatch.ext.monix._
 import rx._
+import wust.css.{Styles, ZIndex}
 import wust.webUtil.Ownable
 import wust.webUtil.outwatchHelpers._
-import wust.css.{Styles, ZIndex}
-import wust.sdk.Colors
-import wust.webApp.views.Components._
 
 object MovableElement {
   sealed trait Position

@@ -8,11 +8,11 @@ import covenant.http._
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom.window
 import rx._
-import wust.webUtil.outwatchHelpers._
 import wust.api._
 import wust.api.serialize.Boopickle._
 import wust.ids._
 import wust.sdk._
+import wust.webUtil.outwatchHelpers._
 
 import scala.concurrent.Future
 import scala.scalajs.LinkingInfo
@@ -61,6 +61,7 @@ object Client {
 
   private def backendIsOnline(url: String): Future[Boolean] = {
     import org.scalajs.dom.raw.XMLHttpRequest
+
     import scala.concurrent.Promise
 
     val promise = Promise[Boolean]()

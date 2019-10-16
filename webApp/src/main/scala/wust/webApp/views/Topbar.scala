@@ -2,8 +2,6 @@ package wust.webApp.views
 
 import outwatch.dom._
 import outwatch.dom.dsl._
-import wust.css.Styles
-import wust.webApp.state._
 import wust.webUtil.Ownable
 import wust.webUtil.outwatchHelpers._
 

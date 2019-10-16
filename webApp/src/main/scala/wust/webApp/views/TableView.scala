@@ -9,17 +9,15 @@ import rx._
 import wust.css.Styles
 import wust.graph.{Edge, Graph, GraphChanges, Node}
 import wust.ids._
+import wust.util.StringOps
 import wust.webApp.dragdrop.{DragContainer, DragItem}
 import wust.webApp.state.{FocusState, GlobalState, GraphChangesAutomation, Placeholder}
-import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.registerDragContainer
 import wust.webApp.views.SharedViewElements.onClickNewNamePrompt
 import wust.webApp.{Icons, ItemProperties}
-import wust.util.StringOps
 import wust.webUtil.UI
 import wust.webUtil.outwatchHelpers._
 
-import scala.scalajs.js
 import scala.collection.{breakOut, mutable}
 
 object TableView {

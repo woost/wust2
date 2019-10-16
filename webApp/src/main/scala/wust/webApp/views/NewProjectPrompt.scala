@@ -1,34 +1,21 @@
 package wust.webApp.views
 
 import flatland._
-import wust.webApp.parsers.UrlConfigWriter
-import fontAwesome._
 import org.scalajs.dom
 import outwatch.dom._
-import outwatch.dom.dsl.{ label, _ }
+import outwatch.dom.dsl.{label, _}
 import outwatch.dom.helpers.EmitterBuilder
 import outwatch.reactive._
 import rx._
 import wust.css.Styles
 import wust.graph._
-import wust.ids.{ Feature, _ }
-import wust.sdk.NodeColor
-import wust.util._
+import wust.ids.{Feature, _}
 import wust.webApp._
-import wust.webApp.dragdrop.DragItem.DisableDrag
-import wust.webApp.dragdrop.{ DragItem, DragPayload, DragTarget }
 import wust.webApp.state._
-import wust.webApp.views.Components._
-import wust.webApp.views.DragComponents.{ drag, dragWithHandle }
+import wust.webApp.views.SharedViewElements._
 import wust.webUtil.Elements._
+import wust.webUtil.Ownable
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{ BrowserDetect, Elements, ModalConfig, Ownable, UI }
-import wust.webApp.views.DragComponents.{ drag, registerDragContainer }
-import GlobalState.SelectedNode
-
-import scala.collection.breakOut
-import scala.scalajs.js
-import SharedViewElements._
 
 import scala.reflect.ClassTag
 

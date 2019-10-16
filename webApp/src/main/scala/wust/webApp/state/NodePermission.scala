@@ -1,7 +1,6 @@
 package wust.webApp.state
 
 import rx._
-import wust.api.AuthUser
 import wust.graph.{Graph, Node}
 import wust.ids._
 

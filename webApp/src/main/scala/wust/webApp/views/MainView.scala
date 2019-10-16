@@ -1,24 +1,17 @@
 package wust.webApp.views
 
-import wust.webUtil.UI
-import fontAwesome.freeSolid
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.ext.monix._
 import rx._
-import wust.webUtil.BrowserDetect
-import wust.webUtil.outwatchHelpers._
-import wust.css.{ Styles, ZIndex }
+import wust.css.{Styles, ZIndex}
+import wust.ids.Feature
 import wust.sdk.Colors
 import wust.webApp.WoostNotification
-import wust.webApp.state.{ GlobalState, ScreenSize, PresentationMode}
-import wust.webApp.views.Components._
-import wust.facades.wdtEmojiBundle.wdtEmojiBundle
-import wust.ids.Feature
-import wust.webApp.state.FeatureDetails
-import wust.webApp.DevOnly
+import wust.webApp.state.{FeatureDetails, GlobalState, PresentationMode, ScreenSize}
 import wust.webUtil.Elements._
+import wust.webUtil.{BrowserDetect, UI}
+import wust.webUtil.outwatchHelpers._
 
 object MainView {
 

@@ -1,11 +1,9 @@
 package wust.webApp.dragdrop
 
-import wust.util.algorithm.dfs
 import wust.facades.draggable.SortableStopEvent
-import wust.graph.{ Edge, GraphChanges, _ }
-import wust.ids.{ UserId, _ }
-import wust.webApp.state.FeatureState
-import wust.webApp.state.GlobalState
+import wust.graph.{Edge, GraphChanges, _}
+import wust.ids.{UserId, _}
+import wust.webApp.state.{FeatureState, GlobalState}
 
 object DragActions {
 

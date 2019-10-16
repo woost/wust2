@@ -1,32 +1,29 @@
 package wust.webApp.views
 
-import wust.facades.wdtEmojiBundle._
 import fontAwesome._
 import org.scalajs.dom
 import org.scalajs.dom.window
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.reactive._
 import outwatch.ext.monix._
+import outwatch.reactive._
 import rx._
-import wust.webUtil.Elements._
-import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{ BrowserDetect, Elements, Ownable, UI }
 import wust.api.AuthUser
 import wust.css.Styles
+import wust.facades.wdtEmojiBundle._
 import wust.graph._
-import wust.util._
 import wust.ids._
+import wust.util._
+import wust.webApp.state.InputMention._
 import wust.webApp.state._
-import wust.webApp.views.Components._
 import wust.webApp.views.SharedViewElements._
+import wust.webUtil.Elements._
+import wust.webUtil.outwatchHelpers._
+import wust.webUtil.{BrowserDetect, Elements, Ownable}
 
-import scala.collection.breakOut
-import scala.collection.mutable
+import scala.collection.{breakOut, mutable}
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
-
-import wust.webApp.state.InputMention._
 
 object InputRow {
 

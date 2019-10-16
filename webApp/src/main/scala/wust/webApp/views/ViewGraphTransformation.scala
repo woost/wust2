@@ -3,7 +3,6 @@ package wust.webApp.views
 import outwatch.dom.VDomModifier
 import wust.webApp.Icons
 import wust.webUtil.outwatchHelpers._
-import wust.util.macros.SubObjects
 
 
 sealed trait ViewGraphTransformation{

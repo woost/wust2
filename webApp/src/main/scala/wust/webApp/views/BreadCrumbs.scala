@@ -1,25 +1,20 @@
 package wust.webApp.views
 
-import wust.facades.googleanalytics.GoogleAnalytics
 import fontAwesome.freeSolid
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.dsl.styles.extra._
 import rx._
-import wust.webUtil.Ownable
-import wust.webUtil.outwatchHelpers._
-import wust.api.AuthUser
-import wust.graph.{Graph, Page}
+import wust.graph.Graph
 import wust.ids._
 import wust.util._
 import wust.webApp.WoostConfig
 import wust.webApp.dragdrop._
-import wust.webApp.state.GlobalState
-import wust.webApp.views.Components._
+import wust.webApp.state.FeatureState
 import wust.webApp.views.DragComponents.registerDragContainer
+import wust.webUtil.outwatchHelpers._
 
 import scala.collection.breakOut
-import wust.webApp.state.FeatureState
 
 // Breadcrumbs are a path of nodes rendered up to an endpoint.
 // The path starts either at the highest reachable root nodes or at a specified endpoint.

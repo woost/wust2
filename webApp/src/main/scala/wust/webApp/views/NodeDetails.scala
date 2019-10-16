@@ -1,21 +1,16 @@
 package wust.webApp.views
 
-import wust.webApp.state.FeatureState
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.ext.monix._
 import rx._
-import wust.css.{ CommonStyles, Styles }
+import wust.css.Styles
 import wust.graph._
-import wust.ids.{ Feature, _ }
-import wust.sdk.Colors
-import wust.util.collection._
+import wust.ids._
 import wust.webApp.Icons
-import wust.webApp.dragdrop.{ DragItem, DragPayload, DragTarget }
-import wust.webApp.state.{ FocusPreference, FocusState, GlobalState, TraverseState }
-import wust.webApp.views.Components._
+import wust.webApp.state.{FocusPreference, GlobalState}
+import wust.webUtil.UI
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{ BrowserDetect, Ownable, UI, Elements }
 
 object NodeDetails {
 

@@ -1,6 +1,6 @@
 package wust.webApp.views
 
-import wust.facades.hopscotch.{Step, hopscotch}
+import wust.facades.hopscotch.Step
 
 import scala.scalajs.js
 

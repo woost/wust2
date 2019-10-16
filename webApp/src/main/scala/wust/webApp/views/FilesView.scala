@@ -3,11 +3,11 @@ package wust.webApp.views
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.webUtil.UI
-import wust.webUtil.outwatchHelpers._
 import wust.css.Styles
 import wust.ids._
 import wust.webApp.state.{FocusState, GlobalState}
+import wust.webUtil.UI
+import wust.webUtil.outwatchHelpers._
 
 object FilesView {
   def apply(focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {

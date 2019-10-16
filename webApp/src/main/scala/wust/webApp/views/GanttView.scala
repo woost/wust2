@@ -2,18 +2,18 @@ package wust.webApp.views
 
 import d3v4._
 import org.scalajs.dom
-import outwatch.reactive._
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.dsl.styles.extra.transform
+import outwatch.reactive._
 import rx._
-import wust.webUtil.outwatchHelpers._
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
 import wust.util.collection.BasicMap
 import wust.webApp.state.{FocusState, GlobalState, Placeholder}
 import wust.webApp.views.Components._
+import wust.webUtil.outwatchHelpers._
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._

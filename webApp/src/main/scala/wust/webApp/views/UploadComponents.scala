@@ -1,11 +1,9 @@
 package wust.webApp.views
 
 import fontAwesome._
-import org.scalajs.dom
-import org.scalajs.dom.document
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.dom.helpers.{AttributeBuilder, EmitterBuilder}
+import outwatch.dom.helpers.EmitterBuilder
 import rx._
 import wust.css.Styles
 import wust.graph._
@@ -15,7 +13,7 @@ import wust.webApp._
 import wust.webApp.state.{GlobalState, UploadingFile}
 import wust.webApp.views.WoostLogoComponents._
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{ModalConfig, Ownable, UI}
+import wust.webUtil.{ModalConfig, Ownable}
 
 object UploadComponents {
   def renderUploadedFile(nodeId: NodeId, file: NodeData.File)(implicit ctx: Ctx.Owner): VNode = {

@@ -1,10 +1,10 @@
 package wust.webApp
 
+import org.scalajs.dom
 import wust.facades.juration.Juration
 import wust.ids._
 import wust.util.StringOps
 
-import org.scalajs.dom
 import scala.scalajs.js
 import scala.scalajs.js.Date
 import scala.util.control.NonFatal

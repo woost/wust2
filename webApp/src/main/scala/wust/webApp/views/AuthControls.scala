@@ -1,20 +1,16 @@
 package wust.webApp.views
 
-import wust.facades.googleanalytics.GoogleAnalytics
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.webUtil.outwatchHelpers._
 import wust.api.AuthUser
 import wust.css.Styles
 import wust.graph._
-import wust.ids.View
+import wust.ids.{Feature, View}
 import wust.webApp.Client
 import wust.webApp.state._
-import wust.ids.Feature
-import wust.webApp.dragdrop.{ DragItem, DragPayload, DragTarget }
-import wust.webApp.views.DragComponents.{ drag, dragWithHandle }
-import wust.webApp.views.DragComponents.{ registerDragContainer }
+import wust.webApp.views.DragComponents.registerDragContainer
+import wust.webUtil.outwatchHelpers._
 
 object AuthControls {
 

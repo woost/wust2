@@ -3,15 +3,13 @@ package wust.webApp.views
 import java.lang.Math._
 
 import colorado.HCL
-import outwatch.dom.{ VNode, _ }
-import wust.webApp.Client
-import wust.webUtil.outwatchHelpers._
+import outwatch.dom.{VNode, _}
 import wust.graph.Node
-import wust.ids._
 import wust.sdk.NodeColor.genericHue
-import wust.util.Memo
-import wust.webApp.views.DragComponents.{ drag }
-import wust.webApp.dragdrop.{ DragItem }
+import wust.webApp.Client
+import wust.webApp.dragdrop.DragItem
+import wust.webApp.views.DragComponents.drag
+import wust.webUtil.outwatchHelpers._
 
 import scala.scalajs.js
 

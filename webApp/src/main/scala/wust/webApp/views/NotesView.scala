@@ -10,10 +10,10 @@ import wust.graph._
 import wust.ids._
 import wust.webApp.Icons
 import wust.webApp.dragdrop.DragItem
-import wust.webApp.state.{ FeatureState, FocusState, GlobalState, Placeholder }
+import wust.webApp.state.{FeatureState, FocusState, GlobalState, Placeholder}
 import wust.webApp.views.DragComponents.registerDragContainer
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{ Elements, UI }
+import wust.webUtil.{Elements, UI}
 
 // Notes view, this is a simple view for storing note/wiki/documentation on a node.
 // It  renders all direct children of noderole note and allows to add new notes.

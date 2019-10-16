@@ -1,31 +1,29 @@
 package wust.webApp.views
 
-import wust.webApp.parsers.{ UrlConfigWriter }
 import fontAwesome._
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl.{label, _}
 import outwatch.dom.helpers.EmitterBuilder
+import outwatch.ext.monix._
 import outwatch.reactive._
 import outwatch.reactive.handler._
-import outwatch.ext.monix._
 import rx._
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
-import wust.sdk.NodeColor
 import wust.util._
 import wust.webApp._
 import wust.webApp.dragdrop.DragItem.DisableDrag
 import wust.webApp.dragdrop.{DragItem, DragPayload, DragTarget}
+import wust.webApp.parsers.UrlConfigWriter
+import wust.webApp.state.GlobalState.SelectedNode
 import wust.webApp.state._
 import wust.webApp.views.Components._
-import wust.webApp.views.DragComponents.{drag, dragWithHandle}
+import wust.webApp.views.DragComponents.{drag, dragWithHandle, registerDragContainer}
 import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{BrowserDetect, Elements, ModalConfig, Ownable, UI}
-import wust.webApp.views.DragComponents.{drag, registerDragContainer}
-import GlobalState.SelectedNode
+import wust.webUtil._
 
 import scala.collection.breakOut
 import scala.scalajs.js
