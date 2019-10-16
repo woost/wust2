@@ -29,7 +29,7 @@ object AssignedTasksData {
 
     graph.descendantsIdxWithContinue(focusedIdx) { nodeIdx =>
       val node = graph.nodes(nodeIdx)
-      val noUserAssigned = userId.isEmpty // || graph.assignedUsersIdx.sliceIsEmpty(nodeIdx)
+      val noUserChoosen = userId.isEmpty
       val thisUserAssigned = userIdx match {
         case Some(uidx) => graph.assignedUsersIdx.contains(nodeIdx)(uidx)
         case _ => false
@@ -38,7 +38,7 @@ object AssignedTasksData {
       // parents.exists is not really correct here, because in case of multiple parents we just include the first
       // parent we find and therefore clicking done on a task there will only check it in this one parent.
       if(node.role == NodeRole.Task) {
-        if (noUserAssigned || thisUserAssigned) graph.parentEdgeIdx.exists(nodeIdx) { edgeIdx =>
+        if (noUserChoosen || thisUserAssigned) graph.parentEdgeIdx.exists(nodeIdx) { edgeIdx =>
           val parentIdx = graph.edgesIdx.a(edgeIdx)
           val parentNode = graph.nodes(parentIdx)
 
@@ -78,7 +78,7 @@ object AssignedTasksData {
             }
           } else false
         } else true
-      } else if(deepSearch) true else false
+      } else deepSearch
     }
 
     AssignedTasks(dueTasks, tasks)
