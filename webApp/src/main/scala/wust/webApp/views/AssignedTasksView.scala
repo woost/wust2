@@ -27,7 +27,7 @@ object AssignedTasksView  {
     EpochMilli(date.getTime.toLong + days * EpochMilli.day)
   }
 
-  def apply(focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(focusState: FocusState, deepSearch: Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
     val renderTime = EpochMilli.now
     val bucketNames = Array(
       "Overdue",
@@ -44,7 +44,7 @@ object AssignedTasksView  {
       datePlusDays(renderTime, 30)
     )
 
-    val selectedUserId = Var(GlobalState.userId.now)
+    val selectedUserId: Var[Option[UserId]] = Var(Some(GlobalState.userId.now))
 
     val selectableUsers = Rx {
       val graph = GlobalState.graph()
@@ -52,7 +52,7 @@ object AssignedTasksView  {
     }
 
     val assignedTasks = Rx {
-      AssignedTasksData.assignedTasks(GlobalState.graph(), focusState.focusedId, selectedUserId(), buckets)
+      AssignedTasksData.assignedTasks(GlobalState.graph(), focusState.focusedId, selectedUserId(), buckets, deepSearch)
     }
     val assignedTasksDue = Rx { assignedTasks().dueTasks }
     val assignedTasksOther = Rx { assignedTasks().tasks }
@@ -61,10 +61,16 @@ object AssignedTasksView  {
       val newTask = Node.MarkdownTask(sub.text)
       val changes = GraphChanges(
         addNodes = Array(newTask),
-        addEdges = Array(
-          Edge.Child(ParentId(focusState.focusedId), ChildId(newTask.id)),
-          Edge.Assigned(newTask.id, selectedUserId.now),
-        )
+        addEdges = selectedUserId.now.fold (
+          Array[Edge]( 
+            Edge.Child(ParentId(focusState.focusedId), ChildId(newTask.id))
+          )
+        ) ( uid =>
+          Array[Edge]( 
+            Edge.Child(ParentId(focusState.focusedId), ChildId(newTask.id)),
+            Edge.Assigned(newTask.id, uid)
+          )
+        ),
       )
 
       GlobalState.submitChanges(changes merge sub.changes(newTask.id))
@@ -133,13 +139,18 @@ object AssignedTasksView  {
     inOneLine = true
   )
 
-  private def chooseUser(users: Rx[Seq[Node.User]], selectedUserId: Var[UserId])(implicit ctx: Ctx.Owner): VNode = {
+  private def chooseUser(users: Rx[Seq[Node.User]], selectedUserId: Var[Option[UserId]])(implicit ctx: Ctx.Owner): VNode = {
     val close = SinkSourceHandler.publish[Unit]
+    val allUsersDiv = div(width := "20px", height := "20px")
     div(
       Rx {
-        val userId = selectedUserId()
-        users().find(_.id == userId).map { user =>
-          Avatar.user(user, size = "20px", enableDrag = false)
+        val userIdOpt: Option[UserId] = selectedUserId()
+        userIdOpt match {
+            case Some(userId) =>
+              users().find(_.id == userId).map { user =>
+                Avatar.user(user, size = "20px", enableDrag = false)
+              }: VDomModifier 
+            case _ => allUsersDiv("All")
         }
       },
       i(cls := "dropdown icon"),
@@ -154,11 +165,19 @@ object AssignedTasksView  {
                 cursor.pointer,
                 onClick.stopPropagation foreach {
                   close.onNext(())
-                  selectedUserId() = user.id
+                  selectedUserId() = Some(user.id)
                 }
               )
             )
           }),
+            div(
+              cls := "item",
+              allUsersDiv("All Due Dates", onClick.stopPropagation foreach {
+                  close.onNext(())
+                  selectedUserId() = None
+                }
+            )
+          )
         ),
         close = close, dropdownModifier = cls := "top left"
       )

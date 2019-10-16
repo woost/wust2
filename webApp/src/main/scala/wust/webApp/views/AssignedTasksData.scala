@@ -21,16 +21,19 @@ object AssignedTasksData {
 
   // bucket.size == result.size -1
   // result contains
-  def assignedTasks(graph: Graph, focusedId: NodeId, userId: UserId, buckets: IndexedSeq[EpochMilli]): AssignedTasks = {
+  def assignedTasks(graph: Graph, focusedId: NodeId, userId: Option[UserId], buckets: IndexedSeq[EpochMilli], deepSearch: Boolean): AssignedTasks = {
     val focusedIdx = graph.idToIdxOrThrow(focusedId)
-    val userIdx = graph.idToIdxOrThrow(userId)
+    val userIdx = userId.map(graph.idToIdxOrThrow(_))
     val dueTasks = Array.fill(buckets.size)(new mutable.ArrayBuffer[AssignedTask.Due])
     val tasks = new mutable.ArrayBuffer[AssignedTask]
 
     graph.descendantsIdxWithContinue(focusedIdx) { nodeIdx =>
       val node = graph.nodes(nodeIdx)
-      val noUserAssigned = graph.assignedUsersIdx.sliceIsEmpty(nodeIdx)
-      val thisUserAssigned = graph.assignedUsersIdx.contains(nodeIdx)(userIdx)
+      val noUserAssigned = userId.isEmpty // || graph.assignedUsersIdx.sliceIsEmpty(nodeIdx)
+      val thisUserAssigned = userIdx match {
+        case Some(uidx) => graph.assignedUsersIdx.contains(nodeIdx)(uidx)
+        case _ => false
+      }
 
       // parents.exists is not really correct here, because in case of multiple parents we just include the first
       // parent we find and therefore clicking done on a task there will only check it in this one parent.
@@ -75,7 +78,7 @@ object AssignedTasksData {
             }
           } else false
         } else true
-      } else false
+      } else if(deepSearch) true else false
     }
 
     AssignedTasks(dueTasks, tasks)
