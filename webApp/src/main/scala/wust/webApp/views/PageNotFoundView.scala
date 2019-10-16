@@ -9,9 +9,11 @@ import wust.ids.View
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
 import wust.webUtil.outwatchHelpers._
+import wust.facades.segment.Segment
 
 object PageNotFoundView {
   def apply(implicit ctx: Ctx.Owner) = {
+    Segment.page("Page Not Found")
     val shrugEmoji = "🤷"
     div(
       padding := "80px 20px",

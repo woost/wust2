@@ -5,10 +5,10 @@ import org.scalajs.dom.experimental.serviceworkers
 import org.scalajs.dom.window
 import outwatch.reactive._
 import wust.api.Authentication
-import wust.facades.googleanalytics.GoogleAnalytics
 import wust.webUtil.outwatchHelpers._
 
 import scala.util.{Failure, Success, Try}
+import wust.facades.segment.Segment
 
 object ServiceWorker {
   // TODO: need var to have active serviceworker. why is navigator.serviceWorker.controller null on initial page load where sw installed?! should be same as registration.active:
@@ -70,7 +70,7 @@ object ServiceWorker {
     subject.recoverOption{
       case e: Throwable =>
         scribe.debug("SW could not register:", e)
-        GoogleAnalytics.sendEvent("serviceworker", "register", "error")
+        Segment.trackError("Serviceworker registeration error", e.getMessage())
         None
     }
   }

@@ -2,7 +2,6 @@ package wust.webApp.dragdrop
 
 import org.scalajs.dom
 import wust.facades.draggable._
-import wust.facades.googleanalytics.GoogleAnalytics
 import wust.graph.Graph
 import wust.ids.{Feature, NodeId, NodeRole}
 import wust.util._
@@ -14,6 +13,7 @@ import wust.webUtil.Elements.defer
 import wust.webUtil.JSDefined
 
 import scala.scalajs.js
+import wust.facades.segment.Segment
 
 object DragValidation {
 
@@ -75,7 +75,7 @@ object DragValidation {
 
               if (successful) {
                 scribe.debug(s"sort action successful: $payload: $sourceContainer -> $overContainer")
-                GoogleAnalytics.sendEvent("drag-sort", s"${sourceContainer.productPrefix}-${payload.productPrefix}-${overContainer.productPrefix}${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}")
+                Segment.trackEvent(s"DragSorted ${sourceContainer.productPrefix}-${payload.productPrefix}-${overContainer.productPrefix}${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}")
               } else {
                 scribe.debug(s"sort action not defined: $payload: $sourceContainer -> $overContainer (trying drag instead...)")
                 performDrag(e, currentOverEvent, ctrl, shift)
@@ -122,7 +122,7 @@ object DragValidation {
 
           if (successful) {
             scribe.debug(s"drag action successful: $payload -> $target")
-            GoogleAnalytics.sendEvent("drag-drop", s"${payload.productPrefix}-${target.productPrefix}${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}")
+            Segment.trackEvent(s"Dropped ${payload.productPrefix}-${target.productPrefix}${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}")
             defer{ useFeature(payload, target) }
             afterDraggedActionOpt.foreach{ action =>
               scribe.debug(s"performing afterDraggedAction...")
@@ -130,7 +130,7 @@ object DragValidation {
             }
           } else {
             scribe.debug(s"drag action not defined: $payload -> $target ${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}, defined($payload, $target, $ctrl, $shift): ${dragAction.isDefinedAt((payload, target, ctrl, shift))}")
-            GoogleAnalytics.sendEvent("drag-nothandled", s"${payload.productPrefix}-${target.productPrefix} ${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}")
+            Segment.trackEvent(s"Dragged (NOT HANDLED) ${payload.productPrefix}-${target.productPrefix} ${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}")
           }
         } else {
           scribe.debug(s"drag action would create cycle, canceling: $payload -> $target ${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}")

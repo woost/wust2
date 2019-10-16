@@ -11,6 +11,7 @@ import wust.webApp.Client
 import wust.webApp.state._
 import wust.webApp.views.DragComponents.registerDragContainer
 import wust.webUtil.outwatchHelpers._
+import wust.facades.segment.Segment
 
 object AuthControls {
 
@@ -74,6 +75,7 @@ object AuthControls {
           GlobalState.urlConfig.update(_.focus(Page.empty, View.Login))
         }
         FeatureState.use(Feature.ClickLogoutInAuthStatus)
+        Segment.trackSignedOut()
       },
       marginRight := "0",
     )

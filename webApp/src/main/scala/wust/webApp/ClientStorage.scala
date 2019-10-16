@@ -10,11 +10,11 @@ import outwatch.ext.monix.util.LocalStorage
 import rx._
 import wust.api.Authentication
 import wust.api.serialize.Circe._
-import wust.facades.googleanalytics.GoogleAnalytics
 import wust.graph.GraphChanges
 import wust.webUtil.outwatchHelpers._
 
 import scala.util.{Failure, Success, Try}
+import wust.facades.segment.Segment
 
 class ClientStorage(implicit owner: Ctx.Owner) {
   import org.scalajs.dom.ext.{LocalStorage => internal}
@@ -41,8 +41,8 @@ class ClientStorage(implicit owner: Ctx.Owner) {
       case Success(_) =>
         true
       case Failure(_) =>
-        GoogleAnalytics.sendEvent("localstorage", "access-error")
-        scribe.warn("Beware: Localstorage is not accessible!")
+        Segment.trackEvent("Localstorage Access-Error")
+        scribe.warn("Localstorage is not accessible.")
         false
     }
   }

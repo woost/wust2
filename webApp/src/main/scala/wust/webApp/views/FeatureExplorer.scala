@@ -9,7 +9,6 @@ import outwatch.reactive._
 import rx._
 import wust.css.Styles
 import wust.facades.crisp._
-import wust.facades.googleanalytics.GoogleAnalytics
 import wust.ids.Feature
 import wust.webApp.{DebugOnly, DeployedOnly}
 import wust.webApp.state.{FeatureDetails, FeatureState}
@@ -18,6 +17,7 @@ import wust.webUtil.outwatchHelpers._
 
 import scala.scalajs.js
 import scala.util.Try
+import wust.facades.segment.Segment
 
 object FeatureExplorer {
   //TODO: rating for completed features: "I liked it", "too complicated", "not useful"
@@ -60,7 +60,7 @@ object FeatureExplorer {
           crisp.push(js.Array("do", "chat:show"))
           crisp.push(js.Array("do", "chat:open"))
         }
-        GoogleAnalytics.sendEvent("unclear-feature", feature.toString)
+        Segment.trackEvent("Unclear Feature Description", js.Dynamic.literal(feature = feature.toString))
       }
     )
 

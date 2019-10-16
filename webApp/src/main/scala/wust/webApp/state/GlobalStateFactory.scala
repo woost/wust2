@@ -1,5 +1,7 @@
 package wust.webApp.state
 
+import wust.facades.jsSha256.Sha256
+import scala.scalajs.js
 import org.scalajs.dom
 import org.scalajs.dom.experimental.permissions.PermissionState
 import org.scalajs.dom.window
@@ -8,9 +10,6 @@ import outwatch.ext.monix._
 import outwatch.reactive._
 import rx._
 import wust.api.ApiEvent.ReplaceGraph
-import wust.facades.amplitude.Amplitude
-import wust.facades.fullstory.FS
-import wust.facades.googleanalytics.GoogleAnalytics
 import wust.facades.wdtEmojiBundle.wdtEmojiBundle
 import wust.graph._
 import wust.ids._
@@ -23,6 +22,8 @@ import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{BrowserDetect, UI}
 
 import scala.concurrent.duration._
+import wust.facades.segment.Segment
+import wust.api.AuthUser
 
 object GlobalStateFactory {
   def init(): Unit = {
@@ -36,6 +37,8 @@ object GlobalStateFactory {
       // bad and we do changes even when reading -- so need to not show these errors there.
       val showHeuristic =
         changes.addNodes.nonEmpty || changes.delEdges.nonEmpty || changes.addEdges.exists(_.data.tpe == EdgeData.Child.tpe)
+
+      Segment.trackError("Changes Forbidden", "forbidden")
 
       if (showHeuristic) {
         UI.toast("You do need have sufficient permissions to do this.", title = "Forbidden", level = ToastLevel.Error)
@@ -145,10 +148,14 @@ object GlobalStateFactory {
       }
     }
 
-    // if we have a invitation token, we merge this invited user into our account and get the graph again.
+    // if we have an invitation token, we merge this invited user into our account and get the graph again.
     urlConfig.foreach { viewConfig =>
       // handle invittation token
       viewConfig.invitation foreach { inviteToken =>
+        val wasAssumed = GlobalState.auth.now.user match {
+          case _:AuthUser.Assumed => true
+          case _ => false
+        }
         Client.auth.acceptInvitation(inviteToken).foreach {
           case () =>
             //clear the invitation from the viewconfig and url
@@ -157,6 +164,9 @@ object GlobalStateFactory {
             // get a new graph with new right after the accepted invitation
             getNewGraph(viewConfig.pageChange.page).foreach { graph =>
               eventProcessor.localEvents.onNext(ReplaceGraph(graph))
+            }
+            if(wasAssumed) {
+              Segment.trackSignedUp("invite")
             }
         }
         //TODO: signal status of invitation to user in UI
@@ -245,7 +255,7 @@ object GlobalStateFactory {
 
     GlobalState.permissionState.triggerLater { state =>
       if (state == PermissionState.granted || state == PermissionState.denied)
-        GoogleAnalytics.sendEvent("browser-notification", state.asInstanceOf[String])
+        Segment.trackEvent("Changed Notification Permission", js.Dynamic.literal(state = state.asInstanceOf[String]))
 
       if (state == PermissionState.granted)
         FeatureState.use(Feature.EnableBrowserNotifications)
@@ -292,10 +302,12 @@ object GlobalStateFactory {
     Client.apiErrorSubject.foreach { _ =>
       scribe.error("API request did fail, because the API is incompatible")
       hasError() = true
+      Segment.trackError("API request failed", "API incompatible")
     }
     OutwatchTracing.error.foreach{ t =>
       scribe.error("Error in outwatch component", t)
       hasError() = true
+      Segment.trackError("Error in Outwatch Component", t.getMessage())
     }
 
     // we send client errors from javascript to the backend
@@ -308,12 +320,13 @@ object GlobalStateFactory {
       setupStateDebugLogging()
     }
 
-    GlobalState.auth.foreach { auth =>
-      val userId = auth.user.id.toBase58
-
-      GoogleAnalytics.setUserId(userId) // https://support.google.com/analytics/answer/3123662?hl=en
-      Amplitude.setUserId(userId) // https://developers.amplitude.com/?javascript#setting-custom-user-ids
-      FS.identify(userId) // https://help.fullstory.com/hc/en-us/articles/360020828113-FS-identify-Identifying-users
+    GlobalState.userId.foreach { userId =>
+      val uuid:String = userId.toUuid.toString
+      val hashedUserId = Sha256.sha224(uuid)
+      Segment.identify(hashedUserId)
+    }
+    GlobalState.view.foreach { view =>
+      Segment.page(view.viewKey)
     }
   }
 

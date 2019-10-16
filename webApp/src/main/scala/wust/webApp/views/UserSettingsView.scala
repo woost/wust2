@@ -9,7 +9,6 @@ import outwatch.reactive.handler._
 import rx._
 import wust.api._
 import wust.css.Styles
-import wust.facades.googleanalytics.GoogleAnalytics
 import wust.graph._
 import wust.ids.{Feature, _}
 import wust.webApp._
@@ -25,6 +24,7 @@ import scala.concurrent.Future
 import scala.scalajs.js
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success}
+import wust.facades.segment.Segment
 
 object UserSettingsView {
 
@@ -488,7 +488,7 @@ object UserSettingsView {
             case Success(Some(redirectUrl)) => dom.window.location.href = redirectUrl
             case _ => UI.toast(s"Sorry, the OAuth Service for '${service.identifier}' is currently not available. Please try again later.", level = ToastLevel.Error)
           }
-          GoogleAnalytics.sendEvent(service.identifier, "enableplugin")
+          Segment.trackEvent("Enabled Plugin", js.Dynamic.literal(plugin = service.identifier))
         }
       ),
       div(

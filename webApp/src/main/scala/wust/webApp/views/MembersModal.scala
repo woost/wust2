@@ -23,6 +23,7 @@ import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{Elements, ModalConfig, Ownable, UI}
 
 import scala.util.{Failure, Success}
+import wust.facades.segment.Segment
 
 object MembersModal {
 
@@ -85,6 +86,7 @@ object MembersModal {
               Client.auth.invitePerMail(address = email, node.id, accesslevel).onComplete {
                 case Success(()) =>
                   statusMessageHandler.onNext(Some(("positive", "New member was invited", s"Invitation mail has been sent to '$email'.")))
+                  Segment.trackInviteSent()
                   clear.onNext(())
                 case Failure(ex) =>
                   statusMessageHandler.onNext(Some(("negative", "Adding Member failed", "Unexpected error")))

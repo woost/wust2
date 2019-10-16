@@ -4,9 +4,7 @@ import acyclic.file
 import outwatch.reactive._
 import rx._
 import wust.api.{AuthUser, UsedFeature}
-import wust.facades.amplitude.Amplitude
-import wust.facades.fullstory.FS
-import wust.facades.googleanalytics.GoogleAnalytics
+import wust.facades.segment.Segment
 import wust.ids.{Feature, _}
 import wust.util.time.time
 import wust.webApp.{Client, DebugOnly, DevOnly}
@@ -144,9 +142,8 @@ object FeatureState {
           if (Feature.allWithoutSecretsSet.contains(feature)) usedNewFeatureTrigger.onNext(())
         }
         recentlyUsed.update(recentlyUsed => (feature +: recentlyUsed).take(recentlyUsedLimit).distinct)
-        GoogleAnalytics.sendEvent("feature", feature.toString)
-        FS.event(feature.toString)
-        Amplitude.logEvent(feature.toString)
+
+        Segment.trackEvent(feature.toString)
 
         scribe.debug("Used Feature: " + feature.toString)
         DebugOnly {

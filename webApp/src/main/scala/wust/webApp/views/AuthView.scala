@@ -20,6 +20,7 @@ import wust.webUtil.outwatchHelpers._
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
+import wust.facades.segment.Segment
 
 
 // an html view for the authentication. That is login and signup.
@@ -257,6 +258,7 @@ object AuthView {
           case AuthResult.InvalidEmail => Some("Email address is invalid")
           case AuthResult.Success      =>
             FeatureState.use(Feature.Login)
+            Segment.trackSignedIn()
             None
         }
       },
@@ -280,6 +282,7 @@ object AuthView {
           case AuthResult.InvalidEmail => Some("Email address is invalid")
           case AuthResult.Success      =>
             FeatureState.use(Feature.Signup)
+            Segment.trackSignedUp("organic")
             None
         }
       },

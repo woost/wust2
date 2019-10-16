@@ -7,18 +7,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no"/>
     <meta name="robots" content="noindex">
 
-    <!-- Google Tag Manager Data Layer (https://developers.google.com/tag-manager/devguide) -->
-    <script>
-        dataLayer = [];
-    </script>
+
+    <!-- Segment.com tracking code -->
     <% if (audience != "dev") { %>
-    <!-- Google Tag Manager -->
-    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-    })(window,document,'script','dataLayer', <% if (audience == "app") { %> 'GTM-PWQZ2GB' <% } else { %> 'GTM-M2GCQLN' <% } %>);</script>
-    <!-- End Google Tag Manager -->
+    <script>
+      !function(){var analytics=window.analytics=window.analytics||[];if(!analytics.initialize)if(analytics.invoked)window.console&&console.error&&console.error("Segment snippet included twice.");else{analytics.invoked=!0;analytics.methods=["trackSubmit","trackClick","trackLink","trackForm","pageview","identify","reset","group","track","ready","alias","debug","page","once","off","on"];analytics.factory=function(t){return function(){var e=Array.prototype.slice.call(arguments);e.unshift(t);analytics.push(e);return analytics}};for(var t=0;t<analytics.methods.length;t++){var e=analytics.methods[t];analytics[e]=analytics.factory(e)}analytics.load=function(t,e){var n=document.createElement("script");n.type="text/javascript";n.async=!0;n.src="https://cdn.segment.com/analytics.js/v1/"+t+"/analytics.min.js";var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(n,a);analytics._loadOptions=e};analytics.SNIPPET_VERSION="4.1.0";
+      analytics.load("<% if (audience == "app") { %>0GUIaXH9UWikVZRt1laCpxSKDR1e71cJ<% } else { %>NFAO4prTPYcZsdFA6HNv0f625FHEZOem<% } %>");
+
+      analytics.page();
+      }}();
+    </script>
     <% } %>
 
     <link rel="apple-touch-icon" sizes="180x180" href="/<%= require('../../assets/apple-touch-icon.png') %>">
@@ -71,14 +69,6 @@
             <p>You don't have JavaScript enabled, but Woost needs JavaScript to work.</p>
         </div>
     </noscript>
-
-    <% if (audience != "dev") { %>
-    <!-- Google Tag Manager (noscript) -->
-    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=<% if (audience == "app") { %>GTM-PWQZ2GB<% } else { %>GTM-M2GCQLN<% } %>"
-    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-    <!-- End Google Tag Manager (noscript) -->
-    <% } %>
-
 
     <!-- draggable mirror is positioned absolute, so that mirrors do not affect the page layout (especially flexbox) and therefore do not produce ill-sized or misplaced mirrors -->
     <div id="draggable-mirrors" style="position:absolute;"></div>

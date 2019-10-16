@@ -1,12 +1,12 @@
 package wust.webApp.views
 
+import scala.scalajs.js
 import monix.eval.Task
 import org.scalajs.dom
 import org.scalajs.dom.FormData
 import org.scalajs.dom.raw.XMLHttpRequest
 import wust.api.{ApiEvent, AuthUser, FileUploadConfiguration}
 import wust.facades.canvasImageUploader._
-import wust.facades.googleanalytics.GoogleAnalytics
 import wust.facades.jsSha256.Sha256
 import wust.graph._
 import wust.ids._
@@ -18,6 +18,7 @@ import wust.webUtil.outwatchHelpers._
 
 import scala.concurrent.{Future, Promise}
 import scala.util.{Failure, Success}
+import wust.facades.segment.Segment
 
 object AWS {
   private def rotateImageByExifOrientation(file:dom.File):Future[dom.Blob] = {
@@ -46,7 +47,7 @@ object AWS {
     }
 
     if(originalFile.size > FileUploadConfiguration.maxUploadBytesPerFile) {
-      GoogleAnalytics.sendEvent("AWS-upload", "file-size-limit", label = "MB", value = (originalFile.size / 1024 / 1024).toInt)
+      Segment.trackError("AWS upload file-size limit reached", s"${(originalFile.size / 1024 / 1024).toInt}MB")
       return Left(s"The file '${originalFile.name}' is bigger than the allowed limit of ${FileUploadConfiguration.maxUploadBytesPerFile / 1024 / 1024} MB.")
     }
 
@@ -101,15 +102,15 @@ object AWS {
           case Success(FileUploadConfiguration.KeyExists(key)) =>
             UI.toast("File was Successfully uploaded", level = UI.ToastLevel.Success)
             promise success Some(key)
-            GoogleAnalytics.sendEvent("AWS-upload", "success", label = "MB", value = (file.size / 1024 / 1024).toInt)
+            Segment.trackEvent("AWS upload successful", js.Dynamic.literal(fileSize = (file.size / 1024 / 1024).toInt))
           case Success(FileUploadConfiguration.QuotaExceeded) =>
             promise success None
             UI.toast(s"Sorry, you have exceeded your file-upload quota. You only have ${FileUploadConfiguration.maxUploadBytesPerUser / 1024 / 1024} MB. Click here to check your uploaded files in your user settings.", click = () => GlobalState.urlConfig.update(_.focus(View.UserSettings)))
-            GoogleAnalytics.sendEvent("AWS-upload", "total-size-limit")
+            Segment.trackError("AWS upload quota exceeded", s"You only have ${FileUploadConfiguration.maxUploadBytesPerUser / 1024 / 1024} MB")
           case Success(FileUploadConfiguration.ServiceUnavailable) =>
             promise success None
             UI.toast("Sorry, the file-upload service is currently unavailable. Please try again later!")
-            GoogleAnalytics.sendEvent("AWS-upload", "aws-unavailable")
+            Segment.trackError("AWS upload unavailable", "aws unavailable")
           case Success(FileUploadConfiguration.Rejected(reason)) =>
             promise success None
             UI.toast(reason)
@@ -117,7 +118,7 @@ object AWS {
             promise success None
             scribe.warn("Cannot get file upload configuration", t)
             UI.toast("Sorry, the file-upload service is currently unreachable. Please try again later!")
-            GoogleAnalytics.sendEvent("AWS-upload", "backend-unavailable")
+            Segment.trackError("AWS upload backend unavailable", "backend unavailable")
         }
 
         promise.future
