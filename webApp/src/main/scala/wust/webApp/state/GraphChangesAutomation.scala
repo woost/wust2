@@ -1,5 +1,6 @@
 package wust.webApp.state
 
+import wust.facades.segment.Segment
 import org.scalajs.dom
 import rx.Var
 import wust.graph._
@@ -785,6 +786,7 @@ object GraphChangesAutomation {
     delEdges ++= changes.delEdges
 
     automatedNodes.foreach { childNode =>
+      Segment.trackEvent("TriggeredAutomation")
       UI.toast(
         StringOps.trimToMaxLength(childNode.str, 50),
         title = s"${ childNode.role } was automated:",
