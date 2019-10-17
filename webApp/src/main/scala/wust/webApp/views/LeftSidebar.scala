@@ -199,7 +199,7 @@ object LeftSidebar {
 
         hamburger,
         banner,
-        Components.betaSign.apply(fontSize := "12px"),
+        div(width := "50px", height := "20px", onMultiClickActivateDebugging),
         syncStatus(ctx)(fontSize := "20px", marginLeft.auto, marginRight := "10px")
       )
     )

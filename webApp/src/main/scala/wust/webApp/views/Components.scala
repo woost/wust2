@@ -1043,6 +1043,10 @@ object Components {
   }
 
   def betaSign(implicit ctx:Ctx.Owner) = maturityLabel("beta").apply (
+    onMultiClickActivateDebugging
+  )
+
+  def onMultiClickActivateDebugging(implicit ctx:Ctx.Owner) = {
     Elements.onClickN(desiredClicks = if(DevOnly.isTrue) 1 else 8).foreach {
       DebugOnly.isTrueSetting = true
       Logging.setup()
@@ -1050,7 +1054,7 @@ object Components {
       DeployedOnly(dom.window.alert(s"Woost version: ${WoostConfig.value.versionString}\nLogging and DevOnly is now enabled"))
       ()
     }
-  )
+  }
 
   def experimentalSign(color: String) = maturityLabel("experimental", fgColor = color, borderColor = color)
 
