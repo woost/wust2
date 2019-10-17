@@ -12,6 +12,7 @@ import wust.webApp.state.{FeatureDetails, GlobalState, PresentationMode, ScreenS
 import wust.webUtil.Elements._
 import wust.webUtil.{BrowserDetect, UI}
 import wust.webUtil.outwatchHelpers._
+import wust.facades.segment.Segment
 
 object MainView {
 
@@ -66,18 +67,24 @@ object MainView {
       div(
         Styles.flex,
         alignItems.center,
-        marginLeft := "auto",
-        marginRight := "10px",
-        span("Brought to you by"),
+        justifyContent.flexEnd,
+        backgroundColor := "#494653",
+        color := "white",
         span(
-          Styles.flex,
-          alignItems.center,
-          color := Colors.woost,
-          div(WoostLogoComponents.woostIcon, margin := "0 0 0 3px"),
-          b("Woost"),
-          // onClickDefault.foreach(GlobalState.urlConfig.update(_.copy(mode = PresentationMode.Full)))
-          onClickDefault.foreach(dom.window.location.href = "https://woost.space")
-        )
+          padding := "6px",
+          "Customer Collaboration Powered by ",
+        ),
+        WoostLogoComponents.woostIcon.apply(width := "17px", height := "17px", color := "#ae7eff"),
+        span(
+          padding := "6px 10px 6px 1px",
+          b("Woost")
+        ),
+        span(width := "5px"),
+        // onClickDefault.foreach(GlobalState.urlConfig.update(_.copy(mode = PresentationMode.Full)))
+        onClickDefault.foreach{ _ =>
+          Segment.trackEvent("ClickedPresentationModeBanner")
+          dom.window.open("https://woost.space", "_blank")
+        }
       )
     )
   }
