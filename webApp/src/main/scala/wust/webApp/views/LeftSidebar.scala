@@ -523,6 +523,7 @@ object LeftSidebar {
       val sanitizedDepth = depth.min(maxDepth)
 
       val channelIconModifiers = VDomModifier(
+        href <-- nodeUrl(nodeId),
         onClick foreach {
           // needs to be before onChannelClick, because else GlobalState.page is already at the new page
           GlobalState.page.now.parentId match {
@@ -595,7 +596,7 @@ object LeftSidebar {
       }
     }
 
-    div(
+    a(
       cls := "channelicon",
       width := s"${size}px",
       height := s"${size}px",
