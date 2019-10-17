@@ -1046,7 +1046,8 @@ object Components {
     onMultiClickActivateDebugging
   )
 
-  def onMultiClickActivateDebugging(implicit ctx:Ctx.Owner) = {
+  def onMultiClickActivateDebugging(implicit ctx:Ctx.Owner) = VDomModifier(
+    cls := "fs-ignore-rage-clicks fs-ignore-dead-clicks", // https://help.fullstory.com/hc/en-us/articles/360020622734
     Elements.onClickN(desiredClicks = if(DevOnly.isTrue) 1 else 8).foreach {
       DebugOnly.isTrueSetting = true
       Logging.setup()
@@ -1054,7 +1055,7 @@ object Components {
       DeployedOnly(dom.window.alert(s"Woost version: ${WoostConfig.value.versionString}\nLogging and DevOnly is now enabled"))
       ()
     }
-  }
+  )
 
   def experimentalSign(color: String) = maturityLabel("experimental", fgColor = color, borderColor = color)
 
