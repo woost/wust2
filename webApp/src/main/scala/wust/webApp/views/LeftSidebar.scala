@@ -67,7 +67,6 @@ object LeftSidebar {
 
             Rx {
               val viewIsContent = GlobalState.viewIsContent()
-
               UI.accordion(
                 content = Seq.empty ++
                   (if (viewIsContent) Seq(

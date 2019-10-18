@@ -21,6 +21,7 @@ object NotesView {
 
   //TODO: button in each sidebar line to jump directly to view (conversation / tasks)
   def apply(focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
+    val traverseState = TraverseState(focusState.focusedId)
     div(
       keyed,
       Styles.growFull,
@@ -39,7 +40,7 @@ object NotesView {
           }.sortBy(_.id)
 
           childNodes.map { node =>
-            renderNote(node, focusState = focusState)
+            renderNote(node, focusState = focusState, traverseState = traverseState)
           }
         },
         registerDragContainer,
@@ -69,9 +70,8 @@ object NotesView {
     )
   }
 
-  private def renderNote(node: Node, focusState:FocusState)(implicit ctx: Ctx.Owner): VNode = {
+  private def renderNote(node: Node, focusState:FocusState, traverseState: TraverseState)(implicit ctx: Ctx.Owner): VNode = {
     val parentId = focusState.focusedId
-    val traverseState = TraverseState(focusState.focusedId)
     val nodeIdx = GlobalState.graph.map(_.idToIdxOrThrow(node.id))
     val parentIdx = GlobalState.graph.map(_.idToIdxOrThrow(parentId))
 
@@ -106,7 +106,7 @@ object NotesView {
       ),
       div(
         alignItems.center,
-        NodeDetails.tagsPropertiesAssignments(node.id, focusState)
+        NodeDetails.tagsPropertiesAssignments(focusState, traverseState, node.id)
       ),
       NodeDetails.cardFooter(node.id, childStats, isExpanded, focusState),
       NodeDetails.nestedTaskList(

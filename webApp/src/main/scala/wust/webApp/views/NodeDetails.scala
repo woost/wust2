@@ -16,7 +16,7 @@ import wust.webApp.state.FeatureState
 
 object NodeDetails {
 
-  def tagsPropertiesAssignments(nodeId: NodeId, focusState: FocusState)(implicit ctx: Ctx.Owner) = {
+  def tagsPropertiesAssignments(focusState: FocusState, traverseState: TraverseState, nodeId: NodeId)(implicit ctx: Ctx.Owner) = {
     val propertySingle = Rx {
       val graph = GlobalState.graph()
       PropertyData.Single(graph, graph.idToIdxOrThrow(nodeId))
@@ -40,7 +40,7 @@ object NodeDetails {
           propertySingle().properties.map { property =>
             property.values.map { value =>
               VDomModifier.ifTrue(value.edge.data.showOnCard) {
-                Components.nodeCardProperty(value.edge, value.node, focusState)
+                Components.nodeCardProperty(focusState, traverseState, value.edge, value.node)
               }
             }
           },
