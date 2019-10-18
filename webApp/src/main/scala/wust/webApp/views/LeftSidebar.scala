@@ -262,7 +262,7 @@ object LeftSidebar {
       val isSynced = Rx {
         GlobalState.isSynced() && !GlobalState.isLoading()
       }
-      SourceStream.combineLatest(GlobalState.isClientOnline.distinctOnEquals)(isSynced)
+      SourceStream.combineLatest(GlobalState.isClientOnline.distinctOnEquals, isSynced)
     }
 
     val syncStatusIcon = status.map { status =>

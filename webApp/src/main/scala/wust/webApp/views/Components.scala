@@ -628,7 +628,7 @@ object Components {
         implicit ctx => handler => searchAndSelectNodeApplied[Handler](
           ProHandler(
             handler.edit.contramap[Option[NodeId]](EditInteraction.fromOption(_)),
-            handler.edit.collect[Option[NodeId]] { case EditInteraction.Input(id) => Some(id) }.prepend(Some(node.id)).shareWithLatest,
+            handler.edit.collect[Option[NodeId]] { case EditInteraction.Input(id) => Some(id) }.prepend(Some(node.id)).replayLatest
           ),
           filter = (_:Node) => true
         ),

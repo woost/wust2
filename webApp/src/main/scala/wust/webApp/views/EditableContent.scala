@@ -213,7 +213,7 @@ object EditableContent {
   private def commonEditStructure[T](initial: Option[T], current: Handler[EditInteraction[T]], config: Config, handle: EditInteraction[T] => EditInteraction[T])(modifier: CommonEditHandler[T] => VDomModifier) = {
     val handledCurrent = ProHandler(
       current.contramap[EditInteraction[T]](handleEditInteraction[T](initial, config) andThen handle),
-      current.filter(uniqueEditInteraction[T](initial)).shareWithLatest
+      current.filter(uniqueEditInteraction[T](initial)).replayLatest
     )
 
     val saveHandler = Handler.publish.unsafe[Unit]
