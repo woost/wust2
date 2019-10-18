@@ -171,7 +171,7 @@ object KanbanView {
           DragComponents.drag(DragItem.DisableDrag),
           Styles.flex,
           collapseButton,
-          GraphChangesAutomationUI.settingsButton( focusState.focusedId, activeMod = visibility.visible, viewRender = viewRender),
+          GraphChangesAutomationUI.settingsButton( focusState, activeMod = visibility.visible, viewRender = viewRender),
         ),
       ),
       div(
@@ -267,7 +267,7 @@ object KanbanView {
         )
       },
 
-      GraphChangesAutomationUI.settingsButton( nodeId, activeMod = visibility.visible, viewRender = viewRender),
+      GraphChangesAutomationUI.settingsButton( focusState.copy(focusedId = nodeId), activeMod = visibility.visible, viewRender = viewRender),
     )
 
     val scrollHandler = new ScrollBottomHandler(initialScrollToBottom = false)

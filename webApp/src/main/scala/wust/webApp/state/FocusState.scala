@@ -2,7 +2,7 @@ package wust.webApp.state
 
 import wust.ids.{NodeId, View}
 
-// when travsering a tree in the dom, we always have a current parent and a chain of ancestors. Needed to check cycles or operate on the parents in the views.
+// when traversing a tree in the dom, we always have a current parent and a chain of ancestors. Needed to check cycles or operate on the parents in the views.
 final case class TraverseState(
   parentId: NodeId,
   tail: List[NodeId] = Nil

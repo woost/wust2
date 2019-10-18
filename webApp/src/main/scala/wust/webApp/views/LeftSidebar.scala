@@ -67,13 +67,15 @@ object LeftSidebar {
 
             Rx {
               val viewIsContent = GlobalState.viewIsContent()
+              // TODO: I do not know whether this is correct. Have to rethink it deeply
+              GlobalState.toFocusState(GlobalState.viewConfig()).map { focusState =>
 
               UI.accordion(
                 content = Seq.empty ++
                   (if (viewIsContent) Seq(
                     accordionEntry(
                       "Tags",
-                      TagList.body(ViewRender),
+                      TagList.body(focusState, ViewRender),
                       active = false
                     ),
                     accordionEntry(
@@ -102,6 +104,7 @@ object LeftSidebar {
                   boxShadow := "none", //explicitly overwrite boxshadow from accordion.
                   onClick.stopPropagation.discard, // prevent left sidebar from closing
                 )
+              }
             },
             beforeInstallPrompt(buttonModifier = VDomModifier(
               marginBottom := "15px"

@@ -19,7 +19,7 @@ import wust.webUtil.outwatchHelpers._
 object TagList {
   val addTagText = "Add Tag"
 
-  def movableWindow(viewRender: ViewRenderLike, position: MovableElement.Position)(implicit ctx: Ctx.Owner): MovableElement.Window = {
+  def movableWindow(focusState: FocusState, viewRender: ViewRenderLike, position: MovableElement.Position)(implicit ctx: Ctx.Owner): MovableElement.Window = {
 
     MovableElement.Window(
       title = VDomModifier(
@@ -55,11 +55,11 @@ object TagList {
             color.white
           )
         }),
-      bodyModifier = Ownable(implicit ctx => body(viewRender).apply(overflowY.auto))
+      bodyModifier = Ownable(implicit ctx => body(focusState, viewRender).apply(overflowY.auto))
     )
   }
 
-  def body(viewRender: ViewRenderLike)(implicit ctx:Ctx.Owner) = {
+  def body(focusState: FocusState, viewRender: ViewRenderLike)(implicit ctx:Ctx.Owner) = {
     val newTagFieldActive: Var[Boolean] = Var(false)
     div(
       Rx {
@@ -72,7 +72,7 @@ object TagList {
             val firstWorkspaceIdx = workspaces.head
             val firstWorkspaceId = graph.nodeIds(firstWorkspaceIdx)
             VDomModifier(
-              plainList(firstWorkspaceId, viewRender, newTagFieldActive).prepend(
+              plainList(focusState, firstWorkspaceId, viewRender, newTagFieldActive).prepend(
                 padding := "5px"
               ),
               drag(target = DragItem.TagBar(firstWorkspaceId)),
@@ -85,6 +85,7 @@ object TagList {
   }
 
   def plainList(
+    focusState: FocusState,
     workspaceId: NodeId,
     viewRender: ViewRenderLike,
     newTagFieldActive: Var[Boolean] = Var(false)
@@ -96,7 +97,7 @@ object TagList {
       graph.tagChildrenIdx(workspaceIdx).map(tagIdx => graph.roleTree(root = tagIdx, NodeRole.Tag))
     }
 
-    def renderTag(parentId: NodeId, tag: Node) = checkboxNodeTag(tag, viewRender, tagModifier = removableTagMod(() =>
+    def renderTag(parentId: NodeId, tag: Node) = checkboxNodeTag(focusState, tag, viewRender, tagModifier = removableTagMod(() =>
       GlobalState.submitChanges(GraphChanges.disconnect(Edge.Child)(ParentId(parentId), ChildId(tag.id)))), dragOptions = id => DragComponents.drag(DragItem.Tag(id)), withAutomation = true)
 
     def renderTagTree(parentId: NodeId, trees: Seq[Tree])(implicit ctx: Ctx.Owner): VDomModifier = trees.map {
@@ -120,6 +121,7 @@ object TagList {
   }
 
   def checkboxNodeTag(
+    focusState: FocusState,
     tagNode: Node,
     viewRender: ViewRenderLike,
     tagModifier: VDomModifier = VDomModifier.empty,
@@ -144,7 +146,7 @@ object TagList {
       nodeTag(tagNode, pageOnClick, dragOptions).apply(tagModifier),
       VDomModifier.ifTrue(withAutomation)(
         GraphChangesAutomationUI.settingsButton(
-          tagNode.id,
+          focusState,
           activeMod = visibility.visible,
           viewRender = viewRender,
           tooltipDirection = "left center"

@@ -29,6 +29,7 @@ object TaskNodeCard {
     inOneLine: Boolean = false,
     isCompact: Boolean = false,
     compactChildren: Boolean = false,
+    isProperty: Boolean = false,
     dragTarget: NodeId => DragTarget = DragItem.Task.apply,
     dragPayload: NodeId => DragPayload = DragItem.Task.apply,
   ): VNode = div.thunkStatic(nodeId.toStringFast)(Ownable { implicit ctx =>
@@ -39,7 +40,8 @@ object TaskNodeCard {
       GlobalState.graph().nodes(nodeIdx())
     }
     val isDeletedNow = Rx {
-      GlobalState.graph().isDeletedNowIdx(nodeIdx(), parentIdx())
+      if( isProperty ) false
+      else GlobalState.graph().isDeletedNowIdx(nodeIdx(), parentIdx())
     }
     val isExpanded = Rx {
       GlobalState.graph().isExpanded(GlobalState.userId(), nodeIdx()).getOrElse(false)
@@ -130,7 +132,7 @@ object TaskNodeCard {
         DragComponents.drag(DragItem.DisableDrag),
         Styles.flex,
         toggleExpand,
-        VDomModifier.ifTrue(!BrowserDetect.isMobile)(toggleDelete)
+        VDomModifier.ifTrue(!BrowserDetect.isMobile && !isProperty)(toggleDelete)
       )
     }
 
@@ -149,12 +151,14 @@ object TaskNodeCard {
           maxLength = Some(maxLength),
           contentInject = VDomModifier(
             VDomModifier.ifTrue(isDone)(textDecoration.lineThrough),
-            VDomModifier.ifTrue(inOneLine)(alignItems.center, NodeDetails.tagsPropertiesAssignments(nodeId), marginRight := "40px"), // marginRight to not interfere with button bar...
+            VDomModifier.ifTrue(inOneLine)(alignItems.center, NodeDetails.tagsPropertiesAssignments(focusState, traverseState, nodeId), marginRight := "40px"), // marginRight to not interfere with button bar...
             VDomModifier.ifNot(showCheckbox)(
               marginLeft := "2px"
-            )
+            ),
           ),
-          nodeInject = VDomModifier.ifTrue(inOneLine)(marginRight := "10px")
+          nodeInject = VDomModifier(
+            VDomModifier.ifTrue(inOneLine)(marginRight := "10px"),
+          )
         )
       },
 
@@ -171,7 +175,7 @@ object TaskNodeCard {
         margin := "0 3px",
         marginLeft := s"${if(isCompact) CommonStyles.taskPaddingCompactPx else CommonStyles.taskPaddingPx}px",
         alignItems.center,
-        NodeDetails.tagsPropertiesAssignments(nodeId),
+        NodeDetails.tagsPropertiesAssignments(focusState, traverseState, nodeId),
         Rx {
           VDomModifier.ifTrue(childStats().isEmpty)(marginBottom := "3px")
         },

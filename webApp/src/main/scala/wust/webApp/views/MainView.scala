@@ -183,7 +183,6 @@ object MainView {
           cls := "pusher",
           Rx {
             val viewConfig = GlobalState.viewConfig()
-
             if (viewIsContent() && GlobalState.isLoading()) {
               spaceFillingLoadingAnimation.apply(Styles.growFull, zIndex := ZIndex.loading, backgroundColor := Colors.contentBg)
             } else if (viewIsContent() && GlobalState.pageNotFound()) {

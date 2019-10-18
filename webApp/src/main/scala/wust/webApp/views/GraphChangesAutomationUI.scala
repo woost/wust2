@@ -15,7 +15,7 @@ import wust.sdk.NodeColor._
 import wust.util.StringOps
 import wust.webApp.Icons
 import wust.webApp.dragdrop.DragItem
-import wust.webApp.state.{FeatureState, FocusPreference, GlobalState, GraphChangesAutomation}
+import wust.webApp.state.{FeatureState, FocusPreference, FocusState, GlobalState, GraphChangesAutomation, TraverseState}
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil._
 import wust.webUtil.Elements._
@@ -30,7 +30,10 @@ object GraphChangesAutomationUI {
 
   val createAutomationTemplateText = "Create a new Automation Template"
   // returns the modal config for rendering a modal for configuring automation of the node `nodeId`.
-  def modalConfig(focusedId: NodeId, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): ModalConfig = {
+  def modalConfig(focusState: FocusState, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): ModalConfig = {
+    val focusedId = focusState.focusedId
+    val traverseState = TraverseState(focusedId)
+
     val header: VDomModifier = Rx {
       GlobalState.rawGraph().nodesById(focusedId).map { node =>
         Modal.defaultHeader(node, "Automation", Icons.automate)
@@ -205,7 +208,7 @@ object GraphChangesAutomationUI {
 
                       propertySingle.properties.map { property =>
                         property.values.map { value =>
-                          Components.nodeCardProperty( value.edge, value.node)
+                          Components.nodeCardProperty(focusState, traverseState, value.edge, value.node)
                         }
                       },
 
@@ -273,12 +276,13 @@ object GraphChangesAutomationUI {
 
   // a settings button for automation that opens the modal on click.
   def settingsButton(
-    focusedId: NodeId,
+    focusState: FocusState,
     viewRender: ViewRenderLike,
     activeMod: VDomModifier = VDomModifier.empty,
     inactiveMod: VDomModifier = VDomModifier.empty,
     tooltipDirection: String = "bottom center",
   )(implicit ctx: Ctx.Owner): VNode = {
+    val focusedId = focusState.focusedId
     val accentColor = BaseColors.pageBg.copy(h = hue(focusedId)).toHex
     val hasTemplates = Rx {
       val graph = GlobalState.rawGraph()
@@ -289,7 +293,7 @@ object GraphChangesAutomationUI {
       i(cls := "fa-fw", Icons.automate),
 
       cursor.pointer,
-      onClick.use(Ownable(implicit ctx => modalConfig( focusedId, viewRender))) --> GlobalState.uiModalConfig,
+      onClick.use(Ownable(implicit ctx => modalConfig( focusState, viewRender))) --> GlobalState.uiModalConfig,
       onClickDefault.foreach {
         Segment.trackEvent("Open Automation Modal")
       },

@@ -160,6 +160,8 @@ object SharedViewElements {
   }
 
   def renderMessage(
+    focusState: FocusState,
+    traverseState: TraverseState, 
     nodeId: NodeId,
     directParentIds:Iterable[NodeId],
     isDeletedNow: Rx[Boolean],
@@ -200,7 +202,7 @@ object SharedViewElements {
             nodeCard( node,
               contentInject = div(
                 alignItems.center,
-                NodeDetails.tagsPropertiesAssignments(nodeId)
+                NodeDetails.tagsPropertiesAssignments(focusState, traverseState, nodeId)
               )
             ).apply(
               Styles.flex,
