@@ -162,7 +162,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow, oAut
         val result = db.user.updateUserEmail(user.id, newEmail)
 
         result.map { success =>
-          if (success) sendEmailVerification(UserDetail(userId, Some(newEmail), verified = false))
+          if (success) emailFlow.sendEmailVerification(userId, newEmail)
           Returns(success)
         }
       } else Future.successful(false)
@@ -172,8 +172,8 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow, oAut
   override def resendEmailVerification(userId: UserId): ApiFunction[Unit] = Action.requireRealUser { (_, user) =>
     if (userId == user.id) { // currently only allow to change own user details
       db.user.getUserDetail(user.id).map {
-        case Some(userDetail) => sendEmailVerification(userDetail)
-        case None             => ()
+        case Some(userDetail) if !userDetail.verified => userDetail.email.foreach(emailFlow.sendEmailVerification(userDetail.userId, _))
+        case _                => ()
       }
     } else Future.successful(Returns.error(ApiError.Forbidden))
   }
@@ -181,7 +181,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow, oAut
   // TODO: we just assume, this inviteTargetMail user does not exist. Actually we should check, whether we have a user with this email already in our db. We don't want to send invite mail to existing user. We should add them as member and set invite edge. Currently the frontend does this distinction and we just trust it.
   override def invitePerMail(inviteTargetMail: String, nodeId: NodeId, accesslevel: AccessLevel): ApiFunction[Unit] = Effect.requireRealUser { (state, dbUser) =>
     db.user.getUserDetail(dbUser.id).flatMap{
-      case Some(Data.UserDetail(userId, Some(inviterEmail), true)) => // only allow verified user with an email to send out invitations
+      case Some(Data.UserDetail(userId, Some(inviterEmail), true, _)) => // only allow verified user with an email to send out invitations
         db.node.get(dbUser.id, nodeId).flatMap{
           case Some(node: Data.Node) => forClient(node) match { // this node exists and the inviter dbUser has access to it
             case node: Node.Content => // make sure we only allow this for content nodes and not for users
@@ -227,10 +227,6 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow, oAut
     }
   }
 
-  private def sendEmailVerification(userDetail: UserDetail): Unit = if (!userDetail.verified) userDetail.email.foreach { email =>
-    emailFlow.sendEmailVerification(userDetail.userId, email)
-  }
-
   private def passwordDigest(password: Password) = Hasher(password.string).bcrypt
 
   private def authChangeEvents(auth: Authentication): Seq[ApiEvent] = {
@@ -253,7 +249,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow, oAut
 
   private def resultOnVerifiedAuthAfterRegister(res: Future[Option[Data.User]], email: String, replaces: Option[UserId] = None): Future[ApiData.Effect[AuthResult]] = res.map {
     case Some(u) =>
-      sendEmailVerification(UserDetail(u.id, Some(email), verified = false))
+      emailFlow.sendEmailVerification(u.id, email)
 
       val replacements = replaces.map(id => ReplaceNode(id, u.toNode))
       Returns(AuthResult.Success, authChangeEvents(jwt.generateAuthentication(forClientAuth(u))) ++ replacements)

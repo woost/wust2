@@ -78,6 +78,9 @@ trait Circe {
   implicit val connectionContentDecoder: Decoder[EdgeData] = deriveDecoder[EdgeData]
   implicit val connectionContentEncoder: Encoder[EdgeData] = deriveEncoder[EdgeData]
 
+  implicit val PaymentPlanEncoder: Encoder[PaymentPlan] = deriveEncoder[PaymentPlan]
+  implicit val PaymentPlanDecoder: Decoder[PaymentPlan] = deriveDecoder[PaymentPlan]
+
   implicit val viewVisibleEncoder: Encoder[View.Visible] = deriveEncoder[View.Visible]
   implicit val viewVisibleDecoder: Decoder[View.Visible] = deriveDecoder[View.Visible]
 

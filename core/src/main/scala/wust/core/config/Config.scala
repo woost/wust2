@@ -18,6 +18,10 @@ final case class AppKeys(appKey: String, appSecret: String) {
   override def toString: String = s"AppKeys($appKey, ***)"
 }
 
+final case class StripeConfig(endpointSecret: String, apiKey: String, publicKey: String) {
+  override def toString: String = s"StripeConfig(***, ***, $publicKey)"
+}
+
 final case class PushedConfig(keys: AppKeys)
 
 final case class WebPushConfig(subject: String, keys: VapidKeys)
@@ -45,6 +49,7 @@ final case class Config(
     auth: AuthConfig,
     email: Option[EmailConfig],
     logstash: Option[Logging.LogstashConfig],
+    stripe: Option[StripeConfig],
     db: TConfig
 ) {
   override def toString: String = {

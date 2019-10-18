@@ -139,6 +139,19 @@ private object UrlOption {
           .toRight(DecodeError.TypeError(s"Not a valid presentation mode: $text"))
       }
   }
+
+  object infoContent extends UrlOption {
+    val key = "info"
+
+    val regex = Regex[String](rx"^(.+)$$")
+
+    def update(config: UrlConfig, text: String): DecodeResult[UrlConfig] =
+      parseSingle(regex, text).flatMap { name =>
+        InfoContent.fromString(name)
+          .map(info => config.copy(info = Some(info)))
+          .toRight(DecodeError.TypeError(s"Not a valid info content: $text"))
+      }
+  }
 }
 
 object UrlConfigParser {
@@ -150,7 +163,8 @@ object UrlConfigParser {
     UrlOption.redirectTo,
     UrlOption.invitation,
     UrlOption.focusId,
-    UrlOption.presentationMode
+    UrlOption.presentationMode,
+    UrlOption.infoContent
   ).by(_.key)
 
   def parse(route: UrlRoute): UrlConfig = {

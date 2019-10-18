@@ -18,7 +18,7 @@ import scala.collection.breakOut
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
-class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], serverConfig: ServerConfig, emailFlow: AppEmailFlow, changeGraphAuthorizer: ChangeGraphAuthorizer[Future], graphChangesNotifier: GraphChangesNotifier)(implicit ec: Scheduler) extends Api[ApiFunction] {
+class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], serverConfig: ServerConfig, emailFlow: AppEmailFlow, changeGraphAuthorizer: ChangeGraphAuthorizer[Future], graphChangesNotifier: GraphChangesNotifier, stripeApi: Option[StripeApi])(implicit ec: Scheduler) extends Api[ApiFunction] {
   import ApiEvent._
   import dsl._
 
@@ -103,6 +103,42 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], serve
     ???
   }
 
+  override def createStripeCheckoutSession(paymentPlan: PaymentPlan): ApiFunction[StripeCheckoutResponse] = Action { state =>
+    state.auth.map(_.user) match {
+      case Some(user: AuthUser.Real) =>
+        stripeApi.fold[Task[StripeCheckoutResponse]](Task.pure(StripeCheckoutResponse.Error)) { stripeApi =>
+          Task.fromFuture(db.user.getUserDetail(user.id)).flatMap {
+            case Some(detail) if detail.plan == paymentPlan => // already has subscribed
+              Task.pure(StripeCheckoutResponse.AlreadySubscribed)
+            case Some(Data.UserDetail(_, Some(email), true, _)) => // only allow verified user with an email
+              val customer = Task.fromFuture(db.stripeCustomer.getByUserId(user.id)).flatMap {
+                case Some(stipeCustomer) =>
+                  Task.pure(Some(stipeCustomer.customerId))
+                case None =>
+                  stripeApi.createCustomer(email).flatMap { customer =>
+                    val customerId = StripeCustomerId(customer.getId)
+                    Task.fromFuture(db.stripeCustomer.create(Data.StripeCustomer(customerId, user.id))).map { success =>
+                      if (success) Some(customerId) else None
+                    }
+                  }
+              }
+
+              customer.flatMap {
+                case Some(customer) =>
+                  stripeApi.createCheckoutSession(paymentPlan, customer)
+                    .map(session => StripeCheckoutResponse.NewSession(StripeSessionId(session.getId)))
+                case None => Task.pure(StripeCheckoutResponse.Error)
+              }
+            case _ => Task.pure(StripeCheckoutResponse.Forbidden)
+          }
+        }.runToFuture
+      case _ => Future.successful(StripeCheckoutResponse.Forbidden)
+    }
+  }
+
+  override def getStripePublicKey: ApiFunction[Option[StripePublicKey]] = Action {
+    Future.successful(stripeApi.map(s => StripePublicKey(s.publicKey)))
+  }
 
   // Simple Api
   // TODO: more efficient
@@ -126,7 +162,7 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], serve
   // only real users with email address can upload files
   override def fileUploadConfiguration(key: String, fileSize: Int, fileName: String, fileContentType: String): ApiFunction[FileUploadConfiguration] = Action.requireRealUser { (_, user) =>
     db.user.getUserDetail(user.id).flatMap{
-      case Some(Data.UserDetail(userId, Some(inviterEmail), true)) => // only allow verified user with an email to upload files
+      case Some(Data.UserDetail(userId, Some(inviterEmail), true, _)) => // only allow verified user with an email to upload files
         fileUploader.fold(Task.pure[FileUploadConfiguration](FileUploadConfiguration.ServiceUnavailable))(_.getFileUploadConfiguration(user.id, key, fileSize = fileSize, fileName = fileName, fileContentType = fileContentType)).runToFuture
       case _ =>
         Future.successful(FileUploadConfiguration.Rejected("Please verify your email address, before you can upload a file!"))

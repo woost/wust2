@@ -22,7 +22,7 @@ object DbConversions {
     }
   }
   implicit def forClient(userDetail: Data.UserDetail): UserDetail = {
-    UserDetail(userDetail.userId, userDetail.email, userDetail.verified)
+    UserDetail(userDetail.userId, userDetail.email, userDetail.verified, userDetail.plan)
   }
   implicit def forClient(node: Data.User): Node.User =
     new Node.User(node.id, node.data, nodeMeta(node))

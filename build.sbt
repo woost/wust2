@@ -467,6 +467,7 @@ lazy val core = project
       Deps.covenant.ws.value ::
         Deps.covenant.http.value ::
         Deps.akka.httpCors.value ::
+        Deps.akka.httpCirce.value ::
         Deps.boopickle.value ::
         Deps.cats.kittens.value ::
         Deps.jwt.value ::
@@ -479,6 +480,7 @@ lazy val core = project
         Deps.awsSdk.ses.value ::
         Deps.javaEmojis.value ::
         Deps.guava.value ::
+        Deps.stripeJava.value ::
         Nil,
     javaOptions in reStart += "-Xmx300m"
   )

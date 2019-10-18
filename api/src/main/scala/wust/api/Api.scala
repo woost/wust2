@@ -41,6 +41,9 @@ trait Api[Result[_]] {
 
   def getUsedFeatures():Result[List[UsedFeature]]
   def useFeatureForFirstTime(feature:UsedFeature):Result[Unit]
+
+  def createStripeCheckoutSession(paymentPlan: PaymentPlan): Result[StripeCheckoutResponse]
+  def getStripePublicKey: Result[Option[StripePublicKey]]
 }
 
 
@@ -82,10 +85,22 @@ final case class Password(string: String) extends AnyVal {
 
 final case class ClientInfo(userAgent: String)
 
+sealed trait StripeCheckoutResponse
+object StripeCheckoutResponse {
+  case class NewSession(session: StripeSessionId) extends StripeCheckoutResponse
+  case object AlreadySubscribed extends StripeCheckoutResponse
+  case object Forbidden extends StripeCheckoutResponse
+  case object Error extends StripeCheckoutResponse
+}
+
+final case class StripeSessionId(sessionId: String)
+final case class StripePublicKey(publicKey: String)
+
 final case class UserDetail(
   userId: UserId,
   email: Option[String],
-  verified: Boolean
+  verified: Boolean,
+  plan: PaymentPlan
 )
 
 sealed trait AuthResult

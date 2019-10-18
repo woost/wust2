@@ -11,6 +11,9 @@ object Topbar {
     div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
       VDomModifier(
         cls := "topbar",
+
+        PaymentView.focusButton,
+
         AuthControls.authStatus(buttonStyleLoggedIn = "basic", loginButtonStyleLoggedOut = "pink basic", signupButtonStyleLoggedOut = "pink").map(_.apply(
           marginLeft.auto,
           marginTop := "3px",

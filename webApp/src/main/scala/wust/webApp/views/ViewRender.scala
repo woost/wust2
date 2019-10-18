@@ -14,6 +14,7 @@ object ViewRender extends ViewRenderLike {
     def withoutFocusState: PartialFunction[View.Visible, VNode] = {
       case View.Login            => AuthView.login
       case View.Signup           => AuthView.signup
+      case View.Payment          => PaymentView.render
       case View.UserSettings     => UserSettingsView.apply
       case View.Welcome          => WelcomeView.apply
       case View.Avatar           => AvatarView.apply

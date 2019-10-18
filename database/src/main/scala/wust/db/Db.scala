@@ -268,6 +268,21 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     }
   }
 
+  object stripeCustomer {
+    def create(customer: StripeCustomer)(implicit ec: ExecutionContext): Future[Boolean] = {
+      ctx.run(query[StripeCustomer].insert(lift(customer))).map(_ == 1)
+    }
+    def get(userId: UserId)(implicit ec: ExecutionContext): Future[Option[StripeCustomer]] = {
+      ctx.run(query[StripeCustomer].filter(_.userId == lift(userId)).take(1)).map(_.headOption)
+    }
+    def getByUserId(userId: UserId)(implicit ec: ExecutionContext): Future[Option[StripeCustomer]] = {
+      ctx.run(query[StripeCustomer].filter(_.userId == lift(userId)).take(1)).map(_.headOption)
+    }
+    def getByCustomerId(customerId: StripeCustomerId)(implicit ec: ExecutionContext): Future[Option[StripeCustomer]] = {
+      ctx.run(query[StripeCustomer].filter(_.customerId == lift(customerId)).take(1)).map(_.headOption)
+    }
+  }
+
   object user {
 
     def allMembershipConnections(userId: UserId): Quoted[Query[Edge]] = quote {
@@ -300,7 +315,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
         infix"""
         with insert_user as (insert into node (id,data,accesslevel) values(${lift(user.id)}, ${lift(user.data)}, ${lift(user.accessLevel)})),
              insert_user_member as (insert into edge (sourceid, data, targetid) values(${lift(userId)}, ${lift(membership)}, ${lift(userId)})),
-             insert_user_detail as (insert into userdetail (userid, email, verified) values(${lift(userId)}, ${lift(email)}, ${lift(false)}))
+             insert_user_detail as (insert into userdetail (userid, email, verified, plan) values(${lift(userId)}, ${lift(email)}, ${lift(false)}, ${lift(PaymentPlan.Free : PaymentPlan)}))
              insert into password(userid, digest) VALUES(${lift(userId)}, ${lift(passwordDigest)})
       """.as[Insert[Node]]
       }
@@ -340,7 +355,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
           for {
             numberUserInserts <- ctx.run(queryUser.filter(_.id == lift(userId)).update(lift(updatedUser)))
             numberPWInserts <- ctx.run(query[Password].insert(lift(Password(userId, passwordDigest))))
-            numberUserDetailInserts <- ctx.run(query[UserDetail].insert(lift(UserDetail(userId, Some(email), verified = false))))
+            numberUserDetailInserts <- ctx.run(query[UserDetail].insert(lift(UserDetail(userId, Some(email), verified = false, plan = PaymentPlan.Free))))
             u <- checkUnexpected(numberPWInserts == 1 && numberUserInserts == 1 && numberUserDetailInserts == 1, Option(updatedUser), s"Unexpected number of user/pw inserts ${userId.toUuid}: $numberUserInserts / 1, $numberPWInserts / 1, $numberUserDetailInserts / 1")
           } yield u
         })
@@ -389,12 +404,32 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       ctx.run(q).map(_.nonEmpty).recover { case _ => false }
     }
 
+    def setPaymentPlan(userId: UserId, paymentPlan: PaymentPlan)(implicit ec: ExecutionContext): Future[Boolean] = {
+      val q = quote {
+        query[UserDetail]
+          .filter(_.userId == lift(userId))
+          .update(_.plan -> lift(paymentPlan))
+      }
+
+      ctx.run(q).map(_ == 1).recover { case _ => false }
+    }
+
     //TODO: we should bump the revision of the user to invalidate tokens after email changes.
     def updateUserEmail(userId: UserId, email: String)(implicit ec: ExecutionContext): Future[Boolean] = {
       val q = quote {
         query[UserDetail]
           .filter(_.userId == lift(userId))
           .update(_.email -> Some(lift(email)), _.verified -> lift(false))
+      }
+
+      ctx.run(q).map(_ == 1).recover { case _ => false }
+    }
+
+    def updatePaymentPlan(userId: UserId, plan: PaymentPlan)(implicit ec: ExecutionContext): Future[Boolean] = {
+      val q = quote {
+        query[UserDetail]
+          .filter(_.userId == lift(userId))
+          .update(_.plan -> lift(plan))
       }
 
       ctx.run(q).map(_ == 1).recover { case _ => false }

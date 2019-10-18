@@ -48,6 +48,10 @@ object View {
   case object Dashboard extends Visible {
     def viewKey = "dashboard"
   }
+  case object Payment extends Visible {
+    def viewKey = "plans"
+    override def isContent = false
+  }
   case object Login extends Visible {
     def viewKey = "login"
     override def isContent = false

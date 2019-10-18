@@ -60,21 +60,50 @@ object UserSettingsView {
   }
 
   def apply(implicit owner: Ctx.Owner): VNode = {
-    val userDetail = Var[Option[UserDetail]](None)
-
     div(
       padding := "20px",
       overflow.auto,
       Rx {
         val user = GlobalState.user()
+        val userDetail = Var[Option[UserDetail]](None)
+        val detailsUnavailable = Var(true)
+        Client.auth.getUserDetail(user.id).onComplete {
+          case Success(detail) =>
+            Var.set(
+              detailsUnavailable -> false,
+              userDetail -> detail
+            )
+          case Failure(err) =>
+            scribe.info("Cannot get UserDetail", err)
+            Var.set(
+              detailsUnavailable -> false,
+              userDetail -> None
+            )
+        }
+
+        val currentPlan = userDetail.map {
+          case Some(userDetail) => userDetail.plan
+          case None => PaymentPlan.Free
+        }
+
         VDomModifier(
           header(user, userDetail).apply(marginBottom := "50px"),
+
+          b(
+            margin := "10px",
+
+            currentPlan.map {
+              case PaymentPlan.Free => "Free Account"
+              case PaymentPlan.Business => "Business Account"
+            }
+          ),
+
           UI.accordion(
             Seq(
-              accordionEntry("Account Settings", accountSettings(user, userDetail), active = true),
-              accordionEntry(span(i(Icons.plugin), b(" Plugins")), pluginSettings(user)),
-              accordionEntry(span(i(Icons.files), b(" Uploaded Files")), uploadSettings(user)),
-              accordionEntry(b("§ Legal Information"), LegalNotice.information),
+              accordionEntry("Account Settings", accountSettings(user, userDetail, detailsUnavailable), active = true),
+              accordionEntry( span( i(Icons.plugin), b(" Plugins") ), pluginSettings(user)),
+              accordionEntry( span( i(Icons.files), b(" Uploaded Files") ), uploadSettings( user)),
+              accordionEntry( b("§ Legal Information" ), LegalNotice.information),
             ),
             styles = "fluid",
             exclusive = false,
@@ -179,7 +208,7 @@ object UserSettingsView {
     ),
   )
 
-  private def accountSettings(user: UserInfo, userDetail: Var[Option[UserDetail]])(implicit ctx: Ctx.Owner): VNode = {
+  private def accountSettings(user: UserInfo, userDetail: Var[Option[UserDetail]], detailsUnavailable: Rx[Boolean])(implicit ctx: Ctx.Owner): VNode = {
     div(
       Styles.flex,
       flexWrap.wrap,
@@ -187,7 +216,7 @@ object UserSettingsView {
         margin := "10px 30px 10px 0px",
         minWidth := "200px",
         maxWidth := "400px",
-        changeEmail(user, userDetail)
+        changeEmail( user, userDetail, detailsUnavailable)
       ),
       div(
         margin := "10px 30px 10px 0px",
@@ -198,22 +227,7 @@ object UserSettingsView {
     )
   }
 
-  private def changeEmail(user: UserInfo, userDetail: Var[Option[UserDetail]])(implicit ctx: Ctx.Owner) = {
-    val detailsUnavailable = Var(true)
-    Client.auth.getUserDetail(user.id).onComplete {
-      case Success(detail) =>
-        Var.set(
-          detailsUnavailable -> false,
-          userDetail -> detail
-        )
-      case Failure(err) =>
-        scribe.info("Cannot get UserDetail", err)
-        Segment.trackError("Cannot get UserDetail", err.getMessage())
-        Var.set(
-          detailsUnavailable -> false,
-          userDetail -> None
-        )
-    }
+  private def changeEmail(user: UserInfo, userDetail: Var[Option[UserDetail]], detailsUnavailable: Rx[Boolean])(implicit ctx: Ctx.Owner) = {
 
     var element: dom.html.Form = null
     val email = Handler.unsafe[String]
@@ -256,7 +270,7 @@ object UserSettingsView {
       ),
       errorHandler.map {
         case None => VDomModifier(userDetail.map(_.collect {
-          case UserDetail(userId, Some(email), false) => UI.message(
+          case UserDetail(userId, Some(email), false, _) => UI.message(
             header = Some("Last Step: Verify your email address"),
             content = Some(VDomModifier(
               div(

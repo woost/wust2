@@ -22,6 +22,7 @@ object WelcomeView {
         Styles.flex,
         justifyContent.spaceAround,
         overflow.auto,
+
         div(
           Styles.flex,
           flexDirection.column,
@@ -36,8 +37,14 @@ object WelcomeView {
           div (width := "1px", height := "1px", Styles.flexStatic), // margin bottom hack for flexbox
         )
       ),
+
       Rx {
-        (GlobalState.screenSize() == ScreenSize.Small).ifTrue[VDomModifier](
+        VDomModifier.ifTrue(GlobalState.screenSize() == ScreenSize.Small)(
+          div(
+            Styles.flex,
+            justifyContent.center,
+            PaymentView.focusButton
+          ),
           authControls
         )
       }

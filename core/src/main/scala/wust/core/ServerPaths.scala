@@ -5,4 +5,5 @@ object ServerPaths {
   val emailVerify = "email-verify"
   val oauth = "oauth"
   val passwordReset = "password-reset"
+  val stripeWebhook = "stripe-hook"
 }

@@ -20,7 +20,20 @@ object PresentationMode {
   }
 }
 
-final case class UrlConfig(view: Option[View], pageChange: PageChange, redirectTo: Option[View], shareOptions: Option[ShareOptions], invitation: Option[Authentication.Token], focusId: Option[NodeId], mode: PresentationMode) {
+sealed trait InfoContent
+object InfoContent {
+  case object PaymentSucceeded extends InfoContent
+
+  def toString(p: InfoContent): Option[String] = Some(p) collect {
+    case PaymentSucceeded => "plan-success"
+  }
+
+  def fromString(s: String): Option[InfoContent] = Some(s.toLowerCase) collect {
+    case "plan-success" => PaymentSucceeded
+  }
+}
+
+final case class UrlConfig(view: Option[View], pageChange: PageChange, redirectTo: Option[View], shareOptions: Option[ShareOptions], invitation: Option[Authentication.Token], focusId: Option[NodeId], mode: PresentationMode, info: Option[InfoContent]) {
   private val canRedirectTo: View => Boolean = {
     case View.Login | View.Signup => false
     case _ => true
@@ -40,5 +53,5 @@ final case class UrlConfig(view: Option[View], pageChange: PageChange, redirectT
 }
 
 object UrlConfig {
-  val default = UrlConfig(view = None, pageChange = PageChange(Page.empty), redirectTo = None, shareOptions = None, invitation = None, focusId = None, mode = PresentationMode.Full)
+  val default = UrlConfig(view = None, pageChange = PageChange(Page.empty), redirectTo = None, shareOptions = None, invitation = None, focusId = None, mode = PresentationMode.Full, info = None)
 }

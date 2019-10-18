@@ -3,6 +3,8 @@ package wust.core
 import java.nio.ByteBuffer
 
 import akka.actor.ActorSystem
+import akka.util.ByteStringBuilder
+import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import akka.http.scaladsl.marshalling.{Marshaller, ToResponseMarshaller}
 import akka.http.scaladsl.model.headers.HttpOriginRange
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse, StatusCodes}
@@ -77,11 +79,13 @@ object Server {
     val changeGraphAuthorizer = new DbChangeGraphAuthorizer(db)
     val graphChangesNotifier = new GraphChangesNotifier(db, emailFlow)
     val pollingNotifier = new PollingNotifier(db, emailFlow)
+    val stripeApi = config.stripe.map(new StripeApi(_, config.server))
+    val stripeWebhookEndpoint = stripeApi.map(new StripeWebhookEndpoint(db, _))
 
     emailFlow.start()
     // pollingNotifier.start(interval = 15 minutes)
 
-    val apiImpl = new ApiImpl(guardDsl, db, fileUploader, config.server, emailFlow, changeGraphAuthorizer, graphChangesNotifier)
+    val apiImpl = new ApiImpl(guardDsl, db, fileUploader, config.server, emailFlow, changeGraphAuthorizer, graphChangesNotifier, stripeApi)
     val authImpl = new AuthApiImpl(guardDsl, db, jwt, emailFlow, oAuthClientServiceLookup)
     val pushImpl = new PushApiImpl(guardDsl, db, config.pushNotification)
 
@@ -107,17 +111,18 @@ object Server {
     }
     val corsSettings = CorsSettings.defaultSettings.withAllowedOrigins(HttpOriginRange(websiteOrigin))
 
+    implicit val jsonMarshaller: ToResponseMarshaller[String] =
+      Marshaller.withFixedContentType(ContentTypes.`application/json`) { s =>
+        HttpResponse(
+          status = StatusCodes.OK,
+          entity = HttpEntity(ContentTypes.`application/json`, s)
+        )
+      }
+
     path("ws") {
       AkkaWsRoute.fromApiRouter(binaryRouter, serverConfig, apiConfig)
     } ~ pathPrefix("api") {
       cors(corsSettings) {
-        implicit val jsonMarshaller: ToResponseMarshaller[String] =
-          Marshaller.withFixedContentType(ContentTypes.`application/json`) { s =>
-            HttpResponse(
-              status = StatusCodes.OK,
-              entity = HttpEntity(ContentTypes.`application/json`, s)
-            )
-          }
         AkkaHttpRoute.fromApiRouter(jsonRouter, apiConfig)
       }
     } ~ (path(ServerPaths.health) & get) {
@@ -143,6 +148,25 @@ object Server {
         parameters('code.as[String]) { code =>
           oAuthFlowEndpoint.connect(Authentication.Token(token), code)
         }
+      }
+    } ~ (pathPrefix(ServerPaths.stripeWebhook) & post) {
+      stripeWebhookEndpoint match {
+        case Some(endpoint) =>
+          headerValueByName("Stripe-Signature") { signature =>
+            extractRequest { request =>
+              onComplete(request.entity.dataBytes.runFold(new ByteStringBuilder)(_ append _)) {
+                case Success(eventBytes) =>
+                  val eventJson = eventBytes.result().utf8String
+                  endpoint.receive(eventJson, signature)
+                case Failure(error) =>
+                  scribe.warn("Error while decoding incoming Stripe webhook", error)
+                  complete(StatusCodes.InternalServerError)
+              }
+            }
+          }
+        case None =>
+          scribe.warn("Got Stripe event, but no endpoint is configured")
+          complete(StatusCodes.InternalServerError)
       }
     }
   }

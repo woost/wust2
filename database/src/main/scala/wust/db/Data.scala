@@ -58,7 +58,13 @@ object Data {
   final case class UserDetail(
       userId: UserId,
       email: Option[String],
-      verified: Boolean
+      verified: Boolean,
+      plan: PaymentPlan,
+  )
+
+  final case class StripeCustomer(
+      customerId: StripeCustomerId,
+      userId: UserId
   )
 
   final case class SimpleUser(id: UserId, data: NodeData.User)

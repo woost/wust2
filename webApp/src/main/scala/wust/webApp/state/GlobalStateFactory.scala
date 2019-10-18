@@ -148,6 +148,11 @@ object GlobalStateFactory {
       }
     }
 
+    // if we have a payment success on startup, the notify user.
+    urlConfig.now.info.foreach {
+      case InfoContent.PaymentSucceeded => UI.toast("Successfully upgraded Payment Plan.", level = UI.ToastLevel.Success)
+    }
+
     // if we have an invitation token, we merge this invited user into our account and get the graph again.
     urlConfig.foreach { viewConfig =>
       // handle invittation token

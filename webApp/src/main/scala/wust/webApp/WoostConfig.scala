@@ -22,6 +22,7 @@ trait WoostUrls extends js.Object {
 }
 
 object WoostConfig {
+  //TODO: JSGlobal instead...
   val value: WoostConfig = window.asInstanceOf[js.Dynamic].woostConfig.asInstanceOf[WoostConfig]
   val audience: WoostAudience = value.audience match {
     case "dev" => WoostAudience.Dev
