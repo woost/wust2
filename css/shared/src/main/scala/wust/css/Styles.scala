@@ -1013,17 +1013,21 @@ object CommonStyles extends StyleSheet.Standalone
     margin(2 px).important,
     padding(0.2 em, 0.3 em, 0.3 em, 0.4 em).important,
 
-    &(".nodecard") - (
-      margin(0 px),
+    &.not(".reference") - (
 
-      &(".nodecard-content") - (
-        padding(2 px),
-      ),
+      &(".nodecard") - (
 
-      &(".nodecard-content > .markdown") - (
         margin(0 px),
+
+        &(".nodecard-content") - (
+          padding(2 px),
+          ),
+
+        &(".nodecard-content > .markdown") - (
+          margin(0 px),
+          )
+        ),
       )
-    ),
   )
   // unset line-heigt of p for equal height in properties
   ".property p" - (

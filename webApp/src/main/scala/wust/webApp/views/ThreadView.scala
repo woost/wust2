@@ -15,7 +15,7 @@ import wust.util.collection._
 import wust.webApp.Icons
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.state.GlobalState.SelectedNode
-import wust.webApp.state.{FocusState, GlobalState, Placeholder}
+import wust.webApp.state.{FocusState, GlobalState, Placeholder, TraverseState}
 import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.{drag, registerDragContainer}
 import wust.webUtil.Elements._
@@ -50,7 +50,7 @@ object ThreadView {
       div(
         // InfiniteScroll must stay outside ChatHistory (don't know why exactly...)
         InfiniteScroll.onInfiniteScrollUp(shouldLoadInfinite) --> pageCounter,
-        chatHistory( focusState, pageCounter, shouldLoadInfinite, scrollHandler),
+        chatHistory( focusState, TraverseState(focusState.focusedId), pageCounter, shouldLoadInfinite, scrollHandler),
       ),
       chatInput( focusState, scrollHandler, inputFieldFocusTrigger)
     )
@@ -71,6 +71,7 @@ object ThreadView {
 
   private def chatHistory(
     focusState: FocusState,
+    traverseState: TraverseState,
     externalPageCounter: SourceStream[Int],
     shouldLoadInfinite: Var[Boolean],
     scrollHandler: ScrollBottomHandler,
@@ -100,7 +101,7 @@ object ThreadView {
         GlobalState.screenSize() // on screensize change, rerender whole chat history
         val pageCount = pageCounter()
 
-        renderThreadGroups( focusState, messages().takeRight(pageCount), Set(ParentId(focusState.focusedId)), Set(focusState.focusedId), true)
+        renderThreadGroups( focusState, traverseState, messages().takeRight(pageCount), Set(ParentId(focusState.focusedId)), Set(focusState.focusedId), true)
       },
 
       emitter(externalPageCounter) foreach { pageCounter.update(c => Math.min(c + initialPageCounter, messages.now.length)) },
@@ -168,7 +169,7 @@ object ThreadView {
   }
 
 
-  private def renderThreadGroups(focusState: FocusState, messages: js.Array[Int], directParentIds: Iterable[ParentId], transitiveParentIds: Set[NodeId], isTopLevel:Boolean = false)(implicit ctx: Ctx.Data): VDomModifier = {
+  private def renderThreadGroups(focusState: FocusState, traverseState: TraverseState, messages: js.Array[Int], directParentIds: Iterable[ParentId], transitiveParentIds: Set[NodeId], isTopLevel:Boolean = false)(implicit ctx: Ctx.Data): VDomModifier = {
     val graph = GlobalState.graph()
     val groups = calculateThreadMessageGrouping(messages, graph)
 
@@ -176,22 +177,22 @@ object ThreadView {
       // large padding-top to have space for selectedNodes bar
       (isTopLevel && groups.nonEmpty).ifTrue[VDomModifier](padding := "50px 0px 5px 20px"),
       groups.map { group =>
-        thunkRxFun( focusState, graph, group, directParentIds, transitiveParentIds, isTopLevel)
+        thunkRxFun( focusState, traverseState, graph, group, directParentIds, transitiveParentIds, isTopLevel)
       },
     )
   }
 
-  private def thunkRxFun(focusState: FocusState, groupGraph: Graph, group: Array[Int], directParentIds: Iterable[ParentId], transitiveParentIds: Set[NodeId], isTopLevel:Boolean = false): VDomModifier = {
+  private def thunkRxFun(focusState: FocusState, traverseState: TraverseState, groupGraph: Graph, group: Array[Int], directParentIds: Iterable[ParentId], transitiveParentIds: Set[NodeId], isTopLevel:Boolean = false): VDomModifier = {
     // because of equals check in thunk, we implicitly generate a wrapped array
     val nodeIds: Seq[NodeId] = group.viewMap(groupGraph.nodeIds)
     val key = nodeIds.head.toString
 
     div.thunk(key)(nodeIds, GlobalState.screenSize.now)(Ownable { implicit ctx =>
-      thunkGroup( focusState, groupGraph, group, directParentIds = directParentIds, transitiveParentIds = transitiveParentIds, isTopLevel = isTopLevel)
+      thunkGroup( focusState, traverseState, groupGraph, group, directParentIds = directParentIds, transitiveParentIds = transitiveParentIds, isTopLevel = isTopLevel)
     })
   }
 
-  private def thunkGroup(focusState: FocusState, groupGraph: Graph, group: Array[Int], directParentIds:Iterable[ParentId], transitiveParentIds: Set[NodeId], isTopLevel:Boolean)(implicit ctx: Ctx.Owner) = {
+  private def thunkGroup(focusState: FocusState, traverseState: TraverseState, groupGraph: Graph, group: Array[Int], directParentIds:Iterable[ParentId], transitiveParentIds: Set[NodeId], isTopLevel:Boolean)(implicit ctx: Ctx.Owner) = {
     val groupHeadId = groupGraph.nodeIds(group(0))
     val author: Rx[Option[Node.User]] = Rx {
       val graph = GlobalState.graph()
@@ -224,7 +225,7 @@ object ThreadView {
             val inCycle = transitiveParentIds.contains(nodeId)
 
             if(inCycle)
-              renderMessageRow( nodeId, focusState, directParentIds, isDeletedNow = isDeletedNow, showReplyField = showReplyField, isExpanded = Rx(false), inCycle = true)
+              renderMessageRow( focusState, traverseState, nodeId, directParentIds, isDeletedNow = isDeletedNow, showReplyField = showReplyField, isExpanded = Rx(false), inCycle = true)
             else {
               val isExpanded = Rx {
                 // we need to get the newest node content from the graph
@@ -238,10 +239,10 @@ object ThreadView {
               }
 
               VDomModifier(
-                renderMessageRow( nodeId, focusState, directParentIds, isDeletedNow = isDeletedNow, isExpanded = isExpanded, showReplyField = showReplyField, inCycle = false),
+                renderMessageRow( focusState, traverseState, nodeId, directParentIds, isDeletedNow = isDeletedNow, isExpanded = isExpanded, showReplyField = showReplyField, inCycle = false),
                 Rx {
                   showExpandedThread().ifTrue[VDomModifier] {
-                    renderExpandedThread( focusState, transitiveParentIds, nodeId, nodeIdList, showReplyField)
+                    renderExpandedThread( focusState, traverseState, transitiveParentIds, nodeId, nodeIdList, showReplyField)
                   }
                 },
               )
@@ -252,7 +253,7 @@ object ThreadView {
     )
   }
 
-  private def renderExpandedThread(focusState: FocusState, transitiveParentIds: Set[NodeId], nodeId: NodeId, nodeIdList: List[ParentId], showReplyField: Var[Boolean])(implicit ctx: Ctx.Owner) = {
+  private def renderExpandedThread(focusState: FocusState, traverseState: TraverseState, transitiveParentIds: Set[NodeId], nodeId: NodeId, nodeIdList: List[ParentId], showReplyField: Var[Boolean])(implicit ctx: Ctx.Owner) = {
     val bgColor = BaseColors.pageBgLight.copy(h = NodeColor.hue(nodeId)).toHex
     VDomModifier(
       cls := "chat-expanded-thread",
@@ -268,7 +269,7 @@ object ThreadView {
           cls := "chat-thread-messages",
           width := "100%",
           Rx {
-            renderThreadGroups( focusState, calculateThreadMessages(nodeIdList, GlobalState.graph()), directParentIds = nodeIdList, transitiveParentIds = transitiveParentIds + nodeId)
+            renderThreadGroups( focusState, traverseState.step(nodeId), calculateThreadMessages(nodeIdList, GlobalState.graph()), directParentIds = nodeIdList, transitiveParentIds = transitiveParentIds + nodeId)
           },
           Rx {
             if(showReplyField()) threadReplyField( focusState, nodeId, showReplyField)
@@ -320,23 +321,16 @@ object ThreadView {
     )
   }
 
-  private def renderMessageRow(
-    nodeId: NodeId,
-    focusState:FocusState,
-    directParentIds:Iterable[ParentId],
-    isDeletedNow: Rx[Boolean],
-    showReplyField: Var[Boolean],
-    isExpanded:Rx[Boolean],
-    inCycle:Boolean
-  )(implicit ctx: Ctx.Owner): VNode = {
+  private def renderMessageRow(focusState: FocusState, traverseState: TraverseState, nodeId: NodeId, directParentIds:Iterable[ParentId], isDeletedNow: Rx[Boolean], showReplyField: Var[Boolean], isExpanded:Rx[Boolean], inCycle:Boolean)(implicit ctx: Ctx.Owner): VNode = {
 
     val isSelected = Rx {
       GlobalState.selectedNodes().exists(selected => selected.nodeId == nodeId && selected.directParentIds == directParentIds)
     }
 
     val renderedMessage = renderMessage(
-      nodeId,
       focusState,
+      traverseState,
+      nodeId,
       directParentIds,
       isDeletedNow = isDeletedNow,
       renderedMessageModifier = VDomModifier(VDomModifier.ifTrue(inCycle)(

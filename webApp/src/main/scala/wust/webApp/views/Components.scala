@@ -298,14 +298,38 @@ object Components {
 
 
   def nodeCardProperty(
+    focusState: FocusState,
+    traverseState: TraverseState,
     key: Edge.LabeledProperty,
     property: Node,
-    focusState: FocusState,
     modifier: VDomModifier = VDomModifier.empty
   )(implicit ctx: Ctx.Owner): VNode = {
 
+    val isReference = property.role != NodeRole.Neutral
+    val fullWidthForReferences = VDomModifier.ifTrue(isReference)(width := "100%", "a")
+
+    val propertyRendering = property.role match {
+      case NodeRole.Neutral => property.data match {
+        case NodeData.Placeholder(selection) => editableNodeOnClick(property, maxLength = Some(50), config = EditableContent.Config.cancelOnError.copy(submitOnBlur = false)).apply(
+          onDblClick.stopPropagation.discard, // do not propagate dbl click which would focus the nodecard.
+          cursor.pointer,
+          cls := "neutral"
+        )
+        case _ => renderNodeData( property, maxLength = Some(50)).apply(cls := "detail", cls := "neutral" ),
+      }
+        case _ =>
+          TaskNodeCard.renderThunk(
+            focusState = focusState,
+            traverseState = traverseState.step(key.nodeId),
+            nodeId = property.id,
+            isProperty = true,
+        )
+    }
+
     span(
       cls := "ui label property",
+      VDomModifier.ifTrue(isReference)(cls := "reference"),
+      fullWidthForReferences,
 
       s"${key.data.key}:",
 
@@ -314,21 +338,9 @@ object Components {
 
       div(
         cls := "detail",
-
-        property.role match {
-          case NodeRole.Neutral => property.data match {
-            case NodeData.Placeholder(selection) => editableNodeOnClick(property, maxLength = Some(50), config = EditableContent.Config.cancelOnError.copy(submitOnBlur = false)).apply(
-              onDblClick.stopPropagation.discard, // do not propagate dbl click which would focus the nodecard.
-              cursor.pointer,
-            )
-            case _ => renderNodeData( property, maxLength = Some(50)).apply(cls := "detail"),
-          }
-          case _ => nodeCard( property, maxLength = Some(50)).apply(
-            writeHoveredNode( property.id),
-            sidebarNodeFocusMod(property.id, focusState),
-            cursor.pointer
-          )
-        }
+        VDomModifier.ifTrue(isReference)(margin := "3px 0 0 0"),
+        fullWidthForReferences,
+        propertyRendering,
       )
     )
   }
