@@ -169,6 +169,9 @@ trait SearchSourceEntry extends js.Object {
   var description: js.UndefOr[String] = js.undefined
   var category: js.UndefOr[String] = js.undefined
 
+  var placeholder: js.UndefOr[Boolean] = js.undefined
+  var text: js.UndefOr[String] = js.undefined
+
   var data: js.UndefOr[js.Any] = js.undefined
 }
 

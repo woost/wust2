@@ -108,6 +108,7 @@ object Components {
       // 4. crop via overflow ellipsis
       cls := "oneline"
     )
+
   }
 
   def nodeCardAsOneLineText(node: Node, projectWithIcon: Boolean = true)(implicit ctx: Ctx.Owner): VNode = {
@@ -669,7 +670,7 @@ object Components {
     def searchAndSelectNodeApplied[F[_] : Sink : Source](current: F[Option[NodeId]], filter: Node => Boolean)(implicit ctx: Ctx.Owner): VNode = searchAndSelectNode(current, filter) --> current
     def searchAndSelectNode[F[_] : Source](observable: F[Option[NodeId]], filter: Node => Boolean)(implicit ctx: Ctx.Owner): EmitterBuilder[Option[NodeId], VNode] =
       Components.searchInGraph(GlobalState.rawGraph, "Search", filter = {
-            case n: Node.Content => InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task, NodeRole.Project)(n.role) && filter(n)
+            case n: Node.Content => filter(n)
             case _ => false
       }, innerElementModifier = width := "100%", inputModifiers = width := "100%").mapResult[VNode] { search =>
         div(
@@ -706,18 +707,47 @@ object Components {
           minCharacters = 0
           showNoResults = showNotFound
 
-          source = graph.now.nodes.collect { case node: Node if filter(node) =>
-            val str = node match {
-              case user: Node.User => Components.displayUserName(user.data)
-              case _ => node.str
-            }
+          source = {
+            val g: Graph = graph.now
+            val res1 = (g.nodes.collect { case node: Node if filter(node) && node.role == NodeRole.Neutral =>
 
-            new SearchSourceEntry {
-              title = node.id.toCuidString
-              description = trimToMaxLength(str, 36)
-              data = node.asInstanceOf[js.Any]
-            }
-          }(breakOut): js.Array[SearchSourceEntry]
+              val probEdgesRev = g.propertiesEdgeReverseIdx(g.idToIdxOrThrow(node.id))
+
+              val probData = probEdgesRev.map{ idx =>
+                val keyString = g.edges(idx).as[Edge.LabeledProperty].data.key
+                val propertyValue = g.nodes(g.edgesIdx.b(idx))
+                val propertySource = g.nodes(g.edgesIdx.a(idx))
+                (keyString, propertyValue, propertySource)
+              }
+
+              probData.collect {
+                case p: (String, Node, Node) if p._2.data.isInstanceOf[NodeData.Placeholder] =>
+                  new SearchSourceEntry {
+                    title = p._2.id.toCuidString
+                    placeholder = true
+                    text = s"${p._1} of ${p._3.str}"
+                    description = trimToMaxLength(s"missing ${p._1} of ${p._3.str}", 36)
+                    data = node.asInstanceOf[js.Any]
+                  }
+              }(breakOut): js.Array[SearchSourceEntry]
+            }(breakOut): js.Array[js.Array[SearchSourceEntry]]).flatten
+
+            val res2 = g.nodes.collect { case node: Node if filter(node)  && node.role != NodeRole.Neutral =>
+              val str = node match {
+                case user: Node.User => Components.displayUserName(user.data)
+                case n: Node.Content => node.str
+              }
+
+              new SearchSourceEntry {
+                title = node.id.toCuidString
+                placeholder = false
+                description = trimToMaxLength(str, 36)
+                data = node.asInstanceOf[js.Any]
+              }
+            }(breakOut): js.Array[SearchSourceEntry]
+
+            res2 ++ res1
+          }
 
           searchFields = js.Array("description")
 
