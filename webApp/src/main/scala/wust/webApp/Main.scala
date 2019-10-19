@@ -17,6 +17,7 @@ import wust.facades.jquery.JQuery
 import wust.facades.marked.{Marked, MarkedOptions, Renderer}
 import wust.facades.wdtEmojiBundle._
 import wust.graph.Node
+import wust.ids.NodeData
 import wust.webApp.dragdrop.SortableEvents
 import wust.webApp.state.{GlobalState, GlobalStateFactory}
 import wust.webApp.views.{GenericSidebar, MainView, Modal}
@@ -66,7 +67,14 @@ object Main {
             cls := "result", //we need this class for semantic ui to work,
             div(cls := "title", display.none, result.title), // needed for semantic ui to map the html element back to the SearchSourceEntry
             padding := "4px",
-            views.Components.nodeCardAsOneLineText( node, projectWithIcon = true)(Ctx.Owner.Unsafe).prepend(
+            if(result.placeholder.getOrElse(false)) {
+              views.Components.renderNodeCard(node,
+                contentInject = node =>
+                  views.Components.displayPlaceholder(node.data.asInstanceOf[NodeData.Placeholder])
+                    .apply(s" of ${result.text}", cls := "oneline")
+              )(Ctx.Owner.Unsafe)
+            }
+            else views.Components.nodeCardAsOneLineText( node, projectWithIcon = true)(Ctx.Owner.Unsafe).prepend(
               cursor.pointer,
               Styles.flex,
               alignItems.center
