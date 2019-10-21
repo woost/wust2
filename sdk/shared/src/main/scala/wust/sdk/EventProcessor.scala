@@ -29,7 +29,8 @@ object EventProcessor {
     eventStream: Observable[Seq[ApiEvent]],
     enrichChanges: (GraphChanges, UserId, Graph) => GraphChanges,
     sendChange: List[GraphChanges] => Future[Boolean],
-    initialAuth: Authentication
+    initialAuth: Authentication,
+    analyticsTrackError: (String,String) => Unit,
   )(implicit scheduler: Scheduler): EventProcessor = {
     val s = eventStream.share
     val graphEvents = s
@@ -45,7 +46,8 @@ object EventProcessor {
       authEvents,
       enrichChanges,
       sendChange,
-      initialAuth
+      initialAuth,
+      analyticsTrackError,
     )
   }
 }
@@ -55,7 +57,8 @@ class EventProcessor private (
   authEventStream: Observable[Seq[ApiEvent.AuthContent]],
   enrichChanges: (GraphChanges, UserId, Graph) => GraphChanges,
   sendChange: List[GraphChanges] => Future[Boolean],
-  val initialAuth: Authentication
+  val initialAuth: Authentication,
+  analyticsTrackError: (String,String) => Unit,
 )(implicit scheduler: Scheduler) {
   // import Client.storage
   // storage.graphChanges <-- localChanges //TODO
@@ -103,14 +106,17 @@ class EventProcessor private (
         lastUser = user
         Ack.Continue
       },
-      error => scribe.error("Error while processing current user", error)
+      { error =>
+          scribe.error("Error while processing current user", error)
+          analyticsTrackError("Error while processing current user", error.getMessage())
+      }
     )
     graphEvents.subscribe(
       { events =>
         scribe.debug("EventProcessor scan: " + lastGraph + ", " + events)
         val localEvents = LocalGraphUpdateEvent.deconstruct(lastGraph, events)
         val newGraph = localEvents match {
-          case LocalGraphUpdateEvent.NewGraph(graph)     =>
+          case LocalGraphUpdateEvent.NewGraph(graph) =>
             //TODO just to be sure if stopEventProcessing was not realiably reset.
             // we force set stopEventProcessing to false when a new graph arrives
             stopEventProcessing.onNext(false)
@@ -122,7 +128,10 @@ class EventProcessor private (
         lastGraph = newGraph
         rawGraph.onNext(newGraph)
       },
-      error => scribe.error("Error while processing graph events", error)
+      { error =>
+        scribe.error("Error while processing graph events", error)
+        analyticsTrackError("Error while processing graph events", error.getMessage())
+      }
     )
 
     (
@@ -165,7 +174,11 @@ class EventProcessor private (
 
   sendingChanges.subscribe(
     _ => Ack.Continue,
-    err => scribe.error("[Events] Error sending out changes, cannot continue", err) //TODO this is a critical error and should never happen? need something to notify the application of an unresolvable problem.
+    {
+      err =>
+        scribe.error("[Events] Error sending out changes, cannot continue", err) //TODO this is a critical error and should never happen? need something to notify the application of an unresolvable problem.
+        analyticsTrackError("Error sending out changes", "should never happen, cannot continue")
+    }
   )
 
   graph.withLatestFrom(currentAuth)((_, _)).subscribe(
@@ -197,15 +210,17 @@ class EventProcessor private (
       case Success(success) =>
         if (!success) {
           scribe.warn(s"ChangeGraph request returned false: $changes")
+          analyticsTrackError("ChangeGraph request returned false", s"$changes")
         }
 
         Success(success)
       case Failure(t) =>
         t match {
-          case e: covenant.ws.WsClient.ErrorException[ApiError@unchecked] =>
+          case e: covenant.ws.WsClient.ErrorException[ApiError @unchecked] =>
             e.error match {
               case ApiError.Forbidden =>
                 scribe.warn(s"ChangeGraph request forbidden, will ignore changes: $changes")
+                analyticsTrackError("Changes Forbidden", "forbidden")
 
                 forbiddenChangesSubject.onNext(changes)
 
@@ -215,10 +230,12 @@ class EventProcessor private (
 
               case _ =>
                 scribe.warn(s"ChangeGraph request with error respoonse '${e.error}': $changes")
+                analyticsTrackError("ChangeGraph request with error respoonse", s"'${e.error}': $changes")
                 Success(false)
             }
           case _ =>
             scribe.warn(s"ChangeGraph request failed '${t}': $changes")
+            analyticsTrackError("ChangeGraph request failed", s"'${t}': $changes")
             Success(false)
         }
     }

@@ -18,6 +18,7 @@ import wust.webApp.views._
 import wust.webApp.{Client, WoostConfig}
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{BrowserDetect, ModalConfig, Ownable}
+import wust.facades.segment.Segment
 
 import scala.collection.{breakOut, mutable}
 import scala.concurrent.duration._
@@ -38,7 +39,8 @@ object GlobalState {
     Client.observable.event,
     (changes, userId, graph) => GraphChangesAutomation.enrich(userId, graph, urlConfig, EmojiReplacer.replaceChangesToColons(changes)).consistent,
     Client.api.changeGraph,
-    Client.currentAuth
+    Client.currentAuth,
+    analyticsTrackError = Segment.trackError
   )
 
   eventProcessor.graph.foreach { g => scribe.debug("eventProcessor.graph: " + g) }

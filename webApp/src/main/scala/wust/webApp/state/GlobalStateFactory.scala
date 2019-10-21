@@ -38,8 +38,6 @@ object GlobalStateFactory {
       val showHeuristic =
         changes.addNodes.nonEmpty || changes.delEdges.nonEmpty || changes.addEdges.exists(_.data.tpe == EdgeData.Child.tpe)
 
-      Segment.trackError("Changes Forbidden", "forbidden")
-
       if (showHeuristic) {
         UI.toast("You do need have sufficient permissions to do this.", title = "Forbidden", level = ToastLevel.Error)
       }

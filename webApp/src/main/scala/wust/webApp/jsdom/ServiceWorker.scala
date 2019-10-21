@@ -42,10 +42,12 @@ object ServiceWorker {
               }
             case Failure(registrationError) =>
               scribe.warn("SW registration failed: ", registrationError)
+              Segment.trackError("Serviceworker registeration failed", registrationError.getMessage())
               subject.onError(registrationError)
           }
           case Left(e) =>
             scribe.error("SW could not register:", e)
+            Segment.trackError("Serviceworker could not register", e.getMessage())
             subject.onError(e)
         }
       })
@@ -70,7 +72,6 @@ object ServiceWorker {
     subject.recoverOption{
       case e: Throwable =>
         scribe.debug("SW could not register:", e)
-        Segment.trackError("Serviceworker registeration error", e.getMessage())
         None
     }
   }
