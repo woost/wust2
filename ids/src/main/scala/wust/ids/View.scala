@@ -117,7 +117,7 @@ object View {
     View.List,
     View.Kanban,
     View.Table(NodeRole.Task :: Nil),
-    View.Graph,
+    // View.Graph,
     View.Chat,
     View.Thread,
     View.Content,
