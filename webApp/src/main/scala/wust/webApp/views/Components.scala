@@ -28,6 +28,7 @@ import wust.webApp.views.UploadComponents._
 import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{BrowserDetect, Elements, UI}
+import wust.facades.segment.Segment
 
 import scala.collection.breakOut
 import scala.scalajs.js
@@ -165,6 +166,7 @@ object Components {
               GlobalState.urlConfig.update(_.focus(Page(nodeId), View.Conversation, needsGet = false))
               ()
           }
+          Segment.trackEvent("Direct Message")
         },
         cursor.pointer,
         UI.tooltip := s"Start Conversation with ${displayUserName(dmUser.data)}"
