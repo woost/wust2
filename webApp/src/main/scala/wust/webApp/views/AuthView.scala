@@ -282,7 +282,7 @@ object AuthView {
           case AuthResult.InvalidEmail => Some("Email address is invalid")
           case AuthResult.Success      =>
             FeatureState.use(Feature.Signup)
-            Segment.trackSignedUp("organic")
+            Segment.trackSignedUp()
             None
         }
       },

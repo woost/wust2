@@ -164,7 +164,7 @@ object GlobalStateFactory {
               eventProcessor.localEvents.onNext(ReplaceGraph(graph))
             }
             if(wasAssumed) {
-              Segment.trackSignedUp("invite")
+              Segment.trackEvent("New Unregistered User", js.Dynamic.literal(`type` = "invite"))
             }
         }
         //TODO: signal status of invitation to user in UI
@@ -323,6 +323,13 @@ object GlobalStateFactory {
       val hashedUserId = Sha256.sha224(uuid)
       Segment.identify(hashedUserId)
     }
+    GlobalState.auth.foreach { auth =>
+      auth.user match {
+        case _:AuthUser.Assumed => Segment.trackEvent("New Unregistered User", js.Dynamic.literal(`type` = "organic"))
+        case _ =>
+      }
+    }
+
     GlobalState.view.foreach { view =>
       Segment.page(view.viewKey)
     }

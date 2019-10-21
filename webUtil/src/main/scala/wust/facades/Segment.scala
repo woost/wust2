@@ -15,6 +15,7 @@ object Segment {
 
   // B2B SaaS
   // https://segment.com/docs/spec/b2b-saas
+  def trackSignedUp() = ifLoaded(_.track("Signed Up")) // This event should be sent when a user signs up for your service.
   def trackSignedUp(tpe:String) = ifLoaded(_.track("Signed Up", js.Dynamic.literal(`type` = tpe))) // This event should be sent when a user signs up for your service.
   def trackSignedIn() = ifLoaded(_.track("Signed In")) // This event should be sent when a user signs in to your service.
   def trackSignedOut() = {
