@@ -231,7 +231,7 @@ object Components {
       justifyContent.spaceBetween,
 
       b(
-        EditableContent.inlineEditorOrRender[String](key, editKey, _ => key => span(key + ":")).editValue.collect { case newKey if newKey != key =>
+        EditableContent.inlineEditorOrRender[String](key, editKey, _ => key => span(key + ":", cls := "propertykey")).editValue.collect { case newKey if newKey != key =>
           GraphChanges(addEdges = properties.map(p => p.edge.copy(data = p.edge.data.copy(key = newKey)))(breakOut), delEdges = properties.map(_.edge)(breakOut)),
         } --> GlobalState.eventProcessor.changes,
         cursor.pointer,
@@ -267,7 +267,7 @@ object Components {
               editablePropertyNode( property.node, property.edge, editMode = editValue,
                 nonPropertyModifier = VDomModifier(writeHoveredNode( property.node.id), cursor.pointer, onClick.stopPropagation.use(Some(property.node.id)).foreach(parentIdAction(_))),
                 maxLength = Some(100), config = EditableContent.Config.default,
-              ),
+              ).apply(cls := "propertyvalue"),
 
               div(
                 marginLeft := "5px",
