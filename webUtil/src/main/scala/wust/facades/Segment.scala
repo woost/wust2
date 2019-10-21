@@ -27,7 +27,7 @@ object Segment {
   def trackInviteSent() = ifLoaded(_.track("Invite Sent")) // This event should be sent when a user invites another user.
 
   // custom
-  def trackError(event:String, errorMessage: String) = ifLoaded(_.track(event, js.Dynamic.literal(error = errorMessage)))
+  def trackError(event:String, errorMessage: String) = ifLoaded(_.track("Error", js.Dynamic.literal(error = event, details = errorMessage)))
 
   @inline def ifLoaded(f: Analytics => Unit): Unit = SegmentGlobalScope.analytics.foreach(f)
 }
