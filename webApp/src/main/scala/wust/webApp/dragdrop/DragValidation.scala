@@ -75,7 +75,7 @@ object DragValidation {
 
               if (successful) {
                 scribe.debug(s"sort action successful: $payload: $sourceContainer -> $overContainer")
-                Segment.trackEvent(s"DragSorted ${sourceContainer.productPrefix}-${payload.productPrefix}-${overContainer.productPrefix}${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}")
+                Segment.trackEvent(s"Drag Sorted", js.Dynamic.literal(sourceContainer = sourceContainer.productPrefix, payload = payload.productPrefix, overContainer = overContainer.productPrefix, ctrl = ctrl, shift = shift))
               } else {
                 scribe.debug(s"sort action not defined: $payload: $sourceContainer -> $overContainer (trying drag instead...)")
                 performDrag(e, currentOverEvent, ctrl, shift)
@@ -122,7 +122,7 @@ object DragValidation {
 
           if (successful) {
             scribe.debug(s"drag action successful: $payload -> $target")
-            Segment.trackEvent(s"Dropped ${payload.productPrefix}-${target.productPrefix}${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}")
+            Segment.trackEvent(s"Drag dropped", js.Dynamic.literal(payload = payload.productPrefix, target = target.productPrefix, ctrl = ctrl, shift = shift))
             defer{ useFeature(payload, target) }
             afterDraggedActionOpt.foreach{ action =>
               scribe.debug(s"performing afterDraggedAction...")
@@ -130,10 +130,11 @@ object DragValidation {
             }
           } else {
             scribe.debug(s"drag action not defined: $payload -> $target ${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}, defined($payload, $target, $ctrl, $shift): ${dragAction.isDefinedAt((payload, target, ctrl, shift))}")
-            Segment.trackEvent(s"Dragged (NOT HANDLED) ${payload.productPrefix}-${target.productPrefix} ${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}")
+            Segment.trackEvent(s"Drag not handled", js.Dynamic.literal(payload = payload.productPrefix, target = target.productPrefix, ctrl = ctrl, shift = shift))
           }
         } else {
           scribe.debug(s"drag action would create cycle, canceling: $payload -> $target ${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}")
+          Segment.trackEvent(s"Drag would create cycle", js.Dynamic.literal(payload = payload.productPrefix, target = target.productPrefix, ctrl = ctrl, shift = shift))
         }
       case (payload, target) =>
         scribe.debug(s"incomplete drag information: $payload -> $target)")
