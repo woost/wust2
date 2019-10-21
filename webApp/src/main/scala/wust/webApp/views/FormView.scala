@@ -9,7 +9,7 @@ import rx._
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
-import wust.webApp.state.{FocusState, GlobalState}
+import wust.webApp.state.{ FocusState, GlobalState }
 import wust.webApp.views.Components._
 import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
@@ -61,7 +61,7 @@ object FormView {
       graph.idToIdxMap(focusState.focusedId) { nodeIdx =>
         PropertyData.Single(graph, nodeIdx)
       }
-    }//.filter(_ => container.isEmpty)
+    } //.filter(_ => container.isEmpty)
 
     val propertiesIsEmpty = propertySingle.map(_.forall(_.properties.isEmpty))
 
@@ -95,7 +95,6 @@ object FormView {
         }
       ),
 
-
       table(
         width := "100%",
 
@@ -106,7 +105,8 @@ object FormView {
             if (propertiesIsEmpty()) div(
               textAlign.center,
               "This Item does not have any Fields yet. Add Custom Fields to have a Form to fill-in these fields."
-            ) else VDomModifier(
+            )
+            else VDomModifier(
               propertySingle().map(propertySingle => propertySingle.properties.map { property =>
                 propertyRow(property.key, property.values, container)
               })
@@ -116,18 +116,30 @@ object FormView {
       ),
 
       Rx {
-        VDomModifier.ifNot(propertiesIsEmpty())(button(
-          margin := "10px",
-          cls := "ui button primary",
-          disabled <-- container.isEmptySource,
-          "Save",
-          onClick.stopPropagation.foreach { _ =>
-            val current = container.currentValues()
-            if (current.nonEmpty) {
-              GlobalState.submitChanges(current.reduce(_ merge _))
-            }
-          }
-        ))
+        VDomModifier.ifNot(propertiesIsEmpty())(
+          div(
+            alignSelf.flexEnd,
+
+            Styles.flex,
+            alignItems.center,
+            container.isEmptySource.map{ isSaved =>
+              if (isSaved) span("saved.", opacity := 0.5)
+              else span("The form has unsaved changes.")
+            },
+            button (
+              margin := "10px",
+              cls := "ui button primary",
+              disabled <-- container.isEmptySource,
+              "Save",
+              onClick.stopPropagation.foreach { _ =>
+                val current = container.currentValues()
+                if (current.nonEmpty) {
+                  GlobalState.submitChanges(current.reduce(_ merge _))
+                }
+              }
+            ),
+          )
+        )
       }
     )
   }
@@ -150,7 +162,7 @@ object FormView {
 
           div(
             margin := "3px 0px",
-            editablePropertyCell( property.node, property.edge) --> localChanges
+            editablePropertyCell(property.node, property.edge) --> localChanges
           )
         }
       )
@@ -173,12 +185,13 @@ object FormView {
           handler.edit.contramap[Option[NodeId]](EditInteraction.fromOption(_)),
           handler.edit.collect[Option[NodeId]] { case EditInteraction.Input(id) => Some(id) }.prepend(Some(node.id)).replayLatest
         ),
-        filter = (n:Node) => true,
+        filter = (n: Node) => true,
       ),
       config
-    ).editValue.collect { case newNodeId if newNodeId != edge.propertyId =>
-      GraphChanges(delEdges = Array(edge), addEdges = Array(edge.copy(propertyId = PropertyId(newNodeId))))
-    } --> sink
+    ).editValue.collect {
+        case newNodeId if newNodeId != edge.propertyId =>
+          GraphChanges(delEdges = Array(edge), addEdges = Array(edge.copy(propertyId = PropertyId(newNodeId))))
+      } --> sink
 
     div(
       (node.role, node.data) match {
