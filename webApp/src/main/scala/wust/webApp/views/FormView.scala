@@ -20,7 +20,7 @@ class ContainerSink[T] {
   private var array = new js.Array[js.UndefOr[T]]
 
   private val isEmptyHandler = SinkSourceHandler[Boolean](true)
-  @inline def isEmptySource: SourceStream[Boolean] = isEmptyHandler.distinctOnEquals
+  val isEmptySource: SourceStream[Boolean] = isEmptyHandler.distinctOnEquals
 
   def register(): SinkObserver[T] = {
     val index = array.length
