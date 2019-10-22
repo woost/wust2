@@ -55,10 +55,10 @@ object EdgeData {
 
   case class LabeledProperty(key: String, showOnCard: Boolean = false) extends Named with EdgeData with PropertyKey
   object LabeledProperty extends Named {
-    def attachment = LabeledProperty("Attachment")
+    def attachment = LabeledProperty("Attachment", showOnCard = true)
     def reference = LabeledProperty("Reference")
     def description = LabeledProperty("Description")
-    def dueDate = LabeledProperty("Due Date")
+    def dueDate = LabeledProperty("Due Date", showOnCard = true)
   }
 
   final case class Read(timestamp: EpochMilli) extends Named with EdgeData
