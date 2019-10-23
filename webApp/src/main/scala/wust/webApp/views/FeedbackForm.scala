@@ -1,6 +1,7 @@
 package wust.webApp.views
 
 import fontAwesome._
+import org.scalajs.dom
 import org.scalajs.dom.window.{clearTimeout, setTimeout}
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -128,21 +129,19 @@ object FeedbackForm {
         backgroundColor := Colors.sidebarBg,
         color := "#333",
         Rx {
-          if (GlobalState.crispIsLoaded())
+          VDomModifier.ifTrue(GlobalState.crispIsLoaded())(
             feedbackForm
-          else
-            div(b("Crisp Chat"), " couldn't be started. It might be blocked by a browser extension.", marginBottom := "20px")
+          )
         },
-        div("You can also write us an email: ", Components.woostEmailLink(prefix = "support"), "."),
-
-        div(cls := "ui divider", marginTop := "30px"),
         div(
-          supportChatButton(showPopup)(disabled <-- GlobalState.crispIsLoaded.map(!_)),
+          supportChatButton.apply(cls := "fluid tiny", marginTop := "5px"),
           onClickDefault.foreach {
+            showPopup() = false
             Segment.trackEvent("Open Support Chat", js.Dynamic.literal(loaded = GlobalState.crispIsLoaded.now))
           }
         ),
         voteOnFeaturesButton,
+        div("You can also send us an e-mail: ", Components.woostEmailLink(prefix = "support"), margin := "20px 2px"),
         onClick.stopPropagation foreach {}, // prevents closing feedback form by global click
       )
     )
@@ -168,18 +167,21 @@ object FeedbackForm {
     }
   }
 
-  def supportChatButton(showPopup: Var[Boolean]) = {
+  val supportChatButton = {
     button(
       freeSolid.faComments, " Open Support Chat",
-      cls := "ui blue tiny fluid button",
-      marginTop := "5px",
-      onClick.stopPropagation.foreach { _ =>
+      cls := "ui blue button",
+      onClick.foreach { _ =>
         Try{
-          DeployedOnly { initCrisp }
-          crisp.push(js.Array("do", "chat:show"))
-          crisp.push(js.Array("do", "chat:open"))
+          if(GlobalState.crispIsLoaded.now) {
+            DeployedOnly { initCrisp }
+            crisp.push(js.Array("do", "chat:show"))
+            crisp.push(js.Array("do", "chat:open"))
+          } else {
+            val username = GlobalState.user.now.name
+            dom.window.open(s"https://go.crisp.chat/chat/embed/?website_id=5ab5c700-31d3-490f-917c-83dfa10b8205&user_nickname=$username", "_blank")
+          }
         }
-        showPopup() = false
       }
     )
   }
