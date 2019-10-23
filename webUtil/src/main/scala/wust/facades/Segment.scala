@@ -8,27 +8,40 @@ import scala.scalajs.js.annotation.JSGlobalScope
 
 object Segment {
   // default API
-  def identify(userId:String) = ifLoaded(_.identify(userId))
-  def trackEvent(event:String) = ifLoaded(_.track(event))
-  def trackEvent(event:String, properties: js.Object) = ifLoaded(_.track(event, properties))
-  def page(name:String) = ifLoaded(_.page(name))
+  def identify(userId:String) = {
+    scribe.debug(s"Segment: identify($userId)")
+    ifLoaded(_.identify(userId))
+  }
+  def trackEvent(event:String) = {
+    scribe.debug(s"Segment: track($event)")
+    ifLoaded(_.track(event))
+  }
+  def trackEvent(event:String, properties: js.Object) = {
+    scribe.debug(s"Segment: track($event, ${js.JSON.stringify(properties)})")
+    ifLoaded(_.track(event, properties))
+  }
+  def page(name:String) = {
+    scribe.debug(s"Segment: page($name)")
+    ifLoaded(_.page(name))
+  }
 
   // B2B SaaS
   // https://segment.com/docs/spec/b2b-saas
-  def trackSignedUp() = ifLoaded(_.track("Signed Up")) // This event should be sent when a user signs up for your service.
-  def trackSignedUp(tpe:String) = ifLoaded(_.track("Signed Up", js.Dynamic.literal(`type` = tpe))) // This event should be sent when a user signs up for your service.
-  def trackSignedIn() = ifLoaded(_.track("Signed In")) // This event should be sent when a user signs in to your service.
+  def trackSignedUp() = trackEvent("Signed Up") // This event should be sent when a user signs up for your service.
+  def trackSignedUp(tpe:String) = trackEvent("Signed Up", js.Dynamic.literal(`type` = tpe)) // This event should be sent when a user signs up for your service.
+  def trackSignedIn() = trackEvent("Signed In") // This event should be sent when a user signs in to your service.
   def trackSignedOut() = {
     // This event should be sent when a user signs out for your service.
+    trackEvent("Signed Out")
+    scribe.debug("Segment: reset()")
     ifLoaded{ analytics =>
-      analytics.track("Signed Out")
       analytics.reset()
     }
   }
-  def trackInviteSent() = ifLoaded(_.track("Invite Sent")) // This event should be sent when a user invites another user.
+  def trackInviteSent() = trackEvent("Invite Sent") // This event should be sent when a user invites another user.
 
   // custom
-  def trackError(event:String, errorMessage: String) = ifLoaded(_.track("Error", js.Dynamic.literal(error = event, details = errorMessage)))
+  def trackError(event:String, errorMessage: String) = trackEvent("Error", js.Dynamic.literal(error = event, details = errorMessage))
 
   @inline def ifLoaded(f: Analytics => Unit): Unit = SegmentGlobalScope.analytics.foreach(f)
 }
