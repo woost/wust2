@@ -60,16 +60,18 @@ object UserSettingsView {
   }
 
   def apply(implicit owner: Ctx.Owner): VNode = {
+    val userDetail = Var[Option[UserDetail]](None)
+
     div(
       padding := "20px",
       overflow.auto,
       Rx {
         val user = GlobalState.user()
         VDomModifier(
-          header( user).apply(marginBottom := "50px"),
+          header( user, userDetail).apply(marginBottom := "50px"),
           UI.accordion(
             Seq(
-              accordionEntry("Account Settings", accountSettings( user), active = true),
+              accordionEntry("Account Settings", accountSettings( user, userDetail), active = true),
               accordionEntry( span( i(Icons.plugin), b(" Plugins") ), pluginSettings(user)),
               accordionEntry( span( i(Icons.files), b(" Uploaded Files") ), uploadSettings( user)),
               accordionEntry( b("§ Legal Information" ), LegalNotice.information),
@@ -175,7 +177,7 @@ object UserSettingsView {
     ),
   )
 
-  private def accountSettings(user: UserInfo)(implicit ctx: Ctx.Owner): VNode = {
+  private def accountSettings(user: UserInfo, userDetail:Var[Option[UserDetail]])(implicit ctx: Ctx.Owner): VNode = {
     div(
       Styles.flex,
       flexWrap.wrap,
@@ -183,7 +185,7 @@ object UserSettingsView {
         margin := "10px 30px 10px 0px",
         minWidth := "200px",
         maxWidth := "400px",
-        changeEmail( user)
+        changeEmail( user, userDetail)
       ),
       div(
         margin := "10px 30px 10px 0px",
@@ -194,8 +196,7 @@ object UserSettingsView {
     )
   }
 
-  private def changeEmail(user: UserInfo)(implicit ctx: Ctx.Owner) = {
-    val userDetail = Var[Option[UserDetail]](None)
+  private def changeEmail(user: UserInfo, userDetail:Var[Option[UserDetail]])(implicit ctx: Ctx.Owner) = {
     val detailsUnavailable = Var(true)
     Client.auth.getUserDetail(user.id).onComplete {
       case Success(detail) =>
@@ -346,7 +347,7 @@ object UserSettingsView {
     )
   }
 
-  private def header(user: AuthUser)(implicit ctx: Ctx.Owner): VNode = {
+  private def header(user: AuthUser, userDetail:Var[Option[UserDetail]])(implicit ctx: Ctx.Owner): VNode = {
     val nodeUser = user.toNode
     val editMode = Var(false)
     div(
@@ -364,32 +365,36 @@ object UserSettingsView {
         onClick.use(true) --> editMode
       ),
 
-      div(
-        marginLeft := "20px",
+      Rx {
+        VDomModifier.ifTrue(userDetail().exists(_.verified))(
+          div(
+            marginLeft := "20px",
 
-        Styles.flex,
-        alignItems.center,
+            Styles.flex,
+            alignItems.center,
 
-        div(
-          marginRight := "10px",
-
-          div("Upload your own Avatar"),
-
-          nodeUser.data.imageFile.map { _ =>
             div(
-              "Or reset your Avatar",
-              textDecoration.underline,
-              onClickDefault.useLazy(GraphChanges(addNodes = Array(nodeUser.copy(data = nodeUser.data.copy(imageFile = None))))) --> GlobalState.eventProcessor.changes
-            )
-          }
-        ),
+              marginRight := "10px",
 
-        div(
-          UploadComponents.uploadField(acceptType = Some("image/*")).transform(_.concatMapAsync(file => file.uploadKey).collect { case Some(key) =>
-            GraphChanges(addNodes = Array(nodeUser.copy(data = nodeUser.data.copy(imageFile = Some(key)))))
-          }) --> GlobalState.eventProcessor.changes,
+              div("Upload your own Avatar"),
+
+              nodeUser.data.imageFile.map { _ =>
+                div(
+                  "Or reset your Avatar",
+                  textDecoration.underline,
+                  onClickDefault.useLazy(GraphChanges(addNodes = Array(nodeUser.copy(data = nodeUser.data.copy(imageFile = None))))) --> GlobalState.eventProcessor.changes
+                )
+              }
+              ),
+
+            div(
+              UploadComponents.uploadField(acceptType = Some("image/*")).transform(_.concatMapAsync(file => file.uploadKey).collect { case Some(key) =>
+                GraphChanges(addNodes = Array(nodeUser.copy(data = nodeUser.data.copy(imageFile = Some(key)))))
+              }) --> GlobalState.eventProcessor.changes,
+            )
+          )
         )
-      )
+      }
     )
   }
 
