@@ -335,6 +335,8 @@ object GlobalStateFactory {
 
     GlobalState.view.foreach { view =>
       Segment.page(view.viewKey)
+      // Since the Segment -> FullStory integration does not send page-events:
+      Segment.trackEvent("Viewed", js.Dynamic.literal(view = view.viewKey))
     }
   }
 
