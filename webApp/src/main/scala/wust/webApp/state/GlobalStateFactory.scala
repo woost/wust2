@@ -329,6 +329,9 @@ object GlobalStateFactory {
         case _ =>
       }
     }
+    GlobalState.presentationMode.foreach { presentationMode =>
+      Segment.trackEvent("Presentation Mode", js.Dynamic.literal(mode = presentationMode.toString))
+    }
 
     GlobalState.view.foreach { view =>
       Segment.page(view.viewKey)
