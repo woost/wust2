@@ -75,7 +75,7 @@ object Importing {
       Source(
         icon = img(src := WoostConfig.value.urls.wunderlistIcon),
         title = "Wunderlist",
-        description = "Wunderlist Export (JSON)",
+        description = "Wunderlist (JSON)",
         inputs = List(
           // Input.FromText("Paste the exported JSON from Wunderlist here."),
           Input.FromFile("Upload the exported JSON file from Wunderlist.", Some("application/json")),
