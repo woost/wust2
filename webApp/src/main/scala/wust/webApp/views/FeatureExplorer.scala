@@ -1,6 +1,7 @@
 package wust.webApp.views
 
 import acyclic.file
+import wust.webUtil.Elements._
 import fontAwesome._
 import monix.eval.Task
 import outwatch.dom._
@@ -18,6 +19,7 @@ import wust.webUtil.outwatchHelpers._
 import scala.scalajs.js
 import scala.util.Try
 import wust.facades.segment.Segment
+import wust.facades.segment.SegmentGlobalScope
 
 object FeatureExplorer {
   //TODO: rating for completed features: "I liked it", "too complicated", "not useful"
@@ -229,7 +231,8 @@ object FeatureExplorer {
         position.absolute,
         top := "5px",
         right := "0",
-      )
+      ),
+      onClickDefault.foreach {Segment.trackEvent("Clicked FeatureExplorer")}
     )
   }
 
