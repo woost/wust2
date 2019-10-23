@@ -452,7 +452,7 @@ object MembersModal {
 
         div(
           marginLeft := "4px",
-          freeSolid.faUserPlus
+          Icons.membersModal
         )
       )
       case PresentationMode.ContentOnly => VDomModifier.empty

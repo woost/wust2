@@ -31,7 +31,7 @@ object NewProjectPrompt {
       div("Emojis at the beginning of the name become the Project's icon. For Example ", b(":tomato: Shopping List")),
       viewCheckboxes --> selectedViews,
       // projectImporter.map(Some(_)) --> importChanges,
-      div("After creating, you can invite participants by clicking ", Icons.menu, " at the top right and then clicking ", b("Members"), "."),
+      div("After creating, you can invite participants by clicking ", button(cls := "ui tiny compact primary button", padding := "0.5em 0.7em", Icons.membersModal), " at the top, next to the project title."),
       div(
         marginTop := "20px",
         Styles.flex,
