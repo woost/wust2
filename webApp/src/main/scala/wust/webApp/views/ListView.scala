@@ -50,7 +50,7 @@ object ListView {
 
       VDomModifier.ifTrue(showInputField)(addListItemInputField( focusState, autoFocusInsert = !focusState.isNested)),
       renderInboxColumn( focusState, traverseState, inOneLine, isCompact),
-      renderToplevelColumns( focusState, traverseState, inOneLine, isCompact)
+      renderToplevelColumns( focusState, traverseState, inOneLine, isCompact, showInputField = showInputField)
         .apply(lastElementModifier),
     )
   }
@@ -79,6 +79,7 @@ object ListView {
     traverseState: TraverseState,
     inOneLine: Boolean,
     isCompact:Boolean,
+    showInputField: Boolean,
   )(implicit ctx: Ctx.Owner): VNode = {
     val columns = Rx {
       val graph = GlobalState.graph()
@@ -89,7 +90,7 @@ object ListView {
       Rx {
         VDomModifier(
           columns().map { columnId =>
-            renderColumn( focusState, traverseState, nodeId = columnId, inOneLine = inOneLine, isCompact = isCompact)
+            renderColumn( focusState, traverseState, columnId = columnId, inOneLine = inOneLine, isCompact = isCompact, showInputField = showInputField)
           },
           registerDragContainer( DragContainer.Kanban.ColumnArea(focusState.focusedId, columns())),
         )
@@ -149,9 +150,10 @@ object ListView {
         renderColumn(
           focusState,
           traverseState,
-          nodeId = nodeId,
+          columnId = nodeId,
           inOneLine = inOneLine,
-          isCompact = isCompact
+          isCompact = isCompact,
+          showInputField = false,
         )
       case _ => VDomModifier.empty
     }
@@ -160,26 +162,27 @@ object ListView {
   private def renderColumn(
     focusState: FocusState,
     traverseState: TraverseState,
-    nodeId: NodeId,
+    columnId: NodeId,
     inOneLine:Boolean,
-    isCompact: Boolean
+    isCompact: Boolean,
+    showInputField: Boolean,
   ): VNode = {
-    div.thunkStatic(nodeId.hashCode)(Ownable { implicit ctx =>
+    div.thunkStatic(columnId.hashCode)(Ownable { implicit ctx =>
       val isExpanded = Rx {
         val graph = GlobalState.graph()
         val userId = GlobalState.userId()
-        graph.isExpanded(userId, nodeId).getOrElse(true)
+        graph.isExpanded(userId, columnId).getOrElse(true)
       }
 
       val stage = Rx {
-        GlobalState.graph().nodesByIdOrThrow(nodeId)
+        GlobalState.graph().nodesByIdOrThrow(columnId)
       }
 
       val isDone = Rx {
         GlobalState.graph().isDoneStage(stage())
       }
 
-      val nextTraverseState = traverseState.step(nodeId)
+      val nextTraverseState = traverseState.step(columnId)
 
       val children = Rx {
         val graph = GlobalState.graph()
@@ -188,7 +191,7 @@ object ListView {
 
       val expandCollapseStage = div(
         cls := "listview-expand-collapse-stage",
-        renderExpandCollapseButton( nodeId, isExpanded, alwaysShow = true).map(_.apply(
+        renderExpandCollapseButton( columnId, isExpanded, alwaysShow = true).map(_.apply(
             Styles.flex,
             alignItems.center,
             Rx{
@@ -201,31 +204,29 @@ object ListView {
 
       val tasklist = Rx {
         VDomModifier.ifTrue(isExpanded())(
-          (
-            div(
-              cls := "tasklist",
-              VDomModifier.ifTrue(isCompact)(cls := "compact"),
-              flexDirection.columnReverse,
+          VDomModifier.ifTrue(showInputField)(addListItemInputField( focusState, autoFocusInsert = false, targetSection = Some(columnId))),
+          div(
+            cls := "tasklist",
+            VDomModifier.ifTrue(isCompact)(cls := "compact"),
+            flexDirection.columnReverse,
 
-              Rx {
-                VDomModifier(
-                  registerDragContainer( DragContainer.Kanban.Column(nodeId, children().map(_._1), workspace = focusState.focusedId)),
-                  children().map {
-                    case (id, role) =>
-                      renderTaskOrStage(
-
-                        focusState,
-                        nextTraverseState,
-                        nodeId = id,
-                        nodeRole = role,
-                        parentIsDone = isDone(),
-                        inOneLine = inOneLine,
-                        isCompact = isCompact
-                      )
-                  }
-                )
-              }
-            )
+            Rx {
+              VDomModifier(
+                registerDragContainer( DragContainer.Kanban.Column(columnId, children().map(_._1), workspace = focusState.focusedId)),
+                children().map {
+                  case (id, role) =>
+                    renderTaskOrStage(
+                      focusState,
+                      nextTraverseState,
+                      nodeId = id,
+                      nodeRole = role,
+                      parentIsDone = isDone(),
+                      inOneLine = inOneLine,
+                      isCompact = isCompact
+                    )
+                }
+              )
+            }
           )
         )
       }
@@ -238,12 +239,13 @@ object ListView {
     })
   }
 
-  private def addListItemInputField(focusState: FocusState, autoFocusInsert: Boolean)(implicit ctx: Ctx.Owner) = {
+  private def addListItemInputField(focusState: FocusState, autoFocusInsert: Boolean, targetSection:Option[NodeId] = None)(implicit ctx: Ctx.Owner) = {
     def submitAction(userId: UserId)(sub: InputRow.Submission) = {
       val createdNode = Node.MarkdownTask(sub.text)
+      val addSectionParent = GraphChanges.addToParents(ChildId(createdNode.id), ParentId(targetSection))
       val addNode = GraphChanges.addNodeWithParent(createdNode, ParentId(focusState.focusedId))
       val addTags = ViewFilter.addCurrentlyFilteredTags( createdNode.id)
-      GlobalState.submitChanges(addNode merge addTags merge sub.changes(createdNode.id))
+      GlobalState.submitChanges(addNode merge addTags merge addSectionParent merge sub.changes(createdNode.id))
       focusState.view match {
         case View.List =>
           val parentIsTask = GlobalState.graph.now.nodesById(focusState.focusedId).exists(_.role == NodeRole.Task)
