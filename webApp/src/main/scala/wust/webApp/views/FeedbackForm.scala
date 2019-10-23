@@ -19,6 +19,7 @@ import wust.webUtil.outwatchHelpers._
 
 import scala.scalajs.js
 import scala.util.{Failure, Success, Try}
+import wust.facades.segment.Segment
 
 object FeedbackForm {
 
@@ -135,7 +136,12 @@ object FeedbackForm {
         div("You can also write us an email: ", Components.woostEmailLink(prefix = "support"), "."),
 
         div(cls := "ui divider", marginTop := "30px"),
-        supportChatButton(showPopup)(disabled <-- GlobalState.crispIsLoaded.map(!_)),
+        div(
+          supportChatButton(showPopup)(disabled <-- GlobalState.crispIsLoaded.map(!_)),
+          onClickDefault.foreach {
+            Segment.trackEvent("Open Support Chat", js.Dynamic.literal(loaded = GlobalState.crispIsLoaded.now))
+          }
+        ),
         voteOnFeaturesButton,
         onClick.stopPropagation foreach {}, // prevents closing feedback form by global click
       )
