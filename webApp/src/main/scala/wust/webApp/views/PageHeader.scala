@@ -126,7 +126,11 @@ object PageHeader {
           marginLeft.auto,
 
           channelTitle,
-          channelNotification,
+
+          GlobalState.presentationMode.map {
+            case PresentationMode.Full => channelNotification
+            case PresentationMode.ContentOnly => VDomModifier.empty
+          },
           channelMembersList,
           MembersModal.settingsButton(pageNodeId),
           id := "tutorial-pageheader-title",
