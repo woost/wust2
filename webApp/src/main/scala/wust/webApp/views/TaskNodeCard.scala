@@ -146,18 +146,14 @@ object TaskNodeCard {
         },
       )),
       NodeDetails.cardFooter(nodeId, childStats, isExpanded),
-
-      Rx {
-        val graph = GlobalState.graph()
-        VDomModifier.ifTrue(isExpanded())(
-          ListView.fieldAndList( focusState.copy(isNested = true, focusedId = nodeId),  traverseState.step(nodeId), inOneLine = inOneLine, isCompact = isCompact || compactChildren, showInputField = false).apply(
-            paddingBottom := "3px",
-            onClick.stopPropagation.discard,
-            DragComponents.drag(DragItem.DisableDrag),
-          ).apply(paddingLeft := "15px"),
-          paddingBottom := "0px",
-        )
-      },
+      NodeDetails.nestedTaskList(
+        nodeId = nodeId,
+        isExpanded = isExpanded,
+        focusState = focusState,
+        traverseState = traverseState,
+        isCompact = isCompact || compactChildren,
+        inOneLine = inOneLine
+      ),
 
       position.relative, // for buttonbar
       buttonBar(position.absolute, top := "3px", right := "3px"), // distance to not interefere with sidebar-focus box-shadow around node

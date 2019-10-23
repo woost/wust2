@@ -8,7 +8,8 @@ import wust.css.Styles
 import wust.graph._
 import wust.ids._
 import wust.webApp.Icons
-import wust.webApp.state.{FocusPreference, GlobalState}
+import wust.webApp.state.{FocusPreference, GlobalState, FocusState, TraverseState}
+import wust.webApp.dragdrop.{DragItem, DragPayload, DragTarget}
 import wust.webUtil.UI
 import wust.webUtil.outwatchHelpers._
 
@@ -153,6 +154,18 @@ object NodeDetails {
           ),
         ),
       )
+    )
+  }
+
+  def nestedTaskList(nodeId: NodeId, isExpanded:Rx[Boolean], focusState:FocusState, traverseState:TraverseState, isCompact:Boolean = false, inOneLine:Boolean = false)(implicit ctx: Ctx.Owner) = Rx {
+    val graph = GlobalState.graph()
+    VDomModifier.ifTrue(isExpanded())(
+      ListView.fieldAndList( focusState.copy(isNested = true, focusedId = nodeId),  traverseState.step(nodeId), inOneLine = inOneLine, isCompact = isCompact, showInputField = false).apply(
+        paddingBottom := "3px",
+        onClick.stopPropagation.discard,
+        DragComponents.drag(DragItem.DisableDrag),
+      ).apply(paddingLeft := "15px"),
+      paddingBottom := "0px",
     )
   }
 

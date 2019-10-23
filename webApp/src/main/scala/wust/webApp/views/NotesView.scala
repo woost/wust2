@@ -10,7 +10,7 @@ import wust.graph._
 import wust.ids._
 import wust.webApp.Icons
 import wust.webApp.dragdrop.DragItem
-import wust.webApp.state.{FeatureState, FocusState, GlobalState, Placeholder}
+import wust.webApp.state.{FeatureState, FocusState, GlobalState, Placeholder, TraverseState}
 import wust.webApp.views.DragComponents.registerDragContainer
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{Elements, UI}
@@ -39,7 +39,7 @@ object NotesView {
           }.sortBy(_.id)
 
           childNodes.map { node =>
-            renderNote(node, parentId = focusState.focusedId)
+            renderNote(node, focusState = focusState)
           }
         },
         registerDragContainer,
@@ -69,12 +69,17 @@ object NotesView {
     )
   }
 
-  private def renderNote(node: Node, parentId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
+  private def renderNote(node: Node, focusState:FocusState)(implicit ctx: Ctx.Owner): VNode = {
+    val parentId = focusState.focusedId
+    val traverseState = TraverseState(focusState.focusedId)
     val nodeIdx = GlobalState.graph.map(_.idToIdxOrThrow(node.id))
     val parentIdx = GlobalState.graph.map(_.idToIdxOrThrow(parentId))
 
     val isExpanded = Rx {
-      GlobalState.graph().isExpanded(GlobalState.userId(), nodeIdx()).getOrElse(false)
+      GlobalState.graph().isExpanded(GlobalState.userId(), node.id).getOrElse(false)
+    }
+    isExpanded.foreach{ exp =>
+      println("Expanded: " + exp)
     }
     val childStats = Rx { NodeDetails.ChildStats.from(nodeIdx(), GlobalState.graph()) }
 
@@ -107,6 +112,14 @@ object NotesView {
         NodeDetails.tagsPropertiesAssignments(node.id)
       ),
       NodeDetails.cardFooter(node.id, childStats, isExpanded),
+      NodeDetails.nestedTaskList(
+        nodeId = node.id,
+        isExpanded = isExpanded,
+        focusState = focusState,
+        traverseState = traverseState,
+        isCompact = false,
+        inOneLine = true
+      ),
 
       Rx {
         VDomModifier.ifNot(editMode())(
