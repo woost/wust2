@@ -116,6 +116,7 @@ object UserSettingsView {
                 fileUploads() = Some(files)
               case Failure(t) =>
                 scribe.warn("Cannot list file uploads for user", t)
+                Segment.trackError("Cannot list file uploads for user", t.getMessage())
                 UI.toast("Sorry, the file-upload service is currently unreachable. Please try again later!")
             }
           })
@@ -204,6 +205,7 @@ object UserSettingsView {
         )
       case Failure(err) =>
         scribe.info("Cannot get UserDetail", err)
+        Segment.trackError("Cannot get UserDetail", err.getMessage())
         Var.set(
           detailsUnavailable -> false,
           userDetail -> None
