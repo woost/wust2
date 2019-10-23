@@ -443,6 +443,9 @@ object MembersModal {
         cls := "ui tiny compact primary button",
 
         openSharingModalOnClick,
+        onClickDefault.foreach {
+          Segment.trackEvent("Open Members Modal")
+        },
 
         display.flex,
         alignItems.flexStart,
