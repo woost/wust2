@@ -22,17 +22,18 @@ object ListView {
       div(position.absolute, top := "100%", width := "1px", height := "10px") // https://www.brunildo.org/test/overscrollback.html
     )
 
-    fieldAndList(
-      focusState,
-      TraverseState(focusState.focusedId),
-      inOneLine = true,
-      isCompact = false,
-      lastElementModifier = marginBottomHack,
-    ).apply(
+    div(
       overflow.auto,
       padding := "5px",
-      flexGrow := 2,
       id := "tutorial-checklist",
+      fieldAndList(
+        focusState,
+        TraverseState(focusState.focusedId),
+        inOneLine = true,
+        isCompact = false,
+        lastElementModifier = marginBottomHack,
+      ),
+      newSectionArea(focusState)
     )
   }
 
@@ -283,4 +284,50 @@ object ListView {
     )
   }
 
+  val addSectionText = "Add Section"
+  private def newSectionArea(focusState: FocusState)(implicit ctx: Ctx.Owner) = {
+    val fieldActive = Var(false)
+    def submitAction(sub: InputRow.Submission) = {
+      val change = {
+        val newStageNode = Node.MarkdownStage(sub.text)
+        GraphChanges.addNodeWithParent(newStageNode, ParentId(focusState.focusedId)) merge sub.changes(newStageNode.id)
+      }
+      GlobalState.submitChanges(change)
+      FeatureState.use(Feature.CreateColumnInKanban)
+      //TODO: sometimes after adding new column, the add-column-form is scrolled out of view. Scroll, so that it is visible again
+    }
+
+    def blurAction(v:String): Unit = {
+      if(v.isEmpty) fieldActive() = false
+    }
+
+    div(
+      Styles.flex,
+      justifyContent.flexEnd,
+      paddingTop := "10px",
+      paddingRight := "7px",
+      keyed,
+      Rx {
+        if(fieldActive()) {
+          InputRow(
+            Some(focusState),
+            submitAction,
+            autoFocus = true,
+            blurAction = Some(blurAction),
+            placeholder = Placeholder.newSection,
+            showSubmitIcon = false,
+            submitOnEnter = true,
+            showMarkdownHelp = false
+          ).apply(
+            width := "300px",
+          )
+        } else div(
+          onClick.stopPropagation.use(true) --> fieldActive,
+          cls := "listviewaddsectiontext",
+          color := "rgba(0,0,0,0.62)",
+          s"+ $addSectionText",
+        )
+      },
+    )
+  }
 }

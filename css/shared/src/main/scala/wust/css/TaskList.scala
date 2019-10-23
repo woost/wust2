@@ -64,4 +64,15 @@ trait TaskList extends StyleSheet.Standalone {
     marginLeft(listViewLeftMargin),
   )
 
+  ".listviewaddsectiontext" - (
+    color(white),
+    opacity(0.5),
+    fontSize.medium,
+    fontWeight.normal,
+    cursor.pointer,
+  )
+
+  ".listviewaddsectiontext:hover" - (
+    opacity(1),
+  )
 }
