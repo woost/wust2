@@ -13,7 +13,6 @@ import wust.facades.segment.Segment
 
 object PageNotFoundView {
   def apply(implicit ctx: Ctx.Owner) = {
-    Segment.page("Page Not Found")
     val shrugEmoji = "🤷"
     div(
       padding := "80px 20px",

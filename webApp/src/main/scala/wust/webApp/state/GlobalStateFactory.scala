@@ -20,6 +20,8 @@ import wust.webApp.{Client, DevOnly}
 import wust.webUtil.UI.ToastLevel
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{BrowserDetect, UI}
+import rx.async._
+import rx.async.Platform._
 
 import scala.concurrent.duration._
 import wust.facades.segment.Segment
@@ -333,10 +335,13 @@ object GlobalStateFactory {
       Segment.trackEvent("Presentation Mode", js.Dynamic.literal(mode = presentationMode.toString))
     }
 
-    GlobalState.view.foreach { view =>
+    GlobalState.view.toObservable.dropWhile(_ == View.Empty).foreach { view =>
       Segment.page(view.viewKey)
       // Since the Segment -> FullStory integration does not send page-events:
       Segment.trackEvent("Viewed", js.Dynamic.literal(view = view.viewKey))
+    }
+    GlobalState.pageNotFound.toObservable.debounce(3000 milliseconds).foreach { notFound =>
+      if(notFound) Segment.page("Page Not Found")
     }
   }
 
@@ -349,6 +354,7 @@ object GlobalStateFactory {
       rawGraph.debugWithDetail((g: Graph) => s"rawGraph: ${g.toString}", (g: Graph) => g.toDetailedString)
       graph.debugWithDetail((g: Graph) => s"graph: ${g.toString}", (g: Graph) => g.toDetailedString)
 
+      pageNotFound.debug("pageNotFound")
       screenSize.debug("screenSize")
       urlConfig.debug("urlConfig")
       page.debug("page")
