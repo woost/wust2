@@ -18,8 +18,10 @@ import wust.webApp.dragdrop.DragItem
 import wust.webApp.state.{FeatureState, FocusPreference, GlobalState, GraphChangesAutomation}
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil._
+import wust.webUtil.Elements._
 
 import scala.collection.breakOut
+import wust.facades.segment.Segment
 
 // Offers methods for rendering components for the GraphChangesAutomation.
 
@@ -288,6 +290,9 @@ object GraphChangesAutomationUI {
 
       cursor.pointer,
       onClick.use(Ownable(implicit ctx => modalConfig( focusedId, viewRender))) --> GlobalState.uiModalConfig,
+      onClickDefault.foreach {
+        Segment.trackEvent("Open Automation Modal")
+      },
 
       Rx {
         if (hasTemplates()) VDomModifier(
