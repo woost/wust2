@@ -250,7 +250,7 @@ object KanbanView {
                   val deleteChanges = GraphChanges.undelete(ChildId(nodeId), ParentId(traverseState.parentId))
                   GlobalState.submitChanges(deleteChanges)
                 } else {
-                  Elements.confirm("Delete this column?") {
+                  Elements.confirm("Delete this column? Its cards will become uncategorized.") {
                     val deleteChanges = GraphChanges.delete(ChildId(nodeId), ParentId(traverseState.parentId))
                     GlobalState.submitChanges(deleteChanges)
                     selectedNodeIds.update(_ - nodeId)
