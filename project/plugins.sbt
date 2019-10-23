@@ -6,7 +6,7 @@ addSbtPlugin("com.typesafe.sbt" % "sbt-native-packager" % "1.3.19")
 
 // scalablytyped
 resolvers += Resolver.bintrayRepo("oyvindberg", "ScalablyTyped")
-addSbtPlugin("org.scalablytyped" % "sbt-scalablytyped" % "201908260530")
+addSbtPlugin("org.scalablytyped" % "sbt-scalablytyped" % "201910230530")
 
 // workflow
 addSbtPlugin("io.spray" % "sbt-revolver" % "0.9.1")
