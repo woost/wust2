@@ -12,6 +12,8 @@ import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.registerDragContainer
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{BrowserDetect, Ownable}
+import wust.webUtil.Elements
+import wust.webApp.Icons
 
 object ListView {
   import SharedViewElements._
@@ -194,10 +196,21 @@ object ListView {
         renderExpandCollapseButton( columnId, isExpanded, alwaysShow = true).map(_.apply(
             Styles.flex,
             alignItems.center,
-            Rx{
-              renderNodeData( stage())
-            },
-
+            Rx{ renderNodeData( stage()) },
+            Rx { VDomModifier.ifTrue(showInputField && NodePermission.canWrite(columnId)(ctx)())(
+              div(
+                marginLeft.auto,
+                marginRight := "7px",
+                fontSize.small,
+                div(cls := "fa-fw", Icons.delete),
+                cursor.pointer,
+                onClick foreach {
+                  Elements.confirm("Delete this section? Its tasks will be moved to the default section.") {
+                    GlobalState.submitChanges(GraphChanges.delete(ChildId(columnId), ParentId(traverseState.parentId)))
+                  }
+                },
+              ),
+            )},
           )
         ),
       )
