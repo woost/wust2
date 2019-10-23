@@ -77,20 +77,20 @@ object SharedViewElements {
 
   val replyButton: VNode = {
     div(
-      div(cls := "fa-fw", UI.tooltip("bottom right") := "Reply to message", freeSolid.faReply),
+      div(cls := "fa-fw", UI.tooltip("bottom right") := "Reply", freeSolid.faReply),
       cursor.pointer,
     )
   }
 
   val deleteButton: VNode =
     div(
-      div(cls := "fa-fw", UI.tooltip("bottom right") := "Archive message", Icons.delete),
+      div(cls := "fa-fw", UI.tooltip("bottom right") := "Archive", Icons.delete),
       cursor.pointer,
     )
 
   val undeleteButton: VNode =
     div(
-      div(cls := "fa-fw", UI.tooltip("bottom right") := "Recover message", Icons.undelete),
+      div(cls := "fa-fw", UI.tooltip("bottom right") := "Restore", Icons.undelete),
       cursor.pointer,
     )
 
