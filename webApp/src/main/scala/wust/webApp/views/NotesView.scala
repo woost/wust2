@@ -66,7 +66,6 @@ object NotesView {
       placeholder = Placeholder.newNote,
       showMarkdownHelp = true,
       triggerSubmit = triggerSubmit,
-      blurAction = Some(_ => triggerSubmit.onNext(()))
     )
   }
 
@@ -94,11 +93,12 @@ object NotesView {
       cls := "ui segment",
       cls := "note",
       Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, node.id),
+      Rx { VDomModifier.ifTrue(editMode())(boxShadow := "0px 0px 0px 2px  rgba(65,184,255, 1)") },
       div(
         cls := "notesview-note",
         cls := "enable-text-selection",
 
-        Components.editableNode(node, editMode = editMode, config = EditableContent.Config.cancelOnError.copy(submitOnEnter = false)).append(
+        Components.editableNode(node, editMode = editMode, config = EditableContent.Config.cancelOnError.copy(submitOnEnter = false, submitOnBlur = false)).append(
           width := "100%",
         ),
       ),

@@ -473,6 +473,9 @@ object Components {
         contentInject = node => VDomModifier(p(StringOps.trimToMaxLength(node.str, maxLength), nodeInject), contentInject)
       )
     }
+
+  def editModeIndicator(editMode:Var[Boolean])(implicit ctx: Ctx.Owner) = Rx { VDomModifier.ifTrue(editMode())(boxShadow := "0px 0px 0px 2px  rgba(65,184,255, 1)") }
+
     def nodeCardEditable(node: Node, editMode: Var[Boolean], contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None, prependInject: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
       renderNodeCard(
         node,
@@ -483,7 +486,7 @@ object Components {
         ),
         projectWithIcon = false,
       ).apply(
-        Rx { editMode().ifTrue[VDomModifier](VDomModifier(boxShadow := "0px 0px 0px 2px  rgba(65,184,255, 1)")) },
+        editModeIndicator(editMode),
       )
     }
 
@@ -497,7 +500,7 @@ object Components {
         contentInject
       ),
     ).apply(
-      Rx { editMode().ifTrue[VDomModifier](VDomModifier(boxShadow := "0px 0px 0px 2px  rgba(65,184,255, 1)")) },
+      editModeIndicator(editMode),
     )
   }
 
