@@ -341,7 +341,7 @@ object GlobalStateFactory {
       Segment.trackEvent("Presentation Mode", js.Dynamic.literal(mode = presentationMode.toString))
     }
 
-    GlobalState.view.toObservable.dropWhile(_ == View.Empty).foreach { view =>
+    GlobalState.view.toSourceStream.dropWhile(_ == View.Empty).foreach { view =>
       Segment.page(view.viewKey)
     }
     val pageNotFoundPageIsVisible = Rx { !GlobalState.isLoading() && GlobalState.pageNotFound() && GlobalState.view().isContent }
