@@ -84,11 +84,11 @@ object FeatureDetails {
       )
       case ExpandTaskInChecklist => FeatureDetails (
         title = "Expand Task (Checklist)",
-        description = VDomModifier("Click ", em(Icons.expand), " on a task to show or add sub-tasks.")
+        description = VDomModifier("On a Task with subtasks, click ", em(Icons.tasks), " or the progress bar to show its sub-tasks.")
       )
       case CreateNestedTaskInChecklist => FeatureDetails (
         title = "Create Sub-Task (Checklist)",
-        description = VDomModifier("In an expanded task, type a new task in the field and press ", em("Enter"), ".")
+        description = VDomModifier("Click on a task to open it in the right sidebar, then add a task in the checklist.")
       )
 
       // Kanban
@@ -96,32 +96,32 @@ object FeatureDetails {
         view = View.Kanban
       )
       case CreateTaskInKanban => FeatureDetails (
-        title = "Create Task (Kanban)",
-        description = VDomModifier(s"At the bottom of a column, click ", em(KanbanView.addCardText), " type a task in the field and press ", em("Enter"), ".")
+        title = "Create Card (Kanban)",
+        description = VDomModifier(s"At the bottom of a column, click ", em(KanbanView.addCardText), " type a name in the field and press ", em("Enter"), ".")
       )
       case CreateColumnInKanban => FeatureDetails (
         title = "Create Column (Kanban)",
-        description = VDomModifier(s"On the right side, click ", em(KanbanView.addColumnText), ", type a task in the field of a column and press ", em("Enter"), ".")
+        description = VDomModifier(s"On the right side, click ", em(KanbanView.addColumnText), ", type a name in the field and press ", em("Enter"), ".")
       )
       case ReorderTaskInKanban => FeatureDetails (
-        title = "Reorder Tasks (Kanban)",
-        description = "Drag a task to move it to another position in the column."
+        title = "Reorder Cards (Kanban)",
+        description = "Drag a card to move it to another position of the same column."
       )
       case DragTaskToDifferentColumnInKanban => FeatureDetails (
-        title = "Drag Task to another Column (Kanban)",
-        description = "Drag and drop a task to another column."
+        title = "Drag Card to another Column (Kanban)",
+        description = "Drag and drop a card to another column."
       )
       case EditColumnInKanban => FeatureDetails (
         title = "Edit Column Title (Kanban)",
         description = VDomModifier("Click on ", em(Icons.edit), " at the top of a column to change its title.")
       )
       case ExpandTaskInKanban => FeatureDetails (
-        title = "Expand Task (Kanban)",
-        description = VDomModifier("Click ", em(Icons.expand), " on a card to show or add sub-tasks.")
+        title = "Expand Card (Kanban)",
+        description = VDomModifier("On a Card with subtasks, click ", em(Icons.tasks), " or the progress bar to show its sub-tasks.")
       )
       case CreateNestedTaskInKanban => FeatureDetails (
         title = "Create Sub-Task (Kanban)",
-        description = VDomModifier("In an expanded task, type a new task in the field and press ", em("Enter"), ".")
+        description = VDomModifier("Click on a card to open it in the right sidebar, then add a task in the checklist.")
       )
       case ReorderColumnsInKanban => FeatureDetails (
         title = "Reorder Columns (Kanban)",
@@ -171,7 +171,7 @@ object FeatureDetails {
       // custom fields, tags, assignments
       case CreateTag => FeatureDetails (
         title = "Create Tag",
-        description = VDomModifier("Expand tags and click ", em(TagList.addTagText), ".")
+        description = VDomModifier("Expand ", b("Tags")," in the left sidebar and click ", em(TagList.addTagText), ".")
       )
       case NestTagsByDragging => FeatureDetails (
         title = "Nest Tags",
@@ -205,15 +205,15 @@ object FeatureDetails {
       // Right Sidebar
       case OpenTaskInRightSidebar => FeatureDetails (
         title = "Open Task in Right Sidebar",
-        description = "Click on task to open it in the right sidebar."
+        description = "Click on a task to open it in the right sidebar."
       )
       case OpenProjectInRightSidebar => FeatureDetails (
         title = "Open Project in Right Sidebar",
-        description = "Click on project to open it in the right sidebar."
+        description = "Click on a project to open it in the right sidebar."
       )
       case OpenMessageInRightSidebar => FeatureDetails (
         title = "Open Message in Right Sidebar",
-        description = "Click on message to open it in the right sidebar."
+        description = "Click on a message to open it in the right sidebar."
       )
       // case OpenNoteInRightSidebar => FeatureDetails (
       //   title = "Open Note in Right Sidebar",
@@ -223,15 +223,15 @@ object FeatureDetails {
       // Editing nodes
       case EditTaskInRightSidebar => FeatureDetails (
         title = "Edit Task",
-        description = "Click on task to open it in the right sidebar, then click it to edit."
+        description = "Click on a task to open it in the right sidebar, then click it to edit."
       )
       case EditProjectInRightSidebar => FeatureDetails (
         title = "Edit Project",
-        description = "Click on project to open it in the right sidebar, then click it to edit."
+        description = "Click on a project to open it in the right sidebar, then click it to edit."
       )
       case EditMessageInRightSidebar => FeatureDetails (
         title = "Edit Message",
-        description = "Click on message to open it in the right sidebar, then click it to edit."
+        description = "Click on a message to open it in the right sidebar, then click it to edit."
       )
       // case EditNoteInRightSidebar => FeatureDetails (
       //   title = "Edit Note",
@@ -241,15 +241,15 @@ object FeatureDetails {
       // Zoom
       case ZoomIntoTask => FeatureDetails (
         title = "Zoom into Task",
-        description = VDomModifier("Click on task to open it in the right sidebar, then click ", em(Icons.zoom), ". Or: Double-click on a task.")
+        description = VDomModifier("Click on a task to open it in the right sidebar, then click ", em(Icons.zoom), ". Or: Double-click on a task.")
       )
       case ZoomIntoMessage => FeatureDetails (
         title = "Zoom into Message",
-        description = VDomModifier("Click on message to open it in the right sidebar, then click ", em(Icons.zoom), ". Or: Double-click on a message.")
+        description = VDomModifier("Click on a message to open it in the right sidebar, then click ", em(Icons.zoom), ". Or: Double-click on a message.")
       )
       case ZoomIntoProject => FeatureDetails (
         title = "Zoom into Project",
-        description = VDomModifier("Click on project to open it in the right sidebar, then click ", em(Icons.zoom), ". Or: Double-click on a project.")
+        description = VDomModifier("Click on a project to open it in the right sidebar, then click ", em(Icons.zoom), ". Or: Double-click on a project.")
       )
       case ZoomIntoNote => FeatureDetails (
         title = "Zoom into Note",

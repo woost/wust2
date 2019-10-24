@@ -108,7 +108,7 @@ object NotesView {
         alignItems.center,
         NodeDetails.tagsPropertiesAssignments(node.id)
       ),
-      NodeDetails.cardFooter(node.id, childStats, isExpanded),
+      NodeDetails.cardFooter(node.id, childStats, isExpanded, focusState),
       NodeDetails.nestedTaskList(
         nodeId = node.id,
         isExpanded = isExpanded,

@@ -157,11 +157,11 @@ object Feature {
   // Checklist
   case object AddChecklistView extends Category.View with Category.View.Checklist { override def next = Array(CreateTaskInChecklist) }
   case object CreateTaskInChecklist extends Category.View.Checklist with Category.Item.Task { override def requiresAny = Array(AddChecklistView, SwitchToChecklistInPageHeader, SwitchToChecklistInRightSidebar); override def next = Array(CheckTask, ReorderTaskInChecklist, OpenTaskInRightSidebar, CreateTag, TagTaskByDragging, ExpandTaskInChecklist, AssignTaskByDragging) }
-  case object ExpandTaskInChecklist extends Category.View.Checklist with Category.Item.Task with Category.Power { override def requiresAll = Array(CreateTaskInChecklist); override def next = Array(CreateNestedTaskInChecklist) } //TODO: drag task into other task
-  case object CreateNestedTaskInChecklist extends Category.View.Checklist with Category.Item.Task with Category.Power { override def requiresAll = Array(CreateTaskInChecklist, ExpandTaskInChecklist) } //TODO: sub-sub-task, sub-sub-sub-task, ....
+  case object ExpandTaskInChecklist extends Category.View.Checklist with Category.Item.Task with Category.Power { override def requiresAll = Array(CreateNestedTaskInChecklist); override def next = Array(CreateNestedTaskInChecklist) } //TODO: drag task into other task
+  case object CreateNestedTaskInChecklist extends Category.View.Checklist with Category.Item.Task with Category.Power { override def requiresAll = Array(CreateTaskInChecklist, OpenTaskInRightSidebar); override def next = Array(ExpandTaskInChecklist) } //TODO: sub-sub-task, sub-sub-sub-task, ....
   //TODO:Drag task into other Task
   //TODO:Check sub-task to see progress bar
-  case object CheckTask extends Category.View.Checklist with Category.Item.Task { override def requiresAny = Array(CreateTaskInChecklist, CreateNestedTaskInChecklist, CreateNestedTaskInKanban); override def next = Array(UncheckTask, ReorderTaskInChecklist) }
+  case object CheckTask extends Category.View.Checklist with Category.Item.Task { override def requiresAny = Array(CreateTaskInChecklist, CreateNestedTaskInChecklist, CreateNestedTaskInChecklist); override def next = Array(UncheckTask, ReorderTaskInChecklist) }
   case object UncheckTask extends Category.View.Checklist with Category.Item.Task { override def requiresAll = Array(CheckTask); override def next = Array(DeleteTaskInChecklist) }
   case object ReorderTaskInChecklist extends Category.View.Checklist with Category.Item.Task { override def requiresAll = Array(CreateTaskInChecklist) }
   case object DeleteTaskInChecklist extends Category.View.Checklist with Category.Item.Task { override def requiresAll = Array(CreateTaskInChecklist); override def next = Array(FilterDeleted, UndeleteTaskInChecklist, FilterOnlyDeleted) }
@@ -173,9 +173,9 @@ object Feature {
   case object EditColumnInKanban extends Category.View.Kanban { override def requiresAll = Array(CreateColumnInKanban) }
   case object ReorderColumnsInKanban extends Category.View.Kanban { override def requiresAll = Array(CreateColumnInKanban) }
   case object NestColumnsInKanban extends Category.View.Kanban with Category.Power { override def requiresAll = Array(CreateColumnInKanban, ReorderColumnsInKanban) }
-  case object CreateTaskInKanban extends Category.View.Kanban with Category.Item.Task { override def requiresAny = Array(AddKanbanView, SwitchToKanbanInPageHeader, SwitchToKanbanInRightSidebar); override def next = Array(ReorderTaskInKanban, DragTaskToDifferentColumnInKanban, ExpandTaskInKanban, TagTaskByDragging, AssignTaskByDragging, AddCustomFieldToTask, CreateAutomationTemplate) }
-  case object ExpandTaskInKanban extends Category.View.Kanban with Category.Item.Task with Category.Power { override def requiresAll = Array(CreateTaskInKanban); override def next = Array(CreateNestedTaskInKanban) } //TODO: drag task into other task
-  case object CreateNestedTaskInKanban extends Category.View.Kanban with Category.Item.Task with Category.Power { override def requiresAll = Array(ExpandTaskInKanban, CreateTaskInKanban) }
+  case object CreateTaskInKanban extends Category.View.Kanban with Category.Item.Task { override def requiresAny = Array(AddKanbanView, SwitchToKanbanInPageHeader, SwitchToKanbanInRightSidebar); override def next = Array(ReorderTaskInKanban, DragTaskToDifferentColumnInKanban, OpenTaskInRightSidebar, CreateNestedTaskInKanban, TagTaskByDragging, AssignTaskByDragging, AddCustomFieldToTask, CreateAutomationTemplate) }
+  case object ExpandTaskInKanban extends Category.View.Kanban with Category.Item.Task with Category.Power { override def requiresAll = Array(CreateNestedTaskInKanban); override def next = Array(CreateNestedTaskInKanban) } //TODO: drag task into other task
+  case object CreateNestedTaskInKanban extends Category.View.Kanban with Category.Item.Task with Category.Power { override def requiresAll = Array(OpenTaskInRightSidebar, CreateTaskInKanban); override def next = Array(ExpandTaskInKanban) }
   case object ReorderTaskInKanban extends Category.View.Kanban with Category.Item.Task { override def requiresAll = Array(CreateTaskInKanban); }
   case object DragTaskToDifferentColumnInKanban extends Category.View.Kanban with Category.Item.Task with Category.Drag { override def requiresAll = Array(CreateTaskInKanban); }
 

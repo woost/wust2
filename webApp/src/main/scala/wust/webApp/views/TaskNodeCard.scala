@@ -145,7 +145,7 @@ object TaskNodeCard {
           VDomModifier.ifTrue(childStats().isEmpty)(marginBottom := "3px")
         },
       )),
-      NodeDetails.cardFooter(nodeId, childStats, isExpanded),
+      NodeDetails.cardFooter(nodeId, childStats, isExpanded, focusState),
       NodeDetails.nestedTaskList(
         nodeId = nodeId,
         isExpanded = isExpanded,

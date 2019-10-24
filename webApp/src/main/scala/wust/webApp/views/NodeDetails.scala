@@ -12,6 +12,7 @@ import wust.webApp.state.{FocusPreference, GlobalState, FocusState, TraverseStat
 import wust.webApp.dragdrop.{DragItem, DragPayload, DragTarget}
 import wust.webUtil.UI
 import wust.webUtil.outwatchHelpers._
+import wust.webApp.state.FeatureState
 
 object NodeDetails {
 
@@ -104,7 +105,7 @@ object NodeDetails {
     )
   }
 
-  def cardFooter(nodeId: NodeId, taskStats: Rx[NodeDetails.ChildStats], isExpanded: Rx[Boolean])(implicit ctx: Ctx.Owner) = Rx {
+  def cardFooter(nodeId: NodeId, taskStats: Rx[NodeDetails.ChildStats], isExpanded: Rx[Boolean], focusState: FocusState)(implicit ctx: Ctx.Owner) = Rx {
     VDomModifier.ifTrue(taskStats().nonEmpty)(
       div(
         cls := "childstats",
@@ -125,6 +126,15 @@ object NodeDetails {
               val edge = Edge.Expanded(nodeId, EdgeData.Expanded(!isExpanded()), GlobalState.user.now.id)
               GraphChanges(addEdges = Array(edge))
             } --> GlobalState.eventProcessor.changes,
+            onClick.stopPropagation.foreach {
+              if(isExpanded.now) {
+                focusState.view match {
+                  case View.List => FeatureState.use(Feature.ExpandTaskInChecklist)
+                  case View.Kanban => FeatureState.use(Feature.ExpandTaskInKanban)
+                  case _ =>
+                }
+              }
+            },
             cursor.pointer,
           )
         ),

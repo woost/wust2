@@ -259,10 +259,11 @@ object ListView {
       val addNode = GraphChanges.addNodeWithParent(createdNode, ParentId(focusState.focusedId))
       val addTags = ViewFilter.addCurrentlyFilteredTags( createdNode.id)
       GlobalState.submitChanges(addNode merge addTags merge addSectionParent merge sub.changes(createdNode.id))
-      focusState.view match {
+
+      GlobalState.view.now match {
         case View.List =>
           val parentIsTask = GlobalState.graph.now.nodesById(focusState.focusedId).exists(_.role == NodeRole.Task)
-          val parentIsPage = focusState.focusedId == focusState.contextParentId
+          val parentIsPage = GlobalState.page.now.parentId.contains(focusState.focusedId)
           val creatingNestedTask = parentIsTask && !parentIsPage
           if(creatingNestedTask)
             FeatureState.use(Feature.CreateNestedTaskInChecklist)
@@ -271,7 +272,7 @@ object ListView {
 
         case View.Kanban =>
           val parentIsTask = GlobalState.graph.now.nodesById(focusState.focusedId).exists(_.role == NodeRole.Task)
-          val parentIsPage = focusState.focusedId == focusState.contextParentId
+          val parentIsPage = GlobalState.page.now.parentId.contains(focusState.focusedId)
           val creatingNestedTask = parentIsTask && !parentIsPage
           if(creatingNestedTask)
             FeatureState.use(Feature.CreateNestedTaskInKanban)
