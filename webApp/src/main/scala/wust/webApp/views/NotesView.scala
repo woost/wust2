@@ -78,9 +78,6 @@ object NotesView {
     val isExpanded = Rx {
       GlobalState.graph().isExpanded(GlobalState.userId(), node.id).getOrElse(false)
     }
-    isExpanded.foreach{ exp =>
-      println("Expanded: " + exp)
-    }
     val childStats = Rx { NodeDetails.ChildStats.from(nodeIdx(), GlobalState.graph()) }
 
     val isDeleted = Rx {
