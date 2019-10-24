@@ -366,7 +366,7 @@ object UserSettingsView {
       ),
 
       Rx {
-        VDomModifier.ifTrue(userDetail().exists(_.verified))(
+        if (userDetail().exists(_.verified)) {
           div(
             marginLeft := "20px",
 
@@ -393,7 +393,14 @@ object UserSettingsView {
               }) --> GlobalState.eventProcessor.changes,
             )
           )
+        } else {
+          div(
+            margin := "15px",
+            opacity := 0.5,
+            maxWidth := "200px",
+            "You can upload a profile picture once you have signed up."
         )
+      }
       }
     )
   }
