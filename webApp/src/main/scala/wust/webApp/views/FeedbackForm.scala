@@ -137,7 +137,6 @@ object FeedbackForm {
           supportChatButton.apply(cls := "fluid tiny", marginTop := "5px"),
           onClickDefault.foreach {
             showPopup() = false
-            Segment.trackEvent("Open Support Chat", js.Dynamic.literal(loaded = GlobalState.crispIsLoaded.now))
           }
         ),
         voteOnFeaturesButton,
@@ -167,21 +166,26 @@ object FeedbackForm {
     }
   }
 
+  def openCrispChat() {
+    Try{
+      Segment.trackEvent("Open Support Chat", js.Dynamic.literal(loaded = GlobalState.crispIsLoaded.now))
+      if(GlobalState.crispIsLoaded.now) {
+        DeployedOnly { initCrisp }
+        crisp.push(js.Array("do", "chat:show"))
+        crisp.push(js.Array("do", "chat:open"))
+      } else {
+        val username = GlobalState.user.now.name
+        dom.window.open(s"https://go.crisp.chat/chat/embed/?website_id=5ab5c700-31d3-490f-917c-83dfa10b8205&user_nickname=$username", "_blank")
+      }
+    }
+  }
+
   val supportChatButton = {
     button(
       freeSolid.faComments, " Open Support Chat",
       cls := "ui blue button",
       onClick.foreach { _ =>
-        Try{
-          if(GlobalState.crispIsLoaded.now) {
-            DeployedOnly { initCrisp }
-            crisp.push(js.Array("do", "chat:show"))
-            crisp.push(js.Array("do", "chat:open"))
-          } else {
-            val username = GlobalState.user.now.name
-            dom.window.open(s"https://go.crisp.chat/chat/embed/?website_id=5ab5c700-31d3-490f-917c-83dfa10b8205&user_nickname=$username", "_blank")
-          }
-        }
+        openCrispChat()
       }
     )
   }

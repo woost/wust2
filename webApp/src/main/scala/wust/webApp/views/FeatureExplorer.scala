@@ -57,12 +57,8 @@ object FeatureExplorer {
       color := "#60758a",
       UI.popup("bottom right") := ("Is this feature unclear?"),
       onClick.stopPropagation.foreach { _ =>
-        Try{
-          DeployedOnly { FeedbackForm.initCrisp }
-          crisp.push(js.Array("do", "chat:show"))
-          crisp.push(js.Array("do", "chat:open"))
-        }
         Segment.trackEvent("Unclear Feature Description", js.Dynamic.literal(feature = feature.toString))
+        FeedbackForm.openCrispChat()
       }
     )
 
@@ -232,7 +228,7 @@ object FeatureExplorer {
         top := "5px",
         right := "0",
       ),
-      onClickDefault.foreach {Segment.trackEvent("Clicked FeatureExplorer")}
+      onClick.foreach {Segment.trackEvent("Clicked FeatureExplorer")}
     )
   }
 
