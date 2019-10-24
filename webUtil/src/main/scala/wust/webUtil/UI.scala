@@ -29,7 +29,10 @@ object UI {
     div(
       cls := "ui message", cls := msgType,
       header.map(headerContent => div(cls := "header", headerContent)),
-      content
+      content,
+      backgroundColor := "#ffe3be",
+      boxShadow := "none",
+      color := "#522e00",
     )
   }
 

@@ -10,31 +10,31 @@ import rx._
 import wust.api._
 import wust.css.Styles
 import wust.graph._
-import wust.ids.{Feature, _}
+import wust.ids.{ Feature, _ }
 import wust.webApp._
 import wust.webApp.jsdom.FormValidator
-import wust.webApp.state.{FeatureState, GlobalState}
+import wust.webApp.state.{ FeatureState, GlobalState }
 import wust.webApp.views.Components._
 import wust.webUtil.Elements._
 import wust.webUtil.UI.ToastLevel
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{Elements, UI}
+import wust.webUtil.{ Elements, UI }
 
 import scala.concurrent.Future
 import scala.scalajs.js
 import scala.util.control.NonFatal
-import scala.util.{Failure, Success}
+import scala.util.{ Failure, Success }
 import wust.facades.segment.Segment
 
 object UserSettingsView {
 
   object LegalNotice {
     @inline private val legalEntry = (subject: String, link: String) => div(
-        a(
-          subject,
-          href := s"https://woost.space/$link",
-          Elements.safeTargetBlank
-        )
+      a(
+        subject,
+        href := s"https://woost.space/$link",
+        Elements.safeTargetBlank
+      )
     )
     private val privacy = legalEntry(
       "Privacy Policy",
@@ -68,13 +68,13 @@ object UserSettingsView {
       Rx {
         val user = GlobalState.user()
         VDomModifier(
-          header( user, userDetail).apply(marginBottom := "50px"),
+          header(user, userDetail).apply(marginBottom := "50px"),
           UI.accordion(
             Seq(
-              accordionEntry("Account Settings", accountSettings( user, userDetail), active = true),
-              accordionEntry( span( i(Icons.plugin), b(" Plugins") ), pluginSettings(user)),
-              accordionEntry( span( i(Icons.files), b(" Uploaded Files") ), uploadSettings( user)),
-              accordionEntry( b("§ Legal Information" ), LegalNotice.information),
+              accordionEntry("Account Settings", accountSettings(user, userDetail), active = true),
+              accordionEntry(span(i(Icons.plugin), b(" Plugins")), pluginSettings(user)),
+              accordionEntry(span(i(Icons.files), b(" Uploaded Files")), uploadSettings(user)),
+              accordionEntry(b("§ Legal Information"), LegalNotice.information),
             ),
             styles = "fluid",
             exclusive = false,
@@ -84,13 +84,13 @@ object UserSettingsView {
     )
   }
 
-  private def accordionEntry(title: VDomModifier, content: VDomModifier, active:Boolean = false): UI.AccordionEntry = {
+  private def accordionEntry(title: VDomModifier, content: VDomModifier, active: Boolean = false): UI.AccordionEntry = {
     UI.AccordionEntry(
       title = VDomModifier(
         Styles.flexStatic,
         marginTop := "4px",
         title,
-        ),
+      ),
       content = VDomModifier(
         margin := "4px 4px 12px 20px",
         padding := "0px",
@@ -113,15 +113,16 @@ object UserSettingsView {
             marginTop := "6px",
             "Show all",
             onClick.foreach {
-            Client.api.getUploadedFiles.onComplete {
-              case Success(files) =>
-                fileUploads() = Some(files)
-              case Failure(t) =>
-                scribe.warn("Cannot list file uploads for user", t)
-                Segment.trackError("Cannot list file uploads for user", t.getMessage())
-                UI.toast("Sorry, the file-upload service is currently unreachable. Please try again later!")
+              Client.api.getUploadedFiles.onComplete {
+                case Success(files) =>
+                  fileUploads() = Some(files)
+                case Failure(t) =>
+                  scribe.warn("Cannot list file uploads for user", t)
+                  Segment.trackError("Cannot list file uploads for user", t.getMessage())
+                  UI.toast("Sorry, the file-upload service is currently unreachable. Please try again later!")
+              }
             }
-          })
+          )
         },
         fileUploads.map(_.map { allUploads =>
           val fullSize = allUploads.map(_.size).sum
@@ -131,26 +132,27 @@ object UserSettingsView {
 
           VDomModifier(
             div(f"Used ${fullSizeMb}%1.1f MB out of ${maxSizeMb} MB.", if (freeSize < FileUploadConfiguration.maxUploadBytesPerFile) color := "tomato" else VDomModifier.empty),
-            allUploads.map { case UploadedFile(nodeId, size, file) =>
-              div(
-                marginTop := "5px",
-                marginBottom := "5px",
-                backgroundColor := "rgba(255, 255, 255, 0.3)",
-                Styles.flex,
-                flexDirection.row,
-                justifyContent.spaceBetween,
-                alignItems.center,
-                UploadComponents.renderUploadedFile( nodeId, file),
-                div(f"(${size.toDouble / 1024 / 1024}%1.1f MB)"),
-                button(cls := "ui negative button", "Delete file", onClick.foreach {
-                  val shouldDelete = dom.window.confirm("Are you sure you want to delete this file upload?")
-                  if(shouldDelete) {
-                    Client.api.deleteFileUpload(file.key.split("/")(1)).foreach { success =>
-                      if(success) fileUploads.update(_.map(_.filterNot(_.file.key == file.key)))
+            allUploads.map {
+              case UploadedFile(nodeId, size, file) =>
+                div(
+                  marginTop := "5px",
+                  marginBottom := "5px",
+                  backgroundColor := "rgba(255, 255, 255, 0.3)",
+                  Styles.flex,
+                  flexDirection.row,
+                  justifyContent.spaceBetween,
+                  alignItems.center,
+                  UploadComponents.renderUploadedFile(nodeId, file),
+                  div(f"(${size.toDouble / 1024 / 1024}%1.1f MB)"),
+                  button(cls := "ui negative button", "Delete file", onClick.foreach {
+                    val shouldDelete = dom.window.confirm("Are you sure you want to delete this file upload?")
+                    if (shouldDelete) {
+                      Client.api.deleteFileUpload(file.key.split("/")(1)).foreach { success =>
+                        if (success) fileUploads.update(_.map(_.filterNot(_.file.key == file.key)))
+                      }
                     }
-                  }
-                })
-              )
+                  })
+                )
             }
           )
         })
@@ -177,7 +179,7 @@ object UserSettingsView {
     ),
   )
 
-  private def accountSettings(user: UserInfo, userDetail:Var[Option[UserDetail]])(implicit ctx: Ctx.Owner): VNode = {
+  private def accountSettings(user: UserInfo, userDetail: Var[Option[UserDetail]])(implicit ctx: Ctx.Owner): VNode = {
     div(
       Styles.flex,
       flexWrap.wrap,
@@ -185,7 +187,7 @@ object UserSettingsView {
         margin := "10px 30px 10px 0px",
         minWidth := "200px",
         maxWidth := "400px",
-        changeEmail( user, userDetail)
+        changeEmail(user, userDetail)
       ),
       div(
         margin := "10px 30px 10px 0px",
@@ -196,7 +198,7 @@ object UserSettingsView {
     )
   }
 
-  private def changeEmail(user: UserInfo, userDetail:Var[Option[UserDetail]])(implicit ctx: Ctx.Owner) = {
+  private def changeEmail(user: UserInfo, userDetail: Var[Option[UserDetail]])(implicit ctx: Ctx.Owner) = {
     val detailsUnavailable = Var(true)
     Client.auth.getUserDetail(user.id).onComplete {
       case Success(detail) =>
@@ -222,13 +224,14 @@ object UserSettingsView {
           case Success(success) =>
             if (success) {
               userDetail() = Some(detail.copy(email = Some(email), verified = false))
-              UI.toast("Successfully changed email address. Please check your email inbox to verify the address.", level = UI.ToastLevel.Success)
+              UI.toast("Successfully changed email address. Please check your email to verify the address.", level = UI.ToastLevel.Success)
             }
 
             val error = if (success) None else Some("Email address already taken")
             errorHandler.onNext(error)
           case Failure(err) =>
             errorHandler.onNext(Some(s"Unexpected error: $err"))
+            Segment.trackError("Change Email Error", err.getMessage())
         }
         case _ => ()
       }
@@ -252,28 +255,33 @@ object UserSettingsView {
         )
       ),
       errorHandler.map {
-        case None => VDomModifier(userDetail.map(_.collect { case UserDetail(userId, Some(email), false) => div(
-          cls := "ui warning message",
-          div(
-            cls := "header",
-            s"Email address is unverified. Check your inbox for the verification email. Or ",
-            a(
-              href := "#",
-              marginLeft := "auto",
-              "resend verification email",
-              onClick.preventDefault foreach {
-                Client.auth.resendEmailVerification(userId).foreach { case () =>
-                  UI.toast(s"Send out verification email to '${email}'", level = UI.ToastLevel.Success)
-                }
-              }
-            ),
-            ". If you have misspelled it, simply enter your correct email address in the field and press the button ", b("Change email"), " again."
+        case None => VDomModifier(userDetail.map(_.collect {
+          case UserDetail(userId, Some(email), false) => UI.message(
+            header = Some("Last Step: Verify your email address"),
+            content = Some(VDomModifier(
+              div(
+                s"Your email address is not verified yet. Check your emails (and spam) for the verification email. Or ",
+                a(
+                  href := "#",
+                  marginLeft := "auto",
+                  "resend verification email",
+                  onClick.preventDefault foreach {
+                    Client.auth.resendEmailVerification(userId).foreach {
+                      case () =>
+                        UI.toast(s"Sent verification email to '${email}'", level = UI.ToastLevel.Success)
+                    }
+                  }
+                ),
+                ". If you misspelled it, simply enter your correct email address in the field and click the ", b("Change email"), " button again."
+              )
+            ))
           )
-        )}))
-        case Some(problem) => div(
-          cls := "ui negative message",
-          div(cls := "header", problem)
-        )
+        }))
+        case Some(problem) =>
+          div(
+            cls := "ui negative message",
+            div(cls := "header", problem)
+          )
       },
       button(
         "Change email",
@@ -322,7 +330,8 @@ object UserSettingsView {
           autoComplete := "new-password",
           value <-- clearHandler,
           onChange.value --> password,
-          onEnter.value foreach actionSink)
+          onEnter.value foreach actionSink
+        )
       ),
 
       errorHandler.map {
@@ -339,7 +348,7 @@ object UserSettingsView {
         marginTop := "6px",
         display.block,
         onClick(password).foreach { email =>
-          if(element.asInstanceOf[js.Dynamic].reportValidity().asInstanceOf[Boolean]) {
+          if (element.asInstanceOf[js.Dynamic].reportValidity().asInstanceOf[Boolean]) {
             actionSink(email)
           }
         }
@@ -347,7 +356,7 @@ object UserSettingsView {
     )
   }
 
-  private def header(user: AuthUser, userDetail:Var[Option[UserDetail]])(implicit ctx: Ctx.Owner): VNode = {
+  private def header(user: AuthUser, userDetail: Var[Option[UserDetail]])(implicit ctx: Ctx.Owner): VNode = {
     val nodeUser = user.toNode
     val editMode = Var(false)
     div(
@@ -385,11 +394,12 @@ object UserSettingsView {
                   onClickDefault.useLazy(GraphChanges(addNodes = Array(nodeUser.copy(data = nodeUser.data.copy(imageFile = None))))) --> GlobalState.eventProcessor.changes
                 )
               }
-              ),
+            ),
 
             div(
-              UploadComponents.uploadField(acceptType = Some("image/*")).transform(_.concatMapAsync(file => file.uploadKey).collect { case Some(key) =>
-                GraphChanges(addNodes = Array(nodeUser.copy(data = nodeUser.data.copy(imageFile = Some(key)))))
+              UploadComponents.uploadField(acceptType = Some("image/*")).transform(_.concatMapAsync(file => file.uploadKey).collect {
+                case Some(key) =>
+                  GraphChanges(addNodes = Array(nodeUser.copy(data = nodeUser.data.copy(imageFile = Some(key)))))
               }) --> GlobalState.eventProcessor.changes,
             )
           )
@@ -399,8 +409,8 @@ object UserSettingsView {
             opacity := 0.5,
             maxWidth := "200px",
             "You can upload a profile picture once you have signed up."
-        )
-      }
+          )
+        }
       }
     )
   }
@@ -408,24 +418,24 @@ object UserSettingsView {
   private def showPluginAuth(userId: UserId, token: Authentication.Token) = {
     Client.slackApi.getAuthentication(userId, token).map{
       case Some(pluginAuth) =>
-      case _                  =>
+      case _                =>
     }
   }
 
   private def genConnectButton(icon: IconDefinition, platformName: String)(isActive: Boolean) = {
 
-    val modifiers = if(isActive){
+    val modifiers = if (isActive) {
       List[VDomModifier](
         cls := "ui button green",
         div(s"Synchronized with $platformName"),
-        onClick foreach(linkWithSlack()),
-//        onClick foreach(showPluginAuth()),
+        onClick foreach (linkWithSlack()),
+      //        onClick foreach(showPluginAuth()),
       )
     } else {
       List[VDomModifier](
         cls := "ui button",
         div(s"Sync with $platformName now"),
-        onClick foreach(linkWithSlack()),
+        onClick foreach (linkWithSlack()),
       )
     }
 
@@ -469,9 +479,10 @@ object UserSettingsView {
     val syncButton = genConnectButton(Icons.slack, "Slack") _
     Client.slackApi.isAuthenticated(user.id)
       .map(activated => syncButton(activated))
-      .recover { case NonFatal(e) =>
-        scribe.warn("Failed to check authentication from Slack api", e)
-        slackPlaceholder
+      .recover {
+        case NonFatal(e) =>
+          scribe.warn("Failed to check authentication from Slack api", e)
+          slackPlaceholder
       }
   }
 
@@ -489,7 +500,8 @@ object UserSettingsView {
           if (isEnabled()) VDomModifier(
             cls := "ui button",
             s"Disable ${service.identifier} plugin",
-          ) else VDomModifier(
+          )
+          else VDomModifier(
             cls := "ui button green",
             s"Enable ${service.identifier} plugin",
           )
@@ -497,10 +509,11 @@ object UserSettingsView {
         onClick foreach { _ =>
           if (isEnabled.now)
             Client.auth.deleteOAuthClient(service).foreach { success =>
-            if (success) isEnabled() = false
-          } else Client.auth.getOAuthConnectUrl(service).onComplete {
+              if (success) isEnabled() = false
+            }
+          else Client.auth.getOAuthConnectUrl(service).onComplete {
             case Success(Some(redirectUrl)) => dom.window.location.href = redirectUrl
-            case _ => UI.toast(s"Sorry, the OAuth Service for '${service.identifier}' is currently not available. Please try again later.", level = ToastLevel.Error)
+            case _                          => UI.toast(s"Sorry, the OAuth Service for '${service.identifier}' is currently not available. Please try again later.", level = ToastLevel.Error)
           }
           Segment.trackEvent("Enabled Plugin", js.Dynamic.literal(plugin = service.identifier))
         }
@@ -522,7 +535,7 @@ object UserSettingsView {
       connUser foreach {
         case Some(url) =>
           org.scalajs.dom.window.location.href = url
-        case None      =>
+        case None =>
           scribe.info(s"Could not connect user: $auth")
       }
     }
@@ -535,7 +548,7 @@ object UserSettingsView {
       connUser foreach {
         case Some(url) =>
           org.scalajs.dom.window.location.href = url
-        case None      =>
+        case None =>
           scribe.info(s"Could not connect user: $auth")
       }
     }
@@ -549,7 +562,7 @@ object UserSettingsView {
         case Some(url) =>
           scribe.info(s"Received url: $url")
           org.scalajs.dom.window.location.href = url
-        case None      =>
+        case None =>
           scribe.info(s"Could not connect user: $auth")
       }
     }
@@ -559,25 +572,26 @@ object UserSettingsView {
 
     // TODO: Show button if not linked, else show linked data
     div(
-      p(s"UserId: ${ user.id.toString }"),
-      p(s"Username: ${ user.name }", cls := "username"),
+      p(s"UserId: ${user.id.toString}"),
+      p(s"Username: ${user.name}", cls := "username"),
       div(
         p("Connect Woost with a Service"),
 
         button(
           "Link with GitHub",
-          onClick foreach(linkWithGithub())),
+          onClick foreach (linkWithGithub())
+        ),
         br(),
 
         button(
           "Link with Gitter",
-          onClick foreach(linkWithGitter())
+          onClick foreach (linkWithGitter())
         ),
         br(),
 
         button(
           "Link with Slack",
-          onClick foreach(linkWithSlack())
+          onClick foreach (linkWithSlack())
         ),
 
       )

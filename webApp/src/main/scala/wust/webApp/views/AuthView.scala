@@ -236,10 +236,7 @@ object AuthView {
               ),
             "."
           ))
-      ).apply(
-          backgroundColor := "#ffe3be",
-          boxShadow := "none",
-        )
+      )
         case _ => VDomModifier.empty
 
       }
