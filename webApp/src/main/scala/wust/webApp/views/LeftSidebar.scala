@@ -88,7 +88,7 @@ object LeftSidebar {
                     active = false
                   ),
                 styles = "styled fluid",
-                exclusive = true,
+                exclusive = false,
               ).apply(
                   Styles.flexStatic,
                   marginTop.auto,
