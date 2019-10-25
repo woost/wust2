@@ -94,11 +94,42 @@ object TaskNodeCard {
         )
       }
 
+      val largerOnMobile = VDomModifier.ifTrue(BrowserDetect.isMobile)(fontSize := "24px", paddingTop := "5px", color := "#D9D9D9", backgroundColor := Colors.nodecardBg)
+      def expand = menuItem(
+        "Expand", "Expand", Icons.expand,
+        VDomModifier(
+          onClick.stopPropagation.foreach{
+            val changes = GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(true), GlobalState.user.now.id)
+            GlobalState.submitChanges(changes)
+
+            focusState.view match {
+              case View.List => FeatureState.use(Feature.ExpandTaskInChecklist)
+              case View.Kanban => FeatureState.use(Feature.ExpandTaskInKanban)
+              case _ =>
+            }
+          },
+          largerOnMobile
+        )
+      )
+
+      def collapse = menuItem(
+        "Collapse", "Collapse", Icons.collapse,
+        VDomModifier(
+          onClick.stopPropagation.useLazy(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(false), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes,
+          largerOnMobile
+        )
+      )
+
+      val toggleExpand = Rx {
+        if (isExpanded()) collapse else expand
+      }
+
       div(
         cls := "buttonbar",
         VDomModifier.ifTrue(!BrowserDetect.isMobile)(cls := "autohide"),
         DragComponents.drag(DragItem.DisableDrag),
         Styles.flex,
+        toggleExpand,
         VDomModifier.ifTrue(!BrowserDetect.isMobile)(toggleDelete)
       )
     }
