@@ -22,13 +22,14 @@ import wust.webUtil.Elements._
 
 import scala.collection.breakOut
 import wust.facades.segment.Segment
+import fontAwesome.freeSolid
 
 // Offers methods for rendering components for the GraphChangesAutomation.
 
 @silent("possible missing interpolator")
 object GraphChangesAutomationUI {
 
-  val createAutomationTemplateText = "Create a new Automation Template"
+  val createAutomationTemplateText = "Create Automation Template"
   // returns the modal config for rendering a modal for configuring automation of the node `nodeId`.
   def modalConfig(focusedId: NodeId, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): ModalConfig = {
     val header: VDomModifier = Rx {
@@ -84,14 +85,14 @@ object GraphChangesAutomationUI {
           Styles.growFull,
           overflowY.auto,
 
-          if (templates.isEmpty) b("This node is currently not automated.", alignSelf.flexStart)
+          if (templates.isEmpty) span("No automations set up yet.", alignSelf.flexStart, opacity := 0.5)
           else VDomModifier(
             div(
               Styles.flex,
               justifyContent.spaceBetween,
               div(
-                b("This node has active automation templates:"),
-                div(fontSize.xSmall, "Each will be applied to every new child of this node."),
+                b("This node has active automation templates."),
+                div(fontSize.xSmall, "A template describes how items will look like when the automation is applied. Click a template to see what's inside."),
                 marginBottom := "10px",
               ),
 
@@ -245,9 +246,10 @@ object GraphChangesAutomationUI {
               margin := "30px 0 0 0",
 
               newTemplateButton.apply(
-                s"+ $createAutomationTemplateText",
+                span(freeSolid.faPlus, marginRight := "0.5em"),
+                s"$createAutomationTemplateText",
                 alignSelf.flexStart,
-                cls := "compact mini",
+                cls := "compact mini primary",
               ),
 
               div(
