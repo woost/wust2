@@ -180,6 +180,15 @@ object CommonStyles extends StyleSheet.Standalone
     boxSizing.borderBox
   )
 
+
+  ".hover-full-opacity" - (
+    opacity(0.5),
+  )
+  ".hover-full-opacity:hover" - (
+    opacity(1),
+  )
+
+
   // give empty paragraphs the default line-height
   // https://stackoverflow.com/a/53193642/793909
   "p:empty:before" - (

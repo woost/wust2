@@ -4,15 +4,16 @@ import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.css.{Styles, ZIndex}
+import wust.css.{ Styles, ZIndex }
 import wust.ids.Feature
 import wust.sdk.Colors
 import wust.webApp.WoostNotification
-import wust.webApp.state.{FeatureDetails, GlobalState, PresentationMode, ScreenSize}
+import wust.webApp.state.{ FeatureDetails, GlobalState, PresentationMode, ScreenSize }
 import wust.webUtil.Elements._
-import wust.webUtil.{BrowserDetect, UI}
+import wust.webUtil.{ BrowserDetect, UI }
 import wust.webUtil.outwatchHelpers._
 import wust.facades.segment.Segment
+import fontAwesome.freeSolid
 
 object MainView {
 
@@ -30,7 +31,7 @@ object MainView {
       Rx {
         if (GlobalState.hasError()) ErrorPage()
         else GlobalState.presentationMode() match {
-          case PresentationMode.Full => fullPresentation
+          case PresentationMode.Full        => fullPresentation
           case PresentationMode.ContentOnly => contentPresentation
         }
       }
@@ -67,28 +68,39 @@ object MainView {
       div(
         Styles.flex,
         alignItems.center,
-        justifyContent.flexEnd,
         backgroundColor := "#494653",
         color := "white",
-        span(
-          padding := "6px",
-          "Customer Collaboration Powered by ",
+        div(
+          marginLeft := "10px",
+          cls := "hover-full-opacity",
+          span(freeSolid.faShapes, marginRight := "5px"),
+          "Show advanced UI",
+          onClickDefault.foreach {
+            GlobalState.urlConfig.update(_.copy(mode = PresentationMode.Full))
+          },
+          marginRight := "auto",
         ),
-        WoostLogoComponents.woostIcon.apply(width := "17px", height := "17px", color := "#ae7eff"),
-        span(
-          padding := "6px 10px 6px 1px",
-          b("Woost")
-        ),
-        span(width := "5px"),
-        // onClickDefault.foreach(GlobalState.urlConfig.update(_.copy(mode = PresentationMode.Full)))
-        onClickDefault.foreach{ _ =>
-          Segment.trackEvent("ClickedPresentationModeBanner")
-          dom.window.open("https://woost.space", "_blank")
-        }
+        div(
+          Styles.flex,
+          alignItems.center,
+          span(
+            padding := "6px",
+            "Customer Collaboration Powered by ",
+          ),
+          WoostLogoComponents.woostIcon.apply(width := "17px", height := "17px", color := "#ae7eff"),
+          span(
+            padding := "6px 10px 6px 1px",
+            b("Woost")
+          ),
+          // onClickDefault.foreach(GlobalState.urlConfig.update(_.copy(mode = PresentationMode.Full)))
+          onClickDefault.foreach{ _ =>
+            Segment.trackEvent("ClickedPresentationModeBanner")
+            dom.window.open("https://woost.space", "_blank")
+          }
+        )
       )
     )
   }
-
 
   private def fullPresentation(implicit ctx: Ctx.Owner): VDomModifier = {
     div(
