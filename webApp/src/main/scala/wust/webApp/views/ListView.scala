@@ -217,7 +217,7 @@ object ListView {
 
       val tasklist = Rx {
         VDomModifier.ifTrue(isExpanded())(
-          VDomModifier.ifTrue(showInputField)(addListItemInputField( focusState, autoFocusInsert = false, targetSection = Some(columnId))),
+          VDomModifier.ifTrue(showInputField && !isDone() )(addListItemInputField( focusState, autoFocusInsert = false, targetSection = Some(columnId))),
           div(
             cls := "tasklist",
             VDomModifier.ifTrue(isCompact)(cls := "compact"),
