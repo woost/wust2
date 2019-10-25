@@ -310,7 +310,7 @@ object TableView {
         cls := "ui mini compact button",
         "+ New Row",
         cursor.pointer,
-        onClickNewNamePrompt( header = "Add a new Row", placeholder = Placeholder(s"A new ${targetRole}")).foreach { sub =>
+        onClickNewNamePrompt( header = "Add a new Row", placeholder = Placeholder(s"Name of row")).foreach { sub =>
           val newNode = Node.Content(NodeData.Markdown(sub.text), targetRole)
 
           sort() = None // reset sorting again, so the new node appears at the bottom :)
