@@ -1,26 +1,26 @@
 package wust.webApp.views
 
-import fontAwesome.{freeSolid, _}
+import fontAwesome.{ freeSolid, _ }
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.ext.monix._
 import outwatch.reactive._
 import rx._
-import wust.css.{CommonStyles, Styles}
+import wust.css.{ CommonStyles, Styles }
 import wust.graph._
-import wust.ids.{Feature, _}
-import wust.sdk.{BaseColors, Colors, NodeColor}
-import wust.webApp.dragdrop.{DragItem, _}
+import wust.ids.{ Feature, _ }
+import wust.sdk.{ BaseColors, Colors, NodeColor }
+import wust.webApp.dragdrop.{ DragItem, _ }
 import wust.webApp.state._
 import wust.webApp.views.Components._
-import wust.webApp.views.DragComponents.{drag, registerDragContainer}
+import wust.webApp.views.DragComponents.{ drag, registerDragContainer }
 import wust.webApp.views.NewProjectPrompt._
 import wust.webApp.views.SharedViewElements._
-import wust.webApp.{Client, Icons, Permission}
+import wust.webApp.{ Client, Icons, Permission }
 import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{Ownable, UI}
+import wust.webUtil.{ Ownable, UI }
 
 import scala.concurrent.duration.DurationInt
 import scala.scalajs.js
@@ -44,7 +44,7 @@ object LeftSidebar {
 
         GenericSidebar.Config(
           mainModifier = VDomModifier(
-            registerDragContainer( DragContainer.Sidebar),
+            registerDragContainer(DragContainer.Sidebar),
             drag(target = DragItem.Sidebar)
           ),
           openModifier = VDomModifier(
@@ -54,7 +54,7 @@ object LeftSidebar {
               flexDirection.column,
               minHeight := "100px",
               channels(filteredToplevelChannels, sidebarWithProjects, sidebarFilter).append(),
-              invitations( invites).apply(Styles.flexStatic),
+              invitations(invites).apply(Styles.flexStatic),
               newProjectButton().apply(
                 Styles.flexStatic,
                 cls := "newChannelButton-large " + buttonStyles,
@@ -70,18 +70,19 @@ object LeftSidebar {
 
               UI.accordion(
                 content = Seq.empty ++
-                (if(viewIsContent) Seq(
-                  accordionEntry(
-                    "Tags",
-                    TagList.body(ViewRender),
-                    active = false
-                  ),
-                  accordionEntry(
-                    "Filters & Deleted Items",
-                    FilterWindow.body(Styles.flexStatic),
-                    active = false
+                  (if (viewIsContent) Seq(
+                    accordionEntry(
+                      "Tags",
+                      TagList.body(ViewRender),
+                      active = false
+                    ),
+                    accordionEntry(
+                      "Filters & Deleted Items",
+                      FilterWindow.body(Styles.flexStatic),
+                      active = false
+                    )
                   )
-                ) else Seq.empty) :+
+                  else Seq.empty) :+
                   accordionEntry(
                     FeatureExplorer.toggleButton.apply(marginBottom := "10px"),
                     FeatureExplorer(),
@@ -90,6 +91,7 @@ object LeftSidebar {
                 styles = "styled fluid",
                 exclusive = false,
               ).apply(
+                  overflowY.auto,
                   Styles.flexStatic,
                   marginTop.auto,
                   maxHeight := "70%",
@@ -113,7 +115,6 @@ object LeftSidebar {
               FeedbackForm(ctx)(Styles.flexStatic)
             )
 
-
           ),
           overlayOpenModifier = VDomModifier(
             onClick.use(false) --> GlobalState.leftSidebarOpen,
@@ -125,7 +126,7 @@ object LeftSidebar {
             minWidth := s"${minWidthSidebar}px", // this is needed when the hamburger is not rendered inside the sidebar
             hamburger,
             channelIcons(toplevelChannels, minWidthSidebar),
-            newProjectButton( "+").apply(
+            newProjectButton("+").apply(
               cls := "newChannelButton-small " + buttonStyles,
               UI.tooltip("right center") := "New Project",
               onClick foreach {
@@ -138,23 +139,22 @@ object LeftSidebar {
     )
   }
 
-    def accordionEntry(title: VDomModifier, content: VDomModifier, active: Boolean): UI.AccordionEntry = {
-      UI.AccordionEntry(
-        title = VDomModifier(
-          b(title),
-          marginTop := "5px",
-          padding := "3px",
-          Styles.flexStatic
-        ),
-        content = VDomModifier(
-          margin := "5px",
-          padding := "0px",
-          overflowY.auto,
-          content
-        ),
-        active = active
-      )
-    }
+  def accordionEntry(title: VDomModifier, content: VDomModifier, active: Boolean): UI.AccordionEntry = {
+    UI.AccordionEntry(
+      title = VDomModifier(
+        b(title),
+        marginTop := "5px",
+        padding := "3px",
+        Styles.flexStatic
+      ),
+      content = VDomModifier(
+        margin := "5px",
+        padding := "0px",
+        content
+      ),
+      active = active
+    )
+  }
 
   private val buttonStyles = "tiny basic compact"
 
@@ -300,7 +300,7 @@ object LeftSidebar {
       cls := "fa-fw", // same width for expand and collapse icon
       Rx {
         if (expanded())
-          freeSolid.faAngleDown:VDomModifier
+          freeSolid.faAngleDown: VDomModifier
         else
           VDomModifier(freeSolid.faAngleRight, color := "#a9a9a9")
       },
@@ -308,9 +308,9 @@ object LeftSidebar {
     )
   }
 
-  @inline def fontSizeByDepth(depth:Int) = s"${math.max(8, 14 - depth)}px"
+  @inline def fontSizeByDepth(depth: Int) = s"${math.max(8, 14 - depth)}px"
 
-  def channelLine(traverseState: TraverseState, userId: UserId, expanded: Rx[Boolean], hasChildren: Rx[Boolean], depth:Int = 0, channelModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
+  def channelLine(traverseState: TraverseState, userId: UserId, expanded: Rx[Boolean], hasChildren: Rx[Boolean], depth: Int = 0, channelModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
     val nodeId = traverseState.parentId
     val selected = Rx { (GlobalState.page().parentId contains nodeId) && GlobalState.viewIsContent() }
     val nodeIdx = Rx { GlobalState.rawGraph().idToIdx(nodeId) }
@@ -324,14 +324,14 @@ object LeftSidebar {
     div(
       Styles.flex,
       alignItems.center,
-      expandToggleButton( nodeId, userId, expanded).apply(
+      expandToggleButton(nodeId, userId, expanded).apply(
         Rx {
           VDomModifier.ifNot(hasChildren())(visibility.hidden)
         }
       ),
       a(
         isPinned map {
-          case true => VDomModifier.empty
+          case true  => VDomModifier.empty
           case false => VDomModifier(opacity := 0.5)
         },
 
@@ -354,10 +354,10 @@ object LeftSidebar {
           // needs to be before onChannelClick, because else GlobalState.page is already at the new page
           GlobalState.page.now.parentId match {
             case Some(parentId) if parentId == nodeId => // no switch happening...
-            case _ => FeatureState.use(Feature.SwitchPageFromExpandedLeftSidebar)
+            case _                                    => FeatureState.use(Feature.SwitchPageFromExpandedLeftSidebar)
           }
         },
-        onChannelClick( nodeId),
+        onChannelClick(nodeId),
         cls := "node",
         DragComponents.drag(DragItem.Channel(nodeId, traverseState.tail.headOption)),
         permissionLevel.map(Permission.permissionIndicatorIfPublic(_, VDomModifier(fontSize := "0.7em", color.gray, marginLeft.auto, marginRight := "5px"))),
@@ -390,7 +390,7 @@ object LeftSidebar {
         )
 
         VDomModifier(
-          channelLine( traverseState, userId, expanded = expanded, hasChildren = hasChildren, depth = depth, channelModifier = VDomModifier(flexGrow := 1, flexShrink := 0)),
+          channelLine(traverseState, userId, expanded = expanded, hasChildren = hasChildren, depth = depth, channelModifier = VDomModifier(flexGrow := 1, flexShrink := 0)),
           Rx {
             VDomModifier.ifTrue(hasChildren() && expanded())(div(
               channelListModifiers,
@@ -431,11 +431,11 @@ object LeftSidebar {
       sidebarWithProjects map {
         case false => VDomModifier(
           UI.popup("bottom center") := "Show non-bookmarked subprojects",
-          freeSolid.faBookmark:VDomModifier
+          freeSolid.faBookmark: VDomModifier
         )
         case true => VDomModifier(
           UI.popup("bottom center") := "Show only bookmarked subprojects",
-          freeSolid.faBookOpen:VDomModifier
+          freeSolid.faBookOpen: VDomModifier
         )
       }
     ),
@@ -464,7 +464,7 @@ object LeftSidebar {
         VDomModifier.ifTrue(invites().nonEmpty)(
           UI.horizontalDivider("invitations"),
           invites().map{ nodeId =>
-            channelLine( TraverseState(nodeId), userId, expanded = Var(false), hasChildren = Var(false),
+            channelLine(TraverseState(nodeId), userId, expanded = Var(false), hasChildren = Var(false),
               channelModifier = VDomModifier(
                 flexGrow := 1, // push buttons to the right
                 div(
@@ -497,11 +497,10 @@ object LeftSidebar {
                     }
                   )
                 )
+              )).apply(
+                paddingBottom := "1px",
+                paddingTop := "1px"
               )
-            ).apply(
-              paddingBottom := "1px",
-              paddingTop := "1px"
-            )
           }
         )
       }
@@ -528,10 +527,10 @@ object LeftSidebar {
           // needs to be before onChannelClick, because else GlobalState.page is already at the new page
           GlobalState.page.now.parentId match {
             case Some(parentId) if parentId == nodeId => // no switch happening...
-            case _ => FeatureState.use(Feature.SwitchPageFromCollapsedLeftSidebar)
+            case _                                    => FeatureState.use(Feature.SwitchPageFromCollapsedLeftSidebar)
           }
         },
-        onChannelClick( nodeId),
+        onChannelClick(nodeId),
         drag(target = DragItem.Channel(nodeId, traverseState.tail.headOption)),
         cls := "node",
 
@@ -589,7 +588,7 @@ object LeftSidebar {
   }
 
   private def channelIcon(node: Rx[Node], isSelected: Rx[Boolean], size: Int)(implicit ctx: Ctx.Owner): VNode = {
-    def iconText(str:String):String = {
+    def iconText(str: String): String = {
       str match {
         case EmojiReplacer.emojiAtBeginningRegex(emoji) => emoji
         case _ => str.trim.take(2)
@@ -606,7 +605,8 @@ object LeftSidebar {
           if (isSelected()) VDomModifier(
             backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(n.id)).toHex,
             color := "white"
-          ) else color := BaseColors.pageBg.copy(h = NodeColor.hue(n.id)).toHex,
+          )
+          else color := BaseColors.pageBg.copy(h = NodeColor.hue(n.id)).toHex,
 
           replaceEmoji(iconText(n.str))
         )
