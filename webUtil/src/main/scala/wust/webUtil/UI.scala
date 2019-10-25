@@ -28,7 +28,7 @@ object UI {
   def message(msgType:String = "", header:Option[VDomModifier] = None, content:Option[VDomModifier] = None):VNode = {
     div(
       cls := "ui message", cls := msgType,
-      header.map(headerContent => div(cls := "header", headerContent)),
+      header.map(headerContent => div(cls := "header", marginBottom := "3px", headerContent)),
       content,
       backgroundColor := "#ffe3be",
       boxShadow := "none",

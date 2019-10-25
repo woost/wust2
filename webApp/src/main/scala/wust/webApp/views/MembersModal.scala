@@ -14,22 +14,22 @@ import wust.graph._
 import wust.ids._
 import wust.util.StringOps
 import wust.webApp._
-import wust.webApp.jsdom.{FormValidator, Navigator, ShareData}
+import wust.webApp.jsdom.{ FormValidator, Navigator, ShareData }
 import wust.webApp.parsers.UrlConfigWriter
 import wust.webApp.state._
 import wust.webApp.views.Components._
 import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{Elements, ModalConfig, Ownable, UI}
+import wust.webUtil.{ Elements, ModalConfig, Ownable, UI }
 
-import scala.util.{Failure, Success}
+import scala.util.{ Failure, Success }
 import wust.facades.segment.Segment
 
 object MembersModal {
 
-  case class NeedAction(action: () => Unit, reason: String, isPositive: Boolean = true)
+  case class NeedAction(action: () => Unit, title: VDomModifier, reason: VDomModifier, isPositive: Boolean = true)
   object NeedAction {
-    def apply(changes: GraphChanges, reason: String): NeedAction = NeedAction(() => GlobalState.submitChanges(changes), reason)
+    def apply(changes: GraphChanges, title: VDomModifier, reason: VDomModifier): NeedAction = NeedAction(() => GlobalState.submitChanges(changes), title = title, reason = reason)
   }
 
   def config(nodeId: NodeId)(implicit ctx: Ctx.Owner): ModalConfig = {
@@ -55,8 +55,8 @@ object MembersModal {
     val targetUrlWithPresentation = Rx {
       @inline def default = targetUrlConfig.now
       val config = node.now.fold(default)(_.views.fold(default) {
-        case Nil => default
-        case _ :: Nil => default
+        case Nil          => default
+        case _ :: Nil     => default
         case head :: tail => default.focus(View.Tiled(ViewOperator.Row, NonEmptyList(head, tail)))
       })
       urlConfigToUrl(config.presentationContent)
@@ -118,7 +118,8 @@ object MembersModal {
             GlobalState.uiModalClose.onNext(())
             action()
           },
-          reason = "Do you really want to remove yourself from this workspace? You might not be able to access it again.",
+          title = div(Styles.flex, alignItems.center, "Remove yourself from ", node.map(_.map(n => nodeCardAsOneLineText(n, projectWithIcon = true).apply(margin := "0 0.5em"))), "?"),
+          reason = VDomModifier("Are you sure you want to leave the workspace? You may not be able to access it afterwards."),
           isPositive = false
         ))
       } else {
@@ -149,7 +150,8 @@ object MembersModal {
         if (membership.userId == GlobalState.user.now.id) {
           needAction() = Some(NeedAction(
             action,
-            reason = "Do you really want to change your own access to this workspace? You might not be able to change it again.",
+            title = div(Styles.flex, alignItems.center, "Change your own permissions for ", nodeCardAsOneLineText(node, projectWithIcon = true).apply(margin := "0 0.5em"), "?"),
+            reason = "Do you really want to change your own access rights to this workspace? You may not be able to change that afterwards.",
             isPositive = false
           ))
         } else {
@@ -180,8 +182,8 @@ object MembersModal {
               Some("Access Level"),
               accesslevel,
               ("can read", AccessLevel.Read) ::
-              ("can write", AccessLevel.ReadWrite) ::
-              Nil
+                ("can write", AccessLevel.ReadWrite) ::
+                Nil
             ) --> sink).apply(minWidth := "80px", maxWidth := "80px"),
 
             button(
@@ -199,19 +201,18 @@ object MembersModal {
         flexDirection.column,
 
         needAction.map(_.map(need =>
-          div(
-            cls := "ui message yellow",
-            marginBottom := "25px",
-            padding := "5px",
-            b(need.reason),
-            div(
-              padding := "5px",
-              Styles.flex,
-              button(cls := "ui mini compact button", cls := (if (need.isPositive) "positive" else "negative"), "Yes", onClickDefault foreach { need.action(); needAction() = None }, margin := "0 5px 0 auto"),
-              button(cls := "ui mini compact button basic", "No", onClickDefault foreach { needAction() = None })
-            )
-          )
-        )),
+          UI.message(
+            header = Some(need.title),
+            content = Some(VDomModifier(
+              div(need.reason),
+              div(
+                padding := "5px",
+                Styles.flex,
+                button(cls := "ui mini compact button", cls := (if (need.isPositive) "positive" else "negative"), "Yes", onClickDefault foreach { need.action(); needAction() = None }, margin := "0 5px 0 auto"),
+                button(cls := "ui mini compact button basic", "No", onClickDefault foreach { needAction() = None })
+              )
+            ))
+          ).apply(fontSize := "14px"))),
 
         div(
           marginBottom := "25px",
@@ -238,12 +239,12 @@ object MembersModal {
             button(
               cls := "ui compact button",
               padding := "2px",
-              borderLeft :=  "1px solid lightgray",
+              borderLeft := "1px solid lightgray",
               UI.dropdownMenu(VDomModifier(
                 padding := "5px",
                 div(
                   cls := "item",
-                  "Share Presentation Link",
+                  "Copy Presentation Link",
                   Rx {
                     node() map { node =>
                       shareModifiers(node, targetUrlWithPresentation()) foreach { need => needAction() = Some(need) }
@@ -284,13 +285,13 @@ object MembersModal {
                     None,
                     Some(node.meta.accessLevel),
                     ("Private", NodeAccess.Restricted) ::
-                    ("Inherit Permissions", NodeAccess.Inherited) ::
-                    ("Anyone with Link", NodeAccess.ReadWrite) ::
-                    Nil,
+                      ("Inherit Permissions", NodeAccess.Inherited) ::
+                      ("Anyone with Link", NodeAccess.ReadWrite) ::
+                      Nil,
                     unselectableMapping = Map(NodeAccess.Read -> NodeAccess.ReadWrite)
                   ).foreach { nodeAccess =>
-                    updateNodeAccess(nodeAccess)
-                  }
+                      updateNodeAccess(nodeAccess)
+                    }
                 ),
 
                 i(node.meta.accessLevel match {
@@ -298,7 +299,7 @@ object MembersModal {
                     VDomModifier(Rx {
                       //TODO: share this code...
                       val level = GlobalState.rawGraph().accessLevelOfNode(nodeId).getOrElse(AccessLevel.Restricted) match {
-                        case AccessLevel.Restricted => "Private"
+                        case AccessLevel.Restricted                   => "Private"
                         case AccessLevel.ReadWrite | AccessLevel.Read => "Anyone with Link"
                       }
                       s"This ${node.role.toString} is accessible for members of parent folders (${level}) and the members listed below."
@@ -320,15 +321,15 @@ object MembersModal {
                 graph.membershipEdgeForNodeIdx(nodeIdx).map { membershipIdx =>
                   val membership = graph.edges(membershipIdx).as[Edge.Member]
                   val user = graph.nodes(graph.edgesIdx.b(membershipIdx)).as[User]
-                  val appendUserString = if (user.id == userId) " (yourself)" else ""
+                  val appendUserString = if (user.id == userId) " (You)" else ""
 
                   userLine(
-                    Components.renderUser(user, appendName = i(appendUserString)),
+                    Components.renderUser(user, appendName = span(appendUserString, opacity := 0.5)),
                     Some(membership.data.level),
                     () => handleRemoveMember(membership)
                   ).foreach { newLevel =>
-                    updateMembership(membership, newLevel)
-                  }
+                      updateMembership(membership, newLevel)
+                    }
                 }
               }
             }
@@ -339,12 +340,12 @@ object MembersModal {
 
             case NodeAccess.Level(level) =>
               userLine(
-                span("Anyone with Link", padding := "4px", borderRadius := "8px", border := "1px solid lightgray"),
+                span("Anyone with Link", padding := "4px 8px", borderRadius := "4px", border := "1px solid lightgray"),
                 Some(level),
                 () => updateNodeAccess(NodeAccess.Inherited)
               ).foreach { newLevel =>
-                updateNodeAccess(NodeAccess.Level(newLevel))
-              }
+                  updateNodeAccess(NodeAccess.Level(newLevel))
+                }
           }),
         ),
 
@@ -385,14 +386,14 @@ object MembersModal {
                   None,
                   addUserAccessLevel,
                   ("can write", AccessLevel.ReadWrite) ::
-                  ("can read", AccessLevel.Read) ::
-                  Nil
+                    ("can read", AccessLevel.Read) ::
+                    Nil
                 ).apply(cls := "ui mini dropdown", minWidth := "75px", maxWidth := "75px"),
 
                 button(
                   cls := "ui basic compact button",
                   freeSolid.faPlus,
-                  onClick.stopPropagation foreach(addUserEmailFromInput())
+                  onClick.stopPropagation foreach (addUserEmailFromInput())
                 ),
               ))
             ).foreach { userId => addUserAccessLevel.now.foreach(addUserMember(UserId(userId), _)) },
@@ -464,7 +465,6 @@ object MembersModal {
 
   private def shareModifiers(channel: Node, shareUrl: String)(implicit ctx: Ctx.Owner): EmitterBuilder[NeedAction, VDomModifier] = EmitterBuilder { needAction =>
 
-
     val shareTitle = StringOps.trimToMaxLength(channel.data.str, 15)
     val shareDesc = s"Share: $shareTitle"
 
@@ -474,7 +474,8 @@ object MembersModal {
         case node: Node.Content if node.meta.accessLevel != NodeAccess.Read && node.meta.accessLevel != NodeAccess.ReadWrite =>
           needAction.onNext(NeedAction(
             GraphChanges.addNode(node.copy(meta = node.meta.copy(accessLevel = NodeAccess.ReadWrite))),
-            reason = s"This ${node.role.toString} is currently not public and therefore will not be accessible for other people with Link. Do you want to make it publicly accessible?"
+            title = div(Styles.flex, alignItems.center, s"Make ", nodeCardAsOneLineText(node, projectWithIcon = true).apply(margin := "0 0.5em"), " accessible via link?"),
+            reason = s"This ${node.role.toString} is currently not accessible by a link. If you send the link now, other participants will not be able to see the content. Would you like to make it accessible via a link?"
           ))
         case _ => ()
       }
@@ -494,7 +495,8 @@ object MembersModal {
             case Failure(t)  => scribe.warn("Cannot share url via share-api", t)
           }
         },
-      ) else VDomModifier(
+      )
+      else VDomModifier(
         Elements.copiableToClipboard(shareUrl),
         onClick.stopPropagation foreach {
           scribe.info(s"Copying share-link for '$channel'")
