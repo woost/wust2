@@ -31,13 +31,14 @@ object Modal {
         div(
           Styles.flex,
           flexDirection.column,
+          lineHeight := "normal",
           node.map { node =>
             div(
-              renderAsOneLineText(node)(cls := "channel-name", fontWeight.normal, marginRight := "15px"),
+              renderAsOneLineText(node)(fontSize := "24px", fontWeight.normal, marginRight := "15px"),
               paddingBottom := "5px",
             )
           },
-          div(modalHeader),
+          div(modalHeader, fontWeight.normal),
         ),
         div(
           Styles.flex,
