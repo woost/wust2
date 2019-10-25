@@ -851,14 +851,14 @@ object Components {
         case Left(true) => div(
           marginLeft := "2px",
           Icons.automate,
-          UI.popup("bottom center") := s"This node is part of an automation template",
+          UI.popup("bottom center") := s"This item is part of an automation template",
         )
         case Right(automatedNodes) if automatedNodes.nonEmpty => VDomModifier(
           automatedNodes.map { case (node, workspace) =>
             div(
               marginLeft := "2px",
               borderRadius := "2px",
-              UI.popup("bottom center") := s"This node is an active automation template for: ${StringOps.trimToMaxLength(node.str, 30)}",
+              UI.popup("bottom center") := s"This is an active automation template for: ${StringOps.trimToMaxLength(node.str, 30)}",
               fontSize.xSmall,
               Icons.automate,
               cursor.pointer,
@@ -885,7 +885,7 @@ object Components {
               fontSize.xSmall,
               Icons.templateReference,
               renderAsOneLineText(node).apply(maxWidth := "150px"),
-              UI.popup("bottom center") := s"This node has a template reference$referenceModifierString",
+              UI.popup("bottom center") := s"This item has a template reference$referenceModifierString",
             )
           }
         )

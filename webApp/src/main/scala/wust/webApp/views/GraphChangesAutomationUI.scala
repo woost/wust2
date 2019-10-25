@@ -22,13 +22,14 @@ import wust.webUtil.Elements._
 
 import scala.collection.breakOut
 import wust.facades.segment.Segment
+import fontAwesome.freeSolid
 
 // Offers methods for rendering components for the GraphChangesAutomation.
 
 @silent("possible missing interpolator")
 object GraphChangesAutomationUI {
 
-  val createAutomationTemplateText = "Create a new Automation Template"
+  val createAutomationTemplateText = "Create Template"
   // returns the modal config for rendering a modal for configuring automation of the node `nodeId`.
   def modalConfig(focusState: FocusState, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): ModalConfig = {
     val focusedId = focusState.focusedId
@@ -45,7 +46,7 @@ object GraphChangesAutomationUI {
       cursor.pointer,
 
       onClick.stopPropagation.foreach { _ =>
-        val name = GlobalState.rawGraph.now.nodesById(focusedId).fold("")(node => s" in: ${StringOps.trimToMaxLength(node.str, 20)}")
+        val name = GlobalState.rawGraph.now.nodesById(focusedId).fold("")(node => s" for **${StringOps.trimToMaxLength(node.str, 20)}**")
         val templateNode = Node.MarkdownTask("Template" + name)
         val changes = GraphChanges(
           addEdges = Array(
@@ -58,7 +59,7 @@ object GraphChangesAutomationUI {
       }
     )
 
-    val reuseExistingTemplate = Components.searchInGraph(GlobalState.rawGraph, "Reuse an existing template", filter = node => GlobalState.rawGraph.now.isAutomationTemplate(GlobalState.rawGraph.now.idToIdxOrThrow(node.id))).map { nodeId =>
+    val reuseExistingTemplate = Components.searchInGraph(GlobalState.rawGraph, "Reuse existing template", filter = node => GlobalState.rawGraph.now.isAutomationTemplate(GlobalState.rawGraph.now.idToIdxOrThrow(node.id))).map { nodeId =>
       GraphChanges(addEdges = Array(Edge.Automated(focusedId, TemplateId(nodeId))))
     } --> GlobalState.eventProcessor.changes
 
@@ -83,29 +84,37 @@ object GraphChangesAutomationUI {
         val templates = templatesRx()
 
         div(
-          padding := "10px",
+          padding := "20px",
           Styles.growFull,
           overflowY.auto,
 
-          if (templates.isEmpty) b("This node is currently not automated.", alignSelf.flexStart)
+          if (templates.isEmpty) span("No automations set up yet. Create a template to start.", alignSelf.flexStart, opacity := 0.5)
           else VDomModifier(
             div(
               Styles.flex,
-              justifyContent.spaceBetween,
+              alignItems.flexStart,
               div(
-                b("This node has active automation templates:"),
-                div(fontSize.xSmall, "Each will be applied to every new child of this node."),
+                width := "300px",
+                b("There are active automation templates."),
+                div(fontSize.small, "A template describes how items will look like after the automation is applied. Click a template to see and change what's inside. An easy way to get started is to add subtasks to the template, close this window and execute the automation."),
                 marginBottom := "10px",
+                marginRight.auto,
               ),
 
-              div("Help", textDecoration := "underline", cursor.pointer, onClick.stopPropagation foreach showHelp.update(!_)),
+              div(
+                Styles.flex,
+                alignItems.center,
+                flexWrap.wrap,
+                button("Documentation", cls := "ui blue basic compact button", onClickDefault.foreach{ showHelp.update(!_)}, margin := "5px"),
+                FeedbackForm.supportChatButton.apply(cls := "compact basic", margin := "5px"),
+              )
             ),
 
             div(
-              padding := "10px",
+              padding := "10px 0px",
               Styles.flex,
               alignItems.center,
-              b(fontSize.small, "Drag Users to assign them:", color.gray, marginRight := "5px"),
+              span(fontSize.small, "Drag users to assign:", color.gray, marginRight := "5px"),
               SharedViewElements.channelMembers( GlobalState.page.now.parentId.get),
             )
           ),
@@ -115,8 +124,7 @@ object GraphChangesAutomationUI {
           div(
             Styles.flex,
             flexDirection.column,
-            alignItems.center,
-            padding := "0 0 10px 10px",
+            alignItems.flexStart,
 
             showHelp map {
               case true => div(
@@ -196,7 +204,7 @@ object GraphChangesAutomationUI {
 
                 div(
                   Components.nodeCard(templateNode, maxLength = Some(100)).apply(
-                    padding := "3px",
+                    padding := "10px",
                     width := "200px",
                     div(
                       Styles.flex,
@@ -226,9 +234,9 @@ object GraphChangesAutomationUI {
 
                     DragItem.fromNodeRole(templateNode.id, templateNode.role).map(dragItem => DragComponents.drag(target = dragItem)),
                     Components.sidebarNodeFocusMod(templateNode.id, focusState),
-                  ).prepend(
+                  )/*.prepend(
                     b(color.gray, templateNode.role.toString)
-                  ),
+                  )*/,
 
                   div(
                     margin := "2px 10px",
@@ -248,9 +256,10 @@ object GraphChangesAutomationUI {
               margin := "30px 0 0 0",
 
               newTemplateButton.apply(
-                s"+ $createAutomationTemplateText",
+                // span(freeSolid.faPlus, marginRight := "0.5em"),
+                s"$createAutomationTemplateText",
                 alignSelf.flexStart,
-                cls := "compact mini",
+                cls := "compact primary",
               ),
 
               div(
