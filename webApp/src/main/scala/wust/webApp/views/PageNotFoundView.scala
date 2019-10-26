@@ -14,36 +14,53 @@ import wust.facades.segment.Segment
 object PageNotFoundView {
   def apply(implicit ctx: Ctx.Owner) = {
     val shrugEmoji = "🤷"
+
+    val liStyle = VDomModifier(
+      fontSize.larger,
+      marginTop := "20px",
+    )
+
     div(
-      padding := "80px 20px",
       Styles.growFull, // this view needs to be grow-full, because it is used to OVERLAY any view behind it.
 
-      Styles.flex,
-      justifyContent.center,
-      alignItems.flexStart,
-
+      Topbar.apply,
       div(
-        cls := "pagenotfound ui segment",
-        maxWidth := "80ex",
+        padding := "80px 20px",
 
-        div(replaceEmojiUnified(shrugEmoji), fontSize := "50px", textAlign.center),
-        h2(
-          "We're sorry. The content you're looking for does not exist or you don't have sufficient permissions."
+        Styles.flex,
+        justifyContent.center,
+        alignItems.flexStart,
+
+        div(
+          padding := "30px",
+          cls := "pagenotfound ui segment",
+          maxWidth := "80ex",
+
+          div(replaceEmojiUnified(shrugEmoji), fontSize := "50px", textAlign.center),
+          h2(
+            "We're sorry. The requested content does not exist or you don't have sufficient permissions."
+          ),
+
+          h2("Things that might help: "),
+          ul(
+            li(
+              liStyle,
+              "If you came here via a link, ask the sender if the project is actually accessible via a link.",
+            ),
+            li(
+              liStyle,
+              p("Maybe you already have the right permissions, but you just aren't logged in?"),
+              AuthControls.authStatusOnLightBackground,
+            ),
+            li (
+              liStyle,
+              p("If something seems to be wrong, please contact us. We are happy to help you."),
+              FeedbackForm.supportChatButton,
+              span(marginLeft := "20px", Components.woostEmailLink("support")),
+            ),
+          ),
+
         ),
-
-        GlobalState.user.map {
-          case _: AuthUser.Real => VDomModifier.empty
-          case _ => div(
-            padding := "10px",
-            span("Maybe you just need to login?", fontSize.larger),
-            button(
-              marginLeft := "20px",
-              cls := "ui primary button",
-              "Login",
-              onClick.stopPropagation.foreach(GlobalState.urlConfig.update(_.focusWithRedirect(View.Login)))
-            )
-          )
-        }
       ),
     )
   }
