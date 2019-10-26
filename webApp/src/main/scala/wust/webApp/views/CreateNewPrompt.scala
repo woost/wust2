@@ -57,6 +57,7 @@ object CreateNewPrompt {
       val changes =
         GraphChanges.addNodeWithParent(newNode, parents) merge
           GraphChanges.addToParent(childNodes.now, ParentId(newNode.id)) merge
+          GraphChanges.delete(childNodes.now, parents) merge // e.g. when creating new task from chat in the same parent, move messages into task.
           sub.changes(newNode.id)
 
       if (addToChannels.now) {
