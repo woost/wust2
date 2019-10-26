@@ -23,6 +23,9 @@ object Segment {
   def page(name:String) = {
     scribe.debug(s"Segment: page($name)")
     ifLoaded(_.page(name))
+
+    // Since the Segment -> FullStory integration does not send page-events:
+    trackEvent("Viewed", js.Dynamic.literal(page = name))
   }
 
   // B2B SaaS

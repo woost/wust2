@@ -337,11 +337,9 @@ object GlobalStateFactory {
 
     GlobalState.view.toObservable.dropWhile(_ == View.Empty).foreach { view =>
       Segment.page(view.viewKey)
-      // Since the Segment -> FullStory integration does not send page-events:
-      Segment.trackEvent("Viewed", js.Dynamic.literal(view = view.viewKey))
     }
     GlobalState.pageNotFound.toObservable.debounce(3000 milliseconds).foreach { notFound =>
-      if(notFound) Segment.page("Page Not Found")
+      if(notFound) Segment.page("PageNotFound")
     }
   }
 
