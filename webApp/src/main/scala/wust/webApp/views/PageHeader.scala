@@ -132,7 +132,7 @@ object PageHeader {
             case PresentationMode.ContentOnly => VDomModifier.empty
           },
           channelMembersList,
-          MembersModal.settingsButton(pageNodeId),
+          div(MembersModal.settingsButton(pageNodeId), id := "tutorial-pageheader-sharing"),
           id := "tutorial-pageheader-title",
           marginBottom := "2px", // else nodecards in title overlap
 

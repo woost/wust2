@@ -12,6 +12,7 @@ object MainTutorial extends Tutorial {
     step.createProject,
     step.explainViews,
     step.explainTitle,
+    step.explainSharing,
     step.featureExplorer,
   )
 
@@ -46,7 +47,7 @@ object MainTutorial extends Tutorial {
 
     val explainViews = new Step {
       title = "Project Views"
-      content = "Every Project can have several views. Click <b>+</b> to add or remove views. Use the tabs to switch."
+      content = "Every Project can have several views. Click <b>+</b> to add or remove views. Use the tabs to switch.<br/><br/>Click different tabs while holding down <b>Ctrl</b> to display multiple views simultaneously."
       var target = "tutorial-pageheader-viewswitcher"
       var placement = "bottom"
       showCTAButton = false
@@ -55,12 +56,24 @@ object MainTutorial extends Tutorial {
 
     val explainTitle = new Step {
       title = "Project Title"
-      content = "Click the title to open it in the right sidebar. In fact you can click any task or message to open it in the right sidebar. There you can edit, zoom in, add custom fields, write comments or add subtasks."
+      content = "You can edit the title by clicking on it and changing its name at the top of the right sidebar.<br/><br/>On the right you can see avatars belonging to members of the project. Drag them onto tasks to assign them."
       var target = "tutorial-pageheader-title"
       var placement = "bottom"
       showCTAButton = false
       showNextButton = true
     }
+
+    val explainSharing = new Step {
+      title = "Sharing Options"
+      content = "Here you can add new members and manage permissions. You can even allow access by link and simply send the link to a group of people to invite them.<br/><br/>You can also find this button in the right sidebar after clicking on a task. This allows you to share the contents of a single task, such as its comments or subtasks, with others."
+      var target = "tutorial-pageheader-sharing"
+      var placement = "bottom"
+      showCTAButton = false
+      showNextButton = true
+    }
+
+    //TODO: Zooming
+    // In fact you can click any task or message to open it in the right sidebar. There you can edit, zoom in, add custom fields, write comments or add subtasks.
 
     val featureExplorer = new Step {
       title = "Discover new features"
