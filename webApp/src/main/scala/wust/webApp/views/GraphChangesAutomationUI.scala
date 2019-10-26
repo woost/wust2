@@ -92,7 +92,7 @@ object GraphChangesAutomationUI {
               justifyContent.spaceBetween,
               div(
                 b("This node has active automation templates."),
-                div(fontSize.xSmall, "A template describes how items will look like when the automation is applied. Click a template to see what's inside."),
+                div(fontSize.xSmall, "A template describes how elements will look like after the automation is applied. Click a template to see and change what's inside. An easy way to get started is to add subtasks to the template, close this window and execute the automation."),
                 marginBottom := "10px",
               ),
 
@@ -103,7 +103,7 @@ object GraphChangesAutomationUI {
               padding := "10px",
               Styles.flex,
               alignItems.center,
-              b(fontSize.small, "Drag Users to assign them:", color.gray, marginRight := "5px"),
+              span(fontSize.small, "Drag Users to assign them:", color.gray, marginRight := "5px"),
               SharedViewElements.channelMembers( GlobalState.page.now.parentId.get),
             )
           ),
@@ -249,7 +249,7 @@ object GraphChangesAutomationUI {
                 span(freeSolid.faPlus, marginRight := "0.5em"),
                 s"$createAutomationTemplateText",
                 alignSelf.flexStart,
-                cls := "compact mini primary",
+                cls := "compact tiny primary",
               ),
 
               div(
