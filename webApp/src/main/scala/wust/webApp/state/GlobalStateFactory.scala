@@ -289,6 +289,7 @@ object GlobalStateFactory {
                   scribe.info("Versioned Backend is online.")
                 } else {
                   scribe.info("Versioned Backend is offline, reloading.")
+                  Segment.trackEvent("App updated", js.Dynamic.literal(synced = GlobalState.isSynced.now))
                   window.location.reload(flag = true)
                 }
               }
