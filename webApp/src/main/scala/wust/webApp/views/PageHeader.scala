@@ -52,7 +52,7 @@ object PageHeader {
           pageNodeId,
           labelModifier = border := s"1px solid ${Colors.unreadBorder}" // light border has better contrast on colored pageheader background
         ),
-        // onClick.stopPropagation.use(View.Notifications).foreach(view => GlobalState.urlConfig.update(_.focus(view))),
+        onClick.stopPropagation.use(View.Notifications).foreach(view => GlobalState.urlConfig.update(_.focus(view))),
         float.right,
         alignSelf.center,
       )
