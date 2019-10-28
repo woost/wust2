@@ -163,6 +163,11 @@ object Cuid {
         .flatMap(fromByteArray))
   }
 
+  def uuidToBase58(str:String):String = {
+    val uuid = java.util.UUID.fromString(str)
+    fromUuid(uuid).toBase58
+  }
+
   @inline private def maxLong = 4738381338321616895L
 
   @inline implicit def ord:Ordering[Cuid] = Ordering.by(cuid => (cuid.left, cuid.right))
