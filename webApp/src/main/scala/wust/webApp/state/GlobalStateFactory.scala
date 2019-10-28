@@ -15,11 +15,11 @@ import wust.graph._
 import wust.ids._
 import wust.util.StringOps
 import wust.webApp.jsdom.ServiceWorker
-import wust.webApp.views.{EditableContent, MainTutorial}
-import wust.webApp.{Client, DevOnly}
+import wust.webApp.views.{ EditableContent, MainTutorial }
+import wust.webApp.{ Client, DevOnly }
 import wust.webUtil.UI.ToastLevel
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{BrowserDetect, UI}
+import wust.webUtil.{ BrowserDetect, UI }
 import rx.async._
 import rx.async.Platform._
 
@@ -153,8 +153,8 @@ object GlobalStateFactory {
       // handle invittation token
       viewConfig.invitation foreach { inviteToken =>
         val wasAssumed = GlobalState.auth.now.user match {
-          case _:AuthUser.Assumed => true
-          case _ => false
+          case _: AuthUser.Assumed => true
+          case _                   => false
         }
         Client.auth.acceptInvitation(inviteToken).foreach {
           case () =>
@@ -165,7 +165,7 @@ object GlobalStateFactory {
             getNewGraph(viewConfig.pageChange.page).foreach { graph =>
               eventProcessor.localEvents.onNext(ReplaceGraph(graph))
             }
-            if(wasAssumed) {
+            if (wasAssumed) {
               Segment.trackEvent("New Unregistered User", js.Dynamic.literal(`type` = "invite"))
             }
         }
@@ -321,14 +321,14 @@ object GlobalStateFactory {
     }
 
     GlobalState.userId.foreach { userId =>
-      val uuid:String = userId.toUuid.toString
+      val uuid: String = userId.toUuid.toString
       val hashedUserId = Sha256.sha224(uuid)
       Segment.identify(hashedUserId)
     }
     GlobalState.auth.foreach { auth =>
       auth.user match {
-        case _:AuthUser.Assumed => Segment.trackEvent("New Unregistered User", js.Dynamic.literal(`type` = "organic"))
-        case _ =>
+        case _: AuthUser.Assumed => Segment.trackEvent("New Unregistered User", js.Dynamic.literal(`type` = "organic"))
+        case _                   =>
       }
     }
     GlobalState.presentationMode.foreach { presentationMode =>
@@ -338,8 +338,9 @@ object GlobalStateFactory {
     GlobalState.view.toObservable.dropWhile(_ == View.Empty).foreach { view =>
       Segment.page(view.viewKey)
     }
-    GlobalState.pageNotFound.toObservable.debounce(3000 milliseconds).foreach { notFound =>
-      if(notFound) Segment.page("PageNotFound")
+    val pageNotFoundPageIsVisible = Rx { !GlobalState.isLoading() && GlobalState.pageNotFound() && GlobalState.view().isContent }
+    pageNotFoundPageIsVisible.foreach { notFound =>
+      if (notFound) Segment.page("PageNotFound")
     }
   }
 
