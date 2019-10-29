@@ -25,6 +25,7 @@ import wust.webUtil.outwatchHelpers._
 
 import scala.scalajs.js.JSON
 import scala.scalajs.{LinkingInfo, js}
+import wust.facades.segment.Segment
 
 object Main {
 
@@ -36,6 +37,7 @@ object Main {
     outwatch.woost.OutwatchSetting.init()
 
     GlobalStateFactory.init()
+    Segment.trackEvent("Version", js.Dynamic.literal(version = WoostConfig.value.versionString))
 
     DevOnly { enableEventLogging() }
     SortableEvents.init()
