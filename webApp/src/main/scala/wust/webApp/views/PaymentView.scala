@@ -206,15 +206,16 @@ object PaymentView {
   }
 
   val focusButton = {
-    button(
-      margin := "0 5px",
+    div
+    // button(
+    //   margin := "0 5px",
 
-      cls := "ui mini compact button basic",
+    //   cls := "ui mini compact button basic",
 
-      "Pricing",
+    //   "Pricing",
 
-      onClickDefault.foreach(GlobalState.urlConfig.update(_.focus(View.Payment)))
-    )
+    //   onClickDefault.foreach(GlobalState.urlConfig.update(_.focus(View.Payment)))
+    // )
   }
 
   case class PaymentPlanIntent(plan: PaymentPlan, price: Int)
