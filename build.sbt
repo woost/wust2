@@ -571,6 +571,7 @@ lazy val webApp = project
       Deps.npm.hopscotch ::
       Deps.npm.canvasImageUploader ::
       Deps.npm.exifJS ::
+      Deps.npm.flatpickr ::
       Nil,
 
       /* wartremoverWarnings ++= Warts.allBut( */

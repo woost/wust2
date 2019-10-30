@@ -519,4 +519,35 @@ object Elements {
       }
     }
   }
+
+  // https://stackoverflow.com/questions/28983016/how-to-paste-rich-text-from-clipboard-to-html-textarea-element
+  def flatpickr(placeholder: String, withTime: Boolean, initialDate: Option[js.Date], isInline: Boolean = false, openTrigger: SourceStream[Boolean] = SourceStream.empty): EmitterBuilder[js.Date, VDomModifier] = EmitterBuilder { sink =>
+    VDomModifier.delay {
+      input(
+        uniqueKey,
+        dsl.placeholder := placeholder,
+        managedElement { elem =>
+          import wust.facades.flatpickr._
+          val instance = Flatpickr(elem, new FlatpickrOptions {
+            enableTime = withTime
+            altInput = true
+            time_24hr = true
+            inline = isInline
+            defaultDate = initialDate.orUndefined
+            onClose = { (dateArr, _, element) =>
+              if (dateArr.nonEmpty) sink.onNext(dateArr.head)
+            }: js.Function3[js.Array[js.Date], String, js.Any, Unit]
+          })
+
+          Subscription.composite(
+            Subscription(instance.destroy),
+            openTrigger.foreach {
+              case true => instance.open()
+              case false => instance.close()
+            }
+          )
+        }
+      )
+    }
+  }
 }

@@ -242,10 +242,14 @@ object EditElementParser {
     )
   }
   implicit object EditDateMilli extends EditElementParser[DateMilli] {
-    def render(config: Config, initial: Task[Option[DateMilli]], handler: Handler[EditInteraction[DateMilli]])(implicit ctx: Ctx.Owner) = renderSimpleInput(
-      initial, handler, EmitterBuilder.combine(config.emitter, config.inputEmitter), VDomModifier(config.modifier, Elements.dateInputMod),
-      elem => Task.pure(EditInteraction.Input(DateMilli(EpochMilli.parse(elem.value).getOrElse(EpochMilli.zero))))
-    )
+    def render(config: Config, initial: Task[Option[DateMilli]], handler: Handler[EditInteraction[DateMilli]])(implicit ctx: Ctx.Owner) = {
+      SourceStream.fromAsync(initial).prepend(None).map { dateTime =>
+        val initialDate = dateTime.map(new js.Date(_))
+        Elements.flatpickr("Select Date", withTime = false, initialDate = initialDate).foreach { date =>
+          handler.onNext(EditInteraction.Input(DateMilli(EpochMilli(date.getTime.toLong))))
+        }
+      }
+    }
   }
   implicit object EditTimeMilli extends EditElementParser[TimeMilli] {
     def render(config: Config, initial: Task[Option[TimeMilli]], handler: Handler[EditInteraction[TimeMilli]])(implicit ctx: Ctx.Owner) = renderSimpleInput(
@@ -261,68 +265,15 @@ object EditElementParser {
   }
 
   implicit object EditDateTimeMilli extends EditElementParser[DateTimeMilli] {
-    //TODO: contribute to scala-js-dom overloads for toLocale*String with locale string argument
-    private def splitDateTimeLocal(dateTime: DateTimeMilli): (DateMilli, TimeMilli) = {
-      val d = new Date(dateTime)
-      val timeDate = new Date(d.asInstanceOf[js.Dynamic].toLocaleString("en").asInstanceOf[String])
-      val dateDate = new Date(d.asInstanceOf[js.Dynamic].toLocaleDateString("en").asInstanceOf[String])
-      timeDate.setMonth(0, 1)
-      timeDate.setFullYear(1970)
-      (DateMilli(EpochMilli(dateDate.getTime.toLong)), TimeMilli(EpochMilli(timeDate.getTime.toLong + timeDate.getTimezoneOffset * EpochMilli.minute)))
-    }
-    private def splitDateTime(dateTime: DateTimeMilli): (DateMilli, TimeMilli) = {
-      val d = new Date(dateTime)
-      val dateDate = new Date(d.asInstanceOf[js.Dynamic].toLocaleDateString("en").asInstanceOf[String])
-      val timeDate = new Date(d.asInstanceOf[js.Dynamic].toLocaleString("en").asInstanceOf[String])
-      timeDate.setMonth(0, 1)
-      timeDate.setFullYear(1970)
-      (DateMilli(EpochMilli(dateDate.getTime.toLong)), TimeMilli(EpochMilli(timeDate.getTime.toLong)))
-    }
-    private def defaultDateTime(): DateTimeMilli = {
-      val d = new Date(EpochMilli.now + EpochMilli.hour * 24)
-      d.setHours(12, 0, 0)
-      DateTimeMilli(EpochMilli(d.getTime.toLong))
-    }
 
     def render(config: Config, initial: Task[Option[DateTimeMilli]], handler: Handler[EditInteraction[DateTimeMilli]])(implicit ctx: Ctx.Owner) = {
-      var lastDateTime: DateTimeMilli = defaultDateTime()
-      val dateHandler = ProHandler(
-        handler.contramap[EditInteraction[DateMilli]](_.map { date =>
-          val (_, time) = splitDateTimeLocal(lastDateTime)
-          DateTimeMilli(EpochMilli(date + time))
-        }),
-        handler.map(_.map { dateTime =>
-          val (date, _) = splitDateTime(dateTime)
-          date
-        })
-      )
-      val timeHandler = ProHandler(
-        handler.contramap[EditInteraction[TimeMilli]](_.map { time =>
-          val (date, _) = splitDateTimeLocal(lastDateTime)
-          DateTimeMilli(EpochMilli(date + time))
-        }),
-        handler.map(_.map { dateTime =>
-          val (_, time) = splitDateTime(dateTime)
-          time
-        })
-      )
 
-      val initialDateAndTime = initial.map(_.map { dt =>
-        lastDateTime = dt
-        splitDateTime(dt)
-      })
-
-      div(
-        Styles.flex,
-        alignItems.center,
-        flexWrap.wrap,
-        config.modifier,
-
-        EditDateMilli.render(config, initialDateAndTime.map(_.map(_._1)), dateHandler),
-        EditTimeMilli.render(config, initialDateAndTime.map(_.map(_._2)), timeHandler),
-
-        emitter(handler).foreach(_.foreach(lastDateTime = _))
-      )
+      SourceStream.fromAsync(initial).prepend(None).map { dateTime =>
+        val initialDate = dateTime.map(new js.Date(_))
+        Elements.flatpickr("Select Date and Time", withTime = true, initialDate = initialDate).foreach { date =>
+          handler.onNext(EditInteraction.Input(DateTimeMilli(EpochMilli(date.getTime.toLong))))
+        }
+      }
     }
   }
 

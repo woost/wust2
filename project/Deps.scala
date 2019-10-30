@@ -164,6 +164,7 @@ object Deps {
     val hopscotch = "hopscotch" -> "0.3.1"
     val canvasImageUploader = "canvas-image-uploader" -> "git+https://git@github.com/selbekk/CanvasImageUploader.git#6e5a71b5c2c01b00e76c86d65f2959d3fa9f3125" // fork without jquery and black canvas fix
     val exifJS = "exif-js" -> "git+https://git@github.com/fdietze/exif-js.git#da3116c" // fork merges PR which avoids runtime error
+    val flatpickr = "flatpickr" -> "4.6.3"
 
     val webpackDependencies =
       "webpack-closure-compiler" -> "git://github.com/roman01la/webpack-closure-compiler.git#3677e5e" :: //TODO: "closure-webpack-plugin" -> "1.0.1" :: https://github.com/webpack-contrib/closure-webpack-plugin/issues/47

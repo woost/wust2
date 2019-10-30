@@ -52,6 +52,7 @@ files.vendor = {
         Path.join(__dirname, 'node_modules/hopscotch/dist/css/hopscotch.min.css'),
         Path.join(__dirname, 'node_modules/hopscotch/dist/img/sprite-green.png'),
         Path.join(__dirname, 'node_modules/hopscotch/dist/img/sprite-orange.png'),
+        Path.join(__dirname, 'node_modules/flatpickr/dist/flatpickr.css'),
     ],
     js: [
         Path.join(__dirname, 'node_modules/jquery/dist/jquery.js'),
