@@ -27,9 +27,15 @@ import wust.facades.segment.Segment
 
 object MembersModal {
 
-  case class NeedAction(action: () => Unit, title: VDomModifier, reason: VDomModifier, isPositive: Boolean = true)
+  case class NeedAction(action: () => Unit, title: VDomModifier, reason: VDomModifier, leftIsPositive: Boolean = NeedAction.defaultLeftIsPositive, actOnRight: Boolean = NeedAction.defaultActOnRight, leftText: String = NeedAction.defaultLeftText, rightText: String = NeedAction.defaultRightText)
   object NeedAction {
-    def apply(changes: GraphChanges, title: VDomModifier, reason: VDomModifier): NeedAction = NeedAction(() => GlobalState.submitChanges(changes), title = title, reason = reason)
+    def defaultLeftText = "Yes"
+    def defaultRightText = "No"
+    def defaultActOnRight = false
+    def defaultLeftIsPositive = true
+
+    def apply(changes: GraphChanges, title: VDomModifier, reason: VDomModifier, actOnRight: Boolean, leftText: String, rightText: String): NeedAction = NeedAction(() => GlobalState.submitChanges(changes), title = title, reason = reason, actOnRight = actOnRight, leftText = leftText, rightText = rightText)
+    def apply(changes: GraphChanges, title: VDomModifier, reason: VDomModifier): NeedAction = apply(changes, title, reason, actOnRight = defaultActOnRight, leftText = defaultLeftText, rightText = defaultRightText)
   }
 
   def config(nodeId: NodeId)(implicit ctx: Ctx.Owner): ModalConfig = {
@@ -120,7 +126,7 @@ object MembersModal {
           },
           title = div(Styles.flex, alignItems.center, "Remove yourself from ", node.map(_.map(n => nodeCardAsOneLineText(n, projectWithIcon = true).apply(margin := "0 0.5em"))), "?"),
           reason = VDomModifier("Are you sure you want to leave the workspace? You may not be able to access it afterwards."),
-          isPositive = false
+          leftIsPositive = false
         ))
       } else {
         action()
@@ -152,7 +158,7 @@ object MembersModal {
             action,
             title = div(Styles.flex, alignItems.center, "Change your own permissions for ", nodeCardAsOneLineText(node, projectWithIcon = true).apply(margin := "0 0.5em"), "?"),
             reason = "Do you really want to change your own access rights to this workspace? You may not be able to change that afterwards.",
-            isPositive = false
+            leftIsPositive = false
           ))
         } else {
           action()
@@ -208,8 +214,8 @@ object MembersModal {
               div(
                 padding := "5px",
                 Styles.flex,
-                button(cls := "ui mini compact button", cls := (if (need.isPositive) "positive" else "negative"), "Yes", onClickDefault foreach { need.action(); needAction() = None }, margin := "0 5px 0 auto"),
-                button(cls := "ui mini compact button basic", "No", onClickDefault foreach { needAction() = None })
+                button(cls := "ui mini compact button", cls := (if (need.leftIsPositive) "positive" else "negative"), need.leftText, onClickDefault foreach { if (!need.actOnRight) need.action(); needAction() = None }, margin := "0 5px 0 auto"),
+                button(cls := "ui mini compact button basic", need.rightText, onClickDefault foreach { if (need.actOnRight) need.action(); needAction() = None })
               )
             ))
           ).apply(fontSize := "14px"))),
@@ -220,7 +226,7 @@ object MembersModal {
           flexWrap.wrap,
           alignItems.center,
 
-          label("Link to share:", Styles.flexStatic, margin := "0 15px 5px 0"),
+          div("Link to share:", Styles.flexStatic, margin := "0 15px 5px 0"),
           div(
             minWidth := "250px",
             width := "100%",
@@ -244,10 +250,19 @@ object MembersModal {
                 padding := "5px",
                 div(
                   cls := "item",
+                  b("Copy Link"),
+                  Rx {
+                    node() map { node =>
+                      shareModifiers(node, targetUrl()) foreach { need => needAction() = Some(need) },
+                    }
+                  }
+                ),
+                div(
+                  cls := "item",
                   "Copy Presentation Link",
                   Rx {
                     node() map { node =>
-                      shareModifiers(node, targetUrlWithPresentation()) foreach { need => needAction() = Some(need) }
+                      shareModifiers(node, targetUrlWithPresentation()) foreach { need => needAction() = Some(need) },
                     }
                   }
                 )
@@ -359,17 +374,14 @@ object MembersModal {
           input(tpe := "text", position.fixed, left := "-10000000px", disabled := true), // prevent autofocus of input elements. it might not be pretty, but it works.
 
           div(
-            Styles.flex,
-            alignItems.center,
-            flexWrap.wrap,
-
-            label("Invite another User:", Styles.flexStatic, margin := "0 15px 5px 0"),
+            b("Invite another User:", Styles.flexStatic),
             searchInGraph(
               GlobalState.rawGraph,
               "Add user or invite by Email",
               filter = u => u.isInstanceOf[Node.User] && !GlobalState.graph.now.members(nodeId).exists(_.id == u.id),
               showNotFound = false,
               elementModifier = VDomModifier(
+                marginTop := "5px",
                 flex := "1",
                 minWidth := "250px",
               ),
@@ -391,8 +403,8 @@ object MembersModal {
                 ).apply(cls := "ui mini dropdown", minWidth := "75px", maxWidth := "75px"),
 
                 button(
-                  cls := "ui basic compact button",
-                  freeSolid.faPlus,
+                  cls := "ui primary button",
+                  "Invite",
                   onClick.stopPropagation foreach (addUserEmailFromInput())
                 ),
               ))
@@ -413,7 +425,7 @@ object MembersModal {
           textAlign.right,
           button(
             "Done",
-            cls := "ui primary button",
+            cls := "ui button",
             onClickDefault.use(()) --> GlobalState.uiModalClose
           )
         )
@@ -465,17 +477,19 @@ object MembersModal {
 
   private def shareModifiers(channel: Node, shareUrl: String)(implicit ctx: Ctx.Owner): EmitterBuilder[NeedAction, VDomModifier] = EmitterBuilder { needAction =>
 
-    val shareTitle = StringOps.trimToMaxLength(channel.data.str, 15)
-    val shareDesc = s"Share: $shareTitle"
-
     def assurePublic(): Unit = {
       // make channel public if it is not. we are sharing the link, so we want it to be public.
       channel match {
         case node: Node.Content if node.meta.accessLevel != NodeAccess.Read && node.meta.accessLevel != NodeAccess.ReadWrite =>
+          GlobalState.submitChanges(GraphChanges.addNode(node.copy(meta = node.meta.copy(accessLevel = NodeAccess.ReadWrite))))
+
           needAction.onNext(NeedAction(
-            GraphChanges.addNode(node.copy(meta = node.meta.copy(accessLevel = NodeAccess.ReadWrite))),
+            GraphChanges.addNode(node),
             title = div(Styles.flex, alignItems.center, s"Make ", nodeCardAsOneLineText(node, projectWithIcon = true).apply(margin := "0 0.5em"), " accessible via link?"),
-            reason = s"This ${node.role.toString} is currently not accessible by a link. If you send the link now, other participants will not be able to see the content. Would you like to make it accessible via a link?"
+            reason = s"This ${node.role.toString} is now accessible for anyone with the link. If this is not what you intended, you can undo this change.",
+            actOnRight = true,
+            leftText = "Ok",
+            rightText = "Undo"
           ))
         case _ => ()
       }
@@ -483,12 +497,10 @@ object MembersModal {
 
     VDomModifier(
       if (Navigator.share.isDefined) VDomModifier(
-        onClick.stopPropagation foreach {
+        onClick foreach {
           scribe.info(s"Sharing '$channel'")
 
           Navigator.share(new ShareData {
-            title = shareTitle
-            text = shareDesc
             url = shareUrl
           }).toFuture.onComplete {
             case Success(()) => ()
@@ -498,14 +510,14 @@ object MembersModal {
       )
       else VDomModifier(
         Elements.copiableToClipboard(shareUrl),
-        onClick.stopPropagation foreach {
+        onClick foreach {
           scribe.info(s"Copying share-link for '$channel'")
 
-          UI.toast(title = shareDesc, msg = "Link copied to clipboard")
+          UI.toast("Link copied to clipboard")
         },
       ),
 
-      onClick.stopPropagation.foreach {
+      onClick.foreach {
         assurePublic()
         FeatureState.use(Feature.ShareLink)
       },
