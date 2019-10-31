@@ -109,11 +109,14 @@ object DashboardView {
   /// Render the overview of a single (sub-) project
   private def renderSubproject(graph: Graph, focusState: FocusState, project: Node, isDeleted: Boolean)(implicit ctx: Ctx.Owner): VNode = {
     val isDeleted = graph.isDeletedNow(project.id, focusState.focusedId)
-    val dispatch = GlobalState.submitChanges _
+    val assigned = graph.idToIdxFold(project.id)(Seq.empty[Node.User]) { idx =>
+      graph.assignedUsersIdx.map(idx) { idx => graph.nodes(idx).as[Node.User] }
+    }
+
     val (headButton, tailButton) = if (isDeleted) {
       (
         VDomModifier.empty,
-          button(
+        button(
           marginLeft := "10px",
           "Restore",
           cls := "ui button mini compact basic",
@@ -163,6 +166,15 @@ object DashboardView {
       },
 
       permissionLevel.map(Permission.permissionIndicatorIfPublic(_, VDomModifier(fontSize := "0.7em", color.gray))),
+
+      div(
+        Styles.flex,
+        alignItems.center,
+        marginLeft := "10px",
+        assigned.map { user =>
+          removableUserAvatar(user, project.id, size = "16px")
+        },
+      ),
 
       tailButton,
 
