@@ -182,7 +182,7 @@ object FeedbackForm {
 
   val supportChatButton = {
     button(
-      freeSolid.faComments, " Open Support Chat",
+      span(freeSolid.faComments, marginRight := "0.5em"), "Open Support Chat",
       cls := "ui blue button",
       onClick.foreach { _ =>
         openCrispChat()
@@ -191,7 +191,7 @@ object FeedbackForm {
   }
 
   def voteOnFeaturesButton = button(
-    freeSolid.faSort, " Vote on Features",
+    span(freeSolid.faSort, marginRight := "0.5em"), " Vote on Features",
     cls := "ui violet tiny fluid button",
     marginTop := "5px",
     cls := "vote-button",
