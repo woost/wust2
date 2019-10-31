@@ -2,7 +2,9 @@ package wust.webApp.views
 
 import outwatch.dom._
 import outwatch.dom.dsl._
+import fontAwesome.freeSolid
 import rx.Ctx
+import org.scalajs.dom
 import wust.api.AuthUser
 import wust.css.Styles
 import wust.ids.View
@@ -43,6 +45,10 @@ object PageNotFoundView {
 
           h2("Things that might help: "),
           ul(
+            li(
+              liStyle,
+              button(span(freeSolid.faRedo, marginRight := "0.5em"), "Reload Page", cls := "ui button positive", onClick.foreach { dom.window.location.reload() }),
+            ),
             li(
               liStyle,
               "If you came here via a link, ask the sender if the project is actually accessible via a link.",
