@@ -374,10 +374,10 @@ object MembersModal {
           input(tpe := "text", position.fixed, left := "-10000000px", disabled := true), // prevent autofocus of input elements. it might not be pretty, but it works.
 
           div(
-            b("Invite another User:", Styles.flexStatic),
+            b("Invite more users:", Styles.flexStatic),
             searchInGraph(
               GlobalState.rawGraph,
-              "Add user or invite by Email",
+              "username or email",
               filter = u => u.isInstanceOf[Node.User] && !GlobalState.graph.now.members(nodeId).exists(_.id == u.id),
               showNotFound = false,
               elementModifier = VDomModifier(
@@ -485,8 +485,8 @@ object MembersModal {
 
           needAction.onNext(NeedAction(
             GraphChanges.addNode(node),
-            title = div(Styles.flex, alignItems.center, s"Make ", nodeCardAsOneLineText(node, projectWithIcon = true).apply(margin := "0 0.5em"), " accessible via link?"),
-            reason = s"This ${node.role.toString} is now accessible for anyone with the link. If this is not what you intended, you can undo this change.",
+            title = div(Styles.flex, alignItems.center, nodeCardAsOneLineText(node, projectWithIcon = true).apply(margin := "0 0.5em 0 0"), " is now accessible via a link."),
+            reason = s"This ${node.role.toString} is now accessible to everyone with the link below. If this was not your intention, you can undo this change.",
             actOnRight = true,
             leftText = "Ok",
             rightText = "Undo"
