@@ -16,7 +16,7 @@ import wust.ids._
 import wust.util.StringOps
 import wust.webApp.jsdom.ServiceWorker
 import wust.webApp.views.{ EditableContent, MainTutorial }
-import wust.webApp.{ Client, DevOnly }
+import wust.webApp.{ Client, DevOnly, DebugOnly }
 import wust.webUtil.UI.ToastLevel
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{ BrowserDetect, UI }
@@ -341,13 +341,18 @@ object GlobalStateFactory {
       Segment.trackEvent("Presentation Mode", js.Dynamic.literal(mode = presentationMode.toString))
     }
 
-    GlobalState.view.toSourceStream.dropWhile(_ == View.Empty).foreach { view =>
+    GlobalState.view.toSourceStream.dropWhile(_ == View.Empty).filter(_ => !GlobalState.showPageNotFound.now).foreach { view =>
+      // DebugOnly { UI.toast("", title = view.viewKey, level = ToastLevel.Info) }
       Segment.page(view.viewKey)
     }
-    val pageNotFoundPageIsVisible = Rx { !GlobalState.isLoading() && GlobalState.pageNotFound() && GlobalState.view().isContent }
-    pageNotFoundPageIsVisible.foreach { notFound =>
-      if (notFound) Segment.page("PageNotFound")
+
+    // debounce: to skip an intermediate state that satisfies pageNotFound conditions
+    GlobalState.showPageNotFound.toObservable.debounce(200 millis).foreach { notFound =>
+      if (notFound) {
+        DebugOnly { UI.toast("", title = "Page Not Found", level = ToastLevel.Warning) }
+        Segment.page("PageNotFound")
     }
+  }
   }
 
   private var stateDebugLoggingEnabled = false
@@ -359,7 +364,7 @@ object GlobalStateFactory {
       rawGraph.debugWithDetail((g: Graph) => s"rawGraph: ${g.toString}", (g: Graph) => g.toDetailedString)
       graph.debugWithDetail((g: Graph) => s"graph: ${g.toString}", (g: Graph) => g.toDetailedString)
 
-      pageNotFound.debug("pageNotFound")
+      showPageNotFound.debug("showPageNotFound")
       screenSize.debug("screenSize")
       urlConfig.debug("urlConfig")
       page.debug("page")
