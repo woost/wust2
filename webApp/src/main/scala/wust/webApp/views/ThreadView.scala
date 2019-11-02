@@ -126,7 +126,7 @@ object ThreadView {
             val childNode = graph.nodes(childIdx)
             if(
               childNode.isInstanceOf[Node.Content] &&
-              (childNode.role == NodeRole.Message ||
+              (childNode.role == NodeRole.Message || childNode.role == NodeRole.Task ||
                 (childNode.role.isInstanceOf[NodeRole.ContentRole] &&
                   graph.childrenIdx(childIdx).exists(idx => NodeRole.Message == graph.nodes(idx).role)
                 )

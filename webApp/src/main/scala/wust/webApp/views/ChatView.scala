@@ -158,7 +158,7 @@ object ChatView {
       dfs.foreach(_ (pageParentIdx), dfs.afterStart, graph.childrenIdx, append = { nodeIdx =>
         val node = graph.nodes(nodeIdx)
         node.role match {
-          case NodeRole.Message =>
+          case NodeRole.Message | NodeRole.Task =>
             nodeSet.add(nodeIdx)
             nodeCount += 1
           case _ =>
