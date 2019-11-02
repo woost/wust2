@@ -347,7 +347,7 @@ object GlobalStateFactory {
     }
 
     // debounce: to skip an intermediate state that satisfies pageNotFound conditions
-    GlobalState.showPageNotFound.toObservable.debounce(200 millis).foreach { notFound =>
+    GlobalState.showPageNotFound.toSourceStream.debounce(200 millis).foreach { notFound =>
       if (notFound) {
         DebugOnly { UI.toast("", title = "Page Not Found", level = ToastLevel.Warning) }
         Segment.page("PageNotFound")
