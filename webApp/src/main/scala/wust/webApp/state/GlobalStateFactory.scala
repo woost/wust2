@@ -32,6 +32,10 @@ object GlobalStateFactory {
 
     import GlobalState._
 
+    DevOnly {
+      setupStateDebugLogging()
+    }
+
     eventProcessor.forbiddenChanges.foreach { changesList =>
       val changes = changesList.foldLeft(GraphChanges.empty)(_ merge _)
 
@@ -321,10 +325,6 @@ object GlobalStateFactory {
       Client.api.log(s"Javascript Error: ${e.message}.")
       DevOnly { UI.toast(e.message, level = ToastLevel.Error) }
     })
-
-    DevOnly {
-      setupStateDebugLogging()
-    }
 
     GlobalState.userId.foreach { userId =>
       val uuid: String = userId.toUuid.toString
