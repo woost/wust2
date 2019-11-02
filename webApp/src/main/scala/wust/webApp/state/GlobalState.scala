@@ -12,17 +12,17 @@ import wust.api._
 import wust.graph._
 import wust.ids._
 import wust.sdk._
-import wust.webApp.jsdom.{Notifications, ServiceWorker}
-import wust.webApp.parsers.{UrlConfigParser, UrlConfigWriter}
+import wust.webApp.jsdom.{ Notifications, ServiceWorker }
+import wust.webApp.parsers.{ UrlConfigParser, UrlConfigWriter }
 import wust.webApp.views._
-import wust.webApp.{Client, WoostConfig}
+import wust.webApp.{ Client, WoostConfig }
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{BrowserDetect, ModalConfig, Ownable}
+import wust.webUtil.{ BrowserDetect, ModalConfig, Ownable }
 import wust.facades.segment.Segment
 
-import scala.collection.{breakOut, mutable}
+import scala.collection.{ breakOut, mutable }
 import scala.concurrent.duration._
-import scala.scalajs.{LinkingInfo, js}
+import scala.scalajs.{ LinkingInfo, js }
 import scala.util.Try
 
 object GlobalState {
@@ -158,7 +158,8 @@ object GlobalState {
   val urlPage = urlConfig.map(_.pageChange.page)
   val presentationMode: Rx[PresentationMode] = urlConfig.map(_.mode)
   val page: Rx[Page] = viewConfig.map(_.page)
-  val pageNotFound: Rx[Boolean] = Rx{ !urlConfig().pageChange.page.parentId.forall(rawGraph().contains) }
+  val pageExistsInGraph: Rx[Boolean] = Rx{ page().parentId.exists(rawGraph().contains) }
+  val showPageNotFound = Rx { !isLoading() && !pageExistsInGraph() && viewIsContent() }
 
   def focus(nodeId: NodeId, needsGet: Boolean = true) = {
     urlConfig.update(_.focus(Page(nodeId), needsGet = needsGet))
@@ -233,7 +234,7 @@ object GlobalState {
 
   private val crispIsAlreadyLoaded = Try(window.asInstanceOf[js.Dynamic].CRISP_IS_READY.asInstanceOf[Boolean]).getOrElse(false)
   val crispIsLoaded = Var(crispIsAlreadyLoaded)
-  if(!crispIsAlreadyLoaded) {
+  if (!crispIsAlreadyLoaded) {
     window.asInstanceOf[js.Dynamic].CRISP_READY_TRIGGER = { () =>
       crispIsLoaded() = true
     }

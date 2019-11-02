@@ -186,7 +186,7 @@ object MainView {
 
             if (viewIsContent() && GlobalState.isLoading()) {
               spaceFillingLoadingAnimation.apply(Styles.growFull, zIndex := ZIndex.loading, backgroundColor := Colors.contentBg)
-            } else if (viewIsContent() && GlobalState.pageNotFound()) {
+            } else if (GlobalState.showPageNotFound()) {
               PageNotFoundView.apply.apply(Styles.growFull, zIndex := ZIndex.loading, backgroundColor := Colors.contentBg)
             } else {
               ViewRender(GlobalState.toFocusState(viewConfig), viewConfig.view).apply(
