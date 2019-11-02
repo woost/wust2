@@ -27,8 +27,8 @@ object PageHeader {
   private def pageRow(pageNodeId: NodeId, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VDomModifier = {
 
     val pageStyle = PageStyle.ofNode(pageNodeId)
-    val pageNode = Rx {
-      GlobalState.graph().nodesByIdOrThrow(pageNodeId)
+    val pageNodeOpt = Rx {
+      GlobalState.graph().nodesById(pageNodeId)
     }
 
     val channelTitle = div(
@@ -39,12 +39,12 @@ object PageHeader {
       Components.showHoveredNode(pageNodeId),
       registerDragContainer,
       Rx {
-        val node = pageNode()
-
-        VDomModifier(
-          Components.renderNodeCardMod(node, Components.renderAsOneLineText(_), projectWithIcon = false),
-          DragItem.fromNodeRole(node.id, node.role).map(DragComponents.drag(_)),
-        )
+        pageNodeOpt().map { node =>
+          VDomModifier(
+            Components.renderNodeCardMod(node, Components.renderAsOneLineText(_), projectWithIcon = false),
+            DragItem.fromNodeRole(node.id, node.role).map(DragComponents.drag(_)),
+          )
+        }
       },
 
       div(
