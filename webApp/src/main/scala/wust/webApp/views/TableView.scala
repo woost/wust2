@@ -7,18 +7,18 @@ import outwatch.dom.dsl._
 import outwatch.ext.monix._
 import rx._
 import wust.css.Styles
-import wust.graph.{Edge, Graph, GraphChanges, Node}
+import wust.graph.{ Edge, Graph, GraphChanges, Node }
 import wust.ids._
 import wust.util.StringOps
-import wust.webApp.dragdrop.{DragContainer, DragItem}
-import wust.webApp.state.{FocusState, GlobalState, GraphChangesAutomation, Placeholder}
+import wust.webApp.dragdrop.{ DragContainer, DragItem }
+import wust.webApp.state.{ FocusState, GlobalState, GraphChangesAutomation, Placeholder }
 import wust.webApp.views.DragComponents.registerDragContainer
 import wust.webApp.views.SharedViewElements.onClickNewNamePrompt
-import wust.webApp.{Icons, ItemProperties}
+import wust.webApp.{ Icons, ItemProperties }
 import wust.webUtil.UI
 import wust.webUtil.outwatchHelpers._
 
-import scala.collection.{breakOut, mutable}
+import scala.collection.{ breakOut, mutable }
 
 object TableView {
   def apply(focusState: FocusState, roles: List[NodeRole], viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VNode = {
@@ -32,12 +32,13 @@ object TableView {
 
       Rx {
         val graph = GlobalState.graph()
-        table( graph, focusState.focusedId, roles, sort, viewRender)
+        table(graph, focusState, roles, sort, viewRender)
       }
     )
   }
 
-  def table(graph: Graph, focusedId: NodeId, roles: List[NodeRole], sort: Var[Option[UI.ColumnSort]], viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VDomModifier = {
+  def table(graph: Graph, focusState: FocusState, roles: List[NodeRole], sort: Var[Option[UI.ColumnSort]], viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VDomModifier = {
+    val focusedId = focusState.focusedId
     val focusedIdx = graph.idToIdxOrThrow(focusedId)
 
     val globalEditMode = Var(Option.empty[(String, Seq[Edge.LabeledProperty])])
@@ -50,15 +51,15 @@ object TableView {
     def columnEntryOfNodes(row: NodeId, edges: Seq[(Option[Edge.LabeledProperty], Node)], cellModifier: VDomModifier = VDomModifier.empty): UI.ColumnEntry = UI.ColumnEntry(
       sortValue = edges.map {
         case (_, node: Node.Content) => node.str
-        case (_, user: Node.User) => Components.displayUserName(user.data) // sort users by display name
+        case (_, user: Node.User)    => Components.displayUserName(user.data) // sort users by display name
       }.mkString(", "),
       value = VDomModifier(
         edges.map {
-          case (Some(edge), node: Node.Content) => Components.editablePropertyNodeOnClick( node, edge, maxLength = Some(50), config = EditableContent.Config.default)
-          case (_, tag: Node.Content) if tag.role == NodeRole.Tag => Components.removableNodeTag( tag, row)
-          case (_, stage: Node.Content) if stage.role == NodeRole.Stage => Components.removableNodeTag( stage, row)
-          case (_, node: Node.Content) => Components.editableNodeOnClick( node, maxLength = Some(50), config = EditableContent.Config.default)
-          case (_, user: Node.User)                               => Components.removableAssignedUser( user, row)
+          case (Some(edge), node: Node.Content)                         => Components.editablePropertyNodeOnClick(node, edge, maxLength = Some(50), config = EditableContent.Config.default)
+          case (_, tag: Node.Content) if tag.role == NodeRole.Tag       => Components.removableNodeTag(tag, row)
+          case (_, stage: Node.Content) if stage.role == NodeRole.Stage => Components.removableNodeTag(stage, row)
+          case (_, node: Node.Content)                                  => Components.editableNodeOnClick(node, maxLength = Some(50), config = EditableContent.Config.default)
+          case (_, user: Node.User)                                     => Components.removableAssignedUser(user, row)
         },
         position.relative, // for cancel and save button absolute popup
         cellModifier
@@ -122,22 +123,24 @@ object TableView {
 
       columns += UI.Column(
         "#",
-        propertyGroup.infos.zipWithIndex.map { case (property, idx) =>
-          UI.ColumnEntry(idx,
-            VDomModifier(
-             backgroundColor := "#f9fafb", // same color as header of table
-             Components.sidebarNodeFocusVisualizeRightMod(GlobalState.rightSidebarNode, property.node.id),
-             Components.sidebarNodeFocusClickMod(GlobalState.rightSidebarNode, property.node.id),
-             div(
-               fontSize.xxSmall,
-               idx + 1,
-             )
-            ),
-            rowModifier = VDomModifier(
-              Components.sidebarNodeFocusVisualizeMod(GlobalState.rightSidebarNode, property.node.id),
-              DragItem.fromNodeRole(property.node.id, property.node.role).map(item => DragComponents.drag(target = item))
+        propertyGroup.infos.zipWithIndex.map {
+          case (property, idx) =>
+            UI.ColumnEntry(
+              idx,
+              VDomModifier(
+                backgroundColor := "#f9fafb", // same color as header of table
+                Components.sidebarNodeFocusVisualizeRightMod(GlobalState.rightSidebarNode, property.node.id),
+                Components.sidebarNodeFocusClickMod(property.node.id, focusState),
+                div(
+                  fontSize.xxSmall,
+                  idx + 1,
+                )
+              ),
+              rowModifier = VDomModifier(
+                Components.sidebarNodeFocusVisualizeMod(focusState.itemIsFocused(property.node.id)),
+                DragItem.fromNodeRole(property.node.id, property.node.role).map(item => DragComponents.drag(target = item))
+              )
             )
-          )
         }(breakOut)
       )
 
@@ -148,7 +151,7 @@ object TableView {
         }(breakOut)
       )
 
-      if(propertyGroup.infos.exists(_.tags.nonEmpty))
+      if (propertyGroup.infos.exists(_.tags.nonEmpty))
         columns += UI.Column(
           columnHeader("Tags"),
           propertyGroup.infos.map { property =>
@@ -156,7 +159,7 @@ object TableView {
           }(breakOut)
         )
 
-      if(propertyGroup.infos.exists(_.stages.nonEmpty))
+      if (propertyGroup.infos.exists(_.stages.nonEmpty))
         columns += UI.Column(
           columnHeader("Stage"),
           propertyGroup.infos.map { property =>
@@ -164,7 +167,7 @@ object TableView {
           }(breakOut)
         )
 
-      if(propertyGroup.infos.exists(_.assignedUsers.nonEmpty))
+      if (propertyGroup.infos.exists(_.assignedUsers.nonEmpty))
         columns += UI.Column(
           columnHeader("Assigned"),
           propertyGroup.infos.map { property =>
@@ -182,7 +185,7 @@ object TableView {
         val edge = value.edge
         val tpe = node.role match {
           case NodeRole.Neutral => NodeTypeSelection.Data(node.data.tpe)
-          case _ => NodeTypeSelection.Ref
+          case _                => NodeTypeSelection.Ref
         }
         (Some(tpe), edge.data.showOnCard)
       }
@@ -204,8 +207,7 @@ object TableView {
                 ItemProperties.TypeConfig(prefilledType = predictedType, hidePrefilledType = true),
                 ItemProperties.EdgeFactory.labeledProperty(property.key, predictedShowOnCard)
               ),
-            )
-          )
+            ))
         }(breakOut)
       )
     }(breakOut)
@@ -256,12 +258,12 @@ object TableView {
                 div(
                   UI.toggle("Keep as default", keepPropertyAsDefault).apply(marginBottom := "5px"),
 
-                  // GraphChangesAutomationUI.settingsButton(
-                  //   focusedId,
-                  //   activeMod = visibility.visible,
-                  //   viewRender = viewRender,
-                  //   tooltipDirection = "left center"
-                  // ).prepend(span("Manage automations", marginRight := "5px"))
+                // GraphChangesAutomationUI.settingsButton(
+                //   focusedId,
+                //   activeMod = visibility.visible,
+                //   viewRender = viewRender,
+                //   tooltipDirection = "left center"
+                // ).prepend(span("Manage automations", marginRight := "5px"))
                 )
               ),
             ),
@@ -291,7 +293,7 @@ object TableView {
                 Icons.delete,
                 " Delete",
                 onClick.stopPropagation.foreach {
-                  if(dom.window.confirm(s"Do you really want to remove the column '$name' in all children?")) {
+                  if (dom.window.confirm(s"Do you really want to remove the column '$name' in all children?")) {
                     GlobalState.submitChanges(GraphChanges(delEdges = edges.map(e => e)(breakOut)))
                   }
                   ()
@@ -310,18 +312,18 @@ object TableView {
         cls := "ui mini compact button",
         "+ New Row",
         cursor.pointer,
-        onClickNewNamePrompt( header = "Add a new Row", placeholder = Placeholder(s"Name of row")).foreach { sub =>
+        onClickNewNamePrompt(header = "Add a new Row", placeholder = Placeholder(s"Name of row")).foreach { sub =>
           val newNode = Node.Content(NodeData.Markdown(sub.text), targetRole)
 
           sort() = None // reset sorting again, so the new node appears at the bottom :)
           val addNode = GraphChanges.addNodeWithParent(newNode, ParentId(focusedId))
-          val addTags = ViewFilter.addCurrentlyFilteredTags( newNode.id)
+          val addTags = ViewFilter.addCurrentlyFilteredTags(newNode.id)
           GlobalState.submitChanges(addNode merge addTags merge sub.changes(newNode.id))
 
           ()
         }
       ),
-      registerDragContainer( DragContainer.Default)
+      registerDragContainer(DragContainer.Default)
     )
   }
 

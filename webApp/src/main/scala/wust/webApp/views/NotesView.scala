@@ -94,7 +94,7 @@ object NotesView {
     div(
       cls := "ui segment",
       cls := "note",
-      Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, node.id),
+      Components.sidebarNodeFocusMod(node.id, focusState),
       Rx { VDomModifier.ifTrue(editMode())(boxShadow := "0px 0px 0px 2px  rgba(65,184,255, 1)") },
       div(
         cls := "notesview-note",
@@ -106,7 +106,7 @@ object NotesView {
       ),
       div(
         alignItems.center,
-        NodeDetails.tagsPropertiesAssignments(node.id)
+        NodeDetails.tagsPropertiesAssignments(node.id, focusState)
       ),
       NodeDetails.cardFooter(node.id, childStats, isExpanded, focusState),
       NodeDetails.nestedTaskList(

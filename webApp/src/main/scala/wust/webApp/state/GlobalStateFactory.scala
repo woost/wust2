@@ -225,6 +225,7 @@ object GlobalStateFactory {
     // changes, we get a new graph. except when it is just a Page.NewChannel.
     // There we want tnuro issue the new-channel change.
     {
+      //TODO: rename urlConfigAndUser
       val userAndPage = Rx {
         (urlConfig(), user().toNode)
       }

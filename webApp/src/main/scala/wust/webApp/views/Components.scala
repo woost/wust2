@@ -163,7 +163,7 @@ object Components {
                 ))
 
               GlobalState.submitChanges(change)
-              GlobalState.urlConfig.update(_.focus(Page(nodeId), View.Conversation, needsGet = false))
+              GlobalState.urlConfig.update(_.focus(Page(nodeId), View.Chat, needsGet = false))
               ()
           }
           Segment.trackEvent("Direct Message")
@@ -217,7 +217,8 @@ object Components {
   def removablePropertySection(
     key: String,
     properties: Seq[PropertyData.PropertyValue],
-    parentIdAction: Option[NodeId] => Unit,
+    focusState: FocusState,
+    parentIdAction: Option[NodeId] => Unit, // TODO: use focusState instead
   )(implicit ctx: Ctx.Owner): VNode = {
 
     val editKey = Var(false)
@@ -265,7 +266,12 @@ object Components {
               margin := "3px 0px",
 
               editablePropertyNode( property.node, property.edge, editMode = editValue,
-                nonPropertyModifier = VDomModifier(writeHoveredNode( property.node.id), cursor.pointer, onClick.stopPropagation.use(Some(property.node.id)).foreach(parentIdAction(_))),
+                nonPropertyModifier = VDomModifier(
+                  writeHoveredNode( property.node.id),
+                  cursor.pointer,
+                  //TODO: rightsidebarnodcardmod ?
+                  onClick.stopPropagation.use(Some(property.node.id)).foreach(parentIdAction(_))
+                ),
                 maxLength = Some(100), config = EditableContent.Config.default,
               ).apply(cls := "propertyvalue"),
 
@@ -294,7 +300,7 @@ object Components {
   def nodeCardProperty(
     key: Edge.LabeledProperty,
     property: Node,
-    pageOnClick: Boolean = false,
+    focusState: FocusState,
     modifier: VDomModifier = VDomModifier.empty
   )(implicit ctx: Ctx.Owner): VNode = {
 
@@ -319,7 +325,7 @@ object Components {
           }
           case _ => nodeCard( property, maxLength = Some(50)).apply(
             writeHoveredNode( property.id),
-            sidebarNodeFocusMod(GlobalState.rightSidebarNode, property.id),
+            sidebarNodeFocusMod(property.id, focusState),
             cursor.pointer
           )
         }
@@ -962,60 +968,30 @@ object Components {
     )
   }
 
-  def sidebarNodeFocusMod(sidebarNode: Var[Option[FocusPreference]], nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
-    sidebarNodeFocusClickMod(sidebarNode, nodeId),
-    sidebarNodeFocusVisualizeMod(sidebarNode, nodeId)
+  def sidebarNodeFocusMod(nodeId: NodeId, focusState:FocusState)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
+    sidebarNodeFocusClickMod(nodeId, focusState),
+    sidebarNodeFocusVisualizeMod(focusState.itemIsFocused(nodeId))
   )
 
-  def sidebarNodeFocusClickMod(sidebarNode: Var[Option[FocusPreference]], nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = sidebarNodeFocusClickMod(sidebarNode, sidebarNode() = _, nodeId)
-
-  def sidebarNodeFocusClickMod(sidebarNode: Rx[Option[FocusPreference]], onSidebarNode: Option[FocusPreference] => Unit, nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = {
-    import vectory._
-    val sidebarNodeOpenDelay = {
-      import concurrent.duration._
-      200 milliseconds
-    }
-
-    val dragTolerance = 5.0
-    var dblClicked = false
-    var mouseDownPos = Vec2(0,0)
-    VDomModifier(
-      cursor.pointer,
-      onMouseDown.stopPropagation.foreach { e =>
-        // stopPropagition: don't globally close sidebar by clicking here. Instead onClick toggles the sidebar directly
-        mouseDownPos = Vec2(e.clientX, e.clientY)
+  def sidebarNodeFocusClickMod(nodeId: NodeId, focusState: FocusState)(implicit ctx: Ctx.Owner): VDomModifier = {
+    onSingleOrDoubleClick(
+      singleClickAction = { () =>
+        focusState.onItemSingleClick(nodeId)
       },
-      onClick.stopPropagation.transform(_.delay(sidebarNodeOpenDelay)).foreach { e =>
-        // opening right sidebar is delayed to not interfere with double click
-        if(dblClicked) dblClicked = false
-        else {
-          val mouseUpPos = Vec2(e.clientX, e.clientY)
-          if((mouseUpPos - mouseDownPos).length < dragTolerance) {
-            val nextNode = if (sidebarNode.now.exists(_.nodeId == nodeId)) None else Some(FocusPreference(nodeId))
-            onSidebarNode(nextNode)
-          }
-        }
-      },
-      onDblClick.stopPropagation.foreach{ _ =>
-        dblClicked = true
-        GlobalState.focus(nodeId)
-        GlobalState.graph.now.nodesById(nodeId).foreach { node =>
-          node.role match {
-            case NodeRole.Task => FeatureState.use(Feature.ZoomIntoTask)
-            case NodeRole.Message => FeatureState.use(Feature.ZoomIntoMessage)
-            case NodeRole.Note => FeatureState.use(Feature.ZoomIntoNote)
-            case _ =>
-          }
-        }
-      },
+      doubleClickAction = { () =>
+        focusState.onItemDoubleClick(nodeId)
+      }
     )
   }
 
-  def sidebarNodeFocusVisualizeMod(sidebarNode: Rx[Option[FocusPreference]], nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
-    sidebarNode.map(_.exists(_.nodeId == nodeId)).map { isFocused =>
-      VDomModifier.ifTrue(isFocused)(boxShadow := s"inset 0 0 0px 2px ${CommonStyles.selectedNodesBgColorCSS}")
+  def sidebarNodeFocusVisualizeMod(isFocused: Rx[Boolean])(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
+    Rx { 
+      VDomModifier.ifTrue(isFocused())(boxShadow := s"inset 0 0 0px 2px ${CommonStyles.selectedNodesBgColorCSS}")
     }
   )
+
+
+  //TODO implement like sidebarNodeFocusVisualizeMod
   def sidebarNodeFocusVisualizeRightMod(sidebarNode: Rx[Option[FocusPreference]], nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
     sidebarNode.map(_.exists(_.nodeId == nodeId)).map { isFocused =>
       VDomModifier.ifTrue(isFocused)(boxShadow := s"2px 0px 1px -1px ${CommonStyles.selectedNodesBgColorCSS}")

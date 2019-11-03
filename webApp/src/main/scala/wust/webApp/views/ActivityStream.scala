@@ -77,7 +77,7 @@ object ActivityStream {
             } else {
               val currentTime = EpochMilli.now
               VDomModifier(
-                activityNodes().map(renderActivityNode(graph, _, focusState.focusedId, userId(), currentTime = currentTime))
+                activityNodes().map(renderActivityNode(graph, _, focusState, userId(), currentTime = currentTime))
               )
             }
           },
@@ -135,10 +135,12 @@ object ActivityStream {
   private def renderActivityNode(
     graph: Rx[Graph],
     activityNode: ActivityNode,
-    focusedId: NodeId,
+    focusState: FocusState,
     userId: UserId,
     currentTime: EpochMilli
   ): VDomModifier = div.thunk(activityNode.node.id.toStringFast + activityNode.revision.timestamp)(activityNode)(Ownable { implicit ctx => // multiple nodes with same id...
+
+    val focusedId = focusState.focusedId
 
     val nodeIdx = Rx {
       graph().idToIdxOrThrow(activityNode.node.id)
@@ -255,7 +257,7 @@ object ActivityStream {
             nodeCard(activityNode.node, maxLength = Some(250), projectWithIcon = true).apply(
               VDomModifier.ifTrue(activityNode.revision.isInstanceOf[Revision.Delete])(cls := "node-deleted"),
 
-              Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, activityNode.node.id)
+              Components.sidebarNodeFocusMod(activityNode.node.id, focusState)
             )
           )
         )

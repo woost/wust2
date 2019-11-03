@@ -79,7 +79,7 @@ object NotificationView {
                     h3("What's new?"),
                     markAllReadButton(graph, userId)
                   ),
-                  renderUnreadGroup(graph, userId, unreadTreeNode, focusedId = focusState.focusedId, renderTime = renderTime, currentTime = currentTime, collapsed, isToplevel = true)
+                  renderUnreadGroup(graph, userId, unreadTreeNode, focusedId = focusState.focusedId, focusState, renderTime = renderTime, currentTime = currentTime, collapsed, isToplevel = true)
                 )
               case _ =>
                 h3(
@@ -182,6 +182,7 @@ object NotificationView {
     userId: UserId,
     unreadParentNodeInitial: UnreadNode,
     focusedId: NodeId,
+    focusState: FocusState,
     renderTime: EpochMilli,
     currentTime: EpochMilli,
     collapsed: Var[Set[NodeId]],
@@ -280,14 +281,14 @@ object NotificationView {
                           },
                           nodeCard(node, maxLength = Some(150), projectWithIcon = true).apply(
                             VDomModifier.ifTrue(deletedTime.isDefined)(cls := "node-deleted"),
-                            Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, node.id)
+                            Components.sidebarNodeFocusMod(node.id, focusState)
                           ),
 
                           revisionTable(paddingTop := "5px")
                         )
                       ),
                       VDomModifier.ifTrue(unreadNode.children.nonEmpty){
-                        renderUnreadGroup(graph, userId, unreadNode, focusedId = graph.nodeIds(unreadNode.nodeIdx), renderTime = renderTime, currentTime = currentTime, collapsed = collapsed)
+                        renderUnreadGroup(graph, userId, unreadNode, focusedId = graph.nodeIds(unreadNode.nodeIdx), focusState, renderTime = renderTime, currentTime = currentTime, collapsed = collapsed)
                       }
                     )
 

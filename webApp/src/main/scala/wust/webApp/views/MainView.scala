@@ -8,7 +8,7 @@ import wust.css.{ Styles, ZIndex }
 import wust.ids.Feature
 import wust.sdk.Colors
 import wust.webApp.WoostNotification
-import wust.webApp.state.{ FeatureDetails, GlobalState, PresentationMode, ScreenSize }
+import wust.webApp.state.{ FeatureDetails, GlobalState, PresentationMode, ScreenSize, FocusState, FocusPreference, ViewConfig }
 import wust.webUtil.Elements._
 import wust.webUtil.{ BrowserDetect, UI }
 import wust.webUtil.outwatchHelpers._
@@ -189,7 +189,7 @@ object MainView {
             } else if (GlobalState.showPageNotFound()) {
               PageNotFoundView.apply.apply(Styles.growFull, zIndex := ZIndex.loading, backgroundColor := Colors.contentBg)
             } else {
-              ViewRender(GlobalState.toFocusState(viewConfig), viewConfig.view).apply(
+              ViewRender(GlobalState.mainFocusState(viewConfig), viewConfig.view).apply(
                 Styles.growFull,
                 flexGrow := 1
               ).prepend(

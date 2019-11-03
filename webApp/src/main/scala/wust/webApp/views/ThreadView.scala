@@ -224,7 +224,7 @@ object ThreadView {
             val inCycle = transitiveParentIds.contains(nodeId)
 
             if(inCycle)
-              renderMessageRow( nodeId, directParentIds, isDeletedNow = isDeletedNow, showReplyField = showReplyField, isExpanded = Rx(false), inCycle = true)
+              renderMessageRow( nodeId, focusState, directParentIds, isDeletedNow = isDeletedNow, showReplyField = showReplyField, isExpanded = Rx(false), inCycle = true)
             else {
               val isExpanded = Rx {
                 // we need to get the newest node content from the graph
@@ -238,7 +238,7 @@ object ThreadView {
               }
 
               VDomModifier(
-                renderMessageRow( nodeId, directParentIds, isDeletedNow = isDeletedNow, isExpanded = isExpanded, showReplyField = showReplyField, inCycle = false),
+                renderMessageRow( nodeId, focusState, directParentIds, isDeletedNow = isDeletedNow, isExpanded = isExpanded, showReplyField = showReplyField, inCycle = false),
                 Rx {
                   showExpandedThread().ifTrue[VDomModifier] {
                     renderExpandedThread( focusState, transitiveParentIds, nodeId, nodeIdList, showReplyField)
@@ -320,7 +320,15 @@ object ThreadView {
     )
   }
 
-  private def renderMessageRow(nodeId: NodeId, directParentIds:Iterable[ParentId], isDeletedNow: Rx[Boolean], showReplyField: Var[Boolean], isExpanded:Rx[Boolean], inCycle:Boolean)(implicit ctx: Ctx.Owner): VNode = {
+  private def renderMessageRow(
+    nodeId: NodeId,
+    focusState:FocusState,
+    directParentIds:Iterable[ParentId],
+    isDeletedNow: Rx[Boolean],
+    showReplyField: Var[Boolean],
+    isExpanded:Rx[Boolean],
+    inCycle:Boolean
+  )(implicit ctx: Ctx.Owner): VNode = {
 
     val isSelected = Rx {
       GlobalState.selectedNodes().exists(selected => selected.nodeId == nodeId && selected.directParentIds == directParentIds)
@@ -328,6 +336,7 @@ object ThreadView {
 
     val renderedMessage = renderMessage(
       nodeId,
+      focusState,
       directParentIds,
       isDeletedNow = isDeletedNow,
       renderedMessageModifier = VDomModifier(VDomModifier.ifTrue(inCycle)(

@@ -15,7 +15,7 @@ import wust.sdk.NodeColor._
 import wust.util.StringOps
 import wust.webApp.Icons
 import wust.webApp.dragdrop.DragItem
-import wust.webApp.state.{FeatureState, FocusPreference, GlobalState, GraphChangesAutomation}
+import wust.webApp.state.{FeatureState, FocusState, FocusPreference, GlobalState, GraphChangesAutomation}
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil._
 import wust.webUtil.Elements._
@@ -30,7 +30,9 @@ object GraphChangesAutomationUI {
 
   val createAutomationTemplateText = "Create a new Automation Template"
   // returns the modal config for rendering a modal for configuring automation of the node `nodeId`.
-  def modalConfig(focusedId: NodeId, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): ModalConfig = {
+  def modalConfig(focusState: FocusState, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): ModalConfig = {
+    val focusedId = focusState.focusedId
+
     val header: VDomModifier = Rx {
       GlobalState.rawGraph().nodesById(focusedId).map { node =>
         Modal.defaultHeader(node, "Automation", Icons.automate)
@@ -205,7 +207,7 @@ object GraphChangesAutomationUI {
 
                       propertySingle.properties.map { property =>
                         property.values.map { value =>
-                          Components.nodeCardProperty( value.edge, value.node)
+                          Components.nodeCardProperty( value.edge, value.node, focusState)
                         }
                       },
 
@@ -222,7 +224,7 @@ object GraphChangesAutomationUI {
                     ),
 
                     DragItem.fromNodeRole(templateNode.id, templateNode.role).map(dragItem => DragComponents.drag(target = dragItem)),
-                    Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, templateNode.id),
+                    Components.sidebarNodeFocusMod(templateNode.id, focusState),
                   ).prepend(
                     b(color.gray, templateNode.role.toString)
                   ),
@@ -285,11 +287,29 @@ object GraphChangesAutomationUI {
       graph.automatedEdgeIdx.sliceNonEmpty(graph.idToIdxOrThrow(focusedId))
     }
 
+    // This clearly defines how clicking items in this modal behave.
+    val focusState = FocusState(
+      view = View.Empty,
+      contextParentId = focusedId,
+      focusedId = focusedId,
+      isNested = false,
+      changeViewAction = view => (),
+      contextParentIdAction = nodeId => GlobalState.focus(nodeId),
+      itemIsFocused = nodeId => GlobalState.rightSidebarNode.map(_.exists(_.nodeId == nodeId)),
+      onItemSingleClick = { nodeId =>
+        // toggle rightsidebar:
+        val nextNode = if (GlobalState.rightSidebarNode.now.exists(_.nodeId == nodeId)) None else Some(FocusPreference(nodeId))
+        GlobalState.rightSidebarNode() = nextNode
+      },
+      onItemDoubleClick = nodeId => GlobalState.focus(nodeId),
+    )
+
+
     div(
       i(cls := "fa-fw", Icons.automate),
 
       cursor.pointer,
-      onClick.use(Ownable(implicit ctx => modalConfig( focusedId, viewRender))) --> GlobalState.uiModalConfig,
+      onClick.use(Ownable(implicit ctx => modalConfig( focusState, viewRender))) --> GlobalState.uiModalConfig,
       onClickDefault.foreach {
         Segment.trackEvent("Open Automation Modal")
       },
