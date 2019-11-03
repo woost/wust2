@@ -305,11 +305,11 @@ object GraphChangesAutomation {
 
   // copy the whole subgraph of the templateNode and append it to newNode.
   // templateNode is a placeholder and we want make changes such newNode looks like a copy of templateNode.
-  def copySubGraphOfNode(userId: UserId, graph: Graph, newNode: Node, templateNodeIdxs: Array[Int], ignoreParents: mutable.HashSet[NodeId] = mutable.HashSet.empty, newId: NodeId => NodeId = _ => NodeId.fresh, copyTime: EpochMilli = EpochMilli.now, toastEnabled: Boolean = true): GraphChanges = {
-    copySubGraphOfNodeWithIsTouched(userId, graph, newNode, templateNodeIdxs, ignoreParents, newId, copyTime, toastEnabled)._2
+  def copySubGraphOfNode(userId: UserId, graph: Graph, newNode: Node, templateNodeIdxs: Array[Int], ignoreParents: mutable.HashSet[NodeId] = mutable.HashSet.empty, newId: NodeId => NodeId = _ => NodeId.fresh, copyTime: EpochMilli = EpochMilli.now, toastEnabled: Boolean = true, isFullCopy: Boolean = false): GraphChanges = {
+    copySubGraphOfNodeWithIsTouched(userId, graph, newNode, templateNodeIdxs, ignoreParents, newId, copyTime, toastEnabled, isFullCopy)._2
   }
 
-  def copySubGraphOfNodeWithIsTouched(userId: UserId, graph: Graph, newNode: Node, templateNodeIdxs: Array[Int], ignoreParents: mutable.HashSet[NodeId] = mutable.HashSet.empty, newId: NodeId => NodeId = _ => NodeId.fresh, copyTime: EpochMilli = EpochMilli.now, toastEnabled: Boolean = true): (Boolean, GraphChanges) = if (templateNodeIdxs.isEmpty) (false, GraphChanges.empty) else {
+  def copySubGraphOfNodeWithIsTouched(userId: UserId, graph: Graph, newNode: Node, templateNodeIdxs: Array[Int], ignoreParents: mutable.HashSet[NodeId] = mutable.HashSet.empty, newId: NodeId => NodeId = _ => NodeId.fresh, copyTime: EpochMilli = EpochMilli.now, toastEnabled: Boolean = true, isFullCopy: Boolean = false): (Boolean, GraphChanges) = if (templateNodeIdxs.isEmpty) (false, GraphChanges.empty) else {
     scribe.info(s"Copying sub graph of node $newNode")
 
     val newNodeIdx = graph.idToIdx(newNode.id)
@@ -468,7 +468,12 @@ object GraphChangesAutomation {
 
         // for each descendant of the template, we need to check whether the node already exists or whether we need to create it.
         // A template can have ReferencesTemplate engines. That means sourceId wants to automated any node derived from targetId.
-        if (descendantReferences.isEmpty) { // if there is no references template
+        if (isFullCopy && !templateNodeIdxs.exists(_ == descendantIdx)) { // full copy is different for all nodes below the templates, just copy
+          val copyNode = copyAndTransformNode(descendant)
+          alreadyExistingNodes += descendant.id -> copyNode
+          replacedNodes += descendant.id -> copyNode
+          true
+        } else if (descendantReferences.isEmpty) { // if there is no references template
           if (templateNodeIdxs.exists(_ == descendantIdx)) { // if this is actually a templateNode and we have no references
             if (descendant.role == newNode.role) { // without explicit reference, we only apply to the same noderole.
               newNodeIsTouched = true
@@ -570,11 +575,11 @@ object GraphChangesAutomation {
     // that we copy the edge structure that the template node had.
     graph.edges.foreach {
       //TODO: we might need them if we want to copy automations..., need to figure out which ones are from this template and which ones are from the others...
-      case _: Edge.DerivedFromTemplate                                    => () // do not copy derived info, we get new derive infos for new nodes
-      case _: Edge.ReferencesTemplate                                     => () // do not copy reference info, we only want this on the template node
+      case _: Edge.DerivedFromTemplate if !isFullCopy                                    => () // do not copy derived info, we get new derive infos for new nodes
+      case _: Edge.ReferencesTemplate  if !isFullCopy                                   => () // do not copy reference info, we only want this on the template node
 
-      case edge: Edge.Automated if referencedTemplateIds.contains(edge.templateNodeId) || referencingNodeIds.contains(edge.templateNodeId) => () // do not copy automation edges of template, otherwise the newNode would become a template.
-      case edge: Edge.Child if edge.data.deletedAt.exists(EpochMilli.now.isAfter) && !referencingNodeIds.contains(edge.childId) || templateNodeIdxs.exists(idx => graph.nodeIds(idx) == edge.childId) && ignoreParents(edge.parentId) => () // do not copy deleted parent edges except when we delete a referenced template, do not copy child edges for ignore parents. This for special cases where we just want to copy the node but not where it is located.
+      case edge: Edge.Automated if !isFullCopy && (referencedTemplateIds.contains(edge.templateNodeId) || referencingNodeIds.contains(edge.templateNodeId)) => () // do not copy automation edges of template, otherwise the newNode would become a template.
+      case edge: Edge.Child if !isFullCopy && (edge.data.deletedAt.exists(EpochMilli.now.isAfter) && !referencingNodeIds.contains(edge.childId) || templateNodeIdxs.exists(idx => graph.nodeIds(idx) == edge.childId) && ignoreParents(edge.parentId)) => () // do not copy deleted parent edges except when we delete a referenced template, do not copy child edges for ignore parents. This for special cases where we just want to copy the node but not where it is located.
       case edge: Edge.Author            => () // do not copy author edges
       case edge: Edge.Read              => () // do not copy read edges
       case edge                                                           =>
