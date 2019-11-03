@@ -152,7 +152,7 @@ object GlobalStateFactory {
       }
     }
 
-    // if we have a payment success on startup, the notify user.
+    // if we have a payment success on startup, then notify user.
     urlConfig.now.info.foreach {
       case InfoContent.PaymentSucceeded => UI.toast("Successfully upgraded Payment Plan.", level = UI.ToastLevel.Success)
     }
