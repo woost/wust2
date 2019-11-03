@@ -54,7 +54,7 @@ object StatisticsView  {
                 VDomModifier.ifTrue(GlobalState.screenSize() == ScreenSize.Small)(fontSize.small), // not much space on mobile, so try to stay as small as possible
               ),
 
-              onClick.stopPropagation.use(view).foreach(focusState.viewAction),
+              onClick.stopPropagation.use(view).foreach(focusState.changeViewAction),
               position.relative,
             )
           }

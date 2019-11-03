@@ -19,7 +19,9 @@ object PageHeader {
       VDomModifier(
         cls := "pageheader",
 
-        GlobalState.page.map(_.parentId.map(pageRow(_, viewRender))),
+        GlobalState.page.map(_.parentId.map{ parentId =>
+          pageRow(parentId, viewRender)
+        }),
       )
     })
   }
@@ -31,11 +33,16 @@ object PageHeader {
       GlobalState.graph().nodesById(pageNodeId)
     }
 
-    val channelTitle = div(
+    val focusState:Rx[Option[FocusState]] = Rx {
+      val viewConfig = GlobalState.viewConfig()
+      GlobalState.mainFocusState(viewConfig)
+    }
+
+    def channelTitle(focusState:FocusState)(implicit ctx: Ctx.Owner) = div(
       backgroundColor := pageStyle.pageBgColor,
       cls := "pageheader-channeltitle",
 
-      Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, pageNodeId),
+      Components.sidebarNodeFocusMod(pageNodeId, focusState),
       Components.showHoveredNode(pageNodeId),
       registerDragContainer,
       Rx {
@@ -68,7 +75,6 @@ object PageHeader {
         SharedViewElements.channelMembers(pageNodeId).apply(marginLeft := "5px", lineHeight := "0", maxWidth := "200px")
       )
     }
-
 
     VDomModifier(
       backgroundColor := pageStyle.pageBgColor,
@@ -128,10 +134,12 @@ object PageHeader {
           alignItems.center,
           marginLeft.auto,
 
-          channelTitle,
+          Rx {
+            focusState().map( focusState => channelTitle(focusState))
+          },
 
           GlobalState.presentationMode.map {
-            case PresentationMode.Full => channelNotification
+            case PresentationMode.Full        => channelNotification
             case PresentationMode.ContentOnly => VDomModifier.empty
           },
           channelMembersList,
@@ -153,7 +161,7 @@ object PageHeader {
             )
           },
           GlobalState.presentationMode.map {
-            case PresentationMode.Full => PageSettingsMenu(pageNodeId).apply(fontSize := "20px")
+            case PresentationMode.Full        => PageSettingsMenu(pageNodeId).apply(fontSize := "20px")
             case PresentationMode.ContentOnly => VDomModifier.empty
           }
         )

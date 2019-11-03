@@ -19,7 +19,11 @@ import wust.webUtil.{BrowserDetect, Elements, Ownable, UI}
 
 object RightSidebar {
 
-  def apply(viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VNode = apply(GlobalState.rightSidebarNode, nodeId => GlobalState.rightSidebarNode() = nodeId.map(FocusPreference(_)), viewRender: ViewRenderLike)
+  def apply(viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VNode = apply(
+    focusedNodeId = GlobalState.rightSidebarNode,
+    parentIdAction = nodeId => GlobalState.rightSidebarNode() = nodeId.map(FocusPreference(_)),
+    viewRender = viewRender
+  )
   def apply(focusedNodeId: Rx[Option[FocusPreference]], parentIdAction: Option[NodeId] => Unit, viewRender: ViewRenderLike, openModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
 
     val isFullscreen = Var(false)
@@ -62,8 +66,30 @@ object RightSidebar {
   val propertiesAccordionText = "Properties & Custom Fields"
   val addCustomFieldText = "Add Custom Field"
 
-  def content(focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit, viewRender: ViewRenderLike, isFullscreen: Var[Boolean], focusHistory: Var[List[NodeId]], focusFuture: Var[List[NodeId]], ignoreNextUpdate: () => Unit)(implicit ctx: Ctx.Owner): VNode = {
+  def content(
+    focusPref: FocusPreference,
+    parentIdAction: Option[NodeId] => Unit,
+    viewRender: ViewRenderLike,
+    isFullscreen: Var[Boolean],
+    focusHistory: Var[List[NodeId]],
+    focusFuture: Var[List[NodeId]],
+    ignoreNextUpdate: () => Unit
+  )(implicit ctx: Ctx.Owner): VNode = {
     val nodeStyle = PageStyle.ofNode(focusPref.nodeId)
+
+
+    val focusState = FocusState(
+      view = View.Empty,
+      contextParentId = focusPref.nodeId,
+      focusedId = focusPref.nodeId,
+      isNested = true,
+      changeViewAction = newView => (),// TODO: not used. Only StatisticsView is using this. Remove? ViewHeuristic.visibleView(GlobalState.rawGraph.now, focusPref.nodeId, newView).foreach(currentView() = _),
+      contextParentIdAction = nodeId => parentIdAction(Some(nodeId)),
+      itemIsFocused = nodeId => GlobalState.rightSidebarNode.map(_.exists(_.nodeId == nodeId)),
+      onItemSingleClick = { nodeId => parentIdAction(Some(nodeId)) },
+      onItemDoubleClick = nodeId => GlobalState.focus(nodeId),
+    )
+
 
     val sidebarHeader = div(
       opacity := 0.5,
@@ -171,12 +197,12 @@ object RightSidebar {
       UI.accordion(
         content = Seq(
           accordionEntry(propertiesAccordionText, VDomModifier(
-            nodeProperties(focusPref, parentIdAction),
+            nodeProperties(focusPref, parentIdAction, focusState),
             Styles.flexStatic,
           ), active = false),
           accordionEntry("Views", VDomModifier(
             height := "100%",
-            viewContent(focusPref, parentIdAction, nodeStyle, viewRender),
+            viewContent(focusPref, parentIdAction, focusState, nodeStyle, viewRender),
           ), active = true),
         ),
         styles = "styled fluid",
@@ -190,7 +216,14 @@ object RightSidebar {
         )
     )
   }
-  private def viewContent(focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit, nodeStyle: PageStyle, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner) = {
+  private def viewContent(
+    focusPref: FocusPreference,
+    parentIdAction: Option[NodeId] => Unit, // TODO: use focusState instead
+    focusState:FocusState,
+    nodeStyle: PageStyle,
+    viewRender: ViewRenderLike
+  )(implicit ctx: Ctx.Owner) = {
+
     val graph = GlobalState.rawGraph.now // this is per new focusPref, and ViewSwitcher just needs an initialvalue
     val initialView: View.Visible = graph.nodesById(focusPref.nodeId).flatMap(ViewHeuristic.bestView(graph, _, GlobalState.user.now.id)).getOrElse(View.Empty)
     val currentView: Var[View.Visible] = Var(initialView).imap(identity)(view => ViewHeuristic.visibleView(graph, focusPref.nodeId, view).getOrElse(View.Empty))
@@ -208,15 +241,6 @@ object RightSidebar {
     val viewSwitcherVar: Var[View] = Var(currentView.now)
     currentView.triggerLater(viewSwitcherVar() = _)
     viewSwitcherVar.triggerLater(newView => ViewHeuristic.visibleView(graph, focusPref.nodeId, newView).foreach(currentView() = _))
-
-    def focusState(view: View.Visible) = FocusState(
-      view,
-      focusPref.nodeId,
-      focusPref.nodeId,
-      isNested = true,
-      viewAction = newView => ViewHeuristic.visibleView(graph, focusPref.nodeId, newView).foreach(currentView() = _),
-      nodeId => parentIdAction(Some(nodeId))
-    )
 
     VDomModifier(
       Styles.flex,
@@ -237,7 +261,7 @@ object RightSidebar {
 
       Rx {
         val view = currentView()
-        viewRender(focusState(view), view).apply(
+        viewRender(focusState.copy(view = view), view).apply(
           Styles.growFull,
           flexGrow := 1,
         ).prepend(
@@ -380,7 +404,11 @@ object RightSidebar {
     )
   }
 
-  private def nodeProperties(focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
+  private def nodeProperties(
+    focusPref: FocusPreference,
+    parentIdAction: Option[NodeId] => Unit, // TODO: use focusState instead
+    focusState: FocusState,
+  )(implicit ctx: Ctx.Owner) = {
 
     val propertySingle = Rx {
       val graph = GlobalState.rawGraph()
@@ -483,7 +511,7 @@ object RightSidebar {
 
               VDomModifier(
                 propertySingle.properties.map { property =>
-                  Components.removablePropertySection(property.key, property.values, parentIdAction)
+                  Components.removablePropertySection(property.key, property.values, focusState, parentIdAction)
                 },
 
                 VDomModifier.ifTrue(propertySingle.info.reverseProperties.nonEmpty)(div(
@@ -494,7 +522,7 @@ object RightSidebar {
                   propertySingle.info.reverseProperties.map { node =>
                     Components.nodeCard(node, maxLength = Some(50)).apply(
                       margin := "3px",
-                      Components.sidebarNodeFocusClickMod(Var(Some(focusPref)), pref => parentIdAction(pref.map(_.nodeId)), node.id)
+                      Components.sidebarNodeFocusClickMod(node.id, focusState)
                     )
                   }
                 ))
@@ -579,7 +607,7 @@ object RightSidebar {
                         justifyContent.flexEnd,
                         VDomModifier.ifTrue(referenceModifiers.nonEmpty)(i(marginRight := "4px", s"${referenceModifiers.mkString(", ")}: ")),
                         Components.nodeCard(node, maxLength = Some(100)).apply(
-                          Components.sidebarNodeFocusClickMod(Var(Some(focusPref)), pref => parentIdAction(pref.map(_.nodeId)), node.id)
+                          Components.sidebarNodeFocusClickMod(node.id, focusState)
                         ),
                         div(padding := "4px", Icons.delete, deleteButton(node.id))
                       )

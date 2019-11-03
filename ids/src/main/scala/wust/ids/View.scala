@@ -41,6 +41,10 @@ object View {
     override def toString = "Checklist"
     def viewKey = "list"
   }
+  case object ListWithChat extends Visible {
+    override def toString = "Checklist with Chat (side by side)"
+    def viewKey = "listwithchat"
+  }
   case object Graph extends Visible {
     override def toString = "Tag Diagram for Tasks"
     def viewKey = "graph"

@@ -228,8 +228,32 @@ object GlobalState {
   }
   val isAnyFilterActive: Rx[Boolean] = Rx { graphTransformations().length != 2 || defaultTransformations.exists(t => !graphTransformations().contains(t)) }
 
-  def toFocusState(viewConfig: ViewConfig): Option[FocusState] = viewConfig.page.parentId.map { parentId =>
-    FocusState(viewConfig.view, parentId, parentId, isNested = false, view => urlConfig.update(_.focus(view)), nodeId => focus(nodeId))
+  def mainFocusState(viewConfig: ViewConfig): Option[FocusState] = viewConfig.page.parentId.map { parentId =>
+    FocusState(
+      view = viewConfig.view,
+      contextParentId = parentId,
+      focusedId = parentId,
+      isNested = false,
+      changeViewAction = view => urlConfig.update(_.focus(view)),
+      contextParentIdAction = nodeId => focus(nodeId),
+      itemIsFocused = nodeId => rightSidebarNode.map(_.exists(_.nodeId == nodeId)),
+      onItemSingleClick = { nodeId =>
+        // toggle rightsidebar:
+        val nextNode = if (rightSidebarNode.now.exists(_.nodeId == nodeId)) None else Some(FocusPreference(nodeId))
+        rightSidebarNode() = nextNode
+      },
+      onItemDoubleClick = { nodeId =>
+        focus(nodeId)
+        graph.now.nodesById(nodeId).foreach { node =>
+          node.role match {
+            case NodeRole.Task => FeatureState.use(Feature.ZoomIntoTask)
+            case NodeRole.Message => FeatureState.use(Feature.ZoomIntoMessage)
+            case NodeRole.Note => FeatureState.use(Feature.ZoomIntoNote)
+            case _ =>
+          }
+        }
+      },
+    )
   }
 
   private val crispIsAlreadyLoaded = Try(window.asInstanceOf[js.Dynamic].CRISP_IS_READY.asInstanceOf[Boolean]).getOrElse(false)

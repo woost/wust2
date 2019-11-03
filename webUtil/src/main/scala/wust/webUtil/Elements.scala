@@ -1,14 +1,14 @@
 package wust.webUtil
 
 import typings.chartDotJs.chartDotJsMod.ChartConfiguration
-import fontAwesome.{IconLookup, Params, Transform, fontawesome, freeSolid}
+import fontAwesome.{ IconLookup, Params, Transform, fontawesome, freeSolid }
 import wust.facades.dateFns.DateFns
 import wust.facades.hammerjs
 import org.scalajs.dom
 import org.scalajs.dom.ext.KeyCode
-import org.scalajs.dom.raw.{HTMLElement, HTMLInputElement}
-import org.scalajs.dom.window.{clearTimeout, setTimeout}
-import org.scalajs.dom.{KeyboardEvent, MouseEvent}
+import org.scalajs.dom.raw.{ HTMLElement, HTMLInputElement }
+import org.scalajs.dom.window.{ clearTimeout, setTimeout }
+import org.scalajs.dom.{ KeyboardEvent, MouseEvent }
 import rx._
 import wust.facades.emojijs.EmojiConvertor
 import wust.facades.marked.Marked
@@ -21,7 +21,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.reactive._
 import outwatch.reactive.handler._
-import outwatch.dom.helpers.{EmitterBuilder, PropBuilder}
+import outwatch.dom.helpers.{ EmitterBuilder, PropBuilder }
 
 import scala.concurrent.duration._
 import scala.scalajs.js
@@ -42,7 +42,7 @@ object Elements {
     } catch { case _: Throwable => } // with NonFatal(_) it fails in the tests
   }
 
-  final class ScrollBottomHandler(initialScrollToBottom:Boolean = true) {
+  final class ScrollBottomHandler(initialScrollToBottom: Boolean = true) {
     val scrollableElem: Var[Option[HTMLElement]] = Var(None)
     val isScrolledToBottom = Var[Boolean](initialScrollToBottom)
 
@@ -65,22 +65,21 @@ object Elements {
       },
       onDomMount.asHtml foreach { elem =>
         scrollableElem() = Some(elem)
-        if(initialScrollToBottom) scrollToBottomInAnimationFrame()
+        if (initialScrollToBottom) scrollToBottomInAnimationFrame()
       },
     )
   }
 
-  def onClickPreventDefaultExceptCtrl(action: => Unit):VDomModifier = {
+  def onClickPreventDefaultExceptCtrl(action: => Unit): VDomModifier = {
     // on middle click / ctrl+click opens new tab with `href`
     // https://jsfiddle.net/53njtdg6/1/
-    onClick.foreach { e:dom.MouseEvent =>
-      if(!e.ctrlKey) {
+    onClick.foreach { e: dom.MouseEvent =>
+      if (!e.ctrlKey) {
         e.preventDefault()
         action
       }
     }
   }
-
 
   val onEnter: EmitterBuilder.Sync[dom.KeyboardEvent, VDomModifier] =
     onKeyDown
@@ -107,89 +106,124 @@ object Elements {
     EmitterBuilder.fromSource(events.document.onMouseDown)
 
   val onClickOrLongPress: EmitterBuilder.Sync[Boolean, VDomModifier] =
-    EmitterBuilder[Boolean, VDomModifier] { sink => VDomModifier.delay {
-      // https://stackoverflow.com/a/27413909
-      val duration = 251
-      val distanceToleranceSq = 5*5
+    EmitterBuilder[Boolean, VDomModifier] { sink =>
+      VDomModifier.delay {
+        // https://stackoverflow.com/a/27413909
+        val duration = 251
+        val distanceToleranceSq = 5 * 5
 
-      var longpress = false
-      var presstimer = -1
-      var startx:Double = -1
-      var starty:Double = -1
-      var currentx:Double = -1
-      var currenty:Double = -1
+        var longpress = false
+        var presstimer = -1
+        var startx: Double = -1
+        var starty: Double = -1
+        var currentx: Double = -1
+        var currenty: Double = -1
 
-      def cancel(): Unit = {
-        if (presstimer != -1) {
-          clearTimeout(presstimer)
-          presstimer = -1
-        }
-      }
-
-      def click(e:dom.MouseEvent): Unit = {
-        if (presstimer != -1) {
-          clearTimeout(presstimer);
-          presstimer = -1
-        }
-
-        if (!longpress) {
-          sink.onNext(false) // click
-        }
-      }
-
-      def start(e:dom.TouchEvent): Unit = {
-        longpress = false
-        startx = e.touches(0).clientX
-        starty = e.touches(0).clientY
-        currentx = startx
-        currenty = starty
-
-        presstimer = setTimeout({ () =>
-          val dx = currentx - startx
-          val dy = currenty - starty
-          val distanceSq = dx*dx + dy*dy
-          if(distanceSq <= distanceToleranceSq) {
-            sink.onNext(true) // long click
+        def cancel(): Unit = {
+          if (presstimer != -1) {
+            clearTimeout(presstimer)
+            presstimer = -1
           }
-          longpress = true // prevents click
-        }, duration)
-      }
+        }
 
-      @inline def updateCurrentPosition(e:dom.TouchEvent): Unit = {
-        currentx = e.touches(0).clientX
-        currenty = e.touches(0).clientY
-      }
+        def click(e: dom.MouseEvent): Unit = {
+          if (presstimer != -1) {
+            clearTimeout(presstimer);
+            presstimer = -1
+          }
 
-      VDomModifier(
-        //TODO: SDT: add touch handlers
-        onClick foreach { click _ },
-        eventProp("touchmove") foreach { updateCurrentPosition _ },
-        eventProp("touchstart") foreach { start _ },
-        eventProp("touchend") foreach {cancel()},
-        eventProp("touchleave") foreach {cancel()},
-        eventProp("touchcancel") foreach {cancel()},
-      )
-    }}
+          if (!longpress) {
+            sink.onNext(false) // click
+          }
+        }
+
+        def start(e: dom.TouchEvent): Unit = {
+          longpress = false
+          startx = e.touches(0).clientX
+          starty = e.touches(0).clientY
+          currentx = startx
+          currenty = starty
+
+          presstimer = setTimeout({ () =>
+            val dx = currentx - startx
+            val dy = currenty - starty
+            val distanceSq = dx * dx + dy * dy
+            if (distanceSq <= distanceToleranceSq) {
+              sink.onNext(true) // long click
+            }
+            longpress = true // prevents click
+          }, duration)
+        }
+
+        @inline def updateCurrentPosition(e: dom.TouchEvent): Unit = {
+          currentx = e.touches(0).clientX
+          currenty = e.touches(0).clientY
+        }
+
+        VDomModifier(
+          //TODO: SDT: add touch handlers
+          onClick foreach { click _ },
+          eventProp("touchmove") foreach { updateCurrentPosition _ },
+          eventProp("touchstart") foreach { start _ },
+          eventProp("touchend") foreach { cancel() },
+          eventProp("touchleave") foreach { cancel() },
+          eventProp("touchcancel") foreach { cancel() },
+        )
+      }
+    }
+
+  def onSingleOrDoubleClick(singleClickAction: () => Unit, doubleClickAction: () => Unit): VDomModifier = {
+    import vectory._
+    val sidebarNodeOpenDelay = {
+      import concurrent.duration._
+      200 milliseconds
+    }
+
+    val dragTolerance = 5.0
+    var dblClicked = false
+    var mouseDownPos = Vec2(0, 0)
+    VDomModifier(
+      cursor.pointer,
+      onMouseDown.stopPropagation.foreach { e =>
+        // stopPropagition: don't globally close sidebar by clicking here. Instead onClick toggles the sidebar directly
+        mouseDownPos = Vec2(e.clientX, e.clientY)
+      },
+      onClick.stopPropagation.transform(_.delay(sidebarNodeOpenDelay)).foreach { e =>
+        // opening right sidebar is delayed to not interfere with double click
+        if (dblClicked) dblClicked = false
+        else {
+          val mouseUpPos = Vec2(e.clientX, e.clientY)
+          if ((mouseUpPos - mouseDownPos).length < dragTolerance) {
+            singleClickAction()
+          }
+        }
+      },
+      onDblClick.stopPropagation.foreach{ _ =>
+        dblClicked = true
+        doubleClickAction()
+      },
+    )
+  }
 
   def topBanner(desktopText: => Option[VNode], mobileText: => Option[VNode]): VDomModifier = {
-    val text = if(BrowserDetect.isPhone) mobileText orElse desktopText else desktopText
+    val text = if (BrowserDetect.isPhone) mobileText orElse desktopText else desktopText
     text match {
       case Some(bannerText) =>
         VDomModifier(
           cls := "topBanner",
           bannerText,
         )
-      case _                =>
+      case _ =>
         VDomModifier.empty
     }
   }
 
-  def onHammer(events: String):EmitterBuilder.Sync[hammerjs.Event, VDomModifier] = {
-    import wust.facades.hammerjs.{CssProps, Hammer, Options, propagating}
+  def onHammer(events: String): EmitterBuilder.Sync[hammerjs.Event, VDomModifier] = {
+    import wust.facades.hammerjs.{ CssProps, Hammer, Options, propagating }
     EmitterBuilder[hammerjs.Event, VDomModifier] { sink =>
       managedElement.asHtml { elem =>
         elem.asInstanceOf[js.Dynamic].hammer = js.undefined
-        var hammertime = new Hammer[hammerjs.Event](elem, new Options { cssProps = new CssProps { userSelect = "auto"}} )
+        var hammertime = new Hammer[hammerjs.Event](elem, new Options { cssProps = new CssProps { userSelect = "auto" } })
         propagating(hammertime).on(events, { e =>
           e.stopPropagation()
           // if(e.target == elem)
@@ -245,11 +279,11 @@ object Elements {
       ._original.asInstanceOf[js.UndefOr[js.Dynamic]]
       .foreach { orig =>
         elem.asInstanceOf[js.Dynamic].updateDynamic("addEventListener")(orig)
-    }
+      }
   }
 
   final class ValueWithEnter(overrideValue: SourceStream[String] = SourceStream.empty, clearValue: Boolean = true, eventHandler: EmitterBuilder.Sync[dom.KeyboardEvent, VDomModifier] = onEnter) {
-    private var elem:HTMLInputElement = _
+    private var elem: HTMLInputElement = _
 
     private val userInput = Handler.unsafe[String]
     private val clearInput = if (clearValue) Handler.unsafe[Unit] else ProHandler(SinkObserver.empty, SourceStream.empty)
@@ -308,7 +342,7 @@ object Elements {
 
   def dateString(epochMilli: EpochMilli): String = {
     val createdDate = new js.Date(epochMilli)
-    if(DateFns.differenceInCalendarDays(new js.Date, createdDate) > 0)
+    if (DateFns.differenceInCalendarDays(new js.Date, createdDate) > 0)
       DateFns.format(new js.Date(epochMilli), "Pp") // localized date and time
     else
       DateFns.format(new js.Date(epochMilli), "p") // localized only time
@@ -345,13 +379,13 @@ object Elements {
     ).emitterBuilder
   }
 
-  final class TextAreaAutoResizer(callback: Int => Unit = (_:Int) => ()) {
+  final class TextAreaAutoResizer(callback: Int => Unit = (_: Int) => ()) {
     // https://stackoverflow.com/questions/454202/creating-a-textarea-with-auto-resize/25621277#25621277
-    var elem:HTMLElement = _
+    var elem: HTMLElement = _
     var lastScrollHeight: Int = 0
 
     val trigger: () => Unit = requestSingleAnimationFrame {
-      if(lastScrollHeight != elem.scrollHeight) {
+      if (lastScrollHeight != elem.scrollHeight) {
         elem.style.height = "auto" // fixes the behaviour of scrollHeight
         lastScrollHeight = elem.scrollHeight
         val newHeight = lastScrollHeight + 4 // 4 avoids a scrollbar
@@ -373,7 +407,6 @@ object Elements {
       onKeyDown.filter(e => e.keyCode == KeyCode.Enter).foreach{ trigger() },
     )
   }
-
 
   def escapeHtml(content: String): String = {
     // assure html in text is escaped by creating a text node, appending it to an element and reading the escaped innerHTML.
@@ -402,7 +435,7 @@ object Elements {
     }
   }
 
-  def onClickDefault:EmitterBuilder.Sync[com.raquo.domtypes.jsdom.defs.events.TypedTargetMouseEvent[org.scalajs.dom.Element],outwatch.dom.VDomModifier] = onClick.stopPropagation.mapResult(mod => VDomModifier(mod, cursor.pointer))
+  def onClickDefault: EmitterBuilder.Sync[com.raquo.domtypes.jsdom.defs.events.TypedTargetMouseEvent[org.scalajs.dom.Element], outwatch.dom.VDomModifier] = onClick.stopPropagation.mapResult(mod => VDomModifier(mod, cursor.pointer))
   val safeRelForTargetBlank = "noopener noreferrer"
 
   // https://www.jitbit.com/alexblog/256-targetblank---the-most-underestimated-vulnerability-ever/
@@ -412,7 +445,7 @@ object Elements {
   )
 
   def markdownString(str: String): String = {
-    if(str.trim.isEmpty) "<p></p>" // add least produce an empty paragraph to preserve line-height
+    if (str.trim.isEmpty) "<p></p>" // add least produce an empty paragraph to preserve line-height
     else {
       EmojiConvertor.replace_colons_safe(
         DOMPurify.sanitize(
@@ -433,7 +466,7 @@ object Elements {
     fontawesome.icon(
       indicator,
       new Params {
-        transform = new Transform {size = 13.0; x = 7.0; y = -7.0; }
+        transform = new Transform { size = 13.0; x = 7.0; y = -7.0; }
         styles = scalajs.js.Dictionary[String]("color" -> color)
       }
     )
@@ -443,8 +476,8 @@ object Elements {
     icon
   )
 
-  def confirm(message:String)(code: => Unit):Unit = {
-    if(dom.window.confirm(message))
+  def confirm(message: String)(code: => Unit): Unit = {
+    if (dom.window.confirm(message))
       code
   }
 
@@ -511,11 +544,11 @@ object Elements {
     // becasue otherwise we get weird html when pasting links. Only multi-line texts are interpreted as html if html available.
     onPaste.foreach { event =>
       if (event.clipboardData != js.undefined) {
-          val htmlText = event.clipboardData.getData("text/html")
-          if (htmlText != js.undefined && htmlText != null && htmlText.linesIterator.length > 1) {
-            event.preventDefault()
-            event.currentTarget.asInstanceOf[dom.html.Input].value = htmlText
-          }
+        val htmlText = event.clipboardData.getData("text/html")
+        if (htmlText != js.undefined && htmlText != null && htmlText.linesIterator.length > 1) {
+          event.preventDefault()
+          event.currentTarget.asInstanceOf[dom.html.Input].value = htmlText
+        }
       }
     }
   }
@@ -540,7 +573,7 @@ object Elements {
         Subscription.composite(
           Subscription(instance.destroy),
           openTrigger.foreach {
-            case true => instance.open()
+            case true  => instance.open()
             case false => instance.close()
           }
         )

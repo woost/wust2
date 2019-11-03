@@ -161,6 +161,7 @@ object SharedViewElements {
 
   def renderMessage(
     nodeId: NodeId,
+    focusState: FocusState,
     directParentIds:Iterable[NodeId],
     isDeletedNow: Rx[Boolean],
     renderedMessageModifier:VDomModifier = VDomModifier.empty,
@@ -185,7 +186,7 @@ object SharedViewElements {
     }
 
 
-    def render(node: Node, isDeletedNow: Boolean)(implicit ctx: Ctx.Owner) = {
+    def render(node: Node, focusState:FocusState, isDeletedNow: Boolean)(implicit ctx: Ctx.Owner) = {
       if(isDeletedNow)
         nodeCardWithoutRender(node, maxLength = Some(25)).apply(cls := "node-deleted")
       else {
@@ -200,7 +201,7 @@ object SharedViewElements {
             nodeCard( node,
               contentInject = div(
                 alignItems.center,
-                NodeDetails.tagsPropertiesAssignments(nodeId)
+                NodeDetails.tagsPropertiesAssignments(nodeId, focusState)
               )
             ).apply(
               Styles.flex,
@@ -217,9 +218,9 @@ object SharedViewElements {
 
     Rx {
       node().map { node =>
-        render(node, isDeletedNow()).apply(
+        render(node, focusState, isDeletedNow()).apply(
           cursor.pointer,
-          VDomModifier.ifTrue(GlobalState.selectedNodes().isEmpty)(Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, node.id)),
+          VDomModifier.ifTrue(GlobalState.selectedNodes().isEmpty)(Components.sidebarNodeFocusMod(node.id, focusState)),
           Components.showHoveredNode( node.id),
           UnreadComponents.readObserver( node.id)
         )

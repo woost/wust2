@@ -19,7 +19,6 @@ object TaskNodeCard {
   val maxLength = 300 // TODO: use text-overflow:ellipsis instead.
 
   def renderThunk(
-
     focusState: FocusState,
     traverseState: TraverseState,
     nodeId: NodeId,
@@ -135,7 +134,7 @@ object TaskNodeCard {
     }
 
     VDomModifier(
-      Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, nodeId),
+      Components.sidebarNodeFocusMod(nodeId, focusState),
       Components.showHoveredNode( nodeId),
       UnreadComponents.readObserver( nodeId, marginTop := "7px"),
       VDomModifier.ifTrue(showCheckbox)(
@@ -149,7 +148,7 @@ object TaskNodeCard {
           maxLength = Some(maxLength),
           contentInject = VDomModifier(
             VDomModifier.ifTrue(isDone)(textDecoration.lineThrough),
-            VDomModifier.ifTrue(inOneLine)(alignItems.center, NodeDetails.tagsPropertiesAssignments(nodeId), marginRight := "40px"), // marginRight to not interfere with button bar...
+            VDomModifier.ifTrue(inOneLine)(alignItems.center, NodeDetails.tagsPropertiesAssignments(nodeId, focusState), marginRight := "40px"), // marginRight to not interfere with button bar...
             VDomModifier.ifNot(showCheckbox)(
               marginLeft := "2px"
             )
@@ -171,7 +170,7 @@ object TaskNodeCard {
         margin := "0 3px",
         marginLeft := s"${if(isCompact) CommonStyles.taskPaddingCompactPx else CommonStyles.taskPaddingPx}px",
         alignItems.center,
-        NodeDetails.tagsPropertiesAssignments(nodeId),
+        NodeDetails.tagsPropertiesAssignments(nodeId, focusState),
         Rx {
           VDomModifier.ifTrue(childStats().isEmpty)(marginBottom := "3px")
         },

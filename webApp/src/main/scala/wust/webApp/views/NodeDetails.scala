@@ -16,7 +16,7 @@ import wust.webApp.state.FeatureState
 
 object NodeDetails {
 
-  def tagsPropertiesAssignments(nodeId: NodeId)(implicit ctx: Ctx.Owner) = {
+  def tagsPropertiesAssignments(nodeId: NodeId, focusState: FocusState)(implicit ctx: Ctx.Owner) = {
     val propertySingle = Rx {
       val graph = GlobalState.graph()
       PropertyData.Single(graph, graph.idToIdxOrThrow(nodeId))
@@ -40,7 +40,7 @@ object NodeDetails {
           propertySingle().properties.map { property =>
             property.values.map { value =>
               VDomModifier.ifTrue(value.edge.data.showOnCard) {
-                Components.nodeCardProperty(value.edge, value.node)
+                Components.nodeCardProperty(value.edge, value.node, focusState)
               }
             }
           },
@@ -151,7 +151,7 @@ object NodeDetails {
           renderMessageCount(
             taskStats().messageChildrenCount,
             UI.tooltip("left center") := "Show comments",
-            onClick.stopPropagation.useLazy(Some(FocusPreference(nodeId, Some(View.Conversation)))) --> GlobalState.rightSidebarNode,
+            onClick.stopPropagation.useLazy(Some(FocusPreference(nodeId, Some(View.Chat)))) --> GlobalState.rightSidebarNode,
             cursor.pointer,
           ),
         ),
@@ -175,6 +175,7 @@ object NodeDetails {
         onClick.stopPropagation.discard,
         DragComponents.drag(DragItem.DisableDrag),
       ).apply(paddingLeft := "15px"),
+      // TODO: help text: "Click to add tasks in the right sidebar or drag tasks here."
       paddingBottom := "0px",
     )
   }

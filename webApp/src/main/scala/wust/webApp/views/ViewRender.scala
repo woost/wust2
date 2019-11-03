@@ -26,6 +26,7 @@ object ViewRender extends ViewRenderLike {
       case View.Thread        => ThreadView(focusState)
       case View.Table(roles)  => TableView(focusState, roles, ViewRender)
       case View.List          => ListView(focusState)
+      case View.ListWithChat  => ListWithChatView(focusState)
       case View.Kanban        => KanbanView(focusState, ViewRender)
       case View.Graph         => GraphView(focusState)
       case View.Dashboard     => DashboardView(focusState)
