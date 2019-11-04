@@ -103,6 +103,17 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], serve
     ???
   }
 
+  def setTemplate(template: NodeTemplate): ApiFunction[Boolean] = Action.requireEmail { (_, _, email) =>
+    if (email.endsWith("@woost.space")) db.template.create(template)
+    else Future.successful(Returns.error(ApiError.Forbidden))
+  }
+  def getTemplates(): ApiFunction[Seq[NodeTemplate]] = Action.requireUser { (state, user) =>
+    db.template.getAll(user.id).map(_.map(forClient(_)))
+  }
+  def getTemplate(name: TemplateName): ApiFunction[Option[NodeTemplate]] = Action.requireUser { (state, user) =>
+    db.template.get(user.id, name).map(_.map(forClient(_)))
+  }
+
   override def createStripeCheckoutSession(paymentPlan: PaymentPlan): ApiFunction[StripeCheckoutResponse] = Action { state =>
     state.auth.map(_.user) match {
       case Some(user: AuthUser.Real) =>

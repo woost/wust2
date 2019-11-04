@@ -18,7 +18,8 @@ object ViewRender extends ViewRenderLike {
       case View.UserSettings     => UserSettingsView.apply
       case View.Welcome          => WelcomeView.apply
       case View.Avatar           => AvatarView.apply
-      case View.Tiled(op, views) => TiledView(op, views.map(ViewRender( focusState, _)))
+      case View.Admin            => AdminView.apply
+      case View.Tiled(op, views) => TiledView(op, views.map(ViewRender(focusState, _)))
       case View.Empty            => emptyView
     }
     def withFocusState(focusState: FocusState): PartialFunction[View.Visible, VNode] = withoutFocusState orElse {

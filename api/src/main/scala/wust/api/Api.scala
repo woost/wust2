@@ -29,6 +29,10 @@ trait Api[Result[_]] {
   def getNode(nodeId: NodeId, onBehalf: Authentication.Token): Result[Option[Node]]
   def getUserByEMail(email: String): Result[Option[Node.User]]
 
+  def setTemplate(template: NodeTemplate): Result[Boolean]
+  def getTemplates(): Result[Seq[NodeTemplate]]
+  def getTemplate(name: TemplateName): Result[Option[NodeTemplate]]
+
 //  def importGithubUrl(url: String): Result[Boolean]
 //  def importGitterUrl(url: String): Result[Boolean]
   def currentTime:Result[EpochMilli]
@@ -95,6 +99,11 @@ object StripeCheckoutResponse {
 
 final case class StripeSessionId(sessionId: String)
 final case class StripePublicKey(publicKey: String)
+
+final case class NodeTemplate(
+  name: TemplateName,
+  nodeId: NodeId
+)
 
 final case class UserDetail(
   userId: UserId,
