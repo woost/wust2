@@ -4,7 +4,7 @@ import wust.api._
 import wust.core.DbConversions._
 import wust.core.Dsl._
 import wust.core.auth.JWT
-import wust.db.Db
+import wust.db.{Db, Data}
 import wust.ids._
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -24,7 +24,7 @@ class GuardDsl(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
 
   implicit class GuardedOps[F[+ _]: ApiData.MonadError](factory: ApiFunction.Factory[F]) {
     private def requireUserT[T, U <: AuthUser](
-        f: (State, U) => Future[F[T]]
+        f: (State, U) => Future[F[T]],
     )(userf: PartialFunction[AuthUser, U]): ApiFunction[T] = factory { state =>
       state.auth
         .map(_.user)
@@ -42,6 +42,13 @@ class GuardDsl(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
       requireUserT[T, AuthUser.Real](f) { case u: AuthUser.Real => u }
     def requireDbUser[T](f: (State, AuthUser.Persisted) => Future[F[T]]): ApiFunction[T] =
       requireUserT[T, AuthUser.Persisted](f) { case u: AuthUser.Persisted => u }
+    def requireEmail[T](f: (State, AuthUser.Persisted, String) => Future[F[T]]): ApiFunction[T] =
+      requireDbUser { (state, user) =>
+        db.user.getUserDetail(user.id).flatMap {
+          case Some(Data.UserDetail(_, Some(email), true, _)) => f(state, user, email)
+          case _ => Future.successful(ApiData.MonadError.raiseError(ApiError.Unauthorized))
+        }
+      }
 
     def assureDbUserIf[T](condition: Boolean)(f: (State, AuthUser) => Future[F[T]]): ApiFunction[T] =
       if (condition) assureDbUser(f) else requireUser(f)

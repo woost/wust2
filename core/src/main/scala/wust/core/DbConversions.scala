@@ -1,6 +1,6 @@
 package wust.core
 
-import wust.api.{AuthUser, UserDetail, WebPushSubscription}
+import wust.api.{AuthUser, UserDetail, NodeTemplate, WebPushSubscription}
 import wust.db.Data
 import wust.graph.{Edge, Graph, Node, NodeMeta}
 import wust.ids.{NodeData, UserId}
@@ -24,6 +24,9 @@ object DbConversions {
   implicit def forClient(userDetail: Data.UserDetail): UserDetail = {
     UserDetail(userDetail.userId, userDetail.email, userDetail.verified, userDetail.plan)
   }
+  implicit def forClient(template: Data.NodeTemplate): NodeTemplate = {
+    NodeTemplate(template.name, template.nodeId)
+  }
   implicit def forClient(node: Data.User): Node.User =
     new Node.User(node.id, node.data, nodeMeta(node))
   implicit def forClientAuth(node: Data.User): AuthUser.Persisted = node.data.isImplicit match {
@@ -42,6 +45,10 @@ object DbConversions {
   implicit def forClient(c: Data.MemberEdge): Edge = Edge.Member(c.sourceId, c.data, c.targetId)
 
   implicit def forClient(c: Data.Edge): Edge = Edge(c.sourceId, c.data, c.targetId)
+
+  implicit def forDb(template: NodeTemplate): Data.NodeTemplate = {
+    Data.NodeTemplate(template.name, template.nodeId)
+  }
 
   def forDb(u: UserId, s: WebPushSubscription): Data.WebPushSubscription =
     Data.WebPushSubscription(u, s.endpointUrl, s.p256dh, s.auth)

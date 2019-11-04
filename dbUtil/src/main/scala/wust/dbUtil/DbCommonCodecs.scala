@@ -20,8 +20,10 @@ abstract class DbCommonCodecs(val ctx: PostgresAsyncContext[LowerCase]) {
     MappedEncoding(uuid => UserId(NodeId(Cuid.fromUuid(uuid))))
 
   implicit val encodingStripeCustomerId: MappedEncoding[StripeCustomerId, String] = MappedEncoding(x => x)
-  implicit val decodingStripeCustomerId: MappedEncoding[String, StripeCustomerId] =
-    MappedEncoding(str => StripeCustomerId(str))
+  implicit val decodingStripeCustomerId: MappedEncoding[String, StripeCustomerId] = MappedEncoding(str => StripeCustomerId(str))
+
+  implicit val encodingTemplateName: MappedEncoding[TemplateName, String] = MappedEncoding(x => x)
+  implicit val decodingTemplateName: MappedEncoding[String, TemplateName] = MappedEncoding(str => TemplateName(str))
 
   private def encodeJson[T: io.circe.Encoder](json: T): String = json.asJson.noSpaces
   private def decodeJson[T: io.circe.Decoder](json: String): T = decode[T](json) match {

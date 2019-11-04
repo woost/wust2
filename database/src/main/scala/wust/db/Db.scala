@@ -268,12 +268,26 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     }
   }
 
+  object template {
+    def create(template: NodeTemplate)(implicit ec: ExecutionContext): Future[Boolean] = {
+      ctx.run(query[NodeTemplate]
+        .insert(lift(template))
+        .onConflictUpdate(_.name)(
+          (template, excluded) => template.nodeId -> excluded.nodeId
+        )
+      ).map(_ == 1)
+    }
+    def getAll(userId: UserId)(implicit ec: ExecutionContext): Future[Seq[NodeTemplate]] = {
+      ctx.run(query[NodeTemplate].filter(t => user.canAccessNodeQuery(t.nodeId, lift(userId))))
+    }
+    def get(userId: UserId, name: TemplateName)(implicit ec: ExecutionContext): Future[Option[NodeTemplate]] = {
+      ctx.run(query[NodeTemplate].filter(t => t.name == lift(name) && user.canAccessNodeQuery(t.nodeId, lift(userId)))).map(_.headOption)
+    }
+  }
+
   object stripeCustomer {
     def create(customer: StripeCustomer)(implicit ec: ExecutionContext): Future[Boolean] = {
       ctx.run(query[StripeCustomer].insert(lift(customer))).map(_ == 1)
-    }
-    def get(userId: UserId)(implicit ec: ExecutionContext): Future[Option[StripeCustomer]] = {
-      ctx.run(query[StripeCustomer].filter(_.userId == lift(userId)).take(1)).map(_.headOption)
     }
     def getByUserId(userId: UserId)(implicit ec: ExecutionContext): Future[Option[StripeCustomer]] = {
       ctx.run(query[StripeCustomer].filter(_.userId == lift(userId)).take(1)).map(_.headOption)
@@ -512,7 +526,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       canAccessNodeQuery(lift(nodeId), lift(userId))
     }
 
-    private val canAccessNodeQuery = quote { (nodeId: NodeId, userId: UserId) =>
+    val canAccessNodeQuery = quote { (nodeId: NodeId, userId: UserId) =>
       // TODO why not as[Query[Boolean]] like other functions?
       infix"select node_can_access($nodeId, $userId, 'read'::accesslevel)".as[Boolean]
     }

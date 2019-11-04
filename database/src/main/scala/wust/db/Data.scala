@@ -62,6 +62,11 @@ object Data {
       plan: PaymentPlan,
   )
 
+  final case class NodeTemplate(
+    name: TemplateName,
+    nodeId: NodeId
+  )
+
   final case class StripeCustomer(
       customerId: StripeCustomerId,
       userId: UserId
