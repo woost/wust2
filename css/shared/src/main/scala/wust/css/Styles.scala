@@ -854,6 +854,21 @@ object CommonStyles extends StyleSheet.Standalone
   )
 
 
+  ".listwithchat-view" - (
+    &(".breadcrumbs") - (
+      margin(5 px, 0 px),
+
+      &(".divider") - (
+        color(c"rgba(165, 165, 165, 0.78)"),
+      ),
+    ),
+    &(".breadcrumb") - (
+      maxWidth(25 em),
+      nodeCardShadow,
+    ),
+  )
+
+
   ".feature-explorer" - (
     &("em") - (
       backgroundColor(c"#f3f5f7"),
