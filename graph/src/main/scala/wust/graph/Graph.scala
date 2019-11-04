@@ -681,7 +681,7 @@ final case class GraphLookup private(
     idToIdxFold[Option[AccessLevel]](nodeId)(None)(inner(_, immutable.BitSet.empty))
   }
 
-  def doneNodeForWorkspace(workspaceIdx: Int): Option[Int] = graph.childrenIdx.find(workspaceIdx) { nodeIdx =>
+  def doneNodeForWorkspace(workspaceIdx: Int): Option[Int] = graph.notDeletedChildrenIdx.find(workspaceIdx) { nodeIdx =>
     val node = nodes(nodeIdx)
     isDoneStage(node)
   }
@@ -714,7 +714,7 @@ final case class GraphLookup private(
   }
 
   def isDoneInAllWorkspaces(nodeIdx: Int, workspaces: Array[Int]): Boolean = {
-    @inline def isDoneIn(doneIdx: Int, nodeIdx: Int) = childrenIdx.contains(doneIdx)(nodeIdx)
+    @inline def isDoneIn(doneIdx: Int, nodeIdx: Int) = notDeletedChildrenIdx.contains(doneIdx)(nodeIdx)
     workspaces.forall{ workspaceIdx =>
       doneNodeForWorkspace(workspaceIdx).exists(doneIdx => isDoneIn(doneIdx, nodeIdx))
     }
