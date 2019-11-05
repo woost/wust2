@@ -142,7 +142,6 @@ object PageHeader {
             focusState().map( focusState => channelTitle(focusState))
           },
 
-          showOnlyInFullMode(channelNotification),
           channelMembersList,
           showOnlyInFullMode(div(MembersModal.settingsButton(pageNodeId), id := "tutorial-pageheader-sharing")),
           id := "tutorial-pageheader-title",
@@ -161,6 +160,7 @@ object PageHeader {
               ViewFilter.filterBySearchInputWithIcon.apply(marginRight := "5px")
             )
           },
+          showOnlyInFullMode(div(channelNotification,marginRight := "8px")),
           showOnlyInFullMode(PageSettingsMenu(pageNodeId).apply(fontSize := "20px"))
         )
       )
