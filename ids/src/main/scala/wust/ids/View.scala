@@ -123,6 +123,7 @@ object View {
   val selectableList: Array[View.Visible] = Array(
     View.Dashboard,
     View.List,
+    View.ListWithChat,
     View.Kanban,
     View.Table(NodeRole.Task :: Nil),
     // View.Graph,
