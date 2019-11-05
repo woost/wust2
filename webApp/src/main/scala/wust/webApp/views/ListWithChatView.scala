@@ -46,15 +46,19 @@ object ListWithChatView {
 
       ListView(focusState).apply(
         flex := "1",
+        maxWidth := "300px",
         height := "100%",
       ),
       div(
-        flex := "1",
+        flex := "3",
         Styles.flex,
         flexDirection.column,
         Rx{
           div(
             Styles.flexStatic,
+            Styles.flex,
+            alignItems.center,
+
             padding := "8px 10px",
             BreadCrumbs(
               GlobalState.rawGraph(),
@@ -62,7 +66,8 @@ object ListWithChatView {
               end = BreadCrumbs.EndPoint.Node(chatFocus()),
               nodeId => chatFocus() = nodeId,
               hideIfSingle = false
-            ).apply(paddingBottom := "3px")
+            ).apply(paddingBottom := "3px"),
+            div(MembersModal.settingsButton(chatFocus()), Styles.flexStatic, marginLeft.auto)
           )
         },
         Rx {
