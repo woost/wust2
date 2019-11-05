@@ -76,11 +76,18 @@ object PageHeader {
       )
     }
 
+    def showOnlyInFullMode(modifier:VDomModifier) = {
+      GlobalState.presentationMode.map {
+        case PresentationMode.Full => modifier
+        case PresentationMode.ContentOnly => VDomModifier.empty
+      },
+    }
+
     VDomModifier(
       backgroundColor := pageStyle.pageBgColor,
 
-      GlobalState.presentationMode.map {
-        case PresentationMode.Full => div(
+      showOnlyInFullMode(
+      div(
           Styles.flexStatic,
 
           Styles.flex,
@@ -99,8 +106,7 @@ object PageHeader {
             )
           },
         )
-        case PresentationMode.ContentOnly => VDomModifier.empty
-      },
+      ),
 
       div(
         paddingTop := "5px",
@@ -109,8 +115,7 @@ object PageHeader {
         alignItems.center,
         flexWrap := "wrap-reverse",
 
-        GlobalState.presentationMode.map {
-          case PresentationMode.Full => ViewSwitcher(pageNodeId)
+        ViewSwitcher(pageNodeId)
             .mapResult(_.apply(
               Styles.flexStatic,
               alignSelf.flexStart,
@@ -125,9 +130,8 @@ object PageHeader {
                 case View.Chat   => FeatureState.use(Feature.SwitchToChatInPageHeader)
                 case _           =>
               }
-            }
-          case PresentationMode.ContentOnly => VDomModifier.empty
         },
+
 
         div(
           Styles.flex,
@@ -138,12 +142,9 @@ object PageHeader {
             focusState().map( focusState => channelTitle(focusState))
           },
 
-          GlobalState.presentationMode.map {
-            case PresentationMode.Full        => channelNotification
-            case PresentationMode.ContentOnly => VDomModifier.empty
-          },
+          showOnlyInFullMode(channelNotification),
           channelMembersList,
-          div(MembersModal.settingsButton(pageNodeId), id := "tutorial-pageheader-sharing"),
+          showOnlyInFullMode(div(MembersModal.settingsButton(pageNodeId), id := "tutorial-pageheader-sharing")),
           id := "tutorial-pageheader-title",
           marginBottom := "2px", // else nodecards in title overlap
 
@@ -160,10 +161,7 @@ object PageHeader {
               ViewFilter.filterBySearchInputWithIcon.apply(marginRight := "5px")
             )
           },
-          GlobalState.presentationMode.map {
-            case PresentationMode.Full        => PageSettingsMenu(pageNodeId).apply(fontSize := "20px")
-            case PresentationMode.ContentOnly => VDomModifier.empty
-          }
+          showOnlyInFullMode(PageSettingsMenu(pageNodeId).apply(fontSize := "20px"))
         )
       )
     )

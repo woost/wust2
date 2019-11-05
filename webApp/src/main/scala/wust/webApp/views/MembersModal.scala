@@ -443,36 +443,33 @@ object MembersModal {
     )
   }
 
-  def settingsButton(nodeId: NodeId)(implicit ctx: Ctx.Owner) = {
+  def settingsButton(nodeId: NodeId)(implicit ctx: Ctx.Owner):VNode = {
     val permissionLevel = Rx {
       Permission.resolveInherited(GlobalState.rawGraph(), nodeId)
     }
 
     val openSharingModalOnClick = onClickDefault.use(Ownable(implicit ctx => MembersModal.config(nodeId))) --> GlobalState.uiModalConfig
 
-    GlobalState.presentationMode.map {
-      case PresentationMode.Full => button(
-        marginLeft := "5px",
-        cls := "ui tiny compact primary button",
+    button(
+      marginLeft := "5px",
+      cls := "ui tiny compact primary button",
 
-        openSharingModalOnClick,
-        onClickDefault.foreach {
-          Segment.trackEvent("Open Members Modal")
-        },
+      openSharingModalOnClick,
+      onClickDefault.foreach {
+        Segment.trackEvent("Open Members Modal")
+      },
 
-        display.flex,
-        alignItems.flexStart,
-        padding := "0.5em 0.7em",
+      display.flex,
+      alignItems.flexStart,
+      padding := "0.5em 0.7em",
 
-        permissionLevel.map(Permission.permissionIndicator(_)),
+      permissionLevel.map(Permission.permissionIndicator(_)),
 
-        div(
-          marginLeft := "4px",
-          Icons.membersModal
-        )
+      div(
+        marginLeft := "4px",
+        Icons.membersModal
       )
-      case PresentationMode.ContentOnly => VDomModifier.empty
-    }
+    )
   }
 
   private def shareModifiers(channel: Node, shareUrl: String)(implicit ctx: Ctx.Owner): EmitterBuilder[NeedAction, VDomModifier] = EmitterBuilder { needAction =>
