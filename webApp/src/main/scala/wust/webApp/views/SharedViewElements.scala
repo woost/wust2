@@ -506,7 +506,7 @@ object SharedViewElements {
     val sizePx = 22
     div(
       Styles.flex,
-      minWidth := s"${(marginLeftPx+sizePx) * 1.5}px", // show at least 1.5 avatars
+      minWidth := s"${(marginLeftPx+sizePx)}px", // show at least 1 avatar
       cls := "tiny-scrollbar",
       overflowX.auto, // make scrollable for long member lists
       overflowY.hidden, // wtf firefox and chrome...
