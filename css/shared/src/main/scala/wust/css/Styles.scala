@@ -136,6 +136,18 @@ object CommonStyles extends StyleSheet.Standalone
 
   import dsl._
 
+  ".ui.primary.button" - (
+    backgroundColor := "#1A73E8"
+  )
+
+  ".ui.primary.button:hover" - (
+    backgroundColor := "#2B7DE9"
+  )
+
+  ".ui.primary.button:active" - (
+    backgroundColor := "#5094ED"
+  )
+
   ".ui.message.warning" - (
     backgroundColor(c"#f79c2b"),
     boxShadow := "none",
