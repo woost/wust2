@@ -99,6 +99,7 @@ object NodeDetails {
         height := "3px",
         padding := "0",
         width := s"${math.max(progress, 0)}%",
+        transition := "width 0.2s",
         backgroundColor := s"${if (progress < 100) "#ccc" else "#32CD32"}",
         UI.tooltip("top right") := s"$progress% Progress. ${taskStats.taskDoneCount} / ${taskStats.taskChildrenCount} done."
       ),
