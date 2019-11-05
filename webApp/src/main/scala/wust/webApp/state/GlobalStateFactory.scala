@@ -45,7 +45,7 @@ object GlobalStateFactory {
         changes.addNodes.nonEmpty || changes.delEdges.nonEmpty || changes.addEdges.exists(_.data.tpe == EdgeData.Child.tpe)
 
       if (showHeuristic) {
-        UI.toast("You do need have sufficient permissions to do this.", title = "Forbidden", level = ToastLevel.Error)
+        UI.toast("You don't have sufficient permissions to do this.", title = "Forbidden", level = ToastLevel.Error)
       }
     }
 
