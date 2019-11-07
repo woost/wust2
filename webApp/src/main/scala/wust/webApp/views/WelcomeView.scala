@@ -63,7 +63,7 @@ object WelcomeView {
   def welcomeTitle(user: Node.User) = h1(
     "Hello ",
     Avatar.user(user, size = "1em")(marginLeft := "0.2em", marginRight := "0.1em", marginBottom := "-3px"),
-    displayUserName(user.data),
+    span(displayUserName(user.data), cls := "username"),
     "!"
   )
 
