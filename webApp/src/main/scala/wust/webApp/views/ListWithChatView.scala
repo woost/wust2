@@ -67,7 +67,11 @@ object ListWithChatView {
               nodeId => chatFocus() = nodeId,
               hideIfSingle = false
             ).apply(paddingBottom := "3px"),
-            div(MembersModal.settingsButton(chatFocus()), Styles.flexStatic, marginLeft.auto)
+            Rx {
+              VDomModifier.ifNot(chatFocus() == originalFocusState.focusedId)(
+                div(MembersModal.settingsButton(chatFocus()), Styles.flexStatic, marginLeft.auto)
+              ) 
+            }
           )
         },
         Rx {
