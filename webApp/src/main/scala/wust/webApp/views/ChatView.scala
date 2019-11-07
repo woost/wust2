@@ -165,8 +165,6 @@ object ChatView {
             true // go deeper
           case NodeRole.Task =>
            if (!graph.isDone(nodeIdx)) {
-            nodeSet.add(nodeIdx)
-            nodeCount += 1
             true // go deeper
            } else false
           case _ => false
