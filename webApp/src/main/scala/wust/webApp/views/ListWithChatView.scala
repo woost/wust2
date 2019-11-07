@@ -40,16 +40,21 @@ object ListWithChatView {
       itemIsFocused = nodeId => chatFocus.map(_ == nodeId)
     )
 
+    // TODO: after creating task, focus it
+    // TODO: sort tasks by latest message, then task creation date
+    // TODO: how to create subtasks?
+    // TODO: how to edit tasks or messages?
+
     div(
       cls := "listwithchat-view",
       Styles.flex,
 
       Rx {
         VDomModifier.ifTrue(GlobalState.screenSize() != ScreenSize.Small)(
-      ListView(focusState).apply(
-        flex := "1",
-        maxWidth := "300px",
-        height := "100%",
+          ListView(focusState).apply(
+            flex := "1",
+            maxWidth := "300px",
+            height := "100%",
           )
         )
       },
@@ -74,7 +79,7 @@ object ListWithChatView {
             Rx {
               VDomModifier.ifNot(chatFocus() == originalFocusState.focusedId)(
                 div(MembersModal.settingsButton(chatFocus()), Styles.flexStatic, marginLeft.auto)
-              ) 
+              )
             }
           )
         },
