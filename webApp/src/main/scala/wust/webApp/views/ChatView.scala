@@ -156,13 +156,20 @@ object ChatView {
       val nodeSet = ArraySet.create(graph.nodes.length)
       var nodeCount = 0
 
-      dfs.foreach(_ (pageParentIdx), dfs.afterStart, graph.childrenIdx, append = { nodeIdx =>
+      dfs.foreachStopLocally(_ (pageParentIdx), dfs.afterStart, graph.childrenIdx, continue = { nodeIdx =>
         val node = graph.nodes(nodeIdx)
         node.role match {
-          case NodeRole.Message | NodeRole.Task =>
+          case NodeRole.Message =>
             nodeSet.add(nodeIdx)
             nodeCount += 1
-          case _ =>
+            true // go deeper
+          case NodeRole.Task =>
+           if (!graph.isDone(nodeIdx)) {
+            nodeSet.add(nodeIdx)
+            nodeCount += 1
+            true // go deeper
+           } else false
+          case _ => false
         }
       })
 
@@ -469,7 +476,6 @@ object ChatView {
   }
 
   private def chatInput(
-
     focusState: FocusState,
     currentReply: Var[Set[NodeId]],
     pinReply: Var[Boolean],
