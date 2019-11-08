@@ -306,7 +306,7 @@ object Components {
   )(implicit ctx: Ctx.Owner): VNode = {
 
     val isReference = property.role != NodeRole.Neutral
-    val fullWidthForReferences = VDomModifier.ifTrue(isReference)(width := "100%", "a")
+    val fullWidthForReferences = VDomModifier.ifTrue(isReference)(width := "100%")
 
     val propertyRendering = property.role match {
       case NodeRole.Neutral => property.data match {
