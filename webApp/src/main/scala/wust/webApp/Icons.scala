@@ -89,7 +89,7 @@ object Icons {
   val topological: IconDefinition = freeSolid.faSortNumericDown
   val form: IconDefinition = freeBrands.faWpforms
   val notifications: IconDefinition = freeRegular.faBell
-  val activityStream: IconDefinition = freeRegular.faClock
+  val activityStream: IconDefinition = freeSolid.faHistory
   val addViewIcon = freeSolid.faPlus
 
   val task: IconDefinition = freeRegular.faCheckSquare
