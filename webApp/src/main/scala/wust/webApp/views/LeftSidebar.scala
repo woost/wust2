@@ -38,6 +38,7 @@ object LeftSidebar {
       config = Ownable { implicit ctx =>
         val invites = invitesRx
         val sidebarWithProjects = Client.storage.sidebarWithProjects.imap(_.getOrElse(true))(Some(_))
+        val enableDragging = Var(false)
         val sidebarFilter = Var[String]("")
         val filteredToplevelChannels = Rx { toplevelChannelsRx(filterStringPredicate(sidebarFilter()), sidebarWithProjects()) }
         val toplevelChannels = Rx { toplevelChannelsRx(_ => true, true) }
@@ -53,14 +54,37 @@ object LeftSidebar {
               Styles.flex,
               flexDirection.column,
               minHeight := "100px",
-              channels(filteredToplevelChannels, sidebarWithProjects, sidebarFilter).append(),
+              channels(filteredToplevelChannels, sidebarWithProjects, sidebarFilter, enableDragging).append(),
               invitations(invites).apply(Styles.flexStatic),
-              newProjectButton().apply(
+              div(
                 Styles.flexStatic,
-                cls := "newChannelButton-large " + buttonStyles,
-                onClick foreach {
-                  FeatureState.use(Feature.CreateProjectFromExpandedLeftSidebar)
-                },
+                Styles.flex,
+                alignItems.center,
+                button(
+                  cls := "ui mini compact basic button",
+                  div(
+                    cls := "fa-fw",
+                    freeRegular.faHandPaper,
+                    enableDragging map {
+                      case false => VDomModifier(
+                        UI.popup("bottom center") := "Enable Dragging",
+                      )
+                      case true => VDomModifier(
+                        cls := "active",
+                        UI.popup("bottom center") := "Disable Dragging",
+                      )
+                    }
+                  ),
+                  onClick.stopPropagation.foreach(enableDragging.update(!_))
+                ),
+                newProjectButton().apply(
+                  cls := "newChannelButton-large " + buttonStyles,
+                  onClick foreach {
+                    FeatureState.use(Feature.CreateProjectFromExpandedLeftSidebar)
+                  },
+                  marginLeft.auto,
+                  marginRight.auto,
+                ),
                 marginBottom := "15px"
               ),
             ),
@@ -309,7 +333,7 @@ object LeftSidebar {
 
   @inline def fontSizeByDepth(depth: Int) = s"${math.max(8, 14 - depth)}px"
 
-  def channelLine(traverseState: TraverseState, userId: UserId, expanded: Rx[Boolean], hasChildren: Rx[Boolean], depth: Int = 0, channelModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
+  def channelLine(traverseState: TraverseState, userId: UserId, expanded: Rx[Boolean], hasChildren: Rx[Boolean], depth: Int = 0, enableDragging:Var[Boolean], channelModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
     val nodeId = traverseState.parentId
     val selected = Rx { (GlobalState.page().parentId contains nodeId) && GlobalState.viewIsContent() }
     val nodeIdx = Rx { GlobalState.rawGraph().idToIdx(nodeId) }
@@ -358,7 +382,7 @@ object LeftSidebar {
         },
         onChannelClick(nodeId),
         cls := "node",
-        DragComponents.drag(DragItem.Channel(nodeId, traverseState.tail.headOption)),
+        Rx{ VDomModifier.ifTrue(enableDragging())(DragComponents.drag(DragItem.Channel(nodeId, traverseState.tail.headOption))) },
         permissionLevel.map(Permission.permissionIndicatorIfPublic(_, VDomModifier(fontSize := "0.7em", color.gray, marginLeft.auto, marginRight := "5px"))),
         channelModifier
       ),
@@ -369,7 +393,7 @@ object LeftSidebar {
     if (filterString.isEmpty) _ => true else _.str.toLowerCase.contains(filterString.toLowerCase)
   }
 
-  private def channels(toplevelChannels: Rx[Seq[NodeId]], sidebarWithProjects: Var[Boolean], sidebarFilter: Var[String])(implicit ctx: Ctx.Owner): VNode = {
+  private def channels(toplevelChannels: Rx[Seq[NodeId]], sidebarWithProjects: Var[Boolean], sidebarFilter: Var[String], enableDragging: Var[Boolean])(implicit ctx: Ctx.Owner): VNode = {
 
     def channelList(traverseState: TraverseState, userId: UserId, depth: Int = 0)(implicit ctx: Ctx.Owner): VNode = {
       div({
@@ -389,7 +413,7 @@ object LeftSidebar {
         )
 
         VDomModifier(
-          channelLine(traverseState, userId, expanded = expanded, hasChildren = hasChildren, depth = depth, channelModifier = VDomModifier(flexGrow := 1, flexShrink := 0)),
+          channelLine(traverseState, userId, expanded = expanded, hasChildren = hasChildren, depth = depth, enableDragging = enableDragging, channelModifier = VDomModifier(flexGrow := 1, flexShrink := 0)),
           Rx {
             VDomModifier.ifTrue(hasChildren() && expanded())(div(
               channelListModifiers,
@@ -463,7 +487,7 @@ object LeftSidebar {
         VDomModifier.ifTrue(invites().nonEmpty)(
           UI.horizontalDivider("invitations"),
           invites().map{ nodeId =>
-            channelLine(TraverseState(nodeId), userId, expanded = Var(false), hasChildren = Var(false),
+            channelLine(TraverseState(nodeId), userId, expanded = Var(false), hasChildren = Var(false), enableDragging = Var(false),
               channelModifier = VDomModifier(
                 flexGrow := 1, // push buttons to the right
                 div(
