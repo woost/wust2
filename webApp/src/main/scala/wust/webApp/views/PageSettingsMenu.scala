@@ -126,7 +126,7 @@ object PageSettingsMenu {
       channelAsContent().map(WoostNotification.generateNotificationItem( GlobalState.permissionState(), GlobalState.graph(), GlobalState.user().toNode, _))
     }
 
-    List[VDomModifier](notificationItem, searchItem, importItem, nodeRoleItem, copyItem, /*resyncWithTemplatesItem, */ leaveItem, deleteItem)
+    List[VDomModifier](notificationItem, searchItem, importItem, nodeRoleItem, /*copyItem,*/ /*resyncWithTemplatesItem, */ leaveItem, deleteItem)
 
   }
 
