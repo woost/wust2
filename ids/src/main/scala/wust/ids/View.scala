@@ -121,15 +121,15 @@ object View {
   val contentList: Array[View] = list.filter(_.isContent)
 
   val selectableList: Array[View.Visible] = Array(
-    View.Dashboard,
     View.List,
-    View.ListWithChat,
     View.Kanban,
+    View.Chat,
+    View.Content,
+    View.ListWithChat,
     View.Table(NodeRole.Task :: Nil),
     // View.Graph,
-    View.Chat,
     View.Thread,
-    View.Content,
+    View.Dashboard,
     View.Files,
     View.Form,
   // View.Gantt,
