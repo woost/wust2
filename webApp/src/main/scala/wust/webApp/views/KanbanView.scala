@@ -19,6 +19,7 @@ import wust.webApp.views.DragComponents.registerDragContainer
 import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{BrowserDetect, Elements, Ownable, UI}
+import fontAwesome.freeRegular
 
 object KanbanView {
 
@@ -120,9 +121,9 @@ object KanbanView {
       flexDirection.column,
       alignItems.center,
       onClickDefault.foreach { updateKanbanSettings(_.copy(hideUncategorized = false)) },
-      UI.tooltip("right center") := "Expand Uncategorized",
+      UI.tooltip("right center") := "Show uncategorized cards",
 
-      div(cls := "fa-fw", Icons.expand),
+      div(cls := "fa-fw", freeRegular.faEye),
 
       childrenCount.map {
         case 0 => VDomModifier.empty
@@ -146,9 +147,9 @@ object KanbanView {
     }
 
     val collapseButton = div(
-      div(cls := "fa-fw", Icons.collapse),
+      div(cls := "fa-fw", freeRegular.faEyeSlash),
       onClickDefault.foreach { updateKanbanSettings(_.copy(hideUncategorized = true)) },
-      UI.tooltip("bottom center") := "Collapse"
+      UI.tooltip("bottom center") := "Hide uncategorized cards"
     )
 
     div(
@@ -235,11 +236,11 @@ object KanbanView {
           div(
             div(
               cls := "fa-fw",
-              if (isExpanded()) Icons.collapse else Icons.expand
+              if (isExpanded()) freeRegular.faEyeSlash else freeRegular.faEye
             ),
             onClick.stopPropagation.useLazy(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(!isExpanded.now), GlobalState.userId.now)) --> GlobalState.eventProcessor.changes,
             cursor.pointer,
-            UI.tooltip("bottom center") := "Collapse"
+            UI.tooltip("bottom center") := (if (isExpanded()) "Hide contents" else "Show contents")
           ),
           VDomModifier.ifTrue(canWrite())(
             div(div(cls := "fa-fw", Icons.edit), onClick.stopPropagation.use(true) --> editable, cursor.pointer, UI.tooltip("bottom center") := "Edit"),
@@ -306,18 +307,25 @@ object KanbanView {
         ) else VDomModifier(
           div(
             cls := "kanbancolumncollapsed",
-            Styles.flex,
-            flexDirection.column,
-            alignItems.stretch,
-
-            padding := "7px",
 
             div(
-              fontSize.xLarge,
-              opacity := 0.5,
+              opacity := 0.3,
               Styles.flex,
               justifyContent.center,
-              div(cls := "fa-fw", Icons.expand, UI.tooltip("bottom center") := "Expand"),
+              div(
+                Styles.flex,
+                flexDirection.column,
+                alignItems.center,
+                div(
+                  fontSize.xLarge,
+                  freeRegular.faEyeSlash,
+                  marginBottom := "15px",
+                ),
+                div(
+                  fontSize.small,
+                  "Contents are hidden, click to show."
+                )
+              ),
               onClick.stopPropagation.useLazy(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(true), GlobalState.userId.now)) --> GlobalState.eventProcessor.changes,
               cursor.pointer,
               paddingBottom := "7px",

@@ -1251,19 +1251,27 @@ object CommonStyles extends StyleSheet.Standalone
     color(white),
   )
 
+  ".kanbancolumncollapsed" - (
+    height(100 %%),
+    Styles.flex,
+    flexDirection.column,
+    alignItems.stretch,
+
+    padding(7 px),
+  )
+
   ".kanbancolumnchildren > .nodecard," +
   ".kanbancolumncollapsed > .nodecard" - (
     width(kanbanCardWidth),
   )
 
   ".kanbancolumn" - (
-    fontWeight.bold,
-    // borderRadius(kanbanColumnBorderRadius),
     Styles.flexStatic,
     backgroundColor(Color(Colors.contentBg)),
   )
 
   ".kanbancolumnheader" - (
+    fontWeight.bold,
     color.white,
     Styles.flexStatic,
     Styles.flex,
