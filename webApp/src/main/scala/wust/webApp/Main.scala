@@ -122,7 +122,8 @@ object Main {
             node.setAttribute("target","_blank");
             // prevent https://www.owasp.org/index.php/Reverse_Tabnabbing
             node.setAttribute("rel", s"${Elements.safeRelForTargetBlank} nofollow");
-            // If link is in nodecard, stopPropagation prevents the nodecard click (e.g. rightsidebar)
+
+            // If link is in nodecard, stopPropagation prevents the nodecard click (e.g. opening rightsidebar)
             node.setAttribute("onclick", "event.stopPropagation()")
         }
 
