@@ -48,7 +48,7 @@ private object UrlOption {
       val viewName = split(0)
       val parameters = split.drop(1).toList
       val result = View.map.get(viewName).flatMap(_ (parameters))
-      result.fold[DecodeResult[View]](Left(DecodeError.TypeError(s"Unknown view '$s")))(Right(_))
+      result.fold[DecodeResult[View]](Left(DecodeError.TypeError(s"Unknown view '$s'")))(Right(_))
     }
 
     val regex = Regex[String](rx"^(\w|\:|\||,|\?|/|\+)+$$")
