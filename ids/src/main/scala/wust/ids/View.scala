@@ -136,6 +136,22 @@ object View {
   // View.Topological,
   )
 
+  val selectableNewProjectList: Array[View.Visible] = Array(
+    // View.Dashboard,
+    View.List,
+    View.Kanban,
+    View.Chat,
+    View.Content,
+    View.ListWithChat,
+    // View.Table(NodeRole.Task :: Nil),
+    // View.Graph,
+    // View.Thread,
+    // View.Files,
+    // View.Form,
+  // View.Gantt,
+  // View.Topological,
+  )
+
 
   val map: BasicMap[String, List[String] => Option[View]] = {
     val map = BasicMap.ofString[List[String] => Option[View]]()
