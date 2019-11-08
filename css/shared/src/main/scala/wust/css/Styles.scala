@@ -1229,7 +1229,7 @@ object CommonStyles extends StyleSheet.Standalone
     marginLeft(2 px)
   )
 
-  val hoverButtonBgColor = c"#929eab"
+  val hoverButtonBgColor = c"rgba(64, 82, 100, 0.3)"
 
   ".kanbancolumnheader .buttonbar.autohide > div," +
   ".kanban-uncategorized-title .buttonbar.autohide > div" - (
