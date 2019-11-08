@@ -50,13 +50,15 @@ object AdminView {
           marginTop := "20px",
           cls := "ui form",
 
-          h4("Templates"),
+          h5("Existing Templates"),
 
           allTemplates.map { template =>
             div(
               template.toString //TODO render and reload
             )
           },
+
+          h5("New Template"),
 
           div(
             label("Name"),
