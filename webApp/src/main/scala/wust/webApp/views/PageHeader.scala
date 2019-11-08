@@ -101,7 +101,7 @@ object PageHeader {
 
                 PaymentView.focusButton(color.white),
 
-                AuthControls.authStatusOnColoredBackground.map(_(Styles.flexStatic, marginLeft.auto, marginTop := "3px"))
+                AuthControls.authStatusOnColoredBackground(showLogin = false).map(_(Styles.flexStatic, marginLeft.auto, marginTop := "3px"))
               )
             )
           },

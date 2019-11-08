@@ -56,7 +56,7 @@ object PageNotFoundView {
             li(
               liStyle,
               p("Maybe you already have the right permissions, but you just aren't logged in?"),
-              AuthControls.authStatusOnLightBackground,
+              AuthControls.authStatusOnLightBackground(showLogin = true),
             ),
             li (
               liStyle,

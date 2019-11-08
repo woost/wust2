@@ -6,7 +6,7 @@ import rx._
 import wust.api.AuthUser
 import wust.css.Styles
 import wust.graph._
-import wust.ids.{Feature, View}
+import wust.ids.{ Feature, View }
 import wust.webApp.Client
 import wust.webApp.state._
 import wust.webApp.views.DragComponents.registerDragContainer
@@ -15,12 +15,12 @@ import wust.facades.segment.Segment
 
 object AuthControls {
 
-  def authStatusOnLightBackground(implicit ctx: Ctx.Owner) = authStatus(buttonStyleLoggedIn = "basic", loginButtonStyleLoggedOut = "basic", signupButtonStyleLoggedOut = "pink")
-  def authStatusOnColoredBackground(implicit ctx: Ctx.Owner) = authStatus(buttonStyleLoggedIn = "inverted", loginButtonStyleLoggedOut = "inverted", signupButtonStyleLoggedOut = "inverted")
-  def authStatus(buttonStyleLoggedIn: String, loginButtonStyleLoggedOut: String, signupButtonStyleLoggedOut: String)(implicit ctx: Ctx.Owner): Rx[VNode] =
+  def authStatusOnLightBackground(showLogin: Boolean = true)(implicit ctx: Ctx.Owner) = authStatus(buttonStyleLoggedIn = "basic", loginButtonStyleLoggedOut = "basic", signupButtonStyleLoggedOut = "pink", showLogin)
+  def authStatusOnColoredBackground(showLogin: Boolean = true)(implicit ctx: Ctx.Owner) = authStatus(buttonStyleLoggedIn = "inverted", loginButtonStyleLoggedOut = "inverted", signupButtonStyleLoggedOut = "inverted", showLogin)
+  def authStatus(buttonStyleLoggedIn: String, loginButtonStyleLoggedOut: String, signupButtonStyleLoggedOut: String, showLogin: Boolean = true)(implicit ctx: Ctx.Owner): Rx[VNode] =
     GlobalState.user.map {
-      case user: AuthUser.Assumed  => loginSignupButtons(loginButtonStyleLoggedOut, signupButtonStyleLoggedOut).apply(Styles.flexStatic)
-      case user: AuthUser.Implicit => loginSignupButtons(loginButtonStyleLoggedOut, signupButtonStyleLoggedOut).apply(Styles.flexStatic)
+      case user: AuthUser.Assumed  => loginSignupButtons(loginButtonStyleLoggedOut, signupButtonStyleLoggedOut, showLogin).apply(Styles.flexStatic)
+      case user: AuthUser.Implicit => loginSignupButtons(loginButtonStyleLoggedOut, signupButtonStyleLoggedOut, showLogin).apply(Styles.flexStatic)
       case user: AuthUser.Real => div(
         Styles.flex,
         alignItems.center,
@@ -45,15 +45,17 @@ object AuthControls {
       )
     }
 
-  private def loginSignupButtons(loginButtonStyle: String, signupButtonStyle: String)(implicit ctx: Ctx.Owner) =
+  private def loginSignupButtons(loginButtonStyle: String, signupButtonStyle: String, showLogin: Boolean)(implicit ctx: Ctx.Owner) =
     div(
-      button(
-        "Login",
-        cls := s"tiny compact ui $loginButtonStyle button",
-        onClick.useLazy(GlobalState.urlConfig.now.focusWithRedirect(View.Login)) --> GlobalState.urlConfig,
-        onClick foreach {
-          FeatureState.use(Feature.ClickLoginInAuthStatus)
-        },
+      VDomModifier.ifTrue(showLogin)(
+        button(
+          "Login",
+          cls := s"tiny compact ui $loginButtonStyle button",
+          onClick.useLazy(GlobalState.urlConfig.now.focusWithRedirect(View.Login)) --> GlobalState.urlConfig,
+          onClick foreach {
+            FeatureState.use(Feature.ClickLoginInAuthStatus)
+          },
+        ),
       ),
       button(
         "Signup",

@@ -102,7 +102,7 @@ object WelcomeView {
         Styles.flex,
         alignItems.center,
         justifyContent.spaceAround,
-        AuthControls.authStatusOnLightBackground
+        AuthControls.authStatusOnLightBackground(showLogin = true)
       )
     )
 }
