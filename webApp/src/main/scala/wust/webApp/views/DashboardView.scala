@@ -42,11 +42,10 @@ object DashboardView {
     val detailWidgets = VDomModifier(
       Styles.flex,
       alignItems.flexStart,
-      Rx{ if(GlobalState.screenSize() == ScreenSize.Small) flexDirection.column else flexDirection.row },
+      flexWrap.wrap,
 
-      //TODO: renderSubprojects mit summary
       div(
-        width := "100%",
+        flexGrow := 1,
         div(
           Styles.flex,
           alignItems.flexStart,
