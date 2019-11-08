@@ -31,8 +31,10 @@ import scala.concurrent.Future
 object AdminView {
 
   def apply = {
-    val templateName = SinkSourceHandler[TemplateName]
-    val nodeId = SinkSourceHandler[NodeId]
+    val templateNameString = SinkSourceHandler[String]
+    val templateName = templateNameString.map(TemplateName(_))
+    val nodeIdString = SinkSourceHandler[String]
+    val nodeId = nodeIdString.mapFilter(str => Cuid.fromBase58String(str).toOption.map(NodeId(_)))
 
     val allTemplates = SourceStream.fromFuture(Client.api.getTemplates())
 
@@ -64,14 +66,16 @@ object AdminView {
             label("Name"),
             input(
               tpe := "text",
-              onChange.value.map(TemplateName(_)) --> templateName
+              value <-- templateNameString,
+              onChange.value --> templateNameString
             )
           ),
           div(
             label("NodeId"),
             input(
               tpe := "text",
-              onChange.value.mapFilter(str => Cuid.fromBase58String(str).toOption.map(NodeId(_))) --> nodeId
+              value <-- nodeIdString,
+              onChange.value --> nodeIdString
             )
           ),
           button(
@@ -80,7 +84,14 @@ object AdminView {
             onClick.stopPropagation
               .useLatest(templateName.combineLatestMap(nodeId)((name, nodeId) => NodeTemplate(name, nodeId)))
               .foreach { template =>
-                Client.api.setTemplate(template)
+                Client.api.setTemplate(template).onComplete {
+                  case Success(value) =>
+                    templateNameString.onNext("")
+                    nodeIdString.onNext("")
+                    UI.toast("Saved new Template.", level = UI.ToastLevel.Success)
+                  case Failure(err) =>
+                    UI.toast("Error saving new template.", level = UI.ToastLevel.Warning)
+                }
               }
           )
         )
