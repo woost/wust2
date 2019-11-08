@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.webUtil.{Ownable}
 import fontAwesome.freeSolid
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -10,10 +11,10 @@ import wust.graph._
 import wust.ids._
 import wust.webApp.Icons
 import wust.webApp.dragdrop.DragItem
-import wust.webApp.state.{FeatureState, FocusState, GlobalState, Placeholder, TraverseState}
+import wust.webApp.state.{ FeatureState, FocusState, GlobalState, Placeholder, TraverseState }
 import wust.webApp.views.DragComponents.registerDragContainer
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{Elements, UI}
+import wust.webUtil.{ Elements, UI }
 
 // Notes view, this is a simple view for storing note/wiki/documentation on a node.
 // It  renders all direct children of noderole note and allows to add new notes.
@@ -70,7 +71,7 @@ object NotesView {
     )
   }
 
-  private def renderNote(node: Node, focusState:FocusState, traverseState: TraverseState)(implicit ctx: Ctx.Owner): VNode = {
+  private def renderNote(node: Node, focusState: FocusState, traverseState: TraverseState)(implicit ctx: Ctx.Owner): VNode = {
     val parentId = focusState.focusedId
     val nodeIdx = GlobalState.graph.map(_.idToIdxOrThrow(node.id))
     val parentIdx = GlobalState.graph.map(_.idToIdxOrThrow(parentId))
@@ -91,49 +92,51 @@ object NotesView {
 
     val editMode = Var(false)
 
-    div(
-      cls := "ui segment",
-      cls := "note",
-      Rx { VDomModifier.ifNot(editMode())(Components.sidebarNodeFocusMod(node.id, focusState)) },
-      Rx { VDomModifier.ifTrue(editMode())(boxShadow := "0px 0px 0px 2px  rgba(65,184,255, 1)") },
-      div(
-        cls := "notesview-note",
-        cls := "enable-text-selection",
+    div.thunk(node.id.toStringFast)()(Ownable { implicit ctx =>
+      VDomModifier(
+        cls := "ui segment",
+        cls := "note",
+        Rx { VDomModifier.ifNot(editMode())(Components.sidebarNodeFocusMod(node.id, focusState)) },
+        Rx { VDomModifier.ifTrue(editMode())(boxShadow := "0px 0px 0px 2px  rgba(65,184,255, 1)") },
+        div(
+          cls := "notesview-note",
+          cls := "enable-text-selection",
 
-        Components.editableNode(node, editMode = editMode, config = EditableContent.Config.cancelOnError.copy(submitOnEnter = false, submitOnBlur = false)).append(
-          width := "100%",
+          Components.editableNode(node, editMode = editMode, config = EditableContent.Config.cancelOnError.copy(submitOnEnter = false, submitOnBlur = false)).append(
+            width := "100%",
+          ),
         ),
-      ),
-      div(
-        alignItems.center,
-        NodeDetails.tagsPropertiesAssignments(focusState, traverseState, node.id)
-      ),
-      NodeDetails.cardFooter(node.id, childStats, isExpanded, focusState),
-      NodeDetails.nestedTaskList(
-        nodeId = node.id,
-        isExpanded = isExpanded,
-        focusState = focusState,
-        traverseState = traverseState,
-        isCompact = false,
-        inOneLine = true
-      ),
-
-      Rx {
-        VDomModifier.ifNot(editMode())(
-          DragComponents.dragWithHandle(DragItem.Note(node.id)),
-          cursor.auto, // overwrite drag cursor
-        )
-      },
-
-      controls (node.id, parentId, editMode, isDeleted)
-        .apply(
-          position.absolute,
-          top := "10px",
-          right := "10px",
-          Styles.flexStatic,
-          marginLeft := "26px",
+        div(
+          alignItems.center,
+          NodeDetails.tagsPropertiesAssignments(focusState, traverseState, node.id)
         ),
-    )
+        NodeDetails.cardFooter(node.id, childStats, isExpanded, focusState),
+        NodeDetails.nestedTaskList(
+          nodeId = node.id,
+          isExpanded = isExpanded,
+          focusState = focusState,
+          traverseState = traverseState,
+          isCompact = false,
+          inOneLine = true
+        ),
+
+        Rx {
+          VDomModifier.ifNot(editMode())(
+            DragComponents.dragWithHandle(DragItem.Note(node.id)),
+            cursor.auto, // overwrite drag cursor
+          )
+        },
+
+        controls (node.id, parentId, editMode, isDeleted)
+          .apply(
+            position.absolute,
+            top := "10px",
+            right := "10px",
+            Styles.flexStatic,
+            marginLeft := "26px",
+          ),
+      )
+    })
   }
 
   private def controls(nodeId: NodeId, parentId: NodeId, editMode: Var[Boolean], isDeleted: Rx[Boolean])(implicit ctx: Ctx.Owner) = div(
