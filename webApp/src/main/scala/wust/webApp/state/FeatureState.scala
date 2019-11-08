@@ -1,6 +1,7 @@
 package wust.webApp.state
 
 // import acyclic.file
+import scala.scalajs.js
 import outwatch.reactive._
 import rx._
 import wust.api.{AuthUser, UsedFeature}
@@ -24,6 +25,8 @@ object FeatureState {
 
   val recentlyUsedLimit = 1
   val recentlyUsed = Var[Vector[Feature]](Vector.empty)
+  val score = Rx { (firstTimeUsed() -- Feature.secrets).size }
+
   private val notSentFirstTimeFeatures = mutable.HashMap.empty[Feature, EpochMilli]
   private var currentUserId: UserId = GlobalState.userId.now
 
@@ -103,7 +106,17 @@ object FeatureState {
     suggestions
   }
 
-  val usedNewFeatureTrigger = SinkSourceHandler.publish[Unit]
+  val usedNewFeatureTrigger = SinkSourceHandler.publish[Feature]
+  usedNewFeatureTrigger.foreach { feature =>
+    Segment.trackEvent(
+      "First Time Feature",
+      js.Dynamic.literal(
+        feature = feature.toString,
+        score = FeatureState.score.now,
+        total = Feature.allWithoutSecrets.length,
+      )
+    )
+  }
 
   def canUseApi: Boolean = {
     GlobalState.user.now match {
@@ -139,7 +152,7 @@ object FeatureState {
           val timestamp = EpochMilli.now
           firstTimeUsed.update(_ + (feature -> timestamp))
           persistFirstTimeUsage(feature, timestamp)
-          if (Feature.allWithoutSecretsSet.contains(feature)) usedNewFeatureTrigger.onNext(())
+          if (Feature.allWithoutSecretsSet.contains(feature)) usedNewFeatureTrigger.onNext(feature)
         }
         recentlyUsed.update(recentlyUsed => (feature +: recentlyUsed).take(recentlyUsedLimit).distinct)
 

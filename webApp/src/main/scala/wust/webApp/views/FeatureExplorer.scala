@@ -42,7 +42,7 @@ object FeatureExplorer {
           fontSize := "20px",
           marginLeft := "15px",
           padding := "6px",
-          Rx{ score() }
+          Rx{ FeatureState.score() }
         ),
       ),
       div(
@@ -159,7 +159,6 @@ object FeatureExplorer {
     )
   }
 
-  val score = Rx { (FeatureState.firstTimeUsed() -- Feature.secrets).size }
   val recentFeatures = Rx {
     FeatureState.recentFirstTimeUsed().filter(f => Feature.allWithoutSecretsSet.contains(f) && FeatureDetails.hasDetails(f)).take(5)
   }
@@ -167,7 +166,7 @@ object FeatureExplorer {
 
   val progress: Rx[String] = Rx {
     val total = Feature.allWithoutSecrets.length
-    val ratio = Math.ceil(score().toDouble / total.toDouble * 100).min(100.0) // everything greater 0 is at least 1%
+    val ratio = Math.ceil(FeatureState.score().toDouble / total.toDouble * 100).min(100.0) // everything greater 0 is at least 1%
     f"${ratio}%0.0f"
   }
 
