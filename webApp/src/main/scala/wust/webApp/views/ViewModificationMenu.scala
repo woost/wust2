@@ -5,11 +5,11 @@ import outwatch.dom.dsl._
 import outwatch.reactive._
 import rx._
 import wust.css.Styles
-import wust.graph.{GraphChanges, Node}
-import wust.ids.{Feature, _}
+import wust.graph.{ GraphChanges, Node }
+import wust.ids.{ Feature, _ }
 import wust.webApp.state._
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{Elements, Ownable}
+import wust.webUtil.{ Elements, Ownable }
 
 object ViewModificationMenu {
   def selectForm(channelId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
@@ -72,7 +72,7 @@ object ViewModificationMenu {
             val info = ViewSwitcher.viewToTabInfo(view, 0, 0, 0)
             div(
               marginTop := "8px",
-              cls := "ui button compact mini",
+              cls := "ui basic button compact mini",
               Elements.icon(info.icon),
               view.toString,
               onClick.stopPropagation.foreach{
@@ -85,53 +85,46 @@ object ViewModificationMenu {
         }
       ),
 
-      div(
-        Styles.flex,
-        flexDirection.column,
-        alignItems.center,
-        width := "100%",
-        marginTop := "20px",
-        padding := "5px",
+      Rx {
+        val currentViews = existingViews()
+        VDomModifier.ifTrue(currentViews.nonEmpty)(
+          div(
+            Styles.flex,
+            flexDirection.column,
+            alignItems.center,
+            width := "100%",
+            marginTop := "20px",
+            padding := "5px",
 
-        b(
-          "Current views:",
-          alignSelf.flexStart
-        ),
+            b(
+              "Current views:",
+              alignSelf.flexStart
+            ),
 
-        Rx {
-          val currentViews = existingViews()
-          if (currentViews.isEmpty) div("Nothing, yet.")
-          else Components.removeableList(currentViews, removeSink = SinkObserver.create(removeView(currentView, done, nodeRx, _))) { view =>
-            val info = ViewSwitcher.viewToTabInfo(view, 0, 0, 0)
-            VDomModifier(
-              marginTop := "8px",
-              div(
-                cls := "ui button primary compact mini",
-                Styles.flex,
-                alignItems.center,
-                Elements.icon(info.icon),
-                view.toString,
-                onClick.stopPropagation.foreach { currentView() = view },
-                cursor.pointer,
+            Components.removeableList(currentViews, removeSink = SinkObserver.create(removeView(currentView, done, nodeRx, _))) { view =>
+              val info = ViewSwitcher.viewToTabInfo(view, 0, 0, 0)
+              VDomModifier(
+                marginTop := "8px",
+                div(
+                  fontSize.medium,
+                  Styles.flex,
+                  alignItems.center,
+                  div(cls := "fa-fw", info.icon, marginRight := "0.5em"),
+                  view.toString,
+                )
               )
-            )
-          }
-        },
+            },
 
-        Rx {
-          VDomModifier.ifTrue(hasViews())(
             div(
-              alignSelf.flexEnd,
-              marginLeft := "auto",
               marginTop := "10px",
-              cls := "ui button compact mini",
-              "Reset to default",
-              cursor.pointer,
-              onClick.stopPropagation.foreach { resetView(currentView, done, nodeRx) }
-            )
+              fontSize.small,
+              opacity := 0.5,
+              "Removing a view will not delete its data.",
+              alignSelf.flexStart
+            ),
           )
-        }
-      )
+        )
+      },
     )
   }
   private def resetView(currentView: Var[View], done: SinkObserver[Unit], nodeRx: Rx[Option[Node]]): Unit = {
