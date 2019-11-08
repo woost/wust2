@@ -5,18 +5,19 @@ import outwatch.dom.dsl._
 import outwatch.reactive._
 import rx._
 import wust.css.Styles
-import wust.graph.{Edge, GraphChanges, Node}
-import wust.ids.{ChildId, EpochMilli, ParentId, UserId}
+import wust.graph.{ Edge, GraphChanges, Node }
+import wust.ids.{ ChildId, EpochMilli, ParentId, UserId }
 import wust.util.collection._
-import wust.webApp.state.{FocusState, GlobalState, Placeholder, TraverseState}
+import wust.webApp.state.{ FocusState, GlobalState, Placeholder, TraverseState }
 import wust.webApp.views.AssignedTasksData.AssignedTask
 import wust.webApp.views.DragComponents.registerDragContainer
 import wust.webUtil.UI
+import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
 
 import scala.scalajs.js
 
-object AssignedTasksView  {
+object AssignedTasksView {
 
   private def datePlusDays(now: EpochMilli, days: Int): EpochMilli = {
     val date = new js.Date(now)
@@ -27,7 +28,7 @@ object AssignedTasksView  {
     EpochMilli(date.getTime.toLong + days * EpochMilli.day)
   }
 
-  def apply(focusState: FocusState, deepSearch: Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(focusState: FocusState, deepSearch: Boolean = false, selectedUserId: Var[Option[UserId]] = Var(Some(GlobalState.userId.now)))(implicit ctx: Ctx.Owner): VNode = {
     val renderTime = EpochMilli.now
     val bucketNames = Array(
       "Overdue",
@@ -43,8 +44,6 @@ object AssignedTasksView  {
       datePlusDays(renderTime, 7),
       datePlusDays(renderTime, 30)
     )
-
-    val selectedUserId: Var[Option[UserId]] = Var(Some(GlobalState.userId.now))
 
     val selectableUsers = Rx {
       val graph = GlobalState.graph()
@@ -62,15 +61,14 @@ object AssignedTasksView  {
       val changes = GraphChanges(
         addNodes = Array(newTask),
         addEdges = selectedUserId.now.fold (
-          Array[Edge]( 
+          Array[Edge](
             Edge.Child(ParentId(focusState.focusedId), ChildId(newTask.id))
           )
-        ) ( uid =>
-          Array[Edge]( 
-            Edge.Child(ParentId(focusState.focusedId), ChildId(newTask.id)),
-            Edge.Assigned(newTask.id, uid)
-          )
-        ),
+        ) (uid =>
+            Array[Edge](
+              Edge.Child(ParentId(focusState.focusedId), ChildId(newTask.id)),
+              Edge.Assigned(newTask.id, uid)
+            )),
       )
 
       GlobalState.submitChanges(changes merge sub.changes(newTask.id))
@@ -82,7 +80,6 @@ object AssignedTasksView  {
       Styles.flex,
       flexDirection.column,
       padding := "20px",
-      overflow.auto,
 
       registerDragContainer,
 
@@ -90,8 +87,7 @@ object AssignedTasksView  {
         Styles.flex,
         alignItems.center,
 
-        chooseUser(selectableUsers, selectedUserId).apply(Styles.flexStatic),
-
+        chooseUser(selectableUsers, selectedUserId).apply(margin := "10px", Styles.flexStatic),
         InputRow(
           Some(focusState),
           addNewTask,
@@ -109,20 +105,20 @@ object AssignedTasksView  {
             val coloringHeader = if (idx == 0) VDomModifier(cls := "red", color.red) else cls := "grey"
             foundSomething = true
             VDomModifier(
-              h3(coloringHeader, bucketName, cls := "tasklist-header"),
-              div(cls := "tasklist",dueTasks.sortBy(_.dueDate).map(renderTask( focusState, _))),
+              h3(coloringHeader, bucketName, cls := "tasklist-header", fontSize.small),
+              div(cls := "tasklist", dueTasks.sortBy(_.dueDate).map(renderTask(focusState, _))),
             )
           }
         }
         if (foundSomething) VDomModifier(rendering)
-        else h3(textAlign.center, padding := "10px", color.gray, "Nothing Due.")
+        else div(textAlign.center, padding := "20px", opacity := 0.4, "Nothing due")
       },
 
       Rx {
         val tasks = assignedTasksOther()
         VDomModifier.ifTrue(tasks.nonEmpty)(
-          h3("Todo", cls := "tasklist-header"),
-          div(cls := "tasklist", assignedTasksOther().map(renderTask( focusState, _))),
+          h2("Assigned tasks", fontSize.large, cls := "tasklist-header", marginBottom := "15px"),
+          div(cls := "tasklist", assignedTasksOther().map(renderTask(focusState, _))),
         )
       },
 
@@ -141,19 +137,23 @@ object AssignedTasksView  {
 
   private def chooseUser(users: Rx[Seq[Node.User]], selectedUserId: Var[Option[UserId]])(implicit ctx: Ctx.Owner): VNode = {
     val close = SinkSourceHandler.publish[Unit]
-    val allUsersDiv = div(width := "20px", height := "20px")
+    val avatarSize = "20px"
+    val allUsersDiv = div(height := avatarSize)
     div(
-      Rx {
-        val userIdOpt: Option[UserId] = selectedUserId()
-        userIdOpt match {
+      div(
+        Styles.flex,
+        Rx {
+          val userIdOpt: Option[UserId] = selectedUserId()
+          userIdOpt match {
             case Some(userId) =>
               users().find(_.id == userId).map { user =>
-                Avatar.user(user, size = "20px", enableDrag = false)
-              }: VDomModifier 
-            case _ => allUsersDiv("All")
-        }
-      },
-      i(cls := "dropdown icon"),
+                Avatar.user(user, size = avatarSize, enableDrag = false)
+              }: VDomModifier
+            case _ => allUsersDiv("All", width := avatarSize)
+          }
+        },
+        i(cls := "dropdown icon"),
+      ),
       UI.dropdownMenu(
         VDomModifier(
           padding := "10px",
@@ -162,24 +162,26 @@ object AssignedTasksView  {
               cls := "item",
               Components.renderUser(user, enableDrag = false).apply(
                 backgroundColor := "transparent", // overwrite white background
-                cursor.pointer,
-                onClick.stopPropagation foreach {
-                  close.onNext(())
-                  selectedUserId() = Some(user.id)
-                }
-              )
+              ),
+              onClickDefault.foreach {
+                close.onNext(())
+                selectedUserId() = Some(user.id)
+              }
             )
           }),
-            div(
-              cls := "item",
-              allUsersDiv("All Due Dates", onClick.stopPropagation foreach {
-                  close.onNext(())
-                  selectedUserId() = None
-                }
-            )
+          div(
+            cls := "item",
+            allUsersDiv(
+              "All Due Dates",
+            ),
+            onClickDefault.foreach {
+              close.onNext(())
+              selectedUserId() = None
+            }
           )
         ),
-        close = close, dropdownModifier = cls := "top left"
+        close = close,
+        dropdownModifier = cls := "top left"
       )
     )
   }

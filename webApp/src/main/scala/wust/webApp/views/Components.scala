@@ -352,7 +352,7 @@ object Components {
         marginRight := "2px",
       ),
       keyed(userNode.id),
-      UI.tooltip("left center") := s"${displayUserName(userNode.data)}. Click to unassign.",
+      UI.tooltip("left center") := s"${displayUserName(userNode.data)} (click to unassign)",
       cursor.pointer,
       onClick.stopPropagation.useLazy(GraphChanges.disconnect(Edge.Assigned)(targetNodeId, userNode.id)) --> GlobalState.eventProcessor.changes,
     )
@@ -366,6 +366,7 @@ object Components {
 
     def renderUser(user: Node.User, size:String = "20px", enableDrag:Boolean = true, appendName: VDomModifier = VDomModifier.empty): VNode = {
       div(
+        cls := "username",
         padding := "2px",
         borderRadius := "3px",
         backgroundColor := "white",

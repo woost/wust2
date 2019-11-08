@@ -59,7 +59,7 @@ trait TaskList extends StyleSheet.Standalone {
   )
 
   ".tasklist-header" - (
-    fontSize(15 px),
+    fontSize.large,
     marginBottom(0 px),
     marginLeft(listViewLeftMargin),
   )

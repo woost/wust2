@@ -9,12 +9,12 @@ import wust.graph._
 import wust.ids._
 import wust.util.collection._
 import wust.webApp.dragdrop.DragItem
-import wust.webApp.state.{EmojiReplacer, FeatureState, FocusState, GlobalState}
+import wust.webApp.state.{ EmojiReplacer, FeatureState, FocusState, GlobalState, ScreenSize }
 import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.registerDragContainer
-import wust.webApp.{Icons, Permission}
+import wust.webApp.{ Icons, Permission }
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{BrowserDetect, UI}
+import wust.webUtil.{ BrowserDetect, UI }
 
 // Shows overview over a project:
 // - subprojects
@@ -36,23 +36,36 @@ object DashboardView {
 
     val projectNodes = Rx { getProjectList(GlobalState.graph(), focusState.focusedId) }
 
+    val showTasksOfSubprojects = Var(false)
+    val selectedUserId: Var[Option[UserId]] = Var(Some(GlobalState.userId.now))
+
     val detailWidgets = VDomModifier(
       Styles.flex,
+      alignItems.flexStart,
+      Rx{ if(GlobalState.screenSize() == ScreenSize.Small) flexDirection.column else flexDirection.row },
 
       //TODO: renderSubprojects mit summary
-      UI.segment("Subprojects", VDomModifier(renderSubprojects(focusState), overflowX.auto)).apply(Styles.flexStatic, segmentMod),
-      UI.segment("Tasks of this Project", AssignedTasksView(focusState).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod),
-      UI.segment("Tasks of this Project and all Subprojects", AssignedTasksView(focusState, true).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod),
+      div(
+        width := "100%",
+        div(
+          Styles.flex,
+          alignItems.flexStart,
+          h2("Your tasks", cls := "tasklist-header", marginRight.auto, Styles.flexStatic),
+          UI.toggle("Show tasks of sub-projects", isChecked = showTasksOfSubprojects).apply(marginLeft := "10px", marginRight := "10px"),
+          marginBottom := "15px"
+        ),
+        Rx {
+          AssignedTasksView(focusState, deepSearch = showTasksOfSubprojects(), selectedUserId).apply(padding := "0px")
+        },
+      ),
+      UI.segment("Sub-projects", VDomModifier(renderSubprojects(focusState), overflowX.auto)).apply(Styles.flexStatic, segmentMod)
     )
 
     val dashboard = if (BrowserDetect.isMobile) VDomModifier(
-      flexDirection.column,
       detailWidgets
     )
     else VDomModifier(
       padding := "20px",
-      minWidth := "500px",
-      flexDirection.column,
       detailWidgets
     )
 
@@ -73,10 +86,7 @@ object DashboardView {
     }
 
     div(
-      Styles.flex,
-      justifyContent.spaceBetween,
       padding := "10px",
-      alignItems.flexEnd,
 
       div(
         Styles.flex,
@@ -89,19 +99,23 @@ object DashboardView {
           VDomModifier(
             undeletedProjectNodes.map(renderSubproject(GlobalState.graph(), focusState, _, isDeleted = false)),
             VDomModifier.ifTrue(deletedProjectNodes.nonEmpty)(
-              h4("Deleted Subprojects", color.gray),
+              h4("Deleted Sub-projects", color.gray),
               deletedProjectNodes.map(renderSubproject(GlobalState.graph(), focusState, _, isDeleted = true))
             )
           )
         },
-        registerDragContainer
+        registerDragContainer,
+        marginBottom := "20px",
       ),
 
-      NewProjectPrompt.newProjectButton(
-        label = "+ Add Subproject",
-        focusNewProject = false,
-        buttonClass = "basic",
-        extraChanges = nodeId => GraphChanges.connect(Edge.Child)(ParentId(focusState.focusedId), ChildId(nodeId))
+      div(
+        textAlign.right,
+        NewProjectPrompt.newProjectButton(
+          label = "+ Add Sub-project",
+          focusNewProject = false,
+          buttonClass = "basic tiny compact",
+          extraChanges = nodeId => GraphChanges.connect(Edge.Child)(ParentId(focusState.focusedId), ChildId(nodeId))
+        )
       )
     )
   }
@@ -133,14 +147,14 @@ object DashboardView {
           cursor.pointer,
           fontSize.small,
           isPinned.map[VDomModifier] {
-            case true => Icons.bookmark
+            case true  => Icons.bookmark
             case false => Icons.unbookmark
           },
           onClick.stopPropagation.useLazy(
             if (isPinned.now) GraphChanges.unpin(project.id, GlobalState.userId.now) else GraphChanges.pin(project.id, GlobalState.userId.now)
           ) --> GlobalState.eventProcessor.changes
         ),
-        VDomModifier.empty
+          VDomModifier.empty
       )
     }
 

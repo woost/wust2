@@ -382,6 +382,7 @@ object UserSettingsView {
       ),
       editableNode(nodeUser, editMode).apply(cls := "username", marginLeft := "20px", marginBottom := "0px", fontSize := "30px", alignItems.center, cls := "enable-text-selection"),
       button(
+        Styles.flexStatic,
         cls := "ui button primary tiny",
         marginLeft := "20px",
         "Edit username",
