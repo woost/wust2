@@ -62,19 +62,6 @@ object SharedViewElements {
     }
   }
 
-  val dragHandle:VNode = div(
-    Styles.flex,
-    alignItems.center,
-    cls := "draghandle",
-    paddingLeft := "12px",
-    freeSolid.faBars,
-    paddingRight := "12px",
-    color := "#b3bfca",
-    alignSelf.stretch,
-    marginLeft.auto,
-    onMouseDown.stopPropagation foreach {},
-  )
-
   val replyButton: VNode = {
     div(
       div(cls := "fa-fw", UI.tooltip("bottom right") := "Reply", freeSolid.faReply),
