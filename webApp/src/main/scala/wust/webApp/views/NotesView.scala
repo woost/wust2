@@ -94,7 +94,7 @@ object NotesView {
     div(
       cls := "ui segment",
       cls := "note",
-      Components.sidebarNodeFocusMod(node.id, focusState),
+      Rx { VDomModifier.ifNot(editMode())(Components.sidebarNodeFocusMod(node.id, focusState)) },
       Rx { VDomModifier.ifTrue(editMode())(boxShadow := "0px 0px 0px 2px  rgba(65,184,255, 1)") },
       div(
         cls := "notesview-note",
