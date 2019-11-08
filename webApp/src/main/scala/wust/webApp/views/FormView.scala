@@ -104,7 +104,8 @@ object FormView {
 
             if (propertiesIsEmpty()) div(
               textAlign.center,
-              "This Item does not have any Fields yet. Add Custom Fields to have a Form to fill-in these fields."
+              opacity := 0.5,
+              "This item does not have any fields yet. You can add custom fields by clicking on the project title to open it in the right side bar."
             )
             else VDomModifier(
               propertySingle().map(propertySingle => propertySingle.properties.map { property =>
