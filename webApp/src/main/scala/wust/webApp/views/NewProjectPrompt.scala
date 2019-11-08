@@ -42,7 +42,6 @@ object NewProjectPrompt {
           onClick.stopPropagation.use(()) --> triggerSubmit,
         )
       ),
-      TemplateView.render,
       MainTutorial.onDomMountContinue,
     )
 

@@ -29,13 +29,29 @@ import scala.util.{Success, Failure}
 import scala.concurrent.Future
 
 object TemplateView {
-  case class Template(name: String, nodeId: NodeId)
 
-  //TODO get current payment plan of user to visualize what the user currently uses.
+  case class TemplateDescription(
+    name: TemplateName,
+    shortDescription: String,
+    longDescription: String,
+    imgSrc: String
+  )
+
   def render = {
 
-    val templates: Seq[TemplateName] =
-      TemplateName("CTC") ::
+    val templates: Seq[TemplateDescription] =
+      TemplateDescription(
+        name = TemplateName("CTC"),
+        shortDescription = "Coaching Kanban Board",
+        longDescription = "Setup a Kanban Board for Coaching external Entities",
+        imgSrc = "templates/ctc.png" //TODO
+      ) ::
+      TemplateDescription(
+        name = TemplateName("HR"),
+        shortDescription = "Human-Resource Kanban Board",
+        longDescription = "Setup a Kanban Board for Coaching external Entities",
+        imgSrc = "templates/hr.png" //TODO
+      ) ::
       Nil
 
     val isRunning = Var(false)
@@ -59,79 +75,60 @@ object TemplateView {
               isRunning() = false
             case _ =>
               isRunning() = false
-              UI.toast("Cannot get Data for the referenced Template. Please try again later", level = UI.ToastLevel.Warning)
+              UI.toast("Cannot get Data for the referenced Template. Please try again later.", level = UI.ToastLevel.Warning)
           }
         case _ =>
           isRunning() = false
-          UI.toast("Cannot find the referenced Template. Please try again later", level = UI.ToastLevel.Warning)
+          UI.toast("Cannot find the referenced Template. Please try again later.", level = UI.ToastLevel.Warning)
       }
     }
 
-    def templateBlock(name: TemplateName) = div(cls := "ui card",
-      div(cls := "image",
-        freeSolid.faTimes
-      ),
-      div(cls := "content",
-        a(cls := "header",
-          "header"
+    def templateBlock(template: TemplateDescription) = div(
+      margin := "10px",
+      div(cls := "ui card",
+        // div(cls := "image",
+        //   img(src := template.imgSrc, width := "50px", height := "50px")
+        // ),
+        div(cls := "content",
+          a(cls := "header",
+            template.name
+          ),
+          div(cls := "meta",
+            template.shortDescription
+          ),
+          div(cls := "description",
+            template.longDescription
+          )
         ),
-        div(cls := "meta",
-          "meta"
-        ),
-        div(cls := "description",
-          "desc"
-        )
-      ),
-      div(cls := "extra content",
-        button(
-          "Copy Template",
-          cls := "ui button basic",
+        div(cls := "extra content",
+          button(
+            "Copy Template",
+            cls := "ui button basic",
 
-          disabled <-- isRunning,
+            disabled <-- isRunning,
 
-          onClick.stopPropagation.foreach {
-            setupTemplate(name)
-          }
+            onClick.stopPropagation.foreach {
+              setupTemplate(template.name)
+            }
+          )
         )
       )
     )
 
     div(
-      padding := "20px",
-      Styles.growFull,
-      Styles.flex,
-      justifyContent.center,
+
+      h3("Templates"),
 
       div(
+        marginTop := "10px",
+        Styles.flex,
+        flexWrap.wrap,
+        alignItems.center,
 
-        h3("Templates"),
-
-        div(
-          marginTop := "20px",
-          Styles.flex,
-          flexWrap.wrap,
-          alignItems.flexStart,
-
-          templates.map { template =>
-            templateBlock(template),
-          }
-        )
+        templates.map { template =>
+          templateBlock(template)
+        }
       )
     )
   }
-
-  val focusButton = {
-    div
-    // button(
-    //   margin := "0 5px",
-
-    //   cls := "ui mini compact button basic",
-
-    //   "Pricing",
-
-    //   onClickDefault.foreach(GlobalState.urlConfig.update(_.focus(View.Payment)))
-    // )
-  }
-
-  case class PaymentPlanIntent(plan: PaymentPlan, price: Int)
 }

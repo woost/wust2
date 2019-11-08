@@ -116,6 +116,10 @@ object View {
   case object Tasks extends Heuristic {
     def viewKey = "tasks"
   }
+  case object Admin extends Visible {
+    def viewKey = "admin"
+    override def isContent = false
+  }
 
   val list: Array[View] = SubObjects.all[View]
   val contentList: Array[View] = list.filter(_.isContent)

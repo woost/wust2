@@ -278,10 +278,15 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       ).map(_ == 1)
     }
     def getAll(userId: UserId)(implicit ec: ExecutionContext): Future[Seq[NodeTemplate]] = {
-      ctx.run(query[NodeTemplate].filter(t => user.canAccessNodeQuery(t.nodeId, lift(userId))))
+      ctx.run(query[NodeTemplate].filter(t => canAccessNodeQuery(t.nodeId, lift(userId))))
     }
     def get(userId: UserId, name: TemplateName)(implicit ec: ExecutionContext): Future[Option[NodeTemplate]] = {
-      ctx.run(query[NodeTemplate].filter(t => t.name == lift(name) && user.canAccessNodeQuery(t.nodeId, lift(userId)))).map(_.headOption)
+      ctx.run(query[NodeTemplate].filter(t => t.name == lift(name) && canAccessNodeQuery(t.nodeId, lift(userId)))).map(_.headOption)
+    }
+
+    private val canAccessNodeQuery = quote { (nodeId: NodeId, userId: UserId) =>
+      // TODO why not as[Query[Boolean]] like other functions?
+      infix"node_can_access($nodeId, $userId, 'read'::accesslevel)".as[Boolean]
     }
   }
 
@@ -526,7 +531,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       canAccessNodeQuery(lift(nodeId), lift(userId))
     }
 
-    val canAccessNodeQuery = quote { (nodeId: NodeId, userId: UserId) =>
+    private val canAccessNodeQuery = quote { (nodeId: NodeId, userId: UserId) =>
       // TODO why not as[Query[Boolean]] like other functions?
       infix"select node_can_access($nodeId, $userId, 'read'::accesslevel)".as[Boolean]
     }

@@ -33,6 +33,7 @@ object WelcomeView {
               welcomeMessage(Styles.flexStatic, marginBottom := "50px"),
             )
           },
+          TemplateView.render.apply(margin := "10px"),
           newProjectButton(Styles.flexStatic),
           div (width := "1px", height := "1px", Styles.flexStatic), // margin bottom hack for flexbox
         )
