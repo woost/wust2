@@ -99,22 +99,22 @@ object Feature {
   // share tags between projects
   // select multiple views with ctrl
 
-  case object CreateProject extends Category.Item.Project with Category.Basics with Category.StartingPoint { override def next = Array(AddChecklistView, AddKanbanView, AddChatView, AddNotesView, AddDashboardView, OpenProjectInRightSidebar) }
-  case object AddDashboardView extends Category.View { override def next = Array(CreateSubProjectFromDashboard) }
+  case object CreateProject extends Category.Item.Project with Category.Basics with Category.StartingPoint { override def next = Array(AddChecklistView, AddKanbanView, AddChatView, AddNotesView, AddDashboardView, OpenProjectInRightSidebar, EnableBrowserNotifications, CloseLeftSidebar) }
+  case object AddDashboardView extends Category.View { override def next = Array(CreateSubProjectFromDashboard); override def requiresAll = Array(CreateProject) }
   case object CreateSubProjectFromDashboard extends Category.Item.Project { override def next = Array(ZoomIntoProject) }
   case object CreateProjectFromWelcomeView extends Category.Item.Project with Category.Secret { override def next = CreateProject.next }
 
   // Basics
-  case object CloseLeftSidebar extends Category.Basics with Category.StartingPoint { override def next = Array(SwitchPageFromCollapsedLeftSidebar, CreateProjectFromCollapsedLeftSidebar, OpenLeftSidebar) }
-  case object OpenLeftSidebar extends Category.Basics { override def next = Array(SwitchPageFromExpandedLeftSidebar, CreateProjectFromExpandedLeftSidebar, CloseLeftSidebar) }
+  case object CloseLeftSidebar extends Category.Basics { override def requiresAll = Array(CreateProject); override def next = Array(SwitchPageFromCollapsedLeftSidebar, CreateProjectFromCollapsedLeftSidebar, OpenLeftSidebar) }
+  case object OpenLeftSidebar extends Category.Basics { override def requiresAll = Array(CreateProject); override def next = Array(SwitchPageFromExpandedLeftSidebar, CreateProjectFromExpandedLeftSidebar, CloseLeftSidebar) }
   case object CreateProjectFromExpandedLeftSidebar extends Category.Basics with Category.Secret {}
   case object CreateProjectFromCollapsedLeftSidebar extends Category.Basics with Category.Secret {}
-  case object SwitchPageFromExpandedLeftSidebar extends Category.Basics {}
-  case object SwitchPageFromCollapsedLeftSidebar extends Category.Basics {}
+  case object SwitchPageFromExpandedLeftSidebar extends Category.Basics { override def requiresAll = Array(CreateProject) }
+  case object SwitchPageFromCollapsedLeftSidebar extends Category.Basics { override def requiresAll = Array(CreateProject) }
 
   case object ClickBreadcrumb extends Category.Basics with Category.Secret
 
-  case object OpenProjectInRightSidebar extends Category.Basics with Category.Item.Project { override def requiresAny = Array(CreateProject, CreateProjectFromCollapsedLeftSidebar, CreateProjectFromExpandedLeftSidebar, CreateProjectFromWelcomeView, CreateSubProjectFromDashboard); override def next = Array(EditProjectInRightSidebar, ZoomIntoProject) }
+  case object OpenProjectInRightSidebar extends Category.Basics with Category.Item.Project { override def requiresAny = Array(CreateProject); override def next = Array(EditProjectInRightSidebar, ZoomIntoProject) }
   case object OpenTaskInRightSidebar extends Category.Basics with Category.Item.Task { override def requiresAny = Array(CreateTaskInChecklist, CreateTaskInKanban); override def next = Array(EditTaskInRightSidebar, ZoomIntoTask) }
   case object OpenMessageInRightSidebar extends Category.Basics with Category.Item.Message { override def requiresAny = Array(CreateMessageInChat /*TODO: CreateMessageInThread */ ); override def next = Array(EditMessageInRightSidebar, ZoomIntoMessage) }
   // case object OpenNoteInRightSidebar extends Category.Basics with Category.Item.Note { override def next = Array(EditNoteInRightSidebar, ZoomIntoNote) }
@@ -124,7 +124,7 @@ object Feature {
   case object EditMessageInRightSidebar extends Category.Basics with Category.Item.Message { override def requiresAll = Array(OpenMessageInRightSidebar) }
   // case object EditNoteInRightSidebar extends Category.Basics with Category.Item.Note { override def requiresAll = Array(OpenNoteInRightSidebar) }
 
-  case object ZoomIntoProject extends Category.Basics with Category.Item.Project { override def requiresAny = Array(CreateProject, CreateProjectFromCollapsedLeftSidebar, CreateProjectFromExpandedLeftSidebar, CreateProjectFromWelcomeView, CreateSubProjectFromDashboard); override def next = Array(BookmarkProject) }
+  case object ZoomIntoProject extends Category.Basics with Category.Item.Project { override def requiresAny = Array(CreateProject); override def next = Array(BookmarkProject) }
   case object ZoomIntoTask extends Category.Basics with Category.Item.Task { override def requiresAny = Array(CreateTaskInChecklist, CreateTaskInKanban); override def next = Array(BookmarkTask) }
   case object ZoomIntoMessage extends Category.Basics with Category.Item.Message { override def requiresAny = Array(CreateMessageInChat); override def next = Array(BookmarkMessage) } //TODO: requiresAny CreateMessageInThread
   case object ZoomIntoNote extends Category.Basics with Category.Item.Note { override def requiresAny = Array(CreateNoteInNotes); override def next = Array(BookmarkNote) }
@@ -139,7 +139,7 @@ object Feature {
   case object AssignTaskByDragging extends Category.Item.Task with Category.Drag { override def requiresAll = Array(InviteMember); override def requiresAny = Array(CreateTaskInKanban, CreateTaskInChecklist); override def next = Array(FilterOnlyAssignedTo, FilterOnlyNotAssigned) }
 
   // Chat
-  case object AddChatView extends Category.View { override def next = Array(CreateMessageInChat) }
+  case object AddChatView extends Category.View { override def next = Array(CreateMessageInChat); override def requiresAll = Array(CreateProject) }
   case object CreateMessageInChat extends Category.View.Chat with Category.Item.Message { override def requiresAny = Array(AddChatView, SwitchToChatInPageHeader, SwitchToChatInRightSidebar); override def next = Array(ReplyToMessageInChat, OpenMessageInRightSidebar, TagMessageByDragging) }
   case object ReplyToMessageInChat extends Category.View.Chat with Category.Item.Message { override def requiresAll = Array(CreateMessageInChat /* TODO: ,CreateMessageInThread */ ); override def next = Array(NestMessagesByDragging, OpenMessageInRightSidebar, TagMessageByDragging) }
   case object NestMessagesByDragging extends Category.View.Chat with Category.Item.Message with Category.Drag { override def requiresAll = Array(ReplyToMessageInChat /* TODO: ,CreateMessageInThread */ ); override def next = Array(ZoomIntoMessage, UnNestMessagesByDragging) }
@@ -156,7 +156,7 @@ object Feature {
   case object SwitchToChatInRightSidebar extends Category.View with Category.Secret { override def next = AddChatView.next }
 
   // Checklist
-  case object AddChecklistView extends Category.View with Category.View.Checklist { override def next = Array(CreateTaskInChecklist) }
+  case object AddChecklistView extends Category.View with Category.View.Checklist { override def next = Array(CreateTaskInChecklist); override def requiresAll = Array(CreateProject) }
   case object CreateTaskInChecklist extends Category.View.Checklist with Category.Item.Task { override def requiresAny = Array(AddChecklistView, SwitchToChecklistInPageHeader, SwitchToChecklistInRightSidebar); override def next = Array(CheckTask, ReorderTaskInChecklist, OpenTaskInRightSidebar, CreateTag, TagTaskByDragging, ExpandTaskInChecklist, AssignTaskByDragging) }
   case object ExpandTaskInChecklist extends Category.View.Checklist with Category.Item.Task with Category.Power { override def requiresAll = Array(CreateNestedTaskInChecklist); override def next = Array(CreateNestedTaskInChecklist) } //TODO: drag task into other task
   case object CreateNestedTaskInChecklist extends Category.View.Checklist with Category.Item.Task with Category.Power { override def requiresAll = Array(CreateTaskInChecklist, OpenTaskInRightSidebar); override def next = Array(ExpandTaskInChecklist) } //TODO: sub-sub-task, sub-sub-sub-task, ....
@@ -169,7 +169,7 @@ object Feature {
   case object UndeleteTaskInChecklist extends Category.View.Checklist with Category.Item.Task { override def requiresAll = Array(DeleteTaskInChecklist); override def requiresAny = Array(FilterDeleted, FilterOnlyDeleted) }
 
   // Kanban
-  case object AddKanbanView extends Category.View with Category.View.Kanban { override def next = Array(CreateColumnInKanban, CreateTaskInKanban) }
+  case object AddKanbanView extends Category.View with Category.View.Kanban { override def next = Array(CreateColumnInKanban, CreateTaskInKanban); override def requiresAll = Array(CreateProject) }
   case object CreateColumnInKanban extends Category.View.Kanban { override def requiresAny = Array(AddKanbanView, SwitchToKanbanInPageHeader, SwitchToKanbanInRightSidebar); override def next = Array(CreateTaskInKanban, EditColumnInKanban, ReorderColumnsInKanban, NestColumnsInKanban, CreateAutomationTemplate) }
   case object EditColumnInKanban extends Category.View.Kanban { override def requiresAll = Array(CreateColumnInKanban) }
   case object ReorderColumnsInKanban extends Category.View.Kanban { override def requiresAll = Array(CreateColumnInKanban) }
@@ -181,7 +181,7 @@ object Feature {
   case object DragTaskToDifferentColumnInKanban extends Category.View.Kanban with Category.Item.Task with Category.Drag { override def requiresAll = Array(CreateTaskInKanban); }
 
   // Notes
-  case object AddNotesView extends Category.View { override def next = Array(CreateNoteInNotes) }
+  case object AddNotesView extends Category.View { override def next = Array(CreateNoteInNotes); override def requiresAll = Array(CreateProject) }
   case object CreateNoteInNotes extends Category.View.Notes with Category.Item.Note { override def requiresAll = Array(AddNotesView); override def next = Array(ZoomIntoNote, EditNote, TagNoteByDragging) }
   case object EditNote extends Category.Basics with Category.Item.Note { override def requiresAll = Array(CreateNoteInNotes) }
 
@@ -196,7 +196,7 @@ object Feature {
   case object FilterByTagWithSubTag extends Category.Filter with Category.Power { override def requiresAll = Array(TagTaskWithNestedTagByDragging); override def next = Array(ResetFilters) }
 
   // Tags
-  case object CreateTag extends Category.Item.Tag { override def next = Array(TagTaskByDragging, TagMessageByDragging, TagNoteByDragging, FilterByTag, NestTagsByDragging, TagTaskWithNestedTagByDragging, FilterByTagWithSubTag) }
+  case object CreateTag extends Category.Item.Tag { override def next = Array(TagTaskByDragging, TagMessageByDragging, TagNoteByDragging, FilterByTag, NestTagsByDragging, TagTaskWithNestedTagByDragging, FilterByTagWithSubTag); override def requiresAll = Array(CreateProject); override def requiresAny = Array(AddChecklistView, AddKanbanView) }
   case object TagTaskByDragging extends Category.Item.Task with Category.Item.Tag with Category.Drag { override def requiresAny = Array(CreateTaskInChecklist, CreateTaskInKanban); override def requiresAll = Array(CreateTag); override def next = Array(FilterByTag) }
   case object TagTaskWithNestedTagByDragging extends Category.Item.Task with Category.Item.Tag with Category.Drag with Category.Power { override def requiresAny = TagTaskByDragging.requiresAny; override def requiresAll = Array(NestTagsByDragging); override def next = Array(FilterByTagWithSubTag) }
   case object TagMessageByDragging extends Category.Item.Message with Category.Item.Tag with Category.Drag { override def requiresAny = Array(CreateMessageInChat); override def requiresAll = Array(CreateTag); override def next = Array(FilterByTag) } // TODO: requiresAny: CreateMessageInThread
@@ -222,14 +222,14 @@ object Feature {
   case object Login extends Category.Secret
   case object Signup extends Category.Secret
 
-  case object EnableBrowserNotifications extends Category.Setup with Category.StartingPoint
+  case object EnableBrowserNotifications extends Category.Setup {override def requiresAll = Array(CreateProject)}
 
   case object EnableSlackPlugin extends Category.Plugin with Category.Secret
 
   val all = SubObjects.all[Feature]
   val startingPoints = SubObjects.all[Category.StartingPoint].sortBy(-_.next.length)
   val secrets = SubObjects.all[Category.Secret]
-  val secretsSet:Set[Feature] = secrets.toSet
+  val secretsSet: Set[Feature] = secrets.toSet
   val power = SubObjects.all[Category.Power]
   val allWithoutSecrets = all diff secrets
   val allWithoutSecretsSet = allWithoutSecrets.toSet
@@ -253,8 +253,8 @@ object Feature {
 
   def selfLoops = {
     all.filter(f => f.next.contains(f)) ++
-    all.filter(f => f.requiresAny.contains(f)) ++
-    all.filter(f => f.requiresAll.contains(f))
+      all.filter(f => f.requiresAny.contains(f)) ++
+      all.filter(f => f.requiresAll.contains(f))
   }
 
   lazy val predecessors: collection.Map[Feature, Array[Feature]] = {
@@ -324,7 +324,7 @@ object Feature {
     }
   }
 
-  def dotGraph(recentFirstTimeUsed: Seq[Feature], recentlyUsed: Seq[Feature], nextCandidates: Set[Feature], next: Seq[Feature], getTitle: Feature => String = _.toString, missingDetails:Seq[Feature] = Nil): String = {
+  def dotGraph(recentFirstTimeUsed: Seq[Feature], recentlyUsed: Seq[Feature], nextCandidates: Set[Feature], next: Seq[Feature], getTitle: Feature => String = _.toString, missingDetails: Seq[Feature] = Nil): String = {
     val usedColor = "deepskyblue"
     val unusedColor = "azure4"
     val alreadyUsed = recentFirstTimeUsed.toSet
