@@ -62,7 +62,7 @@ object ViewModificationMenu {
         padding := "5px",
 
         b(
-          "Select a view:",
+          "Add a view:",
         ),
 
         Rx {
