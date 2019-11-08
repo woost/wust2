@@ -98,11 +98,6 @@ object FeedbackForm {
 
     val toggleButton = div(
       "Feedback/Support ",
-      // Rx {
-      //   VDomModifier.ifTrue(GlobalState.crispIsLoaded()) {
-      //     color := "blue"
-      //   }
-      // },
       // like semantic-ui tiny button
       fontSize := "0.85714286rem",
       fontWeight := 700,
