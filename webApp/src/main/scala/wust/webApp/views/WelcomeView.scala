@@ -87,7 +87,7 @@ object WelcomeView {
           MainTutorial.startTour()
         },
       ),
-      div(fontSize := "10px", color.gray, "(you can re-start the tutorial anytime)"),
+      div(fontSize := "10px", color.gray, "you can re-start the tutorial anytime"),
       marginBottom := "40px",
     ),
     p(
