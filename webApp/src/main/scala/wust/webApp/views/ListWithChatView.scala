@@ -63,28 +63,30 @@ object ListWithChatView {
         Styles.flex,
         flexDirection.column,
         Rx{
-          div(
-            Styles.flexStatic,
-            Styles.flex,
-            alignItems.center,
+          val chatFocusedId = chatFocus()
+          val focusedTopLevel = chatFocusedId == originalFocusState.focusedId
+          val graph = GlobalState.rawGraph()
+          VDomModifier.ifNot(focusedTopLevel)(
+            div(
+              Styles.flexStatic,
+              Styles.flex,
+              alignItems.center,
 
-            padding := "8px 10px",
-            BreadCrumbs(
-              GlobalState.rawGraph(),
-              start = BreadCrumbs.EndPoint.Node(focusState.focusedId, inclusive = true),
-              end = BreadCrumbs.EndPoint.Node(chatFocus()),
-              nodeId => chatFocus() = nodeId,
-              hideIfSingle = false
-            ).apply(paddingBottom := "3px"),
-            Rx {
-              VDomModifier.ifNot(chatFocus() == originalFocusState.focusedId)(
-                div(MembersModal.settingsButton(chatFocus()), Styles.flexStatic, marginLeft.auto)
-              )
-            }
+              padding := "8px 10px",
+              BreadCrumbs(
+                graph,
+                start = BreadCrumbs.EndPoint.Node(focusState.focusedId, inclusive = true),
+                end = BreadCrumbs.EndPoint.Node(chatFocusedId),
+                nodeId => chatFocus() = nodeId,
+                hideIfSingle = false
+              ).apply(paddingBottom := "3px"),
+              div(MembersModal.settingsButton(chatFocusedId), Styles.flexStatic, marginLeft.auto)
+            )
           )
         },
         Rx {
-          ChatView(focusState.copy(focusedId = chatFocus())).apply(
+          val chatFocusedId = chatFocus()
+          ChatView(focusState.copy(focusedId = chatFocusedId)).apply(
             height := "100%",
           )
         }
