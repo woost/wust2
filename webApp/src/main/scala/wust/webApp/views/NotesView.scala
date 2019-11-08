@@ -185,9 +185,9 @@ object NotesView {
   private def dragHandle = div(
     cls := "fa-fw",
     margin := "5px",
-    cls := "draghandle",
+    DragComponents.dragHandleModifier,
     freeSolid.faGripVertical,
     cursor.move,
-    UI.popup("bottom center") := "Drag here to drag the note"
+    UI.popup("bottom center") := "Grab here to drag the note"
   )
 }

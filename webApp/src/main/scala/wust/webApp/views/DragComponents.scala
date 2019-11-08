@@ -67,7 +67,6 @@ object DragComponents {
         //TODO: draggable bug: draggable sets display:none, then does not restore the old value https://github.com/Shopify/draggable/issues/318
         cls := "draggable", // makes this element discoverable for the Draggable library
         cls := "drag-feedback", // visual feedback for drag-start
-        onMouseDown.stopPropagation.discard, // don't trigger global onMouseDown (e.g. closing right sidebar) when dragging
         VDomModifier.ifTrue(disableDrag)(cursor.auto), // overwrites cursor set by .draggable class
         prop(DragItem.payloadPropName) := (() => payload),
         prop(DragItem.targetPropName) := (() => target),
@@ -78,6 +77,15 @@ object DragComponents {
       payload: => DragPayload = DragItem.DisableDrag,
       target: DragTarget = DragItem.DisableDrag,
     ): VDomModifier = {
-      VDomModifier(DragComponents.dragWithHandle(payload, target), cls := "draghandle")
+      VDomModifier(
+        // This element becomes the draghandle itself
+        dragHandleModifier,
+        DragComponents.dragWithHandle(payload, target),
+      )
     }
+
+    val dragHandleModifier = VDomModifier(
+      onMouseDown.stopPropagation.discard, // don't trigger global onMouseDown (e.g. closing right sidebar) when dragging
+      cls := "draghandle",
+    )
 }

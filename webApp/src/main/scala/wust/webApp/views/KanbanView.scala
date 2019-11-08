@@ -272,7 +272,7 @@ object KanbanView {
     )
 
     val scrollHandler = new ScrollBottomHandler(initialScrollToBottom = false)
-    val kanbanColumnBgColor = BaseColors.kanbanColumnBg.copy(h = hue(nodeId)).toHex
+    val columnHeaderBgColor = BaseColors.kanbanColumnBg.copy(h = hue(nodeId)).toHex
 
     VDomModifier(
       // sortable: draggable needs to be direct child of container
@@ -283,8 +283,8 @@ object KanbanView {
       },
       div(
         cls := "kanbancolumnheader",
-        cls := "draghandle",
-        backgroundColor := kanbanColumnBgColor,
+        DragComponents.dragHandleModifier,
+        backgroundColor := columnHeaderBgColor,
 
         columnTitle,
 
