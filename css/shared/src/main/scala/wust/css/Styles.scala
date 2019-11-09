@@ -201,6 +201,7 @@ object CommonStyles extends StyleSheet.Standalone
   )
 
 
+
   // give empty paragraphs the default line-height
   // https://stackoverflow.com/a/53193642/793909
   "p:empty:before" - (
@@ -486,6 +487,10 @@ object CommonStyles extends StyleSheet.Standalone
     cursor.pointer.important, // overwrites cursor from .draggable
     borderRadius(2 px),
     padding(1 px, 0 px, 1 px, 5 px),
+  )
+
+  ".channel-line.cursor-move-important" - (
+    cursor.move.important,
   )
 
   "a.channel-line" - (

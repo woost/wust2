@@ -60,8 +60,11 @@ object LeftSidebar {
                 Styles.flexStatic,
                 Styles.flex,
                 alignItems.center,
+                marginTop := "5px",
                 button(
                   cls := "ui mini compact basic button",
+                  marginLeft := "3px",
+                  Rx { VDomModifier.ifTrue(enableDragging())(cls := "green") },
                   div(
                     cls := "fa-fw",
                     freeRegular.faHandPaper,
@@ -70,7 +73,6 @@ object LeftSidebar {
                         UI.popup("bottom center") := "Enable Dragging",
                       )
                       case true => VDomModifier(
-                        cls := "active",
                         UI.popup("bottom center") := "Disable Dragging",
                       )
                     }
@@ -82,6 +84,7 @@ object LeftSidebar {
                   onClick foreach {
                     FeatureState.use(Feature.CreateProjectFromExpandedLeftSidebar)
                   },
+                  marginTop := "0px",
                   marginLeft.auto,
                   marginRight.auto,
                 ),
@@ -333,7 +336,7 @@ object LeftSidebar {
 
   @inline def fontSizeByDepth(depth: Int) = s"${math.max(8, 14 - depth)}px"
 
-  def channelLine(traverseState: TraverseState, userId: UserId, expanded: Rx[Boolean], hasChildren: Rx[Boolean], depth: Int = 0, enableDragging:Var[Boolean], channelModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
+  def channelLine(traverseState: TraverseState, userId: UserId, expanded: Rx[Boolean], hasChildren: Rx[Boolean], depth: Int = 0, enableDragging: Var[Boolean], channelModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
     val nodeId = traverseState.parentId
     val selected = Rx { (GlobalState.page().parentId contains nodeId) && GlobalState.viewIsContent() }
     val nodeIdx = Rx { GlobalState.rawGraph().idToIdx(nodeId) }
@@ -382,7 +385,12 @@ object LeftSidebar {
         },
         onChannelClick(nodeId),
         cls := "node",
-        Rx{ VDomModifier.ifTrue(enableDragging())(DragComponents.drag(DragItem.Channel(nodeId, traverseState.tail.headOption))) },
+        Rx{
+          VDomModifier.ifTrue(enableDragging())(
+            DragComponents.drag(DragItem.Channel(nodeId, traverseState.tail.headOption)),
+            cls := "cursor-move-important",
+          )
+        },
         permissionLevel.map(Permission.permissionIndicatorIfPublic(_, VDomModifier(fontSize := "0.7em", color.gray, marginLeft.auto, marginRight := "5px"))),
         channelModifier
       ),
