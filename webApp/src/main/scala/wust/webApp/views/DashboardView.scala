@@ -50,14 +50,16 @@ object DashboardView {
           Styles.flex,
           alignItems.flexStart,
           h2("Your tasks", cls := "tasklist-header", marginRight.auto, Styles.flexStatic),
-          UI.toggle("Show tasks of sub-projects", isChecked = showTasksOfSubprojects).apply(marginLeft := "10px", marginRight := "10px"),
           marginBottom := "15px"
         ),
         Rx {
           AssignedTasksView(focusState, deepSearch = showTasksOfSubprojects(), selectedUserId).apply(padding := "0px")
         },
       ),
-      UI.segment("Sub-projects", VDomModifier(renderSubprojects(focusState), overflowX.auto)).apply(Styles.flexStatic, segmentMod)
+      div(
+        UI.segment("Sub-projects", VDomModifier(renderSubprojects(focusState), overflowX.auto)).apply(Styles.flexStatic, segmentMod),
+        UI.toggle("Show tasks of sub-projects", isChecked = showTasksOfSubprojects).apply(marginLeft := "10px", marginRight := "10px"),
+      )
     )
 
     val dashboard = if (BrowserDetect.isMobile) VDomModifier(
