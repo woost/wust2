@@ -334,7 +334,7 @@ object GlobalStateFactory {
     }
     GlobalState.auth.foreach { auth =>
       auth.user match {
-        case _: AuthUser.Assumed => Segment.trackEvent("New Unregistered User", js.Dynamic.literal(`type` = "organic"))
+        case _: AuthUser.Assumed if GlobalState.urlConfig.now.invitation.isEmpty => Segment.trackEvent("New Unregistered User", js.Dynamic.literal(`type` = "organic"))
         case _                   =>
       }
     }
