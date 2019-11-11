@@ -28,27 +28,30 @@ import scala.util.{Success, Failure}
 
 import scala.concurrent.Future
 
-object DoodleView {
-
-  sealed trait State
-  object State {
-    case object Landing extends State
-    case object App extends State
-  }
+object DoodleView extends AppDefinition {
 
 
-  def landing(implicit ctx: Ctx.Owner) = {
-
+  def landing(state: SinkObserver[AppDefinition.State])(implicit ctx: Ctx.Owner): VDomModifier = {
     div(
       Styles.growFull,
       padding := "20px",
       Styles.flex,
+      flexDirection.column,
+      alignItems.center,
+
+      button(
+        cls := "ui basic button",
+
+        "Create Doodle",
+
+        onClick.use(AppDefinition.State.App) --> state
+      )
     )
   }
 
-  def app(implicit ctx: Ctx.Owner) = div(
-    UI.segment("Create a Tootle", doodleForm),
-  )
+  def app(state: SinkObserver[AppDefinition.State])(implicit ctx: Ctx.Owner): VDomModifier = {
+    UI.segment("Create a Tootle", doodleForm)
+  }
 
   def doodleForm(implicit ctx: Ctx.Owner) = {
 
