@@ -30,38 +30,60 @@ import scala.concurrent.Future
 
 object DoodleView {
 
-  def render(implicit ctx: Ctx.Owner) = {
+  sealed trait State
+  object State {
+    case object Landing extends State
+    case object App extends State
+  }
+
+
+  def landing(implicit ctx: Ctx.Owner) = {
 
     div(
+      Styles.growFull,
+      padding := "20px",
+      Styles.flex,
+    )
+  }
 
-      h3("Doodle"),
+  def app(implicit ctx: Ctx.Owner) = div(
+    UI.segment("Create a Tootle", doodleForm),
+  )
 
-      StepMenu.render(Array(
-        StepMenu.Step(
-          "What's the occasion?",
-          div(
-            1
-          )
-        ),
-        StepMenu.Step(
-          "What do you want to work on?",
-          div(
-            2
-          )
-        ),
-        StepMenu.Step(
-          "Collaboration Settings",
-          div(
-            3
-          )
-        ),
-        StepMenu.Step(
-          "Tell your participants who you are",
-          div(
-            4
-          )
+  def doodleForm(implicit ctx: Ctx.Owner) = {
+
+    val menu = StepMenu.render(Array(
+      StepMenu.Step(
+        "What's the occasion?",
+        div(
+          1
         )
-      )),
+      ),
+      StepMenu.Step(
+        "What do you want to work on?",
+        div(
+          2
+        )
+      ),
+      StepMenu.Step(
+        "Collaboration Settings",
+        div(
+          3
+        )
+      ),
+      StepMenu.Step(
+        "Tell your participants who you are",
+        div(
+          4
+        )
+      )
+    ))
+
+    div(
+      width := "600px",
+      height := "500px",
+
+      menu
     )
   }
 }

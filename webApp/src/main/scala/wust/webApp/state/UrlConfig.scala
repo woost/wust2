@@ -5,24 +5,6 @@ import wust.api.Authentication
 import wust.graph.Page
 import wust.ids.{NodeId, View}
 
-sealed trait PresentationMode
-object PresentationMode {
-  case object ContentOnly extends PresentationMode
-  case object Doodle extends PresentationMode
-  case object Full extends PresentationMode
-
-  def toString(p: PresentationMode): Option[String] = Some(p) collect {
-    case ContentOnly => "content"
-    case Doodle => "doodle"
-  }
-
-  def fromString(s: String): Option[PresentationMode] = Some(s.toLowerCase) collect {
-    case "content" => ContentOnly
-    case "doodle" => Doodle
-    case "full" => Full
-  }
-}
-
 sealed trait InfoContent
 object InfoContent {
   case object PaymentSucceeded extends InfoContent
