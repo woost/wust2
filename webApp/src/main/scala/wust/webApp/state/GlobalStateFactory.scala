@@ -175,7 +175,7 @@ object GlobalStateFactory {
               eventProcessor.localEvents.onNext(ReplaceGraph(graph))
             }
             if (wasAssumed) {
-              Segment.trackEvent("New Unregistered User", js.Dynamic.literal(`type` = "invite"))
+              Segment.trackEvent("New Unregistered User", js.Dynamic.literal(`type` = "invite", via = "token"))
             }
         }
         //TODO: signal status of invitation to user in UI
@@ -334,7 +334,8 @@ object GlobalStateFactory {
     }
     GlobalState.auth.foreach { auth =>
       auth.user match {
-        case _: AuthUser.Assumed if GlobalState.urlConfig.now.invitation.isEmpty => Segment.trackEvent("New Unregistered User", js.Dynamic.literal(`type` = "organic"))
+        case _: AuthUser.Assumed if GlobalState.urlConfig.now.pageChange.page.isEmpty && GlobalState.urlConfig.now.invitation.isEmpty => Segment.trackEvent("New Unregistered User", js.Dynamic.literal(`type` = "organic"))
+        case _: AuthUser.Assumed if GlobalState.urlConfig.now.pageChange.page.nonEmpty && GlobalState.urlConfig.now.invitation.isEmpty => Segment.trackEvent("New Unregistered User", js.Dynamic.literal(`type` = "invite", via = "link"))
         case _                   =>
       }
     }
