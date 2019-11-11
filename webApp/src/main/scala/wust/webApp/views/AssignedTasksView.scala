@@ -81,8 +81,6 @@ object AssignedTasksView {
       flexDirection.column,
       padding := "20px",
 
-      registerDragContainer,
-
       div(
         Styles.flex,
         alignItems.center,
