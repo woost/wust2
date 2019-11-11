@@ -19,7 +19,7 @@ import wust.facades.wdtEmojiBundle._
 import wust.graph.Node
 import wust.webApp.dragdrop.SortableEvents
 import wust.webApp.state.{GlobalState, GlobalStateFactory}
-import wust.webApp.views.{GenericSidebar, DoodleMainView, Modal}
+import wust.webApp.views.{GenericSidebar, MainView, Modal}
 import wust.webUtil.{Elements, JSDefined}
 import wust.webUtil.outwatchHelpers._
 
@@ -45,7 +45,7 @@ object Main {
     // render main content
     import GlobalState.ctx
     val app = for {
-      _ <- OutWatch.renderReplace[IO]("#container", DoodleMainView.apply)
+      _ <- OutWatch.renderReplace[IO]("#container", MainView.apply)
       // render single modal instance for the whole page that can be configured via GlobalState.uiModalConfig
       _ <- OutWatch.renderReplace[IO]("#modal-placeholder", Modal.modal(GlobalState.uiModalConfig, GlobalState.uiModalClose))
       // render single sidebar instance for the whole page that can be configured via GlobalState.uiSidebarConfig
