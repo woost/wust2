@@ -34,6 +34,7 @@ object WelcomeView {
             )
           },
           // TemplateView.render.apply(margin := "10px"),
+          DoodleView.render,
           newProjectButton(Styles.flexStatic),
           div (width := "1px", height := "1px", Styles.flexStatic), // margin bottom hack for flexbox
         )
