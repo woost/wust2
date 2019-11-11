@@ -32,7 +32,7 @@ object MainView {
         if (GlobalState.hasError()) ErrorPage()
         else GlobalState.presentationMode() match {
           case PresentationMode.Full        => fullPresentation
-          case PresentationMode.ContentOnly => contentPresentation
+          case _ => contentPresentation
         }
       }
     )
