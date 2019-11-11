@@ -161,7 +161,7 @@ object FeedbackForm {
     }
   }
 
-  def openCrispChat() {
+  def openCrispChat(): Unit = {
     Try{
       Segment.trackEvent("Open Support Chat", js.Dynamic.literal(loaded = GlobalState.crispIsLoaded.now))
       if(GlobalState.crispIsLoaded.now) {
