@@ -5,6 +5,7 @@ import wust.facades.hopscotch.{I18n, Step, Tour, hopscotch}
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
+import wust.facades.segment.Segment
 
 trait Tutorial {
   val tourId: String
@@ -51,6 +52,7 @@ trait Tutorial {
 
   def startTour(startStep: Step = tour.steps.head) = {
     hopscotch.startTour(tour, tour.steps.indexOf(startStep))
+    Segment.trackEvent("Start Tutorial", js.Dynamic.literal(tourId = tourId))
   }
 
   def endTour() = {
