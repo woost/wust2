@@ -7,50 +7,56 @@ import wust.css.Styles
 import wust.graph.Node
 import wust.ids.Feature
 import wust.util._
-import wust.webApp.state.{FeatureState, GlobalState, ScreenSize}
+import wust.webApp.state.{FeatureState, GlobalState, ScreenSize, PresentationMode}
 import wust.webApp.views.Components._
 import wust.webUtil.outwatchHelpers._
 
 object WelcomeView {
-  def apply(implicit ctx: Ctx.Owner) = {
+  def apply(implicit ctx: Ctx.Owner): VNode = {
     div(
-      Styles.flex,
-      flexDirection.column,
-      div(
-        padding := "10px",
-        height := "100%",
-        Styles.flex,
-        justifyContent.spaceAround,
-        overflow.auto,
-
-        div(
-          Styles.flex,
-          flexDirection.column,
-          alignItems.center,
-          Rx{ welcomeTitle(GlobalState.user().toNode).append(Styles.flexStatic) },
-          Rx {
-            (GlobalState.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](
-              welcomeMessage(Styles.flexStatic, marginBottom := "50px"),
-            )
-          },
-          // TemplateView.render.apply(margin := "10px"),
-          newProjectButton(Styles.flexStatic),
-          div (width := "1px", height := "1px", Styles.flexStatic), // margin bottom hack for flexbox
-        )
-      ),
-
-      Rx {
-        VDomModifier.ifTrue(GlobalState.screenSize() == ScreenSize.Small)(
-          div(
-            Styles.flex,
-            justifyContent.center,
-            PaymentView.focusButton
-          ),
-          authControls
-        )
+      GlobalState.presentationMode.map { mode =>
+        AppDefinition.fromMode(mode).fold(standard)(WoostAppView.render(_))
       }
     )
   }
+
+  def standard(implicit ctx: Ctx.Owner) = VDomModifier(
+    Styles.flex,
+    flexDirection.column,
+    div(
+      padding := "10px",
+      height := "100%",
+      Styles.flex,
+      justifyContent.spaceAround,
+      overflow.auto,
+
+      div(
+        Styles.flex,
+        flexDirection.column,
+        alignItems.center,
+        Rx{ welcomeTitle(GlobalState.user().toNode).append(Styles.flexStatic) },
+        Rx {
+          (GlobalState.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](
+            welcomeMessage(Styles.flexStatic, marginBottom := "50px"),
+          )
+        },
+        // TemplateView.render.apply(margin := "10px"),
+        newProjectButton(Styles.flexStatic),
+        div (width := "1px", height := "1px", Styles.flexStatic), // margin bottom hack for flexbox
+      )
+    ),
+
+    Rx {
+      VDomModifier.ifTrue(GlobalState.screenSize() == ScreenSize.Small)(
+        div(
+          Styles.flex,
+          justifyContent.center,
+          PaymentView.focusButton
+        ),
+        authControls
+      )
+    }
+  )
 
   def newProjectButton = NewProjectPrompt.newProjectButton().apply(
     cls := "primary",

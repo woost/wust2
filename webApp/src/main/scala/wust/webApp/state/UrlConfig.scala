@@ -5,21 +5,6 @@ import wust.api.Authentication
 import wust.graph.Page
 import wust.ids.{NodeId, View}
 
-sealed trait PresentationMode
-object PresentationMode {
-  case object ContentOnly extends PresentationMode
-  case object Full extends PresentationMode
-
-  def toString(p: PresentationMode): Option[String] = Some(p) collect {
-    case ContentOnly => "content"
-  }
-
-  def fromString(s: String): Option[PresentationMode] = Some(s.toLowerCase) collect {
-    case "content" => ContentOnly
-    case "full" => Full
-  }
-}
-
 sealed trait InfoContent
 object InfoContent {
   case object PaymentSucceeded extends InfoContent
@@ -49,7 +34,6 @@ final case class UrlConfig(view: Option[View], pageChange: PageChange, redirectT
   @inline def focus(page: Page, view: View, needsGet: Boolean): UrlConfig = focus(page, Some(view), needsGet)
   def focus(page: Page, view: Option[View] = None, needsGet: Boolean = true): UrlConfig = copy(pageChange = PageChange(page, needsGet = needsGet), view = view, redirectTo = None, focusId = None)
 
-  def presentationContent = copy(mode = PresentationMode.ContentOnly)
 }
 
 object UrlConfig {

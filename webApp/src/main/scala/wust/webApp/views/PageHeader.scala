@@ -79,7 +79,7 @@ object PageHeader {
     def showOnlyInFullMode(modifier:VDomModifier) = {
       GlobalState.presentationMode.map {
         case PresentationMode.Full => modifier
-        case PresentationMode.ContentOnly => VDomModifier.empty
+        case _ => VDomModifier.empty
       },
     }
 

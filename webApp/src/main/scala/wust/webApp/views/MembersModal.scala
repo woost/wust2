@@ -65,7 +65,7 @@ object MembersModal {
         case _ :: Nil     => default
         case head :: tail => default.focus(View.Tiled(ViewOperator.Row, NonEmptyList(head, tail)))
       })
-      urlConfigToUrl(config.presentationContent)
+      urlConfigToUrl(config.copy(mode = PresentationMode.ContentOnly))
     }
 
     def addUserMember(userId: UserId, accesslevel: AccessLevel): Unit = node.now.foreach { node =>
