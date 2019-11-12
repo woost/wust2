@@ -276,6 +276,16 @@ object CommonStyles extends StyleSheet.Standalone
     animationFillMode.forwards,
   )
 
+  ".components-menu-item:hover" - (
+    fontWeight.bold,
+    opacity := "0.8 !important"
+  )
+  ".components-menu-item.active" - (
+    fontWeight.bold
+  )
+  ".components-menu-item.inactive" - (
+    opacity := 0.4
+  )
 
   ".ui.button.inverted" - (
     // reduce inverted box-shadow

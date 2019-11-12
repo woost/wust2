@@ -944,7 +944,7 @@ object Components {
       paddingBottom := "10px"
     )
   )
-  def horizontalMenu(items: Seq[MenuItem])(implicit ctx: Ctx.Owner): VNode = menu(
+  def horizontalMenu(items: Seq[MenuItem], itemWidth:String = "50px")(implicit ctx: Ctx.Owner): VNode = menu(
     items.map(item => item.copy(title = VDomModifier(item.title, marginBottom := "5px"))),
     outerModifier = VDomModifier(
       Styles.flex,
@@ -953,7 +953,7 @@ object Components {
     ),
     innerModifier = VDomModifier(
       flexGrow := 0,
-      width := "50px",
+      width := itemWidth,
       Styles.flex,
       flexDirection.column,
       alignItems.center,
@@ -967,8 +967,9 @@ object Components {
 
       items.map { item =>
         div(
+          cls := "components-menu-item",
           Rx {
-            if(item.active()) VDomModifier(fontWeight.bold) else opacity := 0.4
+            if(item.active()) cls := "active" else cls := "inactive"
           },
           div(item.title),
           div(item.description),
