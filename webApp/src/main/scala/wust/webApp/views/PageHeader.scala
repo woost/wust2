@@ -38,6 +38,14 @@ object PageHeader {
       GlobalState.mainFocusState(viewConfig)
     }
 
+    def showOnlyInFullMode(modifier: => VDomModifier): VDomModifier = {
+      GlobalState.presentationMode.map {
+        case PresentationMode.Full => modifier
+        case _ => VDomModifier.empty
+      }
+    }
+
+
     def channelTitle(focusState:FocusState)(implicit ctx: Ctx.Owner) = div(
       backgroundColor := pageStyle.pageBgColor,
       cls := "pageheader-channeltitle",
@@ -54,7 +62,7 @@ object PageHeader {
         }
       },
 
-      div(
+      showOnlyInFullMode(div(
         UnreadComponents.readObserver(
           pageNodeId,
           labelModifier = border := s"1px solid ${Colors.unreadBorder}" // light border has better contrast on colored pageheader background
@@ -62,7 +70,7 @@ object PageHeader {
         onClick.stopPropagation.use(View.Notifications).foreach(view => GlobalState.urlConfig.update(_.focus(view))),
         float.right,
         alignSelf.center,
-      )
+      ))
     )
 
     val channelNotification = UnreadComponents
@@ -74,13 +82,6 @@ object PageHeader {
         // line-height:0 fixes vertical alignment, minimum fit one member
         SharedViewElements.channelMembers(pageNodeId).apply(marginLeft := "5px", lineHeight := "0", maxWidth := "200px")
       )
-    }
-
-    def showOnlyInFullMode(modifier:VDomModifier) = {
-      GlobalState.presentationMode.map {
-        case PresentationMode.Full => modifier
-        case _ => VDomModifier.empty
-      },
     }
 
     VDomModifier(
