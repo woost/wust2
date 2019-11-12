@@ -1,6 +1,6 @@
 package wust.webApp.views
 
-import acyclic.file
+// import acyclic.file
 import outwatch.dom.{VNode, dsl}
 import rx._
 import wust.ids.View
