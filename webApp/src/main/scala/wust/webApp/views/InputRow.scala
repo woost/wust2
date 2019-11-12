@@ -243,12 +243,11 @@ object InputRow {
     }
 
     def submitButton = div( // clickable box around circular button
-      padding := "3px",
       button(
         margin := "0px",
         cls := "ui circular icon button",
         submitIcon,
-        fontSize := "1.1rem",
+        fontSize := "1.2em",
         backgroundColor := "#545454",
         color := "white",
       ),

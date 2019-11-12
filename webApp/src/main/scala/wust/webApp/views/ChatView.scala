@@ -507,7 +507,6 @@ object ChatView {
     }
 
     InputRow(
-
       Some(focusState),
       submitAction,
       fileUploadHandler = Some(fileUploadHandler),

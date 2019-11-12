@@ -417,7 +417,7 @@ object EditHelper {
             )
         },
         cls := "ui circular basic icon button",
-        fontSize := "1.1em", // same size as submit-button in Chat/InputRow
+        fontSize := "1.2em", // same size as submit-button in Chat/InputRow
       ),
 
       onDragOverModifier,
