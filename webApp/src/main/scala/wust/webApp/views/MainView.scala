@@ -65,11 +65,13 @@ object MainView {
         RightSidebar(ViewRender),
       ),
 
-      mode match {
-        case PresentationMode.ContentOnly => advancedUIBanner
-        case PresentationMode.ThreadTracker => advancedUIBanner
-        case _                            => VDomModifier.empty
-      }
+      ScreenSize.dontShowOnSmallScreen(
+        mode match {
+          case PresentationMode.ContentOnly => advancedUIBanner
+          case PresentationMode.ThreadTracker => advancedUIBanner
+          case _                            => VDomModifier.empty
+        }
+      )
     )
   }
 

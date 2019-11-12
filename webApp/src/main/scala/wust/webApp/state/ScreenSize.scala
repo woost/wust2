@@ -3,6 +3,9 @@ package wust.webApp.state
 import org.scalajs.dom
 
 import scala.scalajs.js
+import outwatch.dom.VDomModifier
+import rx._
+import wust.webUtil.outwatchHelpers._
 
 sealed trait ScreenSize {
   def minWidth: Int
@@ -31,4 +34,10 @@ object ScreenSize {
       ScreenSize.Middle
     else
       ScreenSize.Small
+
+  def dontShowOnSmallScreen(modfier: => VDomModifier)(implicit ctx: Ctx.Owner): VDomModifier = {
+    Rx {
+      VDomModifier.ifTrue(GlobalState.screenSize() != ScreenSize.Small)(modfier)
+    }
+  }
 }
