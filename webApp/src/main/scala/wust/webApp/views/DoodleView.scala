@@ -55,24 +55,31 @@ object DoodleView extends AppDefinition {
 
   def doodleForm(implicit ctx: Ctx.Owner) = {
 
+    val title = Var[Option[String]](None)
+    val description = Var[Option[String]](None)
+
+    val view = Var[Option[View.Visible]](None)
+
     val menu = StepMenu.render(Array(
       StepMenu.Step(
         "What's the occasion?",
         div(
           1
-        )
+        ),
+        title.map(_.exists(_.nonEmpty))
       ),
       StepMenu.Step(
         "What do you want to work on?",
         div(
           2
-        )
+        ),
+        view.map(_.isDefined)
       ),
       StepMenu.Step(
         "Collaboration Settings",
         div(
           3
-        )
+        ),
       ),
       StepMenu.Step(
         "Tell your participants who you are",
@@ -80,7 +87,9 @@ object DoodleView extends AppDefinition {
           4
         )
       )
-    ))
+    )).foreach {
+      println("DONE")
+    }
 
     div(
       width := "600px",

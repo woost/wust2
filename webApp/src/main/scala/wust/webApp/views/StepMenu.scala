@@ -38,7 +38,7 @@ object StepMenu {
 
   def render(
     steps: Array[Step],
-  )(implicit ctx: Ctx.Owner) = {
+  )(implicit ctx: Ctx.Owner) = EmitterBuilder.ofModifier[Unit] { sink =>
     require(steps.nonEmpty, "Must have non-empty steps in step menu")
 
     val stepLength = steps.length
@@ -46,7 +46,9 @@ object StepMenu {
     val currentStepIndex = Var(0)
     val currentStep = currentStepIndex.map(steps(_))
     val canGoLeft = currentStepIndex.map(_ > 0)
-    val canGoRight = currentStepIndex.map(_ < stepLength - 1)
+    val canGoRight = Rx {
+      currentStep().finished() && currentStepIndex() < stepLength - 1
+    }
 
     val header = div(
       Styles.flex,
@@ -95,7 +97,8 @@ object StepMenu {
             onClick.stopPropagation.useLazy(currentStepIndex.now + 1) --> currentStepIndex
           )
           case false => VDomModifier(
-            "Finish"
+            "Finish",
+            onClick.stopPropagation.useLazy(()) --> sink
           )
         }
 
