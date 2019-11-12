@@ -92,7 +92,9 @@
     <% } %>
 
     <!-- stripe js -->
+    <% if (audience != "dev") { %>
     <script src="https://js.stripe.com/v3/"></script>
+    <% } %>
 
 
     <!-- define crisp queue even in dev mode so we can detect if crisp was loaded or not (blocked by browser plugin) -->
