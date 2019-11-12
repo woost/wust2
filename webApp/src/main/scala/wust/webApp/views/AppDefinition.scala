@@ -4,6 +4,7 @@ import outwatch.reactive.SinkObserver
 import outwatch.dom.VDomModifier
 import wust.webApp.state.PresentationMode
 import rx._
+import wust.ids.View.ListWithChat
 
 trait AppDefinition {
   def landing(state: SinkObserver[AppDefinition.State])(implicit ctx: Ctx.Owner): VDomModifier
@@ -18,5 +19,6 @@ object AppDefinition {
 
   def fromMode(mode: PresentationMode): Option[AppDefinition] = Some(mode) collect {
     case PresentationMode.Doodle => DoodleView
+    case PresentationMode.ThreadTracker => ThreadTrackerView
   }
 }

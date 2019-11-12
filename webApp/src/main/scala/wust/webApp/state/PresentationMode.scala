@@ -12,15 +12,18 @@ object PresentationMode {
 
   case object ContentOnly extends Alternative
   case object Doodle extends Alternative
+  case object ThreadTracker extends Alternative
 
   def toString(p: PresentationMode): Option[String] = Some(p) collect {
     case ContentOnly => "content"
     case Doodle => "doodle"
+    case ThreadTracker => "threadtracker"
   }
 
   def fromString(s: String): Option[PresentationMode] = Some(s.toLowerCase) collect {
     case "content" => ContentOnly
     case "doodle" => Doodle
+    case "threadtracker" => ThreadTracker
     case "full" => Full
   }
 }

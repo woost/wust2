@@ -38,9 +38,10 @@ object PageHeader {
       GlobalState.mainFocusState(viewConfig)
     }
 
-    def showOnlyInFullMode(modifier: => VDomModifier): VDomModifier = {
+    def showOnlyInFullMode(modifier: => VDomModifier, additionalModes:List[PresentationMode] = Nil): VDomModifier = {
       GlobalState.presentationMode.map {
         case PresentationMode.Full => modifier
+        case mode if additionalModes contains mode => modifier
         case _ => VDomModifier.empty
       }
     }
@@ -144,7 +145,7 @@ object PageHeader {
           },
 
           channelMembersList,
-          showOnlyInFullMode(div(MembersModal.settingsButton(pageNodeId), id := "tutorial-pageheader-sharing")),
+          showOnlyInFullMode(div(MembersModal.settingsButton(pageNodeId), id := "tutorial-pageheader-sharing"), additionalModes = List(PresentationMode.ThreadTracker)),
           id := "tutorial-pageheader-title",
           marginBottom := "2px", // else nodecards in title overlap
 

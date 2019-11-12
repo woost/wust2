@@ -31,7 +31,7 @@ object MainView {
       Rx {
         if (GlobalState.hasError()) ErrorPage()
         else GlobalState.presentationMode() match {
-          case PresentationMode.Full        => fullPresentation
+          case PresentationMode.Full              => fullPresentation
           case mode: PresentationMode.Alternative => presentation(mode)
         }
       }
@@ -66,43 +66,56 @@ object MainView {
       ),
 
       mode match {
-        case PresentationMode.ContentOnly => div(
-          Styles.flex,
-          alignItems.center,
-          backgroundColor := "#494653",
-          color := "white",
-          div(
-            marginLeft := "10px",
-            cls := "hover-full-opacity",
-            span(freeSolid.faShapes, marginRight := "5px"),
-            "Show advanced UI",
-            onClickDefault.foreach {
-              GlobalState.urlConfig.update(_.copy(mode = PresentationMode.Full))
-            },
-            marginRight := "auto",
-          ),
-          div(
-            Styles.flex,
-            alignItems.center,
-            span(
-              padding := "6px",
-              "Customer Collaboration Powered by ",
-            ),
-            WoostLogoComponents.woostIcon.apply(width := "17px", height := "17px", color := "#ae7eff"),
-            span(
-              padding := "6px 10px 6px 1px",
-              b("Woost")
-            ),
-            // onClickDefault.foreach(GlobalState.urlConfig.update(_.copy(mode = PresentationMode.Full)))
-            onClickDefault.foreach{ _ =>
-              Segment.trackEvent("ClickedPresentationModeBanner")
-              dom.window.open("https://woost.space", "_blank")
-            }
-          )
-        )
-
-        case _ => VDomModifier.empty
+        case PresentationMode.ContentOnly => advancedUIBanner
+        case PresentationMode.ThreadTracker => advancedUIBanner
+        case _                            => VDomModifier.empty
       }
+    )
+  }
+
+  private val advancedUIBanner = {
+    div(
+      Styles.flex,
+      alignItems.center,
+      backgroundColor := "#494653",
+      color := "white",
+      div(
+        marginLeft := "10px",
+        cls := "hover-full-opacity",
+        "Show advanced UI",
+        onClickDefault.foreach {
+          GlobalState.urlConfig.update(_.copy(mode = PresentationMode.Full))
+        },
+        marginRight := "auto",
+      ),
+      div(
+        marginLeft := "auto",
+        marginLeft := "10px",
+        cls := "hover-full-opacity",
+        "Got feedback? Please tell us!",
+        onClickDefault.foreach {
+          FeedbackForm.openCrispChat
+        },
+        marginRight := "auto",
+      ),
+      div(
+        Styles.flex,
+        alignItems.center,
+        span(
+          padding := "6px",
+          "Powered by ",
+        ),
+        WoostLogoComponents.woostIcon.apply(width := "17px", height := "17px", color := "#ae7eff"),
+        span(
+          padding := "6px 10px 6px 1px",
+          b("Woost")
+        ),
+        // onClickDefault.foreach(GlobalState.urlConfig.update(_.copy(mode = PresentationMode.Full)))
+        onClickDefault.foreach{ _ =>
+          Segment.trackEvent("ClickedPresentationModeBanner")
+          dom.window.open("https://woost.space", "_blank")
+        }
+      )
     )
   }
 
