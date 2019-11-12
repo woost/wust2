@@ -55,8 +55,7 @@ object DoodleView extends AppDefinition {
 
   def doodleForm(implicit ctx: Ctx.Owner) = {
 
-    val title = Var[Option[String]](None)
-    val description = Var[Option[String]](None)
+    val title = Var[String]("")
 
     val view = Var[Option[View.Visible]](None)
 
@@ -64,9 +63,15 @@ object DoodleView extends AppDefinition {
       StepMenu.Step(
         "What's the occasion?",
         div(
-          1
+          cls := "ui mini form",
+          label("Title"),
+          input(
+            tpe := "text",
+            value <-- title,
+            onInput.value --> title
+          )
         ),
-        title.map(_.exists(_.nonEmpty))
+        title.map(_.nonEmpty)
       ),
       StepMenu.Step(
         "What do you want to work on?",
@@ -88,7 +93,7 @@ object DoodleView extends AppDefinition {
         )
       )
     )).foreach {
-      println("DONE")
+      println("Done")
     }
 
     div(

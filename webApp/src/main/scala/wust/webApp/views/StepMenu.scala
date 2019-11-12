@@ -45,9 +45,10 @@ object StepMenu {
 
     val currentStepIndex = Var(0)
     val currentStep = currentStepIndex.map(steps(_))
+    val isLastStep = currentStepIndex.map(_ == stepLength - 1)
     val canGoLeft = currentStepIndex.map(_ > 0)
     val canGoRight = Rx {
-      currentStep().finished() && currentStepIndex() < stepLength - 1
+      currentStep().finished() && !isLastStep()
     }
 
     val header = div(
@@ -91,12 +92,12 @@ object StepMenu {
       button(
         cls := "ui primary button",
         disabled <-- Rx { !currentStep().finished() },
-        canGoRight.map {
-          case true => VDomModifier(
+        isLastStep.map {
+          case false => VDomModifier(
             "Next",
             onClick.stopPropagation.useLazy(currentStepIndex.now + 1) --> currentStepIndex
           )
-          case false => VDomModifier(
+          case true => VDomModifier(
             "Finish",
             onClick.stopPropagation.useLazy(()) --> sink
           )
