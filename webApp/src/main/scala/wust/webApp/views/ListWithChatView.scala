@@ -40,11 +40,6 @@ object ListWithChatView {
       itemIsFocused = nodeId => chatFocus.map(_ == nodeId)
     )
 
-    // TODO: after creating task, focus it
-    // TODO: sort tasks by latest message, then task creation date
-    // TODO: how to create subtasks?
-    // TODO: how to edit tasks or messages?
-
     div(
       cls := "listwithchat-view",
       Styles.flex,
@@ -80,7 +75,7 @@ object ListWithChatView {
                 nodeId => chatFocus() = nodeId,
                 hideIfSingle = false
               ).apply(paddingBottom := "3px"),
-              div(MembersModal.settingsButton(chatFocusedId), Styles.flexStatic, marginLeft.auto)
+              div(MembersModal.settingsButton(chatFocusedId, tooltip = "Add members to this thread").apply(padding := "5px 0.5em", backgroundColor := "transparent", color := "black", cls := "hover-full-opacity"), Styles.flexStatic)
             )
           )
         },
