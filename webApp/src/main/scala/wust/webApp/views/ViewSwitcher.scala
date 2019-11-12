@@ -55,7 +55,7 @@ object ViewSwitcher {
   def apply(channelId: NodeId, currentView: Var[View], initialView: Option[View.Visible] = None)(implicit ctx: Ctx.Owner): VNode = {
     val closeDropdown = SinkSourceHandler.publish[Unit]
 
-    val addNewViewTab = div(
+    def addNewViewTab = div(
       cls := "viewswitcher-item",
       div(
         div(addViewIcon, fontSize := "16px", color := Colors.pageHeaderControl, paddingLeft := "2px", paddingRight := "2px"),
@@ -99,7 +99,10 @@ object ViewSwitcher {
         }
       },
 
-      addNewViewTab
+      GlobalState.presentationMode.map {
+        case PresentationMode.Full => addNewViewTab
+        case _ => VDomModifier.empty
+      }
     )
   }
 
