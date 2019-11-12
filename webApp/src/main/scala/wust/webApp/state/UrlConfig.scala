@@ -3,7 +3,7 @@ package wust.webApp.state
 import acyclic.file
 import wust.api.Authentication
 import wust.graph.Page
-import wust.ids.{NodeId, View}
+import wust.ids.{ NodeId, View }
 
 sealed trait InfoContent
 object InfoContent {
@@ -18,10 +18,19 @@ object InfoContent {
   }
 }
 
-final case class UrlConfig(view: Option[View], pageChange: PageChange, redirectTo: Option[View], shareOptions: Option[ShareOptions], invitation: Option[Authentication.Token], focusId: Option[NodeId], mode: PresentationMode, info: Option[InfoContent]) {
+final case class UrlConfig(
+  view: Option[View],
+  pageChange: PageChange,
+  redirectTo: Option[View],
+  shareOptions: Option[ShareOptions],
+  invitation: Option[Authentication.Token],
+  focusId: Option[NodeId],
+  mode: PresentationMode,
+  info: Option[InfoContent]
+) {
   private val canRedirectTo: View => Boolean = {
     case View.Login | View.Signup => false
-    case _ => true
+    case _                        => true
   }
 
   def focusWithRedirect(newView: View): UrlConfig = copy(view = Some(newView), redirectTo = view.filter(canRedirectTo) orElse redirectTo)

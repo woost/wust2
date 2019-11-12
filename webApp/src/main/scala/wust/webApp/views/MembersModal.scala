@@ -52,7 +52,7 @@ object MembersModal {
       node().map(_.meta.accessLevel)
     }
     val targetUrlConfig = Rx {
-      node().fold(UrlConfig.default)(node => UrlConfig.default.focus(Page(node.id)))
+      node().fold(UrlConfig.default)(node => UrlConfig.default.copy(mode = GlobalState.urlConfig().mode).focus(Page(node.id)))
     }
     def urlConfigToUrl(urlConfig: UrlConfig) = s"${dom.window.location.origin}${UrlConfigWriter.toString(urlConfig)}"
     val targetUrl = Rx {
