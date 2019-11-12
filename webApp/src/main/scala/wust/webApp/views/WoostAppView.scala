@@ -37,10 +37,11 @@ object WoostAppView {
     div(
       Styles.growFull,
       padding := "20px",
+      woostApp.header(state),
 
       state.map {
-        case AppDefinition.State.Landing => woostApp.landing(state)(ctx)
-        case AppDefinition.State.App => woostApp.app(state)(ctx)
+        case AppDefinition.State.Landing => woostApp.landing(state)
+        case AppDefinition.State.App => woostApp.app(state)
       }
     )
   }

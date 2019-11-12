@@ -53,35 +53,21 @@ object StepMenu {
 
     val header = div(
       Styles.flex,
+      flexDirection.column,
       alignItems.center,
 
       div(
-        marginRight := "5px",
-        canGoLeft.map {
-          case true => VDomModifier.empty
-          case false => color := "gray"
-        },
-        freeSolid.faCaretLeft,
-        onClickDefault.collect { case _ if canGoLeft.now => currentStepIndex.now - 1 } --> currentStepIndex
+        fontSize.small,
+        color.gray,
+        "Step ", currentStepIndex.map(_ + 1), " of ", stepLength,
       ),
-
-      div(
+      b(
         currentStep.map(_.name),
-        " (Step ", currentStepIndex.map(_ + 1), " of ", stepLength, ")",
-      ),
-
-      div(
-        marginLeft := "5px",
-        canGoRight.map {
-          case true => VDomModifier.empty
-          case false => color := "gray"
-        },
-        freeSolid.faCaretRight,
-        onClickDefault.collect { case _ if canGoRight.now => currentStepIndex.now + 1 } --> currentStepIndex
       )
     )
 
     div(
+      width := "100%",
       header,
       div(
         padding := "10px",
@@ -89,20 +75,31 @@ object StepMenu {
         currentStep.map(_.content)
       ),
 
-      button(
-        cls := "ui primary button",
-        disabled <-- Rx { !currentStep().finished() },
-        isLastStep.map {
-          case false => VDomModifier(
-            "Next",
-            onClick.stopPropagation.useLazy(currentStepIndex.now + 1) --> currentStepIndex
-          )
-          case true => VDomModifier(
-            "Finish",
-            onClick.stopPropagation.useLazy(()) --> sink
-          )
-        }
+      div(
+        marginTop := "10px",
+        float.right,
 
+        button(
+          cls := "ui basic mini button",
+          disabled <-- canGoLeft.map(!_),
+          freeSolid.faCaretLeft,
+          onClickDefault.collect { case _ if canGoLeft.now => currentStepIndex.now - 1 } --> currentStepIndex
+        ),
+        button(
+          cls := "ui primary button",
+          disabled <-- Rx { !currentStep().finished() },
+          isLastStep.map {
+            case false => VDomModifier(
+              "Continue",
+              onClick.stopPropagation.useLazy(currentStepIndex.now + 1) --> currentStepIndex
+            )
+            case true => VDomModifier(
+              "Finish",
+              onClick.stopPropagation.useLazy(()) --> sink
+            )
+          }
+
+        )
       )
     )
   }

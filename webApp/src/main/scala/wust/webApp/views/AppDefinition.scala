@@ -7,6 +7,8 @@ import rx._
 import wust.ids.View.ListWithChat
 
 trait AppDefinition {
+  def header(state: SinkObserver[AppDefinition.State])(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier.empty
+
   def landing(state: SinkObserver[AppDefinition.State])(implicit ctx: Ctx.Owner): VDomModifier
   def app(state: SinkObserver[AppDefinition.State])(implicit ctx: Ctx.Owner): VDomModifier
 }
