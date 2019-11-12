@@ -178,8 +178,24 @@ object UrlConfigParser {
     }
 
     val result = route.hash.fold[DecodeResult[UrlConfig]](Right(UrlConfig.default)) { hash =>
-      val matched = decodeSeq(allOptionsRegex.eval(hash).toList)
-      matched.map(_.foldLeft[UrlConfig](UrlConfig.default) { case (cfg, (key, value)) =>
+      // take first option and parse manually as "startOption" shortcut for presentation=
+      //TODO do properly with regex...
+      val (initialConfig, optionHash) = {
+        val split = hash.split("&")
+        val head = split(0)
+
+        def tail = split.drop(1).mkString("&")
+        def default = (UrlConfig.default, hash)
+
+        if (head.contains("=")) default
+        else UrlOption.presentationMode.update(UrlConfig.default, head) match {
+          case Right(config) => (config, tail)
+          case Left(_) => default
+        }
+      }
+
+      val matched = decodeSeq(allOptionsRegex.eval(optionHash).toList)
+      matched.map(_.foldLeft[UrlConfig](initialConfig) { case (cfg, (key, value)) =>
         allOptionsMap.get(key) match {
           case Some(option) => option.update(cfg, value) match {
             case Right(cfg) => cfg
@@ -217,8 +233,8 @@ object UrlConfigWriter {
         UrlOption.page.key + "=" + s"${parentId.toBase58}"
     }
     val redirectToString = cfg.redirectTo.map(view => UrlOption.redirectTo.key + "=" + view.viewKey)
-    val mode = PresentationMode.toString(cfg.mode).map(m => UrlOption.presentationMode.key + "=" + m)
-    val hash = List(viewString, pageString, redirectToString, mode).flatten.mkString("&")
+    val mode = PresentationMode.toString(cfg.mode)
+    val hash = List(mode, viewString, pageString, redirectToString).flatten.mkString("&")
     // we do not write invitation and focusId: this only reading on url change.
     UrlRoute(search = None, hash = Some(hash))
   }
