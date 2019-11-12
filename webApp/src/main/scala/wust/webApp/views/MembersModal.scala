@@ -443,7 +443,7 @@ object MembersModal {
     )
   }
 
-  def settingsButton(nodeId: NodeId)(implicit ctx: Ctx.Owner):VNode = {
+  def settingsButton(nodeId: NodeId, tooltip:String = "Add members", tooltipPosition:String = "bottom center")(implicit ctx: Ctx.Owner):VNode = {
     val permissionLevel = Rx {
       Permission.resolveInherited(GlobalState.rawGraph(), nodeId)
     }
@@ -461,14 +461,15 @@ object MembersModal {
 
       display.flex,
       alignItems.flexStart,
-      padding := "0.5em 0.7em",
+      padding := "0.5em",
 
-      permissionLevel.map(Permission.permissionIndicator(_)),
+      // permissionLevel.map(Permission.permissionIndicator(_)),
 
       div(
-        marginLeft := "4px",
+        // marginLeft := "4px",
         Icons.membersModal
-      )
+      ),
+      UI.tooltip(tooltipPosition) := tooltip
     )
   }
 
