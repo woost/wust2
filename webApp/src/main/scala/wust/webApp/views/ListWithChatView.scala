@@ -63,25 +63,9 @@ object ListWithChatView {
         Styles.flex,
         flexDirection.column,
         Rx{
-          val chatFocusedId = chatFocus()
-          val focusedTopLevel = chatFocusedId == originalFocusState.focusedId
-          val graph = GlobalState.rawGraph()
+          val focusedTopLevel = chatFocus() == originalFocusState.focusedId
           VDomModifier.ifNot(focusedTopLevel)(
-            div(
-              Styles.flexStatic,
-              Styles.flex,
-              alignItems.center,
-
-              padding := "8px 10px",
-              BreadCrumbs(
-                graph,
-                start = BreadCrumbs.EndPoint.Node(focusState.focusedId, inclusive = true),
-                end = BreadCrumbs.EndPoint.Node(chatFocusedId),
-                nodeId => chatFocus() = nodeId,
-                hideIfSingle = false
-              ).apply(paddingBottom := "3px"),
-              div(MembersModal.settingsButton(chatFocusedId, tooltip = "Add members to this thread").apply(padding := "5px 0.5em", backgroundColor := "transparent", color := "black", cls := "hover-full-opacity"), Styles.flexStatic)
-            )
+            chatHeader(focusState, chatFocus)
           )
         },
         Rx {
@@ -92,5 +76,36 @@ object ListWithChatView {
         }
       )
     )
+  }
+
+  private def chatHeader(focusState: FocusState, chatFocus: Var[NodeId])(implicit ctx: Ctx.Owner) = {
+    Rx {
+      val chatFocusedId = chatFocus()
+      val graph = GlobalState.rawGraph()
+      div(
+        // backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(chatFocusedId)).toHex,
+        Styles.flexStatic,
+        Styles.flex,
+        alignItems.center,
+
+        padding := "8px 10px",
+        BreadCrumbs(
+          graph,
+          start = BreadCrumbs.EndPoint.Node(focusState.focusedId, inclusive = true),
+          end = BreadCrumbs.EndPoint.Node(chatFocusedId),
+          nodeId => chatFocus() = nodeId,
+          hideIfSingle = false
+        ).apply(paddingBottom := "3px"),
+        div(
+          MembersModal.settingsButton(chatFocusedId, tooltip = "Add members to this thread").apply(
+            padding := "5px 0.5em",
+            backgroundColor := "transparent",
+            color := "black",
+            cls := "hover-full-opacity"
+          ),
+          Styles.flexStatic
+        )
+      )
+    }
   }
 }
