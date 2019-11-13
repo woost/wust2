@@ -52,15 +52,12 @@ object ListWithChatView {
     div(
       cls := "listwithchat-view",
       Styles.flex,
-
-      Rx {
-        VDomModifier.ifTrue(GlobalState.screenSize() != ScreenSize.Small)(
+      ScreenSize.dontShowOnSmallScreen(
         ListView(focusState, autoFocusInsert = false).apply(
           width := "300px",
           height := "100%",
         )
-        )
-      },
+      ),
       div(
         flex := "3",
         Styles.flex,
