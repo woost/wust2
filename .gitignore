@@ -5,6 +5,7 @@ target/
 /tokens.sh
 proguard-sbt.txt
 .metals/
+/project/metals.sbt
 .bloop/
 .metaserver/
 /.sql_checksum
