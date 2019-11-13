@@ -34,12 +34,12 @@ object PageHeader {
       GlobalState.graph().nodesById(pageNodeId)
     }
 
-    val focusState:Rx[Option[FocusState]] = Rx {
+    val focusState: Rx[Option[FocusState]] = Rx {
       val viewConfig = GlobalState.viewConfig()
       GlobalState.mainFocusState(viewConfig)
     }
 
-    def channelTitle(focusState:FocusState)(implicit ctx: Ctx.Owner) = div(
+    def channelTitle(focusState: FocusState)(implicit ctx: Ctx.Owner) = div(
       backgroundColor := pageStyle.pageBgColor,
       cls := "pageheader-channeltitle",
 
@@ -81,7 +81,7 @@ object PageHeader {
       backgroundColor := pageStyle.pageBgColor,
 
       showOnlyInFullMode(
-      div(
+        div(
           Styles.flexStatic,
 
           Styles.flex,
@@ -110,22 +110,21 @@ object PageHeader {
         flexWrap := "wrap-reverse",
 
         ViewSwitcher(pageNodeId)
-            .mapResult(_.apply(
-              Styles.flexStatic,
-              alignSelf.flexStart,
-              marginRight := "5px",
-              id := "tutorial-pageheader-viewswitcher",
-              MainTutorial.onDomMountContinue,
-            ))
-            .foreach{ view =>
-              view match {
-                case View.Kanban => FeatureState.use(Feature.SwitchToKanbanInPageHeader)
-                case View.List   => FeatureState.use(Feature.SwitchToChecklistInPageHeader)
-                case View.Chat   => FeatureState.use(Feature.SwitchToChatInPageHeader)
-                case _           =>
-              }
-        },
-
+          .mapResult(_.apply(
+            Styles.flexStatic,
+            alignSelf.flexStart,
+            marginRight := "5px",
+            id := "tutorial-pageheader-viewswitcher",
+            MainTutorial.onDomMountContinue,
+          ))
+          .foreach{ view =>
+            view match {
+              case View.Kanban => FeatureState.use(Feature.SwitchToKanbanInPageHeader)
+              case View.List   => FeatureState.use(Feature.SwitchToChecklistInPageHeader)
+              case View.Chat   => FeatureState.use(Feature.SwitchToChatInPageHeader)
+              case _           =>
+            }
+          },
 
         div(
           Styles.flex,
@@ -133,11 +132,13 @@ object PageHeader {
           marginLeft.auto,
 
           Rx {
-            focusState().map( focusState => channelTitle(focusState))
+            focusState().map(focusState => channelTitle(focusState))
           },
 
           channelMembersList,
-          showOnlyInFullMode(div(MembersModal.settingsButton(pageNodeId), id := "tutorial-pageheader-sharing"), additionalModes = List(PresentationMode.ThreadTracker)),
+          showOnlyInFullMode(div(MembersModal.settingsButton(pageNodeId).apply(
+            color := "white",
+          ), id := "tutorial-pageheader-sharing"), additionalModes = List(PresentationMode.ThreadTracker)),
           id := "tutorial-pageheader-title",
           marginBottom := "2px", // else nodecards in title overlap
 
@@ -154,7 +155,7 @@ object PageHeader {
               ViewFilter.filterBySearchInputWithIcon.apply(marginRight := "5px")
             )
           },
-          showOnlyInFullMode(div(channelNotification,marginRight := "8px")),
+          showOnlyInFullMode(div(channelNotification, marginRight := "8px")),
           showOnlyInFullMode(PageSettingsMenu(pageNodeId).apply(fontSize := "20px"))
         )
       )

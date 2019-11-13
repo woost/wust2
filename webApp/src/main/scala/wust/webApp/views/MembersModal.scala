@@ -450,9 +450,10 @@ object MembersModal {
 
     val openSharingModalOnClick = onClickDefault.use(Ownable(implicit ctx => MembersModal.config(nodeId))) --> GlobalState.uiModalConfig
 
-    button(
+    div(
       marginLeft := "5px",
-      cls := "ui tiny compact primary button",
+
+      color := "black",
 
       openSharingModalOnClick,
       onClickDefault.foreach {
