@@ -63,6 +63,7 @@ object Feature {
     sealed trait Plugin extends Feature
 
     sealed trait Secret extends Feature
+    sealed trait Legacy extends Secret
   }
   // Context parameters: byDrag:Boolean, inRightSidebar, inView:View, nodeRole:NodeRole
 
@@ -105,10 +106,9 @@ object Feature {
   case object CreateProjectFromWelcomeView extends Category.Item.Project with Category.Secret { override def next = CreateProject.next }
 
   // Basics
-  case object CloseLeftSidebar extends Category.Basics { override def requiresAll = Array(CreateProject); override def next = Array(SwitchPageFromCollapsedLeftSidebar, CreateProjectFromCollapsedLeftSidebar, OpenLeftSidebar) }
+  case object CloseLeftSidebar extends Category.Basics { override def requiresAll = Array(CreateProject); override def next = Array(SwitchPageFromCollapsedLeftSidebar, OpenLeftSidebar) }
   case object OpenLeftSidebar extends Category.Basics { override def requiresAll = Array(CreateProject); override def next = Array(SwitchPageFromExpandedLeftSidebar, CreateProjectFromExpandedLeftSidebar, CloseLeftSidebar) }
   case object CreateProjectFromExpandedLeftSidebar extends Category.Basics with Category.Secret {}
-  case object CreateProjectFromCollapsedLeftSidebar extends Category.Basics with Category.Secret {}
   case object SwitchPageFromExpandedLeftSidebar extends Category.Basics { override def requiresAll = Array(CreateProject) }
   case object SwitchPageFromCollapsedLeftSidebar extends Category.Basics { override def requiresAll = Array(CreateProject) }
 
@@ -225,6 +225,9 @@ object Feature {
   case object EnableBrowserNotifications extends Category.Setup {override def requiresAll = Array(CreateProject)}
 
   case object EnableSlackPlugin extends Category.Plugin with Category.Secret
+
+
+  case object CreateProjectFromCollapsedLeftSidebar extends Category.Legacy with Category.Secret {}
 
   val all = SubObjects.all[Feature]
   val startingPoints = SubObjects.all[Category.StartingPoint].sortBy(-_.next.length)

@@ -152,13 +152,6 @@ object LeftSidebar {
             minWidth := s"${minWidthSidebar}px", // this is needed when the hamburger is not rendered inside the sidebar
             hamburger,
             channelIcons(toplevelChannels, minWidthSidebar),
-            newProjectButton("+").apply(
-              cls := "newChannelButton-small " + buttonStyles,
-              UI.tooltip("right center") := "New Project",
-              onClick foreach {
-                FeatureState.use(Feature.CreateProjectFromCollapsedLeftSidebar)
-              }
-            )
           ))
         )
       }
