@@ -148,7 +148,7 @@ object SharedViewElements {
 
   def renderMessage(
     focusState: FocusState,
-    traverseState: TraverseState, 
+    traverseState: TraverseState,
     nodeId: NodeId,
     directParentIds:Iterable[NodeId],
     isDeletedNow: Rx[Boolean],
@@ -316,7 +316,7 @@ object SharedViewElements {
     prependActions(canWriteAll) ::: middleActions ::: appendActions(canWriteAll)
   }
 
-  def createNewButton(addToChannels: Boolean = false, nodeRole: CreateNewPrompt.SelectableNodeRole = CreateNewPrompt.SelectableNodeRole.Task)(implicit ctx: Ctx.Owner): VNode = {
+  def createNewButton(focusState:FocusState, addToChannels: Boolean = false, nodeRole: CreateNewPrompt.SelectableNodeRole = CreateNewPrompt.SelectableNodeRole.Task)(implicit ctx: Ctx.Owner): VNode = {
     val show = SinkSourceHandler.publish[Boolean]
 
     div(
@@ -327,7 +327,7 @@ object SharedViewElements {
         show.onNext(true)
       },
 
-      CreateNewPrompt( show, addToChannels, nodeRole)
+      CreateNewPrompt( show, focusState, addToChannels, nodeRole, defaultParentIds = List(ParentId(focusState.focusedId)))
     )
   }
 

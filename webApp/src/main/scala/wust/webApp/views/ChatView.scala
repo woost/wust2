@@ -51,7 +51,7 @@ object ChatView {
       Styles.flex,
       flexDirection.column,
 
-      selectedNodesBar(currentReply, inputFieldFocusTrigger),
+      selectedNodesBar(focusState, currentReply, inputFieldFocusTrigger),
 
       div(
         // InfiniteScroll must stay outside ChatHistory (don't know why exactly...)
@@ -73,12 +73,13 @@ object ChatView {
   }
 
   private def selectedNodesBar(
+    focusState: FocusState,
     currentReply: Var[Set[NodeId]],
     inputFieldFocusTrigger: SinkSourceHandler.Simple[Unit],
   )(implicit ctx: Ctx.Owner) = VDomModifier (
     position.relative, // for absolute positioning of selectednodes
     SelectedNodes(
-      selectedNodeActions(prependActions = additionalNodeActions(currentReply, inputFieldFocusTrigger)),
+      selectedNodeActions(prependActions = additionalNodeActions(focusState, currentReply, inputFieldFocusTrigger)),
       (_, _) => Nil
       ).apply(
         position.absolute,
@@ -425,7 +426,7 @@ object ChatView {
   }
 
   //TODO share code with threadview?
-  private def additionalNodeActions(currentReply: Var[Set[NodeId]], inputFieldTriggerFocus: SinkSourceHandler.Simple[Unit])(implicit ctx: Ctx.Owner): Boolean => List[VNode] = canWriteAll => List(
+  private def additionalNodeActions(focusState: FocusState, currentReply: Var[Set[NodeId]], inputFieldTriggerFocus: SinkSourceHandler.Simple[Unit])(implicit ctx: Ctx.Owner): Boolean => List[VNode] = canWriteAll => List(
     replyButton(
       onClick foreach {
         currentReply() = GlobalState.selectedNodes.now.map(_.nodeId)(breakOut):Set[NodeId]
@@ -434,7 +435,7 @@ object ChatView {
         ()
       }
     ),
-    SharedViewElements.createNewButton()
+    SharedViewElements.createNewButton(focusState)
   )
 
   private def renderCurrentReply(

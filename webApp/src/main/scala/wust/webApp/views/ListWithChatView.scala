@@ -34,6 +34,9 @@ object ListWithChatView {
     val chatFocus = Var(originalFocusState.focusedId)
 
     val focusState = originalFocusState.copy(
+      contextParentIdAction = { nodeId =>
+        chatFocus() = nodeId
+      },
       onItemSingleClick = { nodeId =>
         chatFocus() = if (chatFocus.now == nodeId) originalFocusState.focusedId else nodeId
       },

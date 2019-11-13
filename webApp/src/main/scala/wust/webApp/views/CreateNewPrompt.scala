@@ -11,10 +11,11 @@ import wust.ids._
 import wust.util._
 import wust.util.macros.SubObjects
 import wust.webApp.Icons
-import wust.webApp.state.GlobalState
+import wust.webApp.state.{GlobalState, FocusState}
 import wust.webApp.views.Components._
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{ModalConfig, Ownable, UI}
+import wust.facades.segment.Segment
 
 object CreateNewPrompt {
 
@@ -28,8 +29,14 @@ object CreateNewPrompt {
   }
   import SelectableNodeRole._
 
-  def apply[F[_] : Source](show: F[Boolean], defaultAddToChannels: Boolean, defaultNodeRole: SelectableNodeRole)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier.delay {
-    val parentNodes = Var[Vector[ParentId]](Vector.empty)
+  def apply[F[_] : Source](
+    show: F[Boolean],
+    focusState: FocusState,
+    defaultAddToChannels: Boolean,
+    defaultNodeRole: SelectableNodeRole,
+    defaultParentIds: List[ParentId] = GlobalState.page.now.parentId.map(ParentId(_)).toList,
+  )(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier.delay {
+    val parentNodes = Var[Vector[ParentId]](defaultParentIds.toVector)
     val childNodes = Var[Vector[ChildId]](Vector.empty)
     val nodeRole = Var[SelectableNodeRole](defaultNodeRole)
     val addToChannels = Var[Boolean](defaultAddToChannels)
@@ -65,13 +72,12 @@ object CreateNewPrompt {
         GlobalState.submitChanges(changes merge channelChanges)
         GlobalState.urlConfig.update(_.focus(Page(newNode.id), needsGet = false))
       } else {
-        GlobalState.submitChanges(changes)
-        def newViewConfig = nodeRole.now match {
-          case Message => GlobalState.urlConfig.now.focus(Page(parents.head), View.Conversation)
-          case Task    => GlobalState.urlConfig.now.focus(Page(parents.head), View.Tasks)
-          case Note    => GlobalState.urlConfig.now.focus(Page(parents.head), View.Content)
+        GlobalState.submitChanges(changes).foreach { _ =>
+          if(childNodes.now.nonEmpty)
+            focusState.contextParentIdAction(newNode.id)
+          else
+            parents.headOption.foreach(focusState.contextParentIdAction)
         }
-        // UI.toast(s"Created new ${nodeRole.now}: ${StringOps.trimToMaxLength(newNode.str, 10)}", click = () => GlobalState.urlConfig() = newViewConfig, level = UI.ToastLevel.Success)
       }
 
       GlobalState.uiModalClose.onNext(())
@@ -246,10 +252,7 @@ object CreateNewPrompt {
     VDomModifier(
       emitter(show).foreach { show =>
         if (show) {
-          Var.set(
-            parentNodes -> Vector(ParentId(GlobalState.page.now.parentId.getOrElse(GlobalState.user.now.id))),
-            childNodes -> ChildId(GlobalState.selectedNodes.now.map(_.nodeId))
-          )
+          childNodes() = ChildId(GlobalState.selectedNodes.now.map(_.nodeId))
 
           GlobalState.uiModalConfig.onNext(Ownable(implicit ctx => ModalConfig(header = header, description = description, modalModifier = VDomModifier(
             cls := "create-new-prompt",
