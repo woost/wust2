@@ -254,6 +254,8 @@ object CreateNewPrompt {
           GlobalState.uiModalConfig.onNext(Ownable(implicit ctx => ModalConfig(header = header, description = description, modalModifier = VDomModifier(
             cls := "create-new-prompt",
           ))))
+
+          Segment.trackEvent("Open Create Modal")
         } else {
           GlobalState.uiModalClose.onNext(())
         }
