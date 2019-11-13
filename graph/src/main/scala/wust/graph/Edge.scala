@@ -14,16 +14,16 @@ sealed trait Edge {
 }
 
 /**
-  * Here, all edge types are implemented.
-  * CONVENTION: The arguments orders is based the traverse order of the edge and therefore the permission propagation.
-  * Hence, an edge with a (NodeId, UserId) pair starts with the NodeId, followed by the EdgeData and the UserId.
-  * The UserId acts as a traverse stop.
-  * In pairs of (NodeId, NodeId), the first NodeId must be the one that is traversed first, e.g. the LabeledProperty Edge
-  * holds the NodeId of the content node and the second parameter holds the property value.
-  */
+ * Here, all edge types are implemented.
+ * CONVENTION: The arguments orders is based the traverse order of the edge and therefore the permission propagation.
+ * Hence, an edge with a (NodeId, UserId) pair starts with the NodeId, followed by the EdgeData and the UserId.
+ * The UserId acts as a traverse stop.
+ * In pairs of (NodeId, NodeId), the first NodeId must be the one that is traversed first, e.g. the LabeledProperty Edge
+ * holds the NodeId of the content node and the second parameter holds the property value.
+ */
 object Edge {
 
-  sealed trait User  extends Edge {
+  sealed trait User extends Edge {
     def userId: UserId
     def nodeId: NodeId
     def sourceId: NodeId = nodeId
@@ -86,6 +86,7 @@ object Edge {
     @inline def delete(parentId: ParentId, childId: ChildId): Child = delete(parentId, EpochMilli.now, childId)
     @inline def delete(parentId: ParentId, deletedAt: EpochMilli, childId: ChildId): Child = Child(parentId, EdgeData.Child(deletedAt, ordering = CuidOrdering.calculate(childId)), childId)
     @inline def apply(parentId: ParentId, childId: ChildId): Child = Child(parentId, EdgeData.Child(ordering = CuidOrdering.calculate(childId)), childId)
+    @inline def apply(parentId: ParentId, childId: ChildId, ordering: BigDecimal): Child = Child(parentId, EdgeData.Child(ordering = ordering), childId)
     @inline def apply(parentId: ParentId, deletedAt: Option[EpochMilli], childId: ChildId): Child = Child(parentId, EdgeData.Child(deletedAt, ordering = CuidOrdering.calculate(childId)), childId)
   }
 
@@ -113,7 +114,7 @@ object Edge {
     def copyId(sourceId: NodeId, targetId: NodeId) = copy(nodeId = sourceId, mentionedId = targetId)
   }
 
-  def apply(sourceId:NodeId, data:EdgeData, targetId:NodeId): Edge = data match {
+  def apply(sourceId: NodeId, data: EdgeData, targetId: NodeId): Edge = data match {
     case EdgeData.Assigned                  => new Edge.Assigned(sourceId, UserId(targetId))
     case EdgeData.Invite                    => new Edge.Invite(sourceId, UserId(targetId))
     case EdgeData.Notify                    => new Edge.Notify(sourceId, UserId(targetId))
@@ -143,9 +144,9 @@ object EdgeEquality {
   object Unique {
     // unique constraints how they are defined in the database for edges
     def apply(edge: Edge): Option[Unique] = edge match {
-      case _: Edge.Author => None
+      case _: Edge.Author          => None
       case e: Edge.LabeledProperty => Some(Unique(e.sourceId, e.data.tpe, e.data.key, e.targetId))
-      case e => Some(Unique(e.sourceId, e.data.tpe, null, e.targetId))
+      case e                       => Some(Unique(e.sourceId, e.data.tpe, null, e.targetId))
     }
   }
 

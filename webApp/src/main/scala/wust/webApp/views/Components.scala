@@ -553,8 +553,8 @@ object Components {
               if(checking) {
                 val (doneNodeId, doneNodeAddChange) = doneIdx match {
                   case None                   =>
-                    val freshDoneNode = Node.MarkdownStage(Graph.doneText)
-                    (freshDoneNode.id, GraphChanges.addNodeWithParent(freshDoneNode, ParentId(graph.nodeIds(workspaceIdx))))
+                    val freshDoneNodeId = NodeId.fresh()
+                    (freshDoneNodeId, GraphChanges.addDoneStage(freshDoneNodeId, ParentId(graph.nodeIds(workspaceIdx))))
                   case Some(existingDoneNode) => (graph.nodeIds(existingDoneNode), GraphChanges.empty)
                 }
                 val stageParents = graph.parentsIdx(graph.idToIdxOrThrow(node.id)).collect{case idx if graph.nodes(idx).role == NodeRole.Stage && graph.workspacesForParent(idx).contains(workspaceIdx) => graph.nodeIds(idx)}

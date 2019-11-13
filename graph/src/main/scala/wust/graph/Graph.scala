@@ -687,6 +687,7 @@ final case class GraphLookup private(
   }
 
   def isDoneStage(node: Node): Boolean = node.role == NodeRole.Stage && node.str.trim.toLowerCase == Graph.doneTextLower
+  def isDoneStage(nodeId: NodeId): Boolean = { nodesById(nodeId).exists(isDoneStage) }
 
   def workspacesForNode(nodeIdx: Int): Array[Int] = {
     (parentsIdx(nodeIdx).flatMap(workspacesForParent)(breakOut): Array[Int]).distinct

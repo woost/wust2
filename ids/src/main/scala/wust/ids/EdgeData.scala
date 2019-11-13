@@ -32,7 +32,7 @@ object EdgeData {
   }
   object Child extends Named {
     @inline def apply(ordering: BigDecimal): Child = Child(None, ordering)
-    @inline def apply(timestamp: EpochMilli, ordering: BigDecimal): Child = Child(Some(timestamp), ordering)
+    @inline def apply(deletedAt: EpochMilli, ordering: BigDecimal): Child = Child(Some(deletedAt), ordering)
   }
 
   case object Automated extends Named with EdgeData
