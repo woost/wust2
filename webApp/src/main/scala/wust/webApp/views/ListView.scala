@@ -18,7 +18,7 @@ import wust.webApp.Icons
 object ListView {
   import SharedViewElements._
 
-  def apply(focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(focusState: FocusState, autoFocusInsert: Boolean)(implicit ctx: Ctx.Owner): VNode = {
     val marginBottomHack = VDomModifier(
       position.relative,
       div(position.absolute, top := "100%", width := "1px", height := "10px") // https://www.brunildo.org/test/overscrollback.html
@@ -34,6 +34,7 @@ object ListView {
         inOneLine = true,
         isCompact = false,
         lastElementModifier = marginBottomHack,
+        autoFocusInsert,
       ),
       newSectionArea(focusState)
     )
@@ -45,12 +46,13 @@ object ListView {
     inOneLine: Boolean,
     isCompact:Boolean,
     lastElementModifier: VDomModifier = VDomModifier.empty,
+    autoFocusInsert: Boolean,
     showInputField: Boolean = true,
   )(implicit ctx: Ctx.Owner):VNode = {
     div(
       keyed,
 
-      VDomModifier.ifTrue(showInputField)(addListItemInputField( focusState, autoFocusInsert = !focusState.isNested)),
+      VDomModifier.ifTrue(showInputField)(addListItemInputField( focusState, autoFocusInsert = autoFocusInsert)),
       renderInboxColumn( focusState, traverseState, inOneLine, isCompact),
       renderToplevelColumns( focusState, traverseState, inOneLine, isCompact, showInputField = showInputField)
         .apply(lastElementModifier),

@@ -171,7 +171,7 @@ object NodeDetails {
   def nestedTaskList(nodeId: NodeId, isExpanded:Rx[Boolean], focusState:FocusState, traverseState:TraverseState, isCompact:Boolean = false, inOneLine:Boolean = false)(implicit ctx: Ctx.Owner) = Rx {
     val graph = GlobalState.graph()
     VDomModifier.ifTrue(isExpanded())(
-      ListView.fieldAndList( focusState.copy(isNested = true, focusedId = nodeId),  traverseState.step(nodeId), inOneLine = inOneLine, isCompact = isCompact, showInputField = false).apply(
+      ListView.fieldAndList( focusState.copy(isNested = true, focusedId = nodeId),  traverseState.step(nodeId), inOneLine = inOneLine, isCompact = isCompact, showInputField = false, autoFocusInsert = false).apply(
         paddingBottom := "3px",
         onClick.stopPropagation.discard,
         DragComponents.drag(DragItem.DisableDrag),
