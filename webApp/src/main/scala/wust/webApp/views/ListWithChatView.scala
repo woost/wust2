@@ -37,8 +37,14 @@ object ListWithChatView {
       contextParentIdAction = { nodeId =>
         chatFocus() = nodeId
       },
-      onItemSingleClick = { nodeId =>
-        chatFocus() = if (chatFocus.now == nodeId) originalFocusState.focusedId else nodeId
+      onItemSingleClick = { focusPreference =>
+        val nodeId = focusPreference.nodeId
+        focusPreference.view match {
+          // clicking on card and comment icon toggles in embedded chat view
+          case None | Some(View.Chat) => chatFocus() = if (chatFocus.now == nodeId) originalFocusState.focusedId else nodeId
+          // clicking on other icons behaves as usual
+          case Some(view)             => originalFocusState.onItemSingleClick(focusPreference)
+        }
       },
       itemIsFocused = nodeId => chatFocus.map(_ == nodeId)
     )
@@ -49,11 +55,11 @@ object ListWithChatView {
 
       Rx {
         VDomModifier.ifTrue(GlobalState.screenSize() != ScreenSize.Small)(
-          ListView(focusState, autoFocusInsert = false).apply(
+        ListView(focusState, autoFocusInsert = false).apply(
             flex := "1",
             maxWidth := "300px",
-            height := "100%",
-          )
+          height := "100%",
+        )
         )
       },
       div(

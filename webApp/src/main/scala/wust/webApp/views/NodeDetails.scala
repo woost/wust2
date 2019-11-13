@@ -13,6 +13,7 @@ import wust.webApp.dragdrop.{DragItem, DragPayload, DragTarget}
 import wust.webUtil.UI
 import wust.webUtil.outwatchHelpers._
 import wust.webApp.state.FeatureState
+import wust.webUtil.Elements.onClickDefault
 
 object NodeDetails {
 
@@ -144,24 +145,21 @@ object NodeDetails {
           renderNotesCount(
             taskStats().noteChildrenCount,
             UI.tooltip("left center") := "Show notes",
-            onClick.stopPropagation.useLazy(Some(FocusPreference(nodeId, Some(View.Content)))) --> GlobalState.rightSidebarNode,
-            cursor.pointer,
+            onClickDefault.foreach { focusState.onItemSingleClick(FocusPreference(nodeId, Some(View.Content))) },
           ),
         ),
         VDomModifier.ifTrue(taskStats().messageChildrenCount > 0)(
           renderMessageCount(
             taskStats().messageChildrenCount,
             UI.tooltip("left center") := "Show comments",
-            onClick.stopPropagation.useLazy(Some(FocusPreference(nodeId, Some(View.Chat)))) --> GlobalState.rightSidebarNode,
-            cursor.pointer,
+            onClickDefault.foreach { focusState.onItemSingleClick(FocusPreference(nodeId, Some(View.Chat))) },
           ),
         ),
         VDomModifier.ifTrue(taskStats().projectChildrenCount > 0)(
           renderProjectsCount(
             taskStats().projectChildrenCount,
             UI.tooltip("left center") := "Show Projects",
-            onClick.stopPropagation.useLazy(Some(FocusPreference(nodeId, Some(View.Dashboard)))) --> GlobalState.rightSidebarNode,
-            cursor.pointer,
+            onClickDefault.foreach { focusState.onItemSingleClick(FocusPreference(nodeId, Some(View.Dashboard))) },
           ),
         ),
       )

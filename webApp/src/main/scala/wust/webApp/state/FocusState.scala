@@ -29,6 +29,6 @@ final case class FocusState(
   changeViewAction: View => Unit, // change the view
   contextParentIdAction: NodeId => Unit, // change the contextParentId
   itemIsFocused: NodeId => Rx[Boolean],
-  onItemSingleClick: NodeId => Unit, // = nodeId => GlobalState.rightSidebarNode() = Some(nodeId),
+  onItemSingleClick: FocusPreference => Unit, // = nodeId => GlobalState.rightSidebarNode() = Some(nodeId),
   onItemDoubleClick: NodeId => Unit, // = GlobalState.focus(_),
 ) 

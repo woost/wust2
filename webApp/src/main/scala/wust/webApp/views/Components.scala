@@ -218,7 +218,7 @@ object Components {
     key: String,
     properties: Seq[PropertyData.PropertyValue],
     focusState: FocusState,
-    parentIdAction: Option[NodeId] => Unit, // TODO: use focusState instead
+    parentIdAction: Option[FocusPreference] => Unit, // TODO: use focusState instead
   )(implicit ctx: Ctx.Owner): VNode = {
 
     val editKey = Var(false)
@@ -270,7 +270,7 @@ object Components {
                   writeHoveredNode( property.node.id),
                   cursor.pointer,
                   //TODO: rightsidebarnodcardmod ?
-                  onClick.stopPropagation.use(Some(property.node.id)).foreach(parentIdAction(_))
+                  onClick.stopPropagation.use(Some(FocusPreference(property.node.id))).foreach(parentIdAction(_))
                 ),
                 maxLength = Some(100), config = EditableContent.Config.default,
               ).apply(cls := "propertyvalue"),
@@ -990,7 +990,7 @@ object Components {
   def sidebarNodeFocusClickMod(nodeId: NodeId, focusState: FocusState)(implicit ctx: Ctx.Owner): VDomModifier = {
     onSingleOrDoubleClick(
       singleClickAction = { () =>
-        focusState.onItemSingleClick(nodeId)
+        focusState.onItemSingleClick(FocusPreference(nodeId))
       },
       doubleClickAction = { () =>
         focusState.onItemDoubleClick(nodeId)

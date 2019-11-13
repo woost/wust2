@@ -265,7 +265,7 @@ object GraphChangesAutomationUI {
       position.relative, // needed for right sidebar
       RightSidebar(
         GlobalState.rightSidebarNode,
-        nodeId => GlobalState.rightSidebarNode() = nodeId.map(FocusPreference(_)),
+        focusPreference => GlobalState.rightSidebarNode() = focusPreference,
         viewRender,
         openModifier = VDomModifier(overflow.auto, VDomModifier.ifTrue(BrowserDetect.isMobile)(marginLeft := "25px"))
       ) // overwrite left-margin of overlay sidebar in mobile
@@ -297,9 +297,9 @@ object GraphChangesAutomationUI {
       changeViewAction = view => (),
       contextParentIdAction = nodeId => GlobalState.focus(nodeId),
       itemIsFocused = nodeId => GlobalState.rightSidebarNode.map(_.exists(_.nodeId == nodeId)),
-      onItemSingleClick = { nodeId =>
+      onItemSingleClick = { focusPreference =>
         // toggle rightsidebar:
-        val nextNode = if (GlobalState.rightSidebarNode.now.exists(_.nodeId == nodeId)) None else Some(FocusPreference(nodeId))
+        val nextNode = if (GlobalState.rightSidebarNode.now.exists(_ == focusPreference)) None else Some(focusPreference)
         GlobalState.rightSidebarNode() = nextNode
       },
       onItemDoubleClick = nodeId => GlobalState.focus(nodeId),

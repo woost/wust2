@@ -21,14 +21,19 @@ object RightSidebar {
 
   def apply(viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VNode = apply(
     focusedNodeId = GlobalState.rightSidebarNode,
-    parentIdAction = nodeId => GlobalState.rightSidebarNode() = nodeId.map(FocusPreference(_)),
+    parentIdAction = focusPreference => GlobalState.rightSidebarNode() = focusPreference,
     viewRender = viewRender
   )
-  def apply(focusedNodeId: Rx[Option[FocusPreference]], parentIdAction: Option[NodeId] => Unit, viewRender: ViewRenderLike, openModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(
+    focusedNodeId: Rx[Option[FocusPreference]],
+    parentIdAction: Option[FocusPreference] => Unit,
+    viewRender: ViewRenderLike,
+    openModifier: VDomModifier = VDomModifier.empty
+  )(implicit ctx: Ctx.Owner): VNode = {
 
     val isFullscreen = Var(false)
-    val focusHistory = Var(List.empty[NodeId])
-    val focusFuture = Var(List.empty[NodeId])
+    val focusHistory = Var(List.empty[FocusPreference])
+    val focusFuture = Var(List.empty[FocusPreference])
 
     val toggleVar = Var(focusedNodeId.now.isDefined)
     var lastFocusPref = focusedNodeId.now
@@ -37,7 +42,7 @@ object RightSidebar {
       opt match {
         case Some(newPref) =>
           lastFocusPref.foreach { pref =>
-            focusHistory.update(list => pref.nodeId :: list.filter(_ != pref.nodeId))
+            focusHistory.update(list => pref :: list.filter(_ != pref))
             focusFuture() = Nil
           }
         case None =>
@@ -68,11 +73,11 @@ object RightSidebar {
 
   def content(
     focusPref: FocusPreference,
-    parentIdAction: Option[NodeId] => Unit,
+    parentIdAction: Option[FocusPreference] => Unit,
     viewRender: ViewRenderLike,
     isFullscreen: Var[Boolean],
-    focusHistory: Var[List[NodeId]],
-    focusFuture: Var[List[NodeId]],
+    focusHistory: Var[List[FocusPreference]],
+    focusFuture: Var[List[FocusPreference]],
     ignoreNextUpdate: () => Unit
   )(implicit ctx: Ctx.Owner): VNode = {
     val nodeStyle = PageStyle.ofNode(focusPref.nodeId)
@@ -84,9 +89,9 @@ object RightSidebar {
       focusedId = focusPref.nodeId,
       isNested = true,
       changeViewAction = newView => (),// TODO: not used. Only StatisticsView is using this. Remove? ViewHeuristic.visibleView(GlobalState.rawGraph.now, focusPref.nodeId, newView).foreach(currentView() = _),
-      contextParentIdAction = nodeId => parentIdAction(Some(nodeId)),
+      contextParentIdAction = nodeId => parentIdAction(Some(FocusPreference(nodeId))),
       itemIsFocused = nodeId => GlobalState.rightSidebarNode.map(_.exists(_.nodeId == nodeId)),
-      onItemSingleClick = { nodeId => parentIdAction(Some(nodeId)) },
+      onItemSingleClick = focusPreference => parentIdAction(Some(focusPreference)),
       onItemDoubleClick = nodeId => GlobalState.focus(nodeId),
     )
 
@@ -132,7 +137,7 @@ object RightSidebar {
               case head :: rest =>
                 ignoreNextUpdate()
                 focusHistory() = rest
-                focusFuture.update(focusPref.nodeId :: _)
+                focusFuture.update(focusPref :: _)
                 parentIdAction(Some(head))
               case _ =>
             }
@@ -151,7 +156,7 @@ object RightSidebar {
               case head :: rest =>
                 ignoreNextUpdate()
                 focusFuture() = rest
-                focusHistory.update(focusPref.nodeId :: _)
+                focusHistory.update(focusPref :: _)
                 parentIdAction(Some(head))
               case _ =>
             }
@@ -218,7 +223,7 @@ object RightSidebar {
   }
   private def viewContent(
     focusPref: FocusPreference,
-    parentIdAction: Option[NodeId] => Unit, // TODO: use focusState instead
+    parentIdAction: Option[FocusPreference] => Unit, // TODO: use focusState instead
     focusState:FocusState,
     nodeStyle: PageStyle,
     viewRender: ViewRenderLike
@@ -272,7 +277,7 @@ object RightSidebar {
     )
   }
 
-  private def nodeBreadcrumbs(focusedNodeId: FocusPreference, parentIdAction: Option[NodeId] => Unit, hideIfSingle: Boolean)(implicit ctx: Ctx.Owner) = {
+  private def nodeBreadcrumbs(focusedNodeId: FocusPreference, parentIdAction: Option[FocusPreference] => Unit, hideIfSingle: Boolean)(implicit ctx: Ctx.Owner) = {
     VDomModifier(
       Rx {
         val page = GlobalState.page()
@@ -281,7 +286,7 @@ object RightSidebar {
             GlobalState.rawGraph(),
             start = BreadCrumbs.EndPoint.Node(parentId, inclusive = false),
             end = BreadCrumbs.EndPoint.Node(focusedNodeId.nodeId),
-            nodeId => parentIdAction(Some(nodeId)),
+            nodeId => parentIdAction(Some(FocusPreference(nodeId))),
             hideIfSingle = hideIfSingle
           ).apply(paddingBottom := "3px")
         }
@@ -289,7 +294,7 @@ object RightSidebar {
     )
   }
 
-  private def nodeContent(focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
+  private def nodeContent(focusPref: FocusPreference, parentIdAction: Option[FocusPreference] => Unit)(implicit ctx: Ctx.Owner) = {
     val editMode = Var(false)
 
     val node = Rx {
@@ -406,7 +411,7 @@ object RightSidebar {
 
   private def nodeProperties(
     focusPref: FocusPreference,
-    parentIdAction: Option[NodeId] => Unit, // TODO: use focusState instead
+    parentIdAction: Option[FocusPreference] => Unit, // TODO: use focusState instead
     focusState: FocusState,
   )(implicit ctx: Ctx.Owner) = {
 

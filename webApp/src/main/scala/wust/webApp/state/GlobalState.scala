@@ -237,9 +237,9 @@ object GlobalState {
       changeViewAction = view => urlConfig.update(_.focus(view)),
       contextParentIdAction = nodeId => focus(nodeId),
       itemIsFocused = nodeId => rightSidebarNode.map(_.exists(_.nodeId == nodeId)),
-      onItemSingleClick = { nodeId =>
+      onItemSingleClick = { focusPreference =>
         // toggle rightsidebar:
-        val nextNode = if (rightSidebarNode.now.exists(_.nodeId == nodeId)) None else Some(FocusPreference(nodeId))
+        val nextNode = if (rightSidebarNode.now.exists(_ == focusPreference)) None else Some(focusPreference)
         rightSidebarNode() = nextNode
       },
       onItemDoubleClick = { nodeId =>
