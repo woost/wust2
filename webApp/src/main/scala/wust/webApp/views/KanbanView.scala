@@ -59,7 +59,7 @@ object KanbanView {
       // inbox is separated, because it cannot be reordered. The others are in a sortable container
       renderToplevelColumns(focusState, traverseState, viewRender, selectedNodeIds),
 
-      newColumnArea(focusState).apply(Styles.flexStatic),
+      newColumnArea(focusState, traverseState).apply(Styles.flexStatic),
     )
   }
 
@@ -399,7 +399,7 @@ object KanbanView {
   }
 
   val addColumnText = "Add Column"
-  private def newColumnArea(focusState: FocusState)(implicit ctx: Ctx.Owner) = {
+  private def newColumnArea(focusState: FocusState, traverseState: TraverseState)(implicit ctx: Ctx.Owner) = {
     val fieldActive = Var(false)
     def submitAction(sub: InputRow.Submission) = {
       val change = {
@@ -409,6 +409,23 @@ object KanbanView {
       GlobalState.submitChanges(change)
       FeatureState.use(Feature.CreateColumnInKanban)
       //TODO: sometimes after adding new column, the add-column-form is scrolled out of view. Scroll, so that it is visible again
+    }
+
+    def addSampleColumns():Unit = {
+      val parentId = ParentId(focusState.focusedId)
+      val graph = GlobalState.graph.now
+
+      val currentDoneStage:Option[NodeId] = KanbanData.columns(graph, traverseState).find(graph.isDoneStage)
+
+      val doneStageChange = currentDoneStage match {
+        case Some(nodeId) => GraphChanges.empty
+        case None => GraphChanges.addDoneStage(NodeId.fresh(), parentId)
+      }
+
+      val addStages = GraphChanges.addNodeWithParent(Node.MarkdownStage("Todo"), parentId) merge
+        GraphChanges.addNodeWithParent(Node.MarkdownStage("Doing"), parentId)
+
+        GlobalState.submitChanges(addStages merge doneStageChange)
     }
 
     def blurAction(v:String): Unit = {
@@ -441,6 +458,27 @@ object KanbanView {
           paddingTop := "10px",
           color := "rgba(0,0,0,0.62)",
           s"+ $addColumnText",
+        )
+      },
+      Rx {
+        val graph = GlobalState.graph()
+        val nonDoneStages = KanbanData.columns(graph, traverseState).filterNot(graph.isDoneStage)
+
+        VDomModifier.ifTrue(nonDoneStages.isEmpty)(
+          div(
+            marginTop := "50px",
+            a("What is a Kanban-Board?", href := "https://en.wikipedia.org/wiki/Kanban_board", Elements.safeTargetBlank)
+          ),
+          div(
+            marginTop := "30px",
+            "Recommended for new boards:"
+          ),
+          button(
+            cls := "ui primary button",
+            onClickDefault.foreach{ addSampleColumns() },
+            span(fontSize.smaller, s"add columns", fontWeight.normal), br,
+            " Todo, Doing, Done",
+          ),
         )
       },
       marginRightHack
