@@ -56,8 +56,7 @@ object ListWithChatView {
       Rx {
         VDomModifier.ifTrue(GlobalState.screenSize() != ScreenSize.Small)(
         ListView(focusState, autoFocusInsert = false).apply(
-            flex := "1",
-            maxWidth := "300px",
+          width := "300px",
           height := "100%",
         )
         )
