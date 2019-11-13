@@ -11,6 +11,7 @@ import wust.webApp.state._
 import wust.webApp.views.DragComponents.registerDragContainer
 import wust.webUtil.Ownable
 import wust.webUtil.outwatchHelpers._
+import PresentationMode.showOnlyInFullMode
 
 object PageHeader {
 
@@ -37,15 +38,6 @@ object PageHeader {
       val viewConfig = GlobalState.viewConfig()
       GlobalState.mainFocusState(viewConfig)
     }
-
-    def showOnlyInFullMode(modifier: => VDomModifier, additionalModes:List[PresentationMode] = Nil): VDomModifier = {
-      GlobalState.presentationMode.map {
-        case PresentationMode.Full => modifier
-        case mode if additionalModes contains mode => modifier
-        case _ => VDomModifier.empty
-      }
-    }
-
 
     def channelTitle(focusState:FocusState)(implicit ctx: Ctx.Owner) = div(
       backgroundColor := pageStyle.pageBgColor,

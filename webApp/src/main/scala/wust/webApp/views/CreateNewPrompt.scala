@@ -16,6 +16,7 @@ import wust.webApp.views.Components._
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{ModalConfig, Ownable, UI}
 import wust.facades.segment.Segment
+import wust.webApp.state.PresentationMode
 
 object CreateNewPrompt {
 
@@ -135,7 +136,7 @@ object CreateNewPrompt {
     // UI.toggle("Pin to sidebar", initialChecked = addToChannels.now) --> addToChannels
     )
 
-    val roleSelection = div(
+    def roleSelection = div(
       cls := "ui basic buttons",
       Rx {
         def roleButton(title: String, icon: IconLookup, role: SelectableNodeRole): VDomModifier = div(
@@ -177,7 +178,7 @@ object CreateNewPrompt {
           alignItems.center,
           justifyContent.spaceBetween,
           flexWrap.wrap,
-          roleSelection(Styles.flexStatic, marginBottom := "5px"),
+          PresentationMode.showOnlyInFullMode(roleSelection(Styles.flexStatic, marginBottom := "5px")),
           targetNodeSelection(Styles.flexStatic),
         ),
 
