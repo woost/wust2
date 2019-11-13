@@ -405,9 +405,6 @@ object ChatView {
                 Components.sidebarNodeFocusMod(node.id, focusState),
                 fontSize.smaller,
                 node.role match {
-                  case NodeRole.Task => VDomModifier(
-                    renderMessage(focusState, traverseState.step(nodeId), nodeId, parentIds(), Rx(isDeletedNow) )
-                  )
                   case _ => VDomModifier(
                     renderNodeData( node, maxLength = Some(100))
                   )
