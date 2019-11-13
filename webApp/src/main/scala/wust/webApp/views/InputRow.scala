@@ -118,7 +118,7 @@ object InputRow {
             })
 
             GlobalState.uiModalConfig.onNext(Ownable(implicit ctx =>
-                newNamePromptModalConfig( sink, "Give yourself a name so others can recognize you.", placeholder = Placeholder(Components.implicitUserName), onHide = () => { handle(); true }, enableMentions = false)
+                newNamePromptModalConfig( sink, "What's your name?", placeholder = Placeholder(Components.implicitUserName), onHide = () => { handle(); true }, enableMentions = false)
             ))
           case _ => handle()
         }
