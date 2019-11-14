@@ -8,8 +8,8 @@ import wust.css.Styles
 import wust.graph._
 import wust.ids._
 import wust.webApp.Icons
-import wust.webApp.state.{FocusPreference, GlobalState, FocusState, TraverseState}
-import wust.webApp.dragdrop.{DragItem, DragPayload, DragTarget}
+import wust.webApp.state.{ FocusPreference, GlobalState, FocusState, TraverseState }
+import wust.webApp.dragdrop.{ DragItem, DragPayload, DragTarget }
 import wust.webUtil.UI
 import wust.webUtil.outwatchHelpers._
 import wust.webApp.state.FeatureState
@@ -129,11 +129,11 @@ object NodeDetails {
               GraphChanges(addEdges = Array(edge))
             } --> GlobalState.eventProcessor.changes,
             onClick.stopPropagation.foreach {
-              if(isExpanded.now) {
+              if (isExpanded.now) {
                 focusState.view match {
-                  case View.List => FeatureState.use(Feature.ExpandTaskInChecklist)
+                  case View.List   => FeatureState.use(Feature.ExpandTaskInChecklist)
                   case View.Kanban => FeatureState.use(Feature.ExpandTaskInKanban)
-                  case _ =>
+                  case _           =>
                 }
               }
             },
@@ -166,10 +166,18 @@ object NodeDetails {
     )
   }
 
-  def nestedTaskList(nodeId: NodeId, isExpanded:Rx[Boolean], focusState:FocusState, traverseState:TraverseState, isCompact:Boolean = false, inOneLine:Boolean = false, showNestedInputFields:Boolean = false)(implicit ctx: Ctx.Owner) = Rx {
+  def nestedTaskList(
+    nodeId: NodeId,
+    isExpanded: Rx[Boolean],
+    focusState: FocusState,
+    traverseState: TraverseState,
+    isCompact: Boolean,
+    inOneLine: Boolean,
+    showNestedInputFields: Boolean
+  )(implicit ctx: Ctx.Owner) = Rx {
     val graph = GlobalState.graph()
     VDomModifier.ifTrue(isExpanded())(
-      ListView.fieldAndList( focusState.copy(isNested = true, focusedId = nodeId),  traverseState.step(nodeId), inOneLine = inOneLine, isCompact = isCompact, showInputField = showNestedInputFields, showNestedInputFields = showNestedInputFields, autoFocusInsert = false).apply(
+      ListView.fieldAndList(focusState.copy(isNested = true, focusedId = nodeId), traverseState.step(nodeId), inOneLine = inOneLine, isCompact = isCompact, showInputField = showNestedInputFields, showNestedInputFields = showNestedInputFields, autoFocusInsert = false).apply(
         paddingBottom := "3px",
         onClick.stopPropagation.discard,
         DragComponents.drag(DragItem.DisableDrag),

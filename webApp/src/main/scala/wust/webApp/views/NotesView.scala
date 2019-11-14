@@ -117,7 +117,8 @@ object NotesView {
           focusState = focusState,
           traverseState = traverseState,
           isCompact = false,
-          inOneLine = true
+          inOneLine = true,
+          showNestedInputFields = false,
         ),
 
         Rx {
