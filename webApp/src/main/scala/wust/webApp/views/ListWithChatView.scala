@@ -55,11 +55,13 @@ object ListWithChatView {
       ScreenSize.dontShowOnSmallScreen(
         ListView(focusState, autoFocusInsert = false).apply(
           width := "300px",
+          minWidth := "300px",
           height := "100%",
         )
       ),
       div(
         flex := "3",
+        minWidth := "300px",
         Styles.flex,
         flexDirection.column,
         Rx{
