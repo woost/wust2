@@ -76,7 +76,7 @@ object ThreadTrackerView extends AppDefinition {
   def app(state: SinkObserver[AppDefinition.State])(implicit ctx: Ctx.Owner): VDomModifier = {
     Rx {
       val viewConfig = GlobalState.viewConfig()
-      ViewRender(GlobalState.mainFocusState(viewConfig), View.ListWithChat)
+      GlobalState.mainFocusState(viewConfig).map(focusState => ListWithChatView(focusState))
     }
   }
 }

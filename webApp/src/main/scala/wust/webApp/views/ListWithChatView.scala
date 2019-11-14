@@ -53,7 +53,7 @@ object ListWithChatView {
       cls := "listwithchat-view",
       Styles.flex,
       ScreenSize.dontShowOnSmallScreen(
-        ListView(focusState, autoFocusInsert = false).apply(
+        ListView(focusState, autoFocusInsert = false, showNestedInputFields = true).apply(
           width := "300px",
           minWidth := "300px",
           height := "100%",

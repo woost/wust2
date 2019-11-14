@@ -19,7 +19,11 @@ import wust.webApp.Icons
 object ListView {
   import SharedViewElements._
 
-  def apply(focusState: FocusState, autoFocusInsert: Boolean)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(
+    focusState: FocusState,
+    showNestedInputFields:Boolean,
+    autoFocusInsert: Boolean
+  )(implicit ctx: Ctx.Owner): VNode = {
     val marginBottomHack = VDomModifier(
       position.relative,
       div(position.absolute, top := "100%", width := "1px", height := "10px") // https://www.brunildo.org/test/overscrollback.html
@@ -35,7 +39,9 @@ object ListView {
         inOneLine = true,
         isCompact = false,
         lastElementModifier = marginBottomHack,
-        autoFocusInsert,
+        autoFocusInsert = autoFocusInsert,
+        showInputField = true,
+        showNestedInputFields = showNestedInputFields,
       ),
       newSectionArea(focusState)
     )
@@ -48,14 +54,15 @@ object ListView {
     isCompact:Boolean,
     lastElementModifier: VDomModifier = VDomModifier.empty,
     autoFocusInsert: Boolean,
-    showInputField: Boolean = true,
+    showInputField: Boolean,
+    showNestedInputFields: Boolean,
   )(implicit ctx: Ctx.Owner):VNode = {
     div(
       keyed,
 
       VDomModifier.ifTrue(showInputField)(addListItemInputField( focusState, autoFocusInsert = autoFocusInsert)),
-      renderInboxColumn( focusState, traverseState, inOneLine, isCompact),
-      renderToplevelColumns( focusState, traverseState, inOneLine, isCompact, showInputField = showInputField)
+      renderInboxColumn( focusState, traverseState, inOneLine = inOneLine, showNestedInputFields = showNestedInputFields, isCompact = isCompact),
+      renderToplevelColumns( focusState, traverseState, inOneLine, isCompact, showInputField = showInputField, showNestedInputFields = showNestedInputFields)
         .apply(lastElementModifier),
     )
   }
@@ -65,6 +72,7 @@ object ListView {
     traverseState: TraverseState,
     nodeId: NodeId,
     inOneLine:Boolean,
+    showNestedInputFields: Boolean,
     isCompact: Boolean,
     isDone: Boolean
   ): VNode = {
@@ -75,6 +83,7 @@ object ListView {
       showCheckbox = true,
       isDone = isDone,
       inOneLine = inOneLine,
+      showNestedInputFields = showNestedInputFields,
       isCompact = isCompact,
     )
   }
@@ -85,6 +94,7 @@ object ListView {
     inOneLine: Boolean,
     isCompact:Boolean,
     showInputField: Boolean,
+    showNestedInputFields: Boolean,
   )(implicit ctx: Ctx.Owner): VNode = {
     val columns = Rx {
       val graph = GlobalState.graph()
@@ -95,7 +105,7 @@ object ListView {
       Rx {
         VDomModifier(
           columns().map { columnId =>
-            renderColumn( focusState, traverseState, columnId = columnId, inOneLine = inOneLine, isCompact = isCompact, showInputField = showInputField)
+            renderColumn( focusState, traverseState, columnId = columnId, inOneLine = inOneLine, isCompact = isCompact, showInputField = showInputField, showNestedInputFields = showNestedInputFields)
           },
           registerDragContainer( DragContainer.Kanban.ColumnArea(focusState.focusedId, columns())),
         )
@@ -107,6 +117,7 @@ object ListView {
     focusState: FocusState,
     traverseState: TraverseState,
     inOneLine:Boolean,
+    showNestedInputFields: Boolean,
     isCompact:Boolean
   )(implicit ctx: Ctx.Owner): VNode = {
     val children = Rx {
@@ -125,7 +136,7 @@ object ListView {
           registerDragContainer( DragContainer.Kanban.Inbox(focusState.focusedId, children())),
 
           children().map { nodeId =>
-            renderNodeCard( focusState, traverseState, nodeId = nodeId, isDone = false, inOneLine = inOneLine, isCompact = isCompact)
+            renderNodeCard( focusState, traverseState, nodeId = nodeId, isDone = false, inOneLine = inOneLine, showNestedInputFields = showNestedInputFields, isCompact = isCompact)
           }
         )
       }
@@ -138,6 +149,7 @@ object ListView {
     nodeId: NodeId,
     nodeRole: NodeRole,
     inOneLine: Boolean,
+    showNestedInputFields: Boolean,
     isCompact: Boolean,
     parentIsDone: Boolean,
   )(implicit ctx: Ctx.Owner): VDomModifier = {
@@ -148,6 +160,7 @@ object ListView {
           traverseState,
           nodeId = nodeId,
           inOneLine = inOneLine,
+          showNestedInputFields = showNestedInputFields,
           isCompact = isCompact,
           isDone = parentIsDone
         )
@@ -159,6 +172,7 @@ object ListView {
           inOneLine = inOneLine,
           isCompact = isCompact,
           showInputField = false,
+          showNestedInputFields = showNestedInputFields,
         )
       case _ => VDomModifier.empty
     }
@@ -171,6 +185,7 @@ object ListView {
     inOneLine:Boolean,
     isCompact: Boolean,
     showInputField: Boolean,
+    showNestedInputFields: Boolean,
   ): VNode = {
     div.thunkStatic(columnId.hashCode)(Ownable { implicit ctx =>
       val isExpanded = Rx {
@@ -237,6 +252,7 @@ object ListView {
                       nodeRole = role,
                       parentIsDone = isDone(),
                       inOneLine = inOneLine,
+                      showNestedInputFields = showNestedInputFields,
                       isCompact = isCompact
                     )
                 }

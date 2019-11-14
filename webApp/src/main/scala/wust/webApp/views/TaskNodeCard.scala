@@ -26,6 +26,7 @@ object TaskNodeCard {
     showCheckbox:Boolean = false,
     isDone:Boolean = false, //TODO decide here reactively based on parent and focusState...
     inOneLine: Boolean = false,
+    showNestedInputFields: Boolean = false,
     isCompact: Boolean = false,
     compactChildren: Boolean = false,
     isProperty: Boolean = false,
@@ -184,7 +185,8 @@ object TaskNodeCard {
         focusState = focusState,
         traverseState = traverseState,
         isCompact = isCompact || compactChildren,
-        inOneLine = inOneLine
+        inOneLine = inOneLine,
+        showNestedInputFields = showNestedInputFields,
       ),
 
       position.relative, // for buttonbar
