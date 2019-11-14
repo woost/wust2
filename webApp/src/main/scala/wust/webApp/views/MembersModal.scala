@@ -451,8 +451,6 @@ object MembersModal {
     val openSharingModalOnClick = onClickDefault.use(Ownable(implicit ctx => MembersModal.config(nodeId))) --> GlobalState.uiModalConfig
 
     div(
-      marginLeft := "5px",
-
       color := "black",
 
       openSharingModalOnClick,
@@ -467,7 +465,7 @@ object MembersModal {
       // permissionLevel.map(Permission.permissionIndicator(_)),
 
       div(
-        // marginLeft := "4px",
+        cls := "fa-fw",
         Icons.membersModal
       ),
       UI.tooltip(tooltipPosition) := tooltip

@@ -16,6 +16,7 @@ import wust.webApp.views.SharedViewElements._
 import wust.webApp.{Icons, ItemProperties}
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{BrowserDetect, Elements, Ownable, UI}
+import Elements.onClickDefault
 
 object RightSidebar {
 
@@ -71,6 +72,16 @@ object RightSidebar {
   val propertiesAccordionText = "Properties & Custom Fields"
   val addCustomFieldText = "Add Custom Field"
 
+  private val buttonMods = VDomModifier(
+    cls := "hover-full-opacity",
+    color := "gray",
+    fontSize := "16px",
+    padding := "5px 10px",
+    cursor.pointer,
+    Styles.flexStatic,
+  )
+
+
   def content(
     focusPref: FocusPreference,
     parentIdAction: Option[FocusPreference] => Unit,
@@ -95,10 +106,7 @@ object RightSidebar {
       onItemDoubleClick = nodeId => GlobalState.focus(nodeId),
     )
 
-
     val sidebarHeader = div(
-      opacity := 0.5,
-
       Styles.flex,
       justifyContent.spaceBetween,
 
@@ -107,15 +115,13 @@ object RightSidebar {
         alignItems.center,
 
         div(
-          freeSolid.faAngleDoubleRight,
-          color := "gray",
-          cls := "fa-fw",
-          fontSize.xLarge,
-          cursor.pointer,
-          onClick.use(None).foreach(parentIdAction)
+          div(freeSolid.faAngleDoubleRight, cls := "fa-fw"),
+          buttonMods,
+          fontSize := "18px",
+          onClickDefault.use(None).foreach(parentIdAction)
         ),
         div(
-          marginLeft := "5px",
+          cls := "hover-full-opacity",
           nodeBreadcrumbs(focusPref, parentIdAction, hideIfSingle = true),
         )
       ),
@@ -124,51 +130,55 @@ object RightSidebar {
         Styles.flex,
         alignItems.center,
 
-        div(
-          freeSolid.faChevronLeft,
-          focusHistory.map {
-            case Nil => color := "gray"
-            case _   => VDomModifier.empty
-          },
-          cls := "fa-fw",
-          cursor.pointer,
-          onClick.foreach {
-            focusHistory.now match {
-              case head :: rest =>
-                ignoreNextUpdate()
-                focusHistory() = rest
-                focusFuture.update(focusPref :: _)
-                parentIdAction(Some(head))
-              case _ =>
-            }
-          }
-        ),
-        div(
-          freeSolid.faChevronRight,
-          focusFuture.map {
-            case Nil => color := "gray"
-            case _   => VDomModifier.empty
-          },
-          cls := "fa-fw",
-          cursor.pointer,
-          onClick.foreach {
-            focusFuture.now match {
-              case head :: rest =>
-                ignoreNextUpdate()
-                focusFuture() = rest
-                focusHistory.update(focusPref :: _)
-                parentIdAction(Some(head))
-              case _ =>
-            }
-          }
-        ),
+        Rx {
+          VDomModifier.ifTrue(focusHistory().nonEmpty || focusFuture().nonEmpty)(
+            div(
+              div(freeSolid.faArrowLeft, cls := "fa-fw"),
+              buttonMods,
+              focusHistory.map {
+                case Nil => opacity := 0.5
+                case _   => cls := "hover-full-opacity"
+              },
+              onClickDefault.foreach {
+                focusHistory.now match {
+                  case head :: rest =>
+                    ignoreNextUpdate()
+                    focusHistory() = rest
+                    focusFuture.update(focusPref :: _)
+                    parentIdAction(Some(head))
+                  case _ =>
+                }
+              }
+            ),
+            div(
+              div(cls := "fa-fw", freeSolid.faArrowRight),
+              buttonMods,
+              focusFuture.map {
+                case Nil => opacity := 0.5
+                case _   => cls := "hover-full-opacity"
+              },
+              onClickDefault.foreach {
+                focusFuture.now match {
+                  case head :: rest =>
+                    ignoreNextUpdate()
+                    focusFuture() = rest
+                    focusHistory.update(focusPref :: _)
+                    parentIdAction(Some(head))
+                  case _ =>
+                }
+              }
+            ),
+          )
+        },
 
         VDomModifier.ifNot(BrowserDetect.isMobile)(
           div(
-            freeSolid.faCompress,
-            cls := "fa-fw",
-            cursor.pointer,
-            onClick.foreach(isFullscreen.update(!_))
+            div(
+              Rx{ if(isFullscreen()) freeSolid.faCompress:VDomModifier else freeSolid.faExpand:VDomModifier },
+              cls := "fa-fw"
+            ),
+            buttonMods,
+            onClickDefault.foreach(isFullscreen.update(!_))
           )
         )
       )
@@ -196,7 +206,7 @@ object RightSidebar {
       flexDirection.column,
       color.black,
 
-      sidebarHeader.apply(Styles.flexStatic),
+      sidebarHeader.apply(Styles.flexStatic, marginBottom := "15px"),
       nodeContent(focusPref, parentIdAction).apply(Styles.flexStatic, overflowY.auto, maxHeight := "50%"),
 
       UI.accordion(
@@ -305,16 +315,10 @@ object RightSidebar {
       GlobalState.graph().hasNotDeletedParents(focusPref.nodeId)
     }
 
-    val buttonMods = VDomModifier(
-      color := "gray",
-      fontSize := "18px",
-      padding := "12px 8px",
-      cursor.pointer,
-    )
-
     val zoomButton = div(
-      Icons.zoom,
+      div(Icons.zoom, cls := "fa-fw"),
       buttonMods,
+      UI.tooltip("top right") := "Zoom in",
       onClick.foreach {
         GlobalState.focus(focusPref.nodeId)
         GlobalState.graph.now.nodesById(focusPref.nodeId).foreach { node =>
@@ -332,8 +336,9 @@ object RightSidebar {
     val deleteButton = Rx {
       VDomModifier.ifTrue(hasNotDeletedParents())(
         div(
-          Icons.delete,
+          div(Icons.delete, cls := "fa-fw"),
           buttonMods,
+          UI.tooltip("top right") := "Archive",
           onClick.stopPropagation.foreach { _ =>
             Elements.confirm("Delete this item?") {
               GlobalState.submitChanges(GraphChanges.deleteFromGraph(ChildId(focusPref.nodeId), GlobalState.graph.now))
@@ -351,7 +356,6 @@ object RightSidebar {
       justifyContent.spaceBetween,
 
       fontSize := "20px",
-      width := "100%",
       margin := "3px 3px 3px 3px",
       Styles.wordWrap,
       cls := "enable-text-selection",
@@ -362,36 +366,26 @@ object RightSidebar {
 
     val nodeCard = Rx {
       node().map{ node =>
-        Components.nodeCardEditable(node, editMode, contentInject = width := "100%" // pushes cancel button to the right
-        ).apply(nodeCardModifiers)
+        Components.nodeCardEditable(node, editMode).apply(nodeCardModifiers)
       }
     }
 
     div(
-      div(
-        Styles.flex,
-        alignItems.flexStart,
-
-        nodeCard,
-        Rx {
-          VDomModifier.ifNot(editMode())(
-            zoomButton,
-            deleteButton
-          )
-        }
-      ),
+      nodeCard,
 
       div(
         Styles.flex,
         alignItems.center,
         justifyContent.spaceBetween,
-        MembersModal.settingsButton(focusPref.nodeId),
-        nodeAuthor(focusPref.nodeId),
+        Rx { nodeAuthor(focusPref.nodeId)(ctx)().map(_.apply(marginLeft := "13px", marginRight.auto, paddingBottom := "0px")) },
+        zoomButton,
+        MembersModal.settingsButton(focusPref.nodeId, tooltip = "Add members to this item", tooltipPosition = "top right").apply(buttonMods),
+        deleteButton,
       )
     )
   }
 
-  private def nodeAuthor(nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def nodeAuthor(nodeId: NodeId)(implicit ctx: Ctx.Owner): Rx[Option[VNode]] = {
     val authorship = Rx {
       val graph = GlobalState.graph()
       graph.idToIdxMap(nodeId) { idx =>
@@ -401,12 +395,12 @@ object RightSidebar {
       }
     }
 
-    VDomModifier(
-      authorship.map(_.map {
+    Rx {
+      authorship().map {
         case (author, creationEpochMillis) =>
-          chatMessageHeader(author, creationEpochMillis, nodeId, author.map(smallAuthorAvatar)).apply(marginRight := "5px")
-      }),
-    )
+          chatMessageHeader(author, creationEpochMillis, nodeId, author.map(smallAuthorAvatar))
+      }
+    }
   }
 
   private def nodeProperties(
@@ -580,9 +574,8 @@ object RightSidebar {
                 onClick.stopPropagation.useLazy(AddProperty.EdgeReference("Add Reference Template", (sourceId, targetId) => Edge.ReferencesTemplate(sourceId, EdgeData.ReferencesTemplate(isCreate = isCreateReference.now, isRename = isRenameReference.now), TemplateId(targetId)))) --> addFieldMode
               )
               def deleteButton(referenceNodeId: NodeId) = VDomModifier(
-                cursor.pointer,
                 //TODO: just delete correct edge...
-                onClick.stopPropagation.useLazy(GraphChanges(delEdges = Array(Edge.ReferencesTemplate(focusPref.nodeId, EdgeData.ReferencesTemplate(isCreate = false), TemplateId(referenceNodeId)), Edge.ReferencesTemplate(focusPref.nodeId, EdgeData.ReferencesTemplate(isCreate = true), TemplateId(referenceNodeId))))) --> GlobalState.eventProcessor.changes
+                onClickDefault.useLazy(GraphChanges(delEdges = Array(Edge.ReferencesTemplate(focusPref.nodeId, EdgeData.ReferencesTemplate(isCreate = false), TemplateId(referenceNodeId)), Edge.ReferencesTemplate(focusPref.nodeId, EdgeData.ReferencesTemplate(isCreate = true), TemplateId(referenceNodeId))))) --> GlobalState.eventProcessor.changes
               )
 
               val referenceModifiers = Rx {
