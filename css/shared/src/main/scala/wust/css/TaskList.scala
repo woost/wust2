@@ -47,14 +47,21 @@ trait TaskList extends StyleSheet.Standalone {
 
   ".tasklist.compact" - (
     &(".nodecard") - (
+      paddingTop(0 px),
+      paddingBottom(0 px),
       &(".nodecard-content") - (
-        padding(taskPaddingCompact, taskPaddingCompact, (taskPaddingCompactPx - tagMarginPx).px, taskPaddingCompact),// we substract tagMargin to achieve a consistent height of node-cards with and without tags
+        padding((taskPaddingCompactPx + 1).px, taskPaddingCompact, (taskPaddingCompactPx - tagMarginPx).px, taskPaddingCompact),// we substract tagMargin to achieve a consistent height of node-cards with and without tags
+        fontSize(11 px),
+      ),
+      &(".nodecard-content > .markdown") - (
+        marginTop(2 px),
       ),
     ),
 
     &(".nodecard > .checkbox") - (
-      marginTop((taskPaddingCompactPx + 1) px),
-      marginLeft((taskPaddingCompactPx + 1) px),
+      marginTop((taskPaddingCompactPx+2) px),
+      marginBottom((taskPaddingCompactPx+2) px),
+      marginLeft((taskPaddingCompactPx) px),
     ),
   )
 

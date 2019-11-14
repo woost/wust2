@@ -28,7 +28,7 @@ object TaskNodeCard {
     inOneLine: Boolean = false,
     showNestedInputFields: Boolean = false,
     isCompact: Boolean = false,
-    compactChildren: Boolean = false,
+    compactChildren: Boolean = true,
     isProperty: Boolean = false,
     dragTarget: NodeId => DragTarget = DragItem.Task.apply,
     dragPayload: NodeId => DragPayload = DragItem.Task.apply,
@@ -151,7 +151,7 @@ object TaskNodeCard {
           maxLength = Some(maxLength),
           contentInject = VDomModifier(
             VDomModifier.ifTrue(isDone)(textDecoration.lineThrough),
-            VDomModifier.ifTrue(inOneLine)(alignItems.center, NodeDetails.tagsPropertiesAssignments(focusState, traverseState, nodeId), marginRight := "40px"), // marginRight to not interfere with button bar...
+            VDomModifier.ifTrue(inOneLine)(alignItems.flexStart, NodeDetails.tagsPropertiesAssignments(focusState, traverseState, nodeId), marginRight := "40px"), // marginRight to not interfere with button bar...
             VDomModifier.ifNot(showCheckbox)(
               marginLeft := "2px"
             ),
@@ -171,12 +171,14 @@ object TaskNodeCard {
 
       VDomModifier.ifNot(inOneLine)(div(
         margin := "0 3px",
-        marginLeft := s"${if(isCompact) CommonStyles.taskPaddingCompactPx else CommonStyles.taskPaddingPx}px",
+        if(isCompact) VDomModifier(
+          marginLeft := s"${CommonStyles.taskPaddingCompactPx}px",
+        )
+        else VDomModifier(
+          marginLeft := s"${CommonStyles.taskPaddingPx}px"
+        ),
         alignItems.center,
         NodeDetails.tagsPropertiesAssignments(focusState, traverseState, nodeId),
-        Rx {
-          VDomModifier.ifTrue(childStats().isEmpty)(marginBottom := "3px")
-        },
       )),
       NodeDetails.cardFooter(nodeId, childStats, isExpanded, focusState),
       NodeDetails.nestedTaskList(

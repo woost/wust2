@@ -62,7 +62,7 @@ object ListView {
 
       VDomModifier.ifTrue(showInputField)(addListItemInputField( focusState, autoFocusInsert = autoFocusInsert)),
       renderInboxColumn( focusState, traverseState, inOneLine = inOneLine, showNestedInputFields = showNestedInputFields, isCompact = isCompact),
-      renderToplevelColumns( focusState, traverseState, inOneLine, isCompact, showInputField = showInputField, showNestedInputFields = showNestedInputFields)
+      renderToplevelColumns( focusState, traverseState, inOneLine = inOneLine, isCompact = isCompact, showInputField = showInputField, showNestedInputFields = showNestedInputFields)
         .apply(lastElementModifier),
     )
   }
