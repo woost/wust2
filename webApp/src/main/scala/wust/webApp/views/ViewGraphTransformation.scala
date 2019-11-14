@@ -51,7 +51,7 @@ object ViewGraphTransformation {
   object Assignments {
     case object onlyAssignedTo extends ViewGraphTransformation {
       def icon = Icons.task
-      def description = s"Show items assigned to: Me"
+      def description = s"Show items assigned to me"
       def transform = GraphOperation.OnlyAssignedTo
     }
     case object onlyNotAssigned extends ViewGraphTransformation {
