@@ -116,6 +116,7 @@ object NodeDetails {
         justifyContent.flexEnd,
         VDomModifier.ifTrue(taskStats().taskChildrenCount > 0)(
           div(
+            marginLeft := "5px",
             flexGrow := 1,
 
             Styles.flex,
