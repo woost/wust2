@@ -11,7 +11,7 @@ import wust.webApp.state._
 import wust.webApp.views.DragComponents.registerDragContainer
 import wust.webUtil.Ownable
 import wust.webUtil.outwatchHelpers._
-import PresentationMode.showOnlyInFullMode
+import GlobalState.showOnlyInFullMode
 
 object PageHeader {
 

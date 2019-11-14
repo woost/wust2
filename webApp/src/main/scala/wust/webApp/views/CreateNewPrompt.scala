@@ -17,6 +17,7 @@ import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{ModalConfig, Ownable, UI}
 import wust.facades.segment.Segment
 import wust.webApp.state.PresentationMode
+import GlobalState.showOnlyInFullMode
 
 object CreateNewPrompt {
 
@@ -178,7 +179,7 @@ object CreateNewPrompt {
           alignItems.center,
           justifyContent.spaceBetween,
           flexWrap.wrap,
-          PresentationMode.showOnlyInFullMode(roleSelection(Styles.flexStatic, marginBottom := "5px")),
+          showOnlyInFullMode(roleSelection(Styles.flexStatic, marginBottom := "5px")),
           targetNodeSelection(Styles.flexStatic),
         ),
 

@@ -19,6 +19,10 @@ import wust.webApp.{ Client, WoostConfig }
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{ BrowserDetect, ModalConfig, Ownable }
 import wust.facades.segment.Segment
+import outwatch.dom._
+import outwatch.dom.dsl._
+import rx._
+import wust.webUtil.outwatchHelpers._
 
 import scala.collection.{ breakOut, mutable }
 import scala.concurrent.duration._
@@ -254,6 +258,14 @@ object GlobalState {
         }
       },
     )
+  }
+
+  def showOnlyInFullMode(modifier: => VDomModifier, additionalModes:List[PresentationMode] = Nil)(implicit ctx:Ctx.Owner): VDomModifier = {
+    GlobalState.presentationMode.map {
+      case PresentationMode.Full => modifier
+      case mode if additionalModes contains mode => modifier
+      case _ => VDomModifier.empty
+    }
   }
 
   private val crispIsAlreadyLoaded = Try(window.asInstanceOf[js.Dynamic].CRISP_IS_READY.asInstanceOf[Boolean]).getOrElse(false)

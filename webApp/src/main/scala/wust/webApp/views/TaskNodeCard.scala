@@ -33,7 +33,7 @@ object TaskNodeCard {
     dragPayload: NodeId => DragPayload = DragItem.Task.apply,
   ): VNode = div.thunkStatic(nodeId.toStringFast)(Ownable { implicit ctx =>
 
-    val nodeIdx = GlobalState.graph.map(_.idToIdxOrThrow(nodeId))
+    val nodeIdx = GlobalState.graph.map(_.idToIdxOrThrow(nodeId)) // TODO: these actually crash!
     val parentIdx = GlobalState.graph.map(_.idToIdxOrThrow(traverseState.parentId))
     val node = Rx {
       GlobalState.graph().nodes(nodeIdx())
