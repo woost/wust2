@@ -180,7 +180,7 @@ object TaskNodeCard {
         alignItems.center,
         NodeDetails.tagsPropertiesAssignments(focusState, traverseState, nodeId),
       )),
-      NodeDetails.cardFooter(nodeId, childStats, isExpanded, focusState),
+      NodeDetails.cardFooter(nodeId, childStats, isExpanded, focusState, isCompact = isCompact),
       NodeDetails.nestedTaskList(
         nodeId = nodeId,
         isExpanded = isExpanded,

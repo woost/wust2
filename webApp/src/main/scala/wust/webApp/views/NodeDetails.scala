@@ -107,7 +107,7 @@ object NodeDetails {
     )
   }
 
-  def cardFooter(nodeId: NodeId, taskStats: Rx[NodeDetails.ChildStats], isExpanded: Rx[Boolean], focusState: FocusState)(implicit ctx: Ctx.Owner) = Rx {
+  def cardFooter(nodeId: NodeId, taskStats: Rx[NodeDetails.ChildStats], isExpanded: Rx[Boolean], focusState: FocusState, isCompact:Boolean)(implicit ctx: Ctx.Owner) = Rx {
     VDomModifier.ifTrue(taskStats().nonEmpty)(
       div(
         cls := "childstats",
@@ -116,7 +116,7 @@ object NodeDetails {
         justifyContent.flexEnd,
         VDomModifier.ifTrue(taskStats().taskChildrenCount > 0)(
           div(
-            marginLeft := "5px",
+            VDomModifier.ifNot(isCompact)(marginLeft := "5px"),
             flexGrow := 1,
 
             Styles.flex,

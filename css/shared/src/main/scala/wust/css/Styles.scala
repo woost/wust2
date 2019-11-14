@@ -1211,6 +1211,7 @@ object CommonStyles extends StyleSheet.Standalone
 
   ".childstats" - (
     color.gray,
+    clear.both, // nested checkboxes are floating
   )
 
   ".nodecard .childstat:hover" - (
