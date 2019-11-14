@@ -21,6 +21,7 @@ object InfoContent {
 final case class UrlConfig(
   view: Option[View],
   pageChange: PageChange,
+  subPage: Page,
   redirectTo: Option[View],
   shareOptions: Option[ShareOptions],
   invitation: Option[Authentication.Token],
@@ -46,5 +47,5 @@ final case class UrlConfig(
 }
 
 object UrlConfig {
-  val default = UrlConfig(view = None, pageChange = PageChange(Page.empty), redirectTo = None, shareOptions = None, invitation = None, focusId = None, mode = PresentationMode.Full, info = None)
+  val default = UrlConfig(view = None, pageChange = PageChange(Page.empty), subPage = Page.empty, redirectTo = None, shareOptions = None, invitation = None, focusId = None, mode = PresentationMode.Full, info = None)
 }

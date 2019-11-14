@@ -92,6 +92,21 @@ private object UrlOption {
       }
   }
 
+  object subpage extends UrlOption {
+    val key = "subpage"
+
+    val regex = Regex[String](rx"^(\w+)$$")
+      .map(_.flatMap { parentId =>
+        Cuid.fromBase58String(parentId).map(id => Page(NodeId(id)))
+          .left.map(DecodeError.TypeError(_))
+      })
+
+    def update(config: UrlConfig, text: String): DecodeResult[UrlConfig] =
+      parseSingle(regex, text).map { subPage =>
+        config.copy(subPage = subPage)
+      }
+  }
+
   object redirectTo extends UrlOption {
     val key = "redirectTo"
 
@@ -160,6 +175,7 @@ object UrlConfigParser {
   private val allOptionsMap = List(
     UrlOption.view,
     UrlOption.page,
+    UrlOption.subpage,
     UrlOption.redirectTo,
     UrlOption.invitation,
     UrlOption.focusId,
@@ -232,9 +248,12 @@ object UrlConfigWriter {
     val pageString = cfg.pageChange.page.parentId map { parentId =>
         UrlOption.page.key + "=" + s"${parentId.toBase58}"
     }
+    val subPageString = cfg.subPage.parentId map { parentId =>
+        UrlOption.subpage.key + "=" + s"${parentId.toBase58}"
+    }
     val redirectToString = cfg.redirectTo.map(view => UrlOption.redirectTo.key + "=" + view.viewKey)
     val mode = PresentationMode.toString(cfg.mode)
-    val hash = List(mode, viewString, pageString, redirectToString).flatten.mkString("&")
+    val hash = List(mode, viewString, pageString, subPageString, redirectToString).flatten.mkString("&")
     // we do not write invitation and focusId: this only reading on url change.
     UrlRoute(search = None, hash = Some(hash))
   }
