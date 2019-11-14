@@ -684,7 +684,7 @@ object GraphChangesAutomation {
   // We get the current graph + the new graph change. For each new parent edge in the graph change,
   // we check if the parent has a template node. If the parent has a template node, we want to
   // append the subgraph (which is spanned from the template node) to the newly inserted child of the parent.
-  def enrich(userId: UserId, graph: Graph, viewConfig: Var[UrlConfig], changes: GraphChanges, visitedAutomateParent: Set[NodeId] = Set.empty): GraphChanges = {
+  def enrich(userId: UserId, graph: Graph, viewConfig: Var[UrlConfig], changes: GraphChanges, visitedAutomateParent: Set[NodeId] = Set.empty): GraphChanges = if (GlobalState.automationIsDisabled.now) changes else {
     scribe.info("Check for automation enrichment of graphchanges: " + changes.toPrettyString(graph))
 
     case class CopyArgs(newNode: Node.Content, templateNodeIdxs: Array[Int], ignoreParents: mutable.HashSet[NodeId], childEdges: Array[Edge.Child]) {

@@ -32,6 +32,8 @@ import scala.util.Try
 object GlobalState {
   implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
 
+  val automationIsDisabled = Var(false)
+
   val isClientOnline = SourceStream.merge(Client.observable.connected.map(_ => true), Client.observable.closed.map(_ => false)).behavior(false)
   //TODO: is browser does not trigger?!
   val isBrowserOnline = SourceStream.merge(events.window.onOffline.map(_ => false), events.window.onOnline.map(_ => true)).behavior(false)
