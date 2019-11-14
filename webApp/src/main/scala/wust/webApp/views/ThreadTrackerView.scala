@@ -59,14 +59,14 @@ object ThreadTrackerView extends AppDefinition {
         cls := "ui input action",
         input(
           cls := "prompt",
-          placeholder := "Enter room name",
+          placeholder := "Room name",
           Elements.valueWithEnter.foreach(createRoom _),
           onChange.value --> chatRoomName
         ),
         button(
           cls := "ui primary button",
 
-          "Create New Chat Room",
+          "Create Chat Room",
           onClickDefault.foreach(createRoom())
         ),
       ),
