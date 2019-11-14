@@ -217,6 +217,8 @@ object ListView {
             Rx{ renderNodeData( stage()) },
             Rx { VDomModifier.ifTrue(showInputField && NodePermission.canWrite(columnId)(ctx)())(
               div(
+                cls := "listview-section-button",
+                cls := "hover-full-opacity",
                 marginLeft.auto,
                 marginRight := "7px",
                 fontSize.small,

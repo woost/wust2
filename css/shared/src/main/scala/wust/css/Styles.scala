@@ -980,6 +980,15 @@ object CommonStyles extends StyleSheet.Standalone
     fontSize.larger,
     paddingLeft(5 px),
     opacity(0.6),
+    &(".listview-section-button") - (
+      visibility.hidden
+    )
+  )
+
+  ".listview-expand-collapse-stage:hover" - (
+    &(".listview-section-button") - (
+      visibility.visible
+    )
   )
 
   ".nodecard" - (
