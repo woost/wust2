@@ -1,6 +1,6 @@
 package wust.webApp.views
 
-import wust.webUtil.{Ownable}
+import wust.webUtil.{ Ownable }
 import fontAwesome.freeSolid
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -73,26 +73,27 @@ object NotesView {
 
   private def renderNote(node: Node, focusState: FocusState, traverseState: TraverseState)(implicit ctx: Ctx.Owner): VNode = {
     val parentId = focusState.focusedId
-    val nodeIdx = GlobalState.graph.map(_.idToIdxOrThrow(node.id))
-    val parentIdx = GlobalState.graph.map(_.idToIdxOrThrow(parentId))
-
-    val isExpanded = Rx {
-      GlobalState.graph().isExpanded(GlobalState.userId(), node.id).getOrElse(false)
-    }
-    val childStats = Rx { NodeDetails.ChildStats.from(nodeIdx(), GlobalState.graph()) }
-
-    val isDeleted = Rx {
-      GlobalState.graph().isDeletedNowIdx(nodeIdx(), parentIdx())
-    }
-
-    val propertySingle = Rx {
-      val graph = GlobalState.graph()
-      PropertyData.Single(graph, graph.idToIdxOrThrow(node.id))
-    }
-
-    val editMode = Var(false)
-
     div.thunk(node.id.toStringFast)()(Ownable { implicit ctx =>
+
+      val nodeIdx = GlobalState.graph.map(_.idToIdxOrThrow(node.id))
+      val parentIdx = GlobalState.graph.map(_.idToIdxOrThrow(parentId))
+
+      val isExpanded = Rx {
+        GlobalState.graph().isExpanded(GlobalState.userId(), node.id).getOrElse(false)
+      }
+      val childStats = Rx { NodeDetails.ChildStats.from(nodeIdx(), GlobalState.graph()) }
+
+      val isDeleted = Rx {
+        GlobalState.graph().isDeletedNowIdx(nodeIdx(), parentIdx())
+      }
+
+      val propertySingle = Rx {
+        val graph = GlobalState.graph()
+        PropertyData.Single(graph, graph.idToIdxOrThrow(node.id))
+      }
+
+      val editMode = Var(false)
+
       VDomModifier(
         cls := "ui segment",
         cls := "note",
