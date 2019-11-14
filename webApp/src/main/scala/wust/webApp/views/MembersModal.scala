@@ -451,8 +451,6 @@ object MembersModal {
     val openSharingModalOnClick = onClickDefault.use(Ownable(implicit ctx => MembersModal.config(nodeId))) --> GlobalState.uiModalConfig
 
     div(
-      color := "black",
-
       openSharingModalOnClick,
       onClickDefault.foreach {
         Segment.trackEvent("Open Members Modal")

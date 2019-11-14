@@ -22,6 +22,7 @@ import wust.webApp.state._
 import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.{ drag, registerDragContainer }
 import wust.webUtil.Elements._
+import wust.webUtil.UI
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{ BrowserDetect, Ownable }
 
@@ -67,7 +68,7 @@ object ListWithChatView {
         Rx{
           val focusedTopLevel = chatFocus() == originalFocusState.focusedId
           VDomModifier.ifNot(focusedTopLevel)(
-            chatHeader(focusState, chatFocus)
+            chatHeader(originalFocusState, focusState, chatFocus)
           )
         },
         Rx {
@@ -80,7 +81,14 @@ object ListWithChatView {
     )
   }
 
-  private def chatHeader(focusState: FocusState, chatFocus: Var[NodeId])(implicit ctx: Ctx.Owner) = {
+  private def chatHeader(originalFocusState:FocusState, focusState: FocusState, chatFocus: Var[NodeId])(implicit ctx: Ctx.Owner) = {
+    val tooltipPosition = "bottom center"
+    val buttonMods = VDomModifier(
+      Styles.flexStatic,
+      padding := "5px 0.5em",
+      cls := "hover-full-opacity",
+    )
+
     Rx {
       val chatFocusedId = chatFocus()
       val graph = GlobalState.rawGraph()
@@ -98,15 +106,15 @@ object ListWithChatView {
           nodeId => chatFocus() = nodeId,
           hideIfSingle = false
         ).apply(paddingBottom := "3px"),
+
         div(
-          MembersModal.settingsButton(chatFocusedId, tooltip = "Add members to this thread").apply(
-            padding := "5px 0.5em",
-            backgroundColor := "transparent",
-            color := "black",
-            cls := "hover-full-opacity"
-          ),
-          Styles.flexStatic
-        )
+          div(cls := "fa-fw", Icons.edit),
+          UI.tooltip(tooltipPosition) := "Edit Thread",
+          buttonMods,
+          marginLeft := "10px",
+          onClickDefault.foreach {originalFocusState.onItemSingleClick(FocusPreference(chatFocusedId))},
+        ),
+        MembersModal.settingsButton(chatFocusedId, tooltip = "Add members to this thread", tooltipPosition = tooltipPosition).apply(buttonMods),
       )
     }
   }
