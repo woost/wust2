@@ -26,7 +26,7 @@ object TaskNodeCard {
     showCheckbox:Boolean = false,
     isDone:Boolean = false, //TODO decide here reactively based on parent and focusState...
     inOneLine: Boolean = false,
-    showNestedInputFields: Boolean = false,
+    showNestedInputFields: Boolean = true,
     isCompact: Boolean = false,
     compactChildren: Boolean = true,
     isProperty: Boolean = false,

@@ -119,7 +119,7 @@ object NotesView {
           traverseState = traverseState,
           isCompact = false,
           inOneLine = true,
-          showNestedInputFields = false,
+          showNestedInputFields = true,
         ),
 
         Rx {

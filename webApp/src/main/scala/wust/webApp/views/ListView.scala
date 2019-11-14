@@ -60,7 +60,7 @@ object ListView {
     div(
       keyed,
 
-      VDomModifier.ifTrue(showInputField)(addListItemInputField( focusState, autoFocusInsert = autoFocusInsert)),
+      VDomModifier.ifTrue(showInputField)(addListItemInputField( focusState, autoFocusInsert = autoFocusInsert, isCompact = isCompact)),
       renderInboxColumn( focusState, traverseState, inOneLine = inOneLine, showNestedInputFields = showNestedInputFields, isCompact = isCompact),
       renderToplevelColumns( focusState, traverseState, inOneLine = inOneLine, isCompact = isCompact, showInputField = showInputField, showNestedInputFields = showNestedInputFields)
         .apply(lastElementModifier),
@@ -234,7 +234,7 @@ object ListView {
 
       val tasklist = Rx {
         VDomModifier.ifTrue(isExpanded())(
-          VDomModifier.ifTrue(showInputField && !isDone() )(addListItemInputField( focusState, autoFocusInsert = false, targetSection = Some(columnId))),
+          VDomModifier.ifTrue(showInputField && !isDone() )(addListItemInputField( focusState, autoFocusInsert = false, isCompact = isCompact, targetSection = Some(columnId))),
           div(
             cls := "tasklist",
             VDomModifier.ifTrue(isCompact)(cls := "compact"),
@@ -270,7 +270,7 @@ object ListView {
     })
   }
 
-  private def addListItemInputField(focusState: FocusState, autoFocusInsert: Boolean, targetSection:Option[NodeId] = None)(implicit ctx: Ctx.Owner) = {
+  private def addListItemInputField(focusState: FocusState, autoFocusInsert: Boolean, isCompact:Boolean, targetSection:Option[NodeId] = None)(implicit ctx: Ctx.Owner) = {
     def submitAction(userId: UserId)(sub: InputRow.Submission) = {
       val createdNode = Node.MarkdownTask(sub.text)
       val addSectionParent = GraphChanges.addToParents(ChildId(createdNode.id), ParentId(targetSection))
@@ -313,6 +313,7 @@ object ListView {
           placeholder = Placeholder.newTask,
           submitOnEnter = true,
           showSubmitIcon = false,
+          miniForm = isCompact,
         ).apply(Styles.flexStatic, margin := "3px")
       }
     )

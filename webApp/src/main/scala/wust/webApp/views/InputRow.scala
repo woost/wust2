@@ -50,6 +50,7 @@ object InputRow {
     showMarkdownHelp: Boolean = false,
     enableEmojiPicker: Boolean = false,
     enableMentions: Boolean = true,
+    miniForm: Boolean = false,
   )(implicit ctx: Ctx.Owner): VNode = {
     val initialValue = if (preFillByShareApi) Rx {
       GlobalState.urlConfig().shareOptions.fold("") { share =>
@@ -81,7 +82,7 @@ object InputRow {
     val heightOptions = VDomModifier(
       rows := 1,
       resize := "none",
-      minHeight := "42px",
+      VDomModifier.ifNot(miniForm)(minHeight := "42px"),
       autoResizer.modifiers
     )
 
@@ -312,6 +313,7 @@ object InputRow {
         VDomModifier.ifTrue(showSubmitIcon || fileUploadHandler.isDefined)(marginRight := "0"), // icons itself have marginLeft
         width := "100%",
         cls := "ui form",
+        VDomModifier.ifTrue(miniForm)(cls := "mini"),
         markdownHelpOverlay,
 
         textArea(
