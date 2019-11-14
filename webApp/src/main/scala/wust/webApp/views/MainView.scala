@@ -168,6 +168,11 @@ object MainView {
     // a view should never be shrinked to less than 300px-45px collapsed sidebar
     val viewWidthMod = minWidth := s"${300 - LeftSidebar.minWidthSidebar}px"
 
+    val viewAndPage = Rx {
+      val viewConfig = GlobalState.viewConfig()
+      (viewConfig.view, viewConfig.page)
+    }
+
     div(
       Styles.flex,
       Styles.growFull,
@@ -201,13 +206,13 @@ object MainView {
           Styles.growFull,
           cls := "pusher",
           Rx {
-            val viewConfig = GlobalState.viewConfig()
+            val view = viewAndPage()._1 // reacting to view and page. both will be passed into rendered views via focuState
             if (viewIsContent() && GlobalState.isLoading()) {
               spaceFillingLoadingAnimation.apply(Styles.growFull, zIndex := ZIndex.loading, backgroundColor := Colors.contentBg)
             } else if (GlobalState.showPageNotFound()) {
               PageNotFoundView.apply.apply(Styles.growFull, zIndex := ZIndex.loading, backgroundColor := Colors.contentBg)
             } else {
-              ViewRender(GlobalState.mainFocusState(viewConfig), viewConfig.view).apply(
+              ViewRender(GlobalState.mainFocusState(GlobalState.viewConfig.now), view).apply(
                 Styles.growFull,
                 flexGrow := 1
               ).prepend(

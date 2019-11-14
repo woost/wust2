@@ -32,7 +32,16 @@ import scala.scalajs.js
 object ListWithChatView {
 
   def apply(originalFocusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
-    val chatFocus = Var(originalFocusState.focusedId)
+    val chatFocus = Var(GlobalState.subPage.now.parentId.getOrElse(originalFocusState.focusedId))
+    chatFocus.triggerLater{ nodeId =>
+      if (nodeId == originalFocusState.focusedId)
+        GlobalState.focusSubPage(None)
+      else
+        GlobalState.focusSubPage(Some(nodeId))
+    }
+    GlobalState.subPage.triggerLater{ page =>
+      chatFocus() = page.parentId.getOrElse(originalFocusState.focusedId)
+    }
 
     val focusState = originalFocusState.copy(
       contextParentIdAction = { nodeId =>
@@ -81,7 +90,7 @@ object ListWithChatView {
     )
   }
 
-  private def chatHeader(originalFocusState:FocusState, focusState: FocusState, chatFocus: Var[NodeId])(implicit ctx: Ctx.Owner) = {
+  private def chatHeader(originalFocusState: FocusState, focusState: FocusState, chatFocus: Var[NodeId])(implicit ctx: Ctx.Owner) = {
     val tooltipPosition = "bottom center"
     val buttonMods = VDomModifier(
       Styles.flexStatic,
@@ -112,7 +121,7 @@ object ListWithChatView {
           UI.tooltip(tooltipPosition) := "Edit Thread",
           buttonMods,
           marginLeft := "10px",
-          onClickDefault.foreach {originalFocusState.onItemSingleClick(FocusPreference(chatFocusedId))},
+          onClickDefault.foreach { originalFocusState.onItemSingleClick(FocusPreference(chatFocusedId)) },
         ),
         MembersModal.settingsButton(chatFocusedId, tooltip = "Add members to this thread", tooltipPosition = tooltipPosition).apply(buttonMods),
       )
