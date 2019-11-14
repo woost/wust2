@@ -82,11 +82,13 @@ module.exports.plugins.push(new ClosureCompilerPlugin({
 // html template generate html files
 ////////////////////////////////////////
 woost.files.html.forEach(htmlFile => {
-    const addIndexHtml = function(audience, filename) {
+    const addIndexHtml = function({audience, filename, defaultMode, manifestName}) {
         module.exports.plugins.push(new HtmlPlugin({
             templateParameters: woost.templateParametersFunction({
                 title: "Woost",
                 audience: audience,
+                defaultMode: defaultMode,
+                manifestName: manifestName
             }),
             filename: filename,
             template: htmlFile,
@@ -114,8 +116,9 @@ woost.files.html.forEach(htmlFile => {
 
     if (isIndexHtml) {
         // for index html we generate two files, one for staging, one for app. with a staging audience to enable certain features.
-        addIndexHtml("app", "index.html");
-        addIndexHtml("staging", "staging.html");
+        addIndexHtml({ audience: "app", filename: "index.html", manifestName: "site" });
+        addIndexHtml({ audience: "staging", filename: "staging.html", manifestName: "staging" });
+        addIndexHtml({ audience: "app", filename: "doodle.html", defaultMode: "doodle", manifestName: "doodle" });
     } else {
         addOtherHtml();
     }

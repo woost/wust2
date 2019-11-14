@@ -24,7 +24,9 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/<%= require('../../assets/favicon-16x16.png') %>">
     <link rel="shortcut icon" href="/<%= require('../../assets/favicon.ico') %>">
     <link rel="mask-icon" href="/<%= require('../../assets/safari-pinned-tab.svg') %>" color="#6636b7">
-    <% if (audience == "staging") { %>
+    <% if (defaultMode == "doodle") { %>
+        <link rel="manifest" href="/<%= require('../../assets/doodle.webmanifest') %>">
+    <% elsif (audience == "staging") { %>
         <link rel="manifest" href="/<%= require('../../assets/staging.webmanifest') %>">
     <% } else { %>
         <link rel="manifest" href="/<%= require('../../assets/site.webmanifest') %>">

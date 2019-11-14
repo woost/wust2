@@ -9,6 +9,7 @@ trait WoostConfig extends js.Object {
   def versionString: String = js.native
   def urls: WoostUrls = js.native
   def audience: String = js.native
+  def defaultMode: js.UndefOr[String] = js.native
 }
 
 trait WoostUrls extends js.Object {

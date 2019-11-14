@@ -95,7 +95,7 @@ object GraphChangesAutomation {
             case "url" if nodeStringOption.isEmpty =>
               nodeStringOption = Some(node => {
                 val targetUrlConfig = UrlConfig.default.focus(Page(node.id))
-                s"${dom.window.location.origin}${UrlConfigWriter.toString(targetUrlConfig)}"
+                s"${UrlConfigWriter.baseUrl}${UrlConfigWriter.toString(targetUrlConfig)}"
               })
               true
             case "fileUrl" if nodeStringOption.isEmpty =>

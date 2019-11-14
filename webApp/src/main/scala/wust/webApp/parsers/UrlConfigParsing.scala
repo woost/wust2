@@ -11,6 +11,7 @@ import wust.util.collection._
 import wust.webApp.state._
 
 import scala.scalajs.js
+import org.scalajs.dom
 
 private object ParsingHelpers {
   def decodeSeq[A](list: Seq[DecodeResult[A]]): DecodeResult[Seq[A]] =
@@ -227,6 +228,8 @@ object UrlConfigParser {
 }
 
 object UrlConfigWriter {
+  def baseUrl = s"${dom.window.location.origin}${dom.window.location.pathname}"
+
   def write(cfg: UrlConfig): UrlRoute = {
     val viewString = cfg.view.map(view => UrlOption.view.key + "=" + view.viewKey)
     val pageString = cfg.pageChange.page.parentId map { parentId =>

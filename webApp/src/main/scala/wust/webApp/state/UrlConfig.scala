@@ -46,5 +46,5 @@ final case class UrlConfig(
 }
 
 object UrlConfig {
-  val default = UrlConfig(view = None, pageChange = PageChange(Page.empty), redirectTo = None, shareOptions = None, invitation = None, focusId = None, mode = PresentationMode.Full, info = None)
+  val default = UrlConfig(view = None, pageChange = PageChange(Page.empty), redirectTo = None, shareOptions = None, invitation = None, focusId = None, mode = PresentationMode.defaultMode, info = None)
 }

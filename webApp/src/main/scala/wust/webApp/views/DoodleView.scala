@@ -178,7 +178,7 @@ object DoodleView extends AppDefinition {
         case _ :: Nil     => base
         case head :: tail => base.focus(View.Tiled(ViewOperator.Row, NonEmptyList(head, tail)))
       }
-      def urlConfigToUrl(urlConfig: UrlConfig) = s"${dom.window.location.origin}${UrlConfigWriter.toString(urlConfig)}"
+      def urlConfigToUrl(urlConfig: UrlConfig) = s"${UrlConfigWriter.baseUrl}${UrlConfigWriter.toString(urlConfig)}"
       urlConfigToUrl(config.copy(mode = PresentationMode.ContentOnly))
     }
 
