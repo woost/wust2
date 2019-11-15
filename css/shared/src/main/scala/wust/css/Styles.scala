@@ -1127,7 +1127,7 @@ object CommonStyles extends StyleSheet.Standalone
   )
 
   ".kanbanview" - (
-    &(">.kanbantoplevelcolumn") - (// inbox column
+    &(">.kanbantoplevelcolumn") - (// uncategorized column
       display.flex,
       minHeight(0 px),
       minWidth(kanbanColumnWidth).important, // conflicts with minwidth of nodecard
@@ -1135,6 +1135,7 @@ object CommonStyles extends StyleSheet.Standalone
       flexDirection.column,
       maxHeight(100 %%),
       height(100 %%),
+      backgroundColor(Color(Colors.contentBgShade)),
     )
   )
 
@@ -1159,7 +1160,7 @@ object CommonStyles extends StyleSheet.Standalone
         borderTopRightRadius(2 px),
       )
     ),
-    &(">.kanbantoplevelcolumn:nth-child(2n+1)") - (
+    &(">.kanbantoplevelcolumn:nth-child(2n)") - (
       backgroundColor(Color(Colors.contentBgShade)),
       &(">.kanbancolumnchildren >.kanbansubcolumn") - (
         backgroundColor(Color(Colors.contentBg)),
@@ -1171,7 +1172,7 @@ object CommonStyles extends StyleSheet.Standalone
         )
       )
     ),
-    &(">.kanbantoplevelcolumn:nth-child(2n)") - (
+    &(">.kanbantoplevelcolumn:nth-child(2n+1)") - (
       &(">.kanbancolumnchildren >.kanbansubcolumn") - (
         backgroundColor(Color(Colors.contentBgShade)),
         &(">.kanbancolumnchildren >.kanbansubcolumn") - (
