@@ -109,7 +109,7 @@ object InputRow {
         if (BrowserDetect.isMobile) currentTextArea.focus() // re-gain focus on mobile. Focus gets lost and closes the on-screen keyboard after pressing the button.
       }
       if (enforceUserName && !GlobalState.askedForUnregisteredUserName.now) {
-        GlobalState.askedForUnregisteredUserName() = true
+        // GlobalState.askedForUnregisteredUserName() = true
         GlobalState.user.now match {
           case user: AuthUser.Implicit if user.name.isEmpty =>
 
