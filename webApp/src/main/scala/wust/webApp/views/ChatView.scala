@@ -265,7 +265,7 @@ object ChatView {
 
     VDomModifier(
       cls := "chat-group-outer-frame",
-      GlobalState.largeScreen.ifTrue[VDomModifier](if (inReplyGroup) paddingLeft := "40px" else author.map(_.map(user => bigAuthorAvatar(user)(onClickDirectMessage( user))))),
+      GlobalState.largeScreen.ifTrue[VDomModifier](if (inReplyGroup) paddingLeft := "40px" else author.map(_.map(user => bigAuthorAvatar(user)))),
       div(
         cls := "chat-group-inner-frame",
         inReplyGroup.ifFalse[VDomModifier](author.map{ author =>

@@ -120,7 +120,6 @@ object SharedViewElements {
     div(
       cls := "chatmsg-author",
       Components.displayUserName(author.data),
-      onClickDirectMessage( author),
     )
   }
 

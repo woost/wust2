@@ -204,7 +204,7 @@ object ThreadView {
 
     VDomModifier(
       cls := "chat-group-outer-frame",
-      topLevelAndLargeScreen.ifTrue[VDomModifier](author.map(_.map(user => bigAuthorAvatar(user)(onClickDirectMessage( user))))),
+      topLevelAndLargeScreen.ifTrue[VDomModifier](author.map(_.map(user => bigAuthorAvatar(user)))),
 
       div(
         cls := "chat-group-inner-frame",
