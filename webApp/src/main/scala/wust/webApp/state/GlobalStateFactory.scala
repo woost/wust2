@@ -329,6 +329,10 @@ object GlobalStateFactory {
     })
 
     GlobalState.userId.foreach { userId =>
+      GlobalState.askedForUnregisteredUserName() = false
+    }
+
+    GlobalState.userId.foreach { userId =>
       val uuid: String = userId.toUuid.toString
       val hashedUserId = Sha256.sha224(uuid)
       Segment.identify(hashedUserId)
