@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.sdk.Colors
 import flatland._
 import fontAwesome.freeSolid
 import outwatch.dom._
@@ -67,6 +68,7 @@ object ListWithChatView {
           width := "300px",
           minWidth := "300px",
           height := "100%",
+          backgroundColor := Colors.contentBgShade,
         )
       ),
       div(
