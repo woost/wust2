@@ -48,7 +48,7 @@ object Components {
   def displayUserName(user: NodeData.User): String = {
     if(user.isImplicit) {
       //hack for showing invite user by email with their email address. new implicit user do not have a name, just if they are invited. but old implicit users are named "unregisted-user-$id"
-      if (user.name.nonEmpty && !user.name.startsWith("unregistered-user-")) s"${user.name} (unregistered)" else implicitUserName
+      if (user.name.nonEmpty && !user.name.startsWith("unregistered-user-")) s"${user.name}" else implicitUserName
     } else user.name
   }
 
