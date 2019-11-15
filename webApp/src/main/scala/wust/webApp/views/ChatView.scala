@@ -413,7 +413,7 @@ object ChatView {
               ),
               div(cls := "fa-fw", Icons.reply, padding := "3px 20px 3px 5px", onClick.stopPropagation foreach { currentReply.update(_ ++ Set(nodeId)) }, cursor.pointer),
               div(cls := "fa-fw", Icons.zoom, padding := "3px 20px 3px 5px", onClick.stopPropagation foreach {
-                GlobalState.focus(node.id)
+                focusState.contextParentIdAction(node.id)
                 GlobalState.clearSelectedNodes()
                 FeatureState.use(Feature.ZoomIntoMessage)
               }, cursor.pointer),
