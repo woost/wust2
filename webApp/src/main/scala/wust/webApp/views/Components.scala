@@ -174,15 +174,12 @@ object Components {
     })
   }
 
-  private def renderNodeTag(tag: Node, injected: VDomModifier, pageOnClick: Boolean): VNode = {
+  private def renderNodeTag(tag: Node, injected: VDomModifier): VNode = {
     span(
       cls := "node colorful tag",
       injected,
       backgroundColor := tagColor(tag.id).toHex,
-      if(pageOnClick) onClick foreach { e =>
-        GlobalState.focus(tag.id)
-        e.stopPropagation()
-      } else cursor.default,
+      cursor.default,
     )
   }
 
@@ -380,23 +377,22 @@ object Components {
 
     def nodeTag(
       tag: Node,
-      pageOnClick: Boolean = false,
       dragOptions: NodeId => VDomModifier = nodeId => DragComponents.drag(DragItem.Tag(nodeId), target = DragItem.DisableDrag),
     ): VNode = {
       val contentString = renderAsOneLineText( tag)
-      renderNodeTag( tag, VDomModifier(contentString, dragOptions(tag.id)), pageOnClick)
+      renderNodeTag( tag, VDomModifier(contentString, dragOptions(tag.id)))
     }
 
-    def removableNodeTagCustom(tag: Node, action: () => Unit, pageOnClick:Boolean = false): VNode = {
-      nodeTag( tag, pageOnClick)(removableTagMod(action))
+    def removableNodeTagCustom(tag: Node, action: () => Unit): VNode = {
+      nodeTag( tag)(removableTagMod(action))
     }
 
-    def removableNodeTag(tag: Node, taggedNodeId: NodeId, pageOnClick:Boolean = false): VNode = {
+    def removableNodeTag(tag: Node, taggedNodeId: NodeId): VNode = {
       removableNodeTagCustom(tag, () => {
         GlobalState.submitChanges(
           GraphChanges.disconnect(Edge.Child)(Array(ParentId(tag.id)), ChildId(taggedNodeId))
         )
-      }, pageOnClick)
+      })
     }
 
     def renderProject(node: Node, renderNode: Node => VDomModifier, withIcon: Boolean = false, openFolder: Boolean = false) = {

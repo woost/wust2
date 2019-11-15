@@ -123,7 +123,6 @@ object TagList {
     tagNode: Node,
     viewRender: ViewRenderLike,
     tagModifier: VDomModifier = VDomModifier.empty,
-    pageOnClick: Boolean = false,
     dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId), target = DragItem.DisableDrag),
     withAutomation: Boolean = false
   )(implicit ctx: Ctx.Owner): VNode = {
@@ -141,7 +140,7 @@ object TagList {
         ),
         label(), // needed for fomanticui
       ),
-      nodeTag(tagNode, pageOnClick, dragOptions).apply(tagModifier),
+      nodeTag(tagNode, dragOptions).apply(tagModifier),
       VDomModifier.ifTrue(withAutomation)(
         GraphChangesAutomationUI.settingsButton(
           tagNode.id,
