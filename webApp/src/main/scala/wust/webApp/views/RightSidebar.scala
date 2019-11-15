@@ -378,7 +378,7 @@ object RightSidebar {
         alignItems.center,
         justifyContent.spaceBetween,
         Rx { nodeAuthor(focusPref.nodeId)(ctx)().map(_.apply(marginLeft := "13px", marginRight.auto, paddingBottom := "0px")) },
-        zoomButton,
+        GlobalState.showOnlyInFullMode(zoomButton),
         MembersModal.settingsButton(focusPref.nodeId, tooltip = "Add members to this item", tooltipPosition = "top right").apply(buttonMods),
         deleteButton,
       )
