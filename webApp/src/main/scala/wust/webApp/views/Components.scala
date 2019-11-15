@@ -575,18 +575,6 @@ object Components {
     }
 
 
-    def zoomButton( nodeId:NodeId) = {
-      div(
-        Icons.zoom,
-        cursor.pointer,
-        onClick.stopPropagation.foreach {
-          GlobalState.focus(nodeId)
-          ()
-        }
-      )
-    }
-
-
     def nodeCardWithCheckbox( node: Node, directParentIds:Iterable[NodeId])(implicit ctx: Ctx.Owner): VNode = {
       nodeCard( node).prepend(
         Styles.flex,
