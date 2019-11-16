@@ -1,5 +1,6 @@
 package wust.webApp
 
+import collection.mutable
 import cats.effect.SyncIO
 import io.circe._
 import io.circe.parser._
@@ -25,7 +26,8 @@ class ClientStorage(implicit owner: Ctx.Owner) {
     val sidebarWithProjects = "wust.sidebar.projects"
     val taglistOpen = "wust.taglist.open"
     val filterlistOpen = "wust.filterlist.open"
-    val graphChanges = "wust.graph.changes"
+    val pendingChanges = "wust.pendingchanges"
+    val pendingChangesInvalid = "wust.pendingchanges.invalid"
     val backendTimeDelta = "wust.backendtimedelta"
   }
 
@@ -57,15 +59,62 @@ class ClientStorage(implicit owner: Ctx.Owner) {
     } else Var(None)
   }
 
+  def addPendingGraphChange(change:GraphChanges) = {
+    pendingChanges.update(_ :+ toJson(change))
+  }
+
+  def clearPendingGraphChanges() = {
+    println("segment: clearing pending changes")
+    pendingChanges.update(_ => List.empty)
+  }
+
+  def getDecodablePendingGraphChanges():List[GraphChanges] = {
+    val all = pendingChanges.now
+    val validEncodedBuilder = mutable.ListBuffer.empty[String]
+    val validDecodedBuilder = mutable.ListBuffer.empty[GraphChanges]
+    val invalidBuilder = mutable.ListBuffer.empty[String]
+    all.foreach { encoded =>
+      decode[GraphChanges](encoded) match {
+        case Left(error) => 
+          invalidBuilder += encoded
+          Segment.trackError("Failed to decode pending GraphChange", s"${error.toString}: ${encoded}")
+        case Right(valid) => 
+          validEncodedBuilder += encoded
+          validDecodedBuilder += valid
+      }
+    }
+
+    val invalid = invalidBuilder.result()
+
+    if(invalid.nonEmpty) {
+      pendingChangesInvalid.update(_ ++ invalid)
+      pendingChanges() = validEncodedBuilder.result()
+    }
+
+    validDecodedBuilder.result()
+  }
+
   //TODO: howto handle with events from other tabs?
-  val graphChanges: Handler[List[GraphChanges]] = {
+  private val pendingChanges: Var[List[String]] = {
     if(canAccessLs) {
       LocalStorage
-        .handlerWithoutEvents[SyncIO](keys.graphChanges)
+        .handlerWithoutEvents[SyncIO](keys.pendingChanges)
         .unsafeRunSync()
-        .mapHandler[List[GraphChanges]](changes => Option(toJson(changes)))(_.flatMap(fromJson[List[GraphChanges]]).getOrElse(Nil))
-    } else Handler.unsafe[List[GraphChanges]]
+        .mapHandler[List[String]](changes => Option(toJson(changes)))(_.flatMap(fromJson[List[String]]).getOrElse(List.empty))
+        .unsafeToVar(internal(keys.pendingChanges).flatMap(fromJson[List[String]]).getOrElse(List.empty))
+    } else Var(List.empty)
   }
+
+  private val pendingChangesInvalid: Var[List[String]] = {
+    if(canAccessLs) {
+      LocalStorage
+        .handlerWithoutEvents[SyncIO](keys.pendingChangesInvalid)
+        .unsafeRunSync()
+        .mapHandler[List[String]](changes => Option(toJson(changes)))(_.flatMap(fromJson[List[String]]).getOrElse(List.empty))
+        .unsafeToVar(internal(keys.pendingChangesInvalid).flatMap(fromJson[List[String]]).getOrElse(List.empty))
+    } else Var(List.empty)
+  }
+
 
   val sidebarOpen: Var[Option[Boolean]] = {
     if(canAccessLs) {

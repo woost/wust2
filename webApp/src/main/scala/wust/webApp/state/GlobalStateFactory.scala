@@ -49,6 +49,17 @@ object GlobalStateFactory {
       }
     }
 
+    // on load, submit pending changes from localstorage
+    Client.storage.getDecodablePendingGraphChanges.foreach(eventProcessor.changes.onNext)
+
+    // from this point on, backup every change in localstorage
+    eventProcessor.changes.foreach (Client.storage.addPendingGraphChange)
+
+    // after changes are synced, clear pending changes
+    GlobalState.isSynced.foreach { synced =>
+      if(synced) Client.storage.clearPendingGraphChanges()
+    }
+
     SourceStream.merge(EditableContent.currentlyEditing, UI.currentlyEditing).subscribe(eventProcessor.stopEventProcessing)
 
     // on mobile left and right sidebars overlay the screen.
@@ -231,7 +242,7 @@ object GlobalStateFactory {
         (urlConfig(), user().toNode)
       }
 
-      var lastTransitChanges: List[GraphChanges] = Nil
+      var lastTransitChanges: List[GraphChanges] = Client.storage.getDecodablePendingGraphChanges
       eventProcessor.changesInTransit.foreach { lastTransitChanges = _ }
 
       var isFirstGraphRequest = true
@@ -346,7 +357,7 @@ object GlobalStateFactory {
       auth.user match {
         case _: AuthUser.Assumed if GlobalState.urlConfig.now.pageChange.page.isEmpty && GlobalState.urlConfig.now.invitation.isEmpty => Segment.trackEvent("New Unregistered User", js.Dynamic.literal(`type` = "organic"))
         case _: AuthUser.Assumed if GlobalState.urlConfig.now.pageChange.page.nonEmpty && GlobalState.urlConfig.now.invitation.isEmpty => Segment.trackEvent("New Unregistered User", js.Dynamic.literal(`type` = "invite", via = "link"))
-        case _                   =>
+        case _ =>
       }
     }
     GlobalState.presentationMode.foreach { presentationMode =>
@@ -363,8 +374,8 @@ object GlobalStateFactory {
       if (notFound) {
         DebugOnly { UI.toast("", title = "Page Not Found", level = ToastLevel.Warning) }
         Segment.page("PageNotFound")
+      }
     }
-  }
   }
 
   private var stateDebugLoggingEnabled = false
