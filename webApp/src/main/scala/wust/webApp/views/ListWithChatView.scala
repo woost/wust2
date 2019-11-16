@@ -65,6 +65,7 @@ object ListWithChatView {
       Styles.flex,
       ScreenSize.dontShowOnSmallScreen(
         div(
+          flexShrink := 0,
           Styles.flex,
           flexDirection.column,
           backgroundColor := Colors.contentBgShade,
@@ -79,6 +80,7 @@ object ListWithChatView {
       div(
         flex := "3",
         minWidth := "300px",
+        flexShrink := 0,
         Styles.flex,
         flexDirection.column,
         Rx{
