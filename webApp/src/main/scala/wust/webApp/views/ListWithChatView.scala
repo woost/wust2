@@ -64,11 +64,16 @@ object ListWithChatView {
       cls := "listwithchat-view",
       Styles.flex,
       ScreenSize.dontShowOnSmallScreen(
-        ListView(focusState, autoFocusInsert = false, showNestedInputFields = true).apply(
-          width := "300px",
-          minWidth := "300px",
-          height := "100%",
+        div(
+          Styles.flex,
+          flexDirection.column,
           backgroundColor := Colors.contentBgShade,
+          h2("Threads", fontSize := "18px", padding := "10px", marginBottom := "0px", paddingBottom := "0px"),
+          ListView(focusState, autoFocusInsert = false, showNestedInputFields = true).apply(
+            width := "300px",
+            minWidth := "300px",
+            height := "100%",
+          )
         )
       ),
       div(
