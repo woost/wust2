@@ -141,7 +141,7 @@ object CommonStyles extends StyleSheet.Standalone
     backgroundColor := "#1A73E8"
   )
 
-  ".ui.primary.button:hover" - (
+  ".ui.primary.button:hover, .ui.primary.button:focus" - (
     backgroundColor := "#2B7DE9"
   )
 
