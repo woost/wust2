@@ -34,14 +34,14 @@ class ClientStorage(implicit owner: Ctx.Owner) {
 
   val canAccessLs: Boolean = {
     Try {
-      val woostStr = "woost"
+      val woostStr = "wust-localstorage-write-test"
       internal.update(woostStr, woostStr)
       internal.remove(woostStr)
     } match {
       case Success(_) =>
         true
-      case Failure(_) =>
-        Segment.trackEvent("Localstorage Access-Error")
+      case Failure(e) =>
+        Segment.trackError("Localstorage Access-Error", e.getMessage)
         scribe.warn("Localstorage is not accessible.")
         false
     }
