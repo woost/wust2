@@ -1,5 +1,6 @@
 package wust.webApp.state
 
+import wust.sdk.EventProcessor.AppliedChangeResult
 import wust.facades.jsSha256.Sha256
 import scala.scalajs.js
 import org.scalajs.dom
@@ -46,6 +47,20 @@ object GlobalStateFactory {
 
       if (showHeuristic) {
         UI.toast("You don't have sufficient permissions to do this.", title = "Forbidden", level = ToastLevel.Error)
+      }
+    }
+
+    // on load, submit pending changes from localstorage
+    Client.storage.getDecodablePendingGraphChanges(GlobalState.userId.now).foreach(eventProcessor.changesWithoutEnrich.onNext)
+
+    // from this point on, backup every change in localstorage (including applied automations)
+    eventProcessor.localChanges.foreach (change => Client.storage.addPendingGraphChange(GlobalState.userId.now, change))
+
+    // after changes are synced, clear pending changes
+    eventProcessor.sendingChanges.foreach { status =>
+      status.result match {
+        case AppliedChangeResult.Success | AppliedChangeResult.Rejected => Client.storage.deletePendingGraphChanges(GlobalState.userId.now, status.changes)
+        case AppliedChangeResult.TryLater => // keep in storage
       }
     }
 
@@ -231,7 +246,7 @@ object GlobalStateFactory {
         (urlConfig(), user().toNode)
       }
 
-      var lastTransitChanges: List[GraphChanges] = Nil
+      var lastTransitChanges: List[GraphChanges] = Client.storage.getDecodablePendingGraphChanges(GlobalState.userId.now)
       eventProcessor.changesInTransit.foreach { lastTransitChanges = _ }
 
       var isFirstGraphRequest = true
@@ -346,7 +361,7 @@ object GlobalStateFactory {
       auth.user match {
         case _: AuthUser.Assumed if GlobalState.urlConfig.now.pageChange.page.isEmpty && GlobalState.urlConfig.now.invitation.isEmpty => Segment.trackEvent("New Unregistered User", js.Dynamic.literal(`type` = "organic"))
         case _: AuthUser.Assumed if GlobalState.urlConfig.now.pageChange.page.nonEmpty && GlobalState.urlConfig.now.invitation.isEmpty => Segment.trackEvent("New Unregistered User", js.Dynamic.literal(`type` = "invite", via = "link"))
-        case _                   =>
+        case _ =>
       }
     }
     GlobalState.presentationMode.foreach { presentationMode =>
@@ -363,8 +378,8 @@ object GlobalStateFactory {
       if (notFound) {
         DebugOnly { UI.toast("", title = "Page Not Found", level = ToastLevel.Warning) }
         Segment.page("PageNotFound")
+      }
     }
-  }
   }
 
   private var stateDebugLoggingEnabled = false

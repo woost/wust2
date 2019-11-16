@@ -50,7 +50,26 @@ object EventProcessor {
       analyticsTrackError,
     )
   }
+
+  sealed trait AppliedChangeResult
+  object AppliedChangeResult {
+    case object Success extends AppliedChangeResult
+    case object Rejected extends AppliedChangeResult
+    case object TryLater extends AppliedChangeResult
+  }
+
+  sealed trait SendChangeResult
+  object SendChangeResult {
+    case object Success extends SendChangeResult
+    sealed trait Failure extends SendChangeResult
+    case class Error(error:ApiError) extends Failure
+    case class UnexpectedError(error:Throwable) extends Failure
+    case object Rejected extends Failure
+  }
 }
+
+import EventProcessor.AppliedChangeResult
+import EventProcessor.SendChangeResult
 
 class EventProcessor private (
   eventStream: Observable[Seq[ApiEvent.GraphContent]],
@@ -77,6 +96,7 @@ class EventProcessor private (
   //TODO: publish only Observer? publishtoone subject? because used as hot observable?
   val changes = PublishSubject[GraphChanges]
   val changesRemoteOnly = PublishSubject[GraphChanges]
+  val changesWithoutEnrich = PublishSubject[GraphChanges]
   val localEvents = PublishSubject[ApiEvent.GraphContent]
   localEvents.foreach { e =>
     scribe.debug("EventProcessor.localEvents: " + e)
@@ -88,18 +108,24 @@ class EventProcessor private (
     var lastGraph = Graph.empty
     var lastUser: AuthUser = initialAuth.user
 
-    def enrichedChangesf(changes: Observable[GraphChanges]) = changes.map { changes =>
+    def enrichedChangesf(changes: Observable[GraphChanges], doExternalEnrich: Boolean = true) = changes.map { changes =>
       val graph = lastGraph
       val user = lastUser
-      val newChanges = enrichChanges(changes, user.id, graph)
+      val newChanges = if (doExternalEnrich) enrichChanges(changes, user.id, graph).consistent.withAuthor(user.id) else changes
       scribe.info(s"Local Graphchanges: ${newChanges.toPrettyString(graph)}")
-      NewGraphChanges.forPrivate(user.toNode, newChanges.consistent.withAuthor(user.id))
+      NewGraphChanges.forPrivate(user.toNode, newChanges)
     }.filter(_.changes.nonEmpty)
 
     val localChanges = enrichedChangesf(changes).share
     val localChangesRemoteOnly = enrichedChangesf(changesRemoteOnly).share
+    val localChangesWithoutEnrich = enrichedChangesf(changesWithoutEnrich, doExternalEnrich = false).share
 
-    val graphEvents = BufferWhenTrue(Observable(eventStream, localEvents.map(Seq(_)), localChanges.map(Seq(_))).merge, stopEventProcessing)
+    val graphEvents = BufferWhenTrue(Observable(
+      eventStream,
+      localEvents.map(Seq(_)),
+      localChanges.map(Seq(_)),
+      localChangesWithoutEnrich.map(Seq(_))
+    ).merge, stopEventProcessing)
 
     currentUser.subscribe(
       { user =>
@@ -135,7 +161,7 @@ class EventProcessor private (
     )
 
     (
-      localChanges.map(_.changes),
+      Observable(localChanges, localChangesWithoutEnrich).merge.map(_.changes),
       localChangesRemoteOnly.map(_.changes),
       rawGraph
     )
@@ -152,22 +178,36 @@ class EventProcessor private (
     obs.runToFuture
   }
 
-  private val localChangesIndexed: Observable[(GraphChanges, Long)] = Observable(localChanges, localChangesRemoteOnly).merge.zipWithIndex.asyncBoundary(Unbounded)
+  case class ChangesIndex(changes: GraphChanges, index: Long)
+  private val localChangesIndexed: Observable[ChangesIndex] =
+    Observable(localChanges, localChangesRemoteOnly).merge
+      .zipWithIndex.map{ case (c, i) => ChangesIndex(c, i) }
+      .asyncBoundary(Unbounded)
 
-  private val sendingChanges: Observable[Long] = {
-    val localChangesIndexedBusy = localChangesIndexed.bufferIntrospective(maxSize = 10)
-      .map(list => (list.map(_._1), list.last._2))
+  case class SendChangesStatus(changes: GraphChanges, index: Long, result: AppliedChangeResult)
+  val sendingChanges: Observable[SendChangesStatus] = {
+    Observable.tailRecM(localChangesIndexed.map(_ -> 0).delayOnNext(500 millis)) { changes =>
+      changes.flatMap { case (c, retries) =>
+        val maxRetries = 3
+        @inline def success = Right(SendChangesStatus(c.changes, c.index, result = AppliedChangeResult.Success))
+        @inline def rejected = Right(SendChangesStatus(c.changes, c.index, result = AppliedChangeResult.Rejected))
+        @inline def tryLater = Right(SendChangesStatus(c.changes, c.index, result = AppliedChangeResult.TryLater))
+        @inline def retry = {
+          if (retries >= maxRetries) rejected //TODO: tryLater?
+          else Left(Observable(c -> (retries + 1)).sample(Math.pow(3, (retries + 1)) seconds))
+        }
 
-    Observable.tailRecM(localChangesIndexedBusy.delayOnNext(500 millis)) { changes =>
-      changes.flatMap {
-        case (c, idx) =>
-          Observable.fromFuture(sendChanges(c)).map {
-            case true =>
-              Right(idx)
-            case false =>
-              // TODO delay with exponential backoff
-              Left(Observable((c, idx)).sample(5 seconds))
+        Observable.fromFuture(sendChangesAndLog(c.changes :: Nil)).map {
+          case SendChangeResult.Success => success
+          case SendChangeResult.Rejected => rejected
+          case SendChangeResult.Error(error) => error match {
+            case ApiError.IncompatibleApi => tryLater
+            case ApiError.InternalServerError => retry
+            case ApiError.Unauthorized => rejected // TODO: tryLater?
+            case ApiError.Forbidden => rejected
           }
+          case SendChangeResult.UnexpectedError(t) => retry
+        }
       }
     }.share
   }
@@ -195,7 +235,8 @@ class EventProcessor private (
   )
 
   val changesInTransit: Observable[List[GraphChanges]] = localChangesIndexed
-    .combineLatest[Long](sendingChanges.startWith(Seq(-1)))
+    .map(c => (c.changes, c.index))
+    .combineLatest[Long](sendingChanges.map(_.index).prepend(-1L))
     .scan(List.empty[(GraphChanges, Long)]) {
       case (prevList, (nextLocal, sentIdx)) =>
         (prevList :+ nextLocal) collect { case t @ (_, idx) if idx > sentIdx => t }
@@ -203,41 +244,48 @@ class EventProcessor private (
     .map(_.map(_._1))
     .share
 
-  private def sendChanges(changes: Seq[GraphChanges]): Future[Boolean] = {
-    //TODO: why is import wust.util._ not enough to resolve RichFuture?
-    // We only need it for the 2.12 polyfill
-    new wust.util.RichFuture(sendChange(changes.toList)).transform {
-      case Success(success) =>
-        if (!success) {
-          scribe.warn(s"ChangeGraph request returned false: $changes")
-          analyticsTrackError("ChangeGraph request returned false", s"$changes")
-        }
+  private def logSendChangeResult(changes: Seq[GraphChanges], result: SendChangeResult): Unit = result match {
+    case SendChangeResult.Success => ()
+    case SendChangeResult.Error(error) => error match {
+      case ApiError.Forbidden =>
+        scribe.warn(s"ChangeGraph request forbidden, will ignore changes: $changes")
+        analyticsTrackError("Changes Forbidden", "forbidden")
 
-        Success(success)
+        forbiddenChangesSubject.onNext(changes)
+        //TODO: we should prompt user for errors and notify him of problem. for now just accept, these changes will be lost.
+        //TODO: stop processing, prompt for reload. case ApiError.IncompatibleApi =>
+
+      case error =>
+        scribe.warn(s"ChangeGraph request with error respoonse '${error}': $changes")
+        analyticsTrackError("ChangeGraph request with error respoonse", s"'${error}': $changes")
+    }
+    case SendChangeResult.UnexpectedError(t) =>
+
+      scribe.warn(s"ChangeGraph request failed '${t}': $changes")
+      analyticsTrackError("ChangeGraph request failed", s"'${t}': $changes")
+    case SendChangeResult.Rejected =>
+      scribe.warn(s"ChangeGraph request returned false: $changes")
+      analyticsTrackError("ChangeGraph request returned false", s"$changes")
+  }
+
+  private def sendChangesRecovered(changes: Seq[GraphChanges]): Future[SendChangeResult] = {
+    sendChange(changes.toList).transform {
+      case Success(true) => Success(SendChangeResult.Success)
+      case Success(false) => Success(SendChangeResult.Rejected)
       case Failure(t) =>
         t match {
           case e: covenant.ws.WsClient.ErrorException[ApiError @unchecked] =>
-            e.error match {
-              case ApiError.Forbidden =>
-                scribe.warn(s"ChangeGraph request forbidden, will ignore changes: $changes")
-                analyticsTrackError("Changes Forbidden", "forbidden")
-
-                forbiddenChangesSubject.onNext(changes)
-
-                Success(true) //TODO: we should prompt user for errors and notify him of problem. for now just accept, these changes will be lost.
-
-              //TODO: stop processing, prompt for reload. case ApiError.IncompatibleApi =>
-
-              case _ =>
-                scribe.warn(s"ChangeGraph request with error respoonse '${e.error}': $changes")
-                analyticsTrackError("ChangeGraph request with error respoonse", s"'${e.error}': $changes")
-                Success(false)
-            }
-          case _ =>
-            scribe.warn(s"ChangeGraph request failed '${t}': $changes")
-            analyticsTrackError("ChangeGraph request failed", s"'${t}': $changes")
-            Success(false)
+            Success(SendChangeResult.Error(e.error))
+          case e =>
+            Success(SendChangeResult.UnexpectedError(e))
         }
+    }
+  }
+
+  private def sendChangesAndLog(changes: Seq[GraphChanges]): Future[SendChangeResult] = {
+    sendChangesRecovered(changes).map { r =>
+      logSendChangeResult(changes, r)
+      r
     }
   }
 }
