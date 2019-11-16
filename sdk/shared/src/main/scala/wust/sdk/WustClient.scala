@@ -26,7 +26,7 @@ class WustClientFactory[F[_]](
 ) {
   def sendWith(
       sendType: SendType = SendType.WhenConnected,
-      requestTimeout: FiniteDuration = 30 seconds
+      requestTimeout: FiniteDuration = 60 seconds
   ): WustClient[F] = new WustClient[F](client.sendWith(sendType, requestTimeout))
   def observable = client.observable
   lazy val nowOrFail = sendWith(SendType.NowOrFail)
