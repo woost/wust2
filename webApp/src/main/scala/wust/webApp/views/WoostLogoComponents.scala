@@ -27,7 +27,7 @@ object WoostLogoComponents {
         svg(
           width := "100px", height := "100px", viewBox := "0 0 10 10",
           g(transform := "matrix(.096584 0 0 .096584 -.0071925 -18.66)",
-            path(cls := "woost-loading-animation-logo", d := woostPathCurve, fill := "none", stroke := lineColor, strokeLineCap := "round", strokeWidth := "3.5865", pathLength := "100")
+            path(cls := "woost-loading-animation-logo", d := woostPathCurve, fill := "none", stroke := lineColor, strokeLineCap := "round", strokeWidth := "3.5865")
             )
           )
       },

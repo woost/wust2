@@ -100,13 +100,14 @@ object Styles extends StyleSheet.Inline {
     (100 %%) -> style(boxShadow := "0px 0px 0px 20px rgba(0,0,0,0)")
   )
 
+  private val loadingAnimationPathLength = 513.1444702148438 // pathElement.getTotalLength()
   val loadingAnimationDashOffsetKf = keyframes(
-    (100 %%) -> style(svgStrokeDashOffset := "100")
+    (100 %%) -> style(svgStrokeDashOffset := s"${loadingAnimationPathLength}")
   )
 
   val loadingAnimationDashArrayKf = keyframes(
-    (0 %%) -> style(svgStrokeDashArray := "30 3.33333"),
-    (100 %%) -> style(svgStrokeDashArray := "16.11111 17.22222")
+    (0 %%) -> style(svgStrokeDashArray := s"${0.3*loadingAnimationPathLength} ${0.0333333*loadingAnimationPathLength}"),
+    (100 %%) -> style(svgStrokeDashArray := s"${0.1611111*loadingAnimationPathLength} ${0.1722222*loadingAnimationPathLength}")
   )
 
   val fadeInKf = keyframes(
@@ -349,7 +350,7 @@ object CommonStyles extends StyleSheet.Standalone
 
   ".woost-loading-animation-logo" - (
     svgStrokeDashOffset := "0",
-    animation := s"${Styles.loadingAnimationDashOffsetKf.name.value} 23.217s linear infinite, ${Styles.loadingAnimationDashArrayKf.name.value} 5.3721s ease alternate infinite"
+    animation := s"${Styles.loadingAnimationDashOffsetKf.name.value} 23.217s linear infinite, ${Styles.loadingAnimationDashArrayKf.name.value} 5.3721s ease alternate infinite",
   )
 
   ".ui.dimmer.modals" - (
