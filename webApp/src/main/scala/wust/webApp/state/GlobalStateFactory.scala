@@ -50,14 +50,14 @@ object GlobalStateFactory {
     }
 
     // on load, submit pending changes from localstorage
-    Client.storage.getDecodablePendingGraphChanges.foreach(eventProcessor.changes.onNext)
+    Client.storage.getDecodablePendingGraphChanges(GlobalState.userId.now).foreach(eventProcessor.changes.onNext)
 
     // from this point on, backup every change in localstorage
-    eventProcessor.changes.foreach (Client.storage.addPendingGraphChange)
+    eventProcessor.changes.foreach (change => Client.storage.addPendingGraphChange(GlobalState.userId.now, change))
 
     // after changes are synced, clear pending changes
     GlobalState.isSynced.foreach { synced =>
-      if(synced) Client.storage.clearPendingGraphChanges()
+      if(synced) Client.storage.clearPendingGraphChanges(GlobalState.userId.now)
     }
 
     SourceStream.merge(EditableContent.currentlyEditing, UI.currentlyEditing).subscribe(eventProcessor.stopEventProcessing)
@@ -242,7 +242,7 @@ object GlobalStateFactory {
         (urlConfig(), user().toNode)
       }
 
-      var lastTransitChanges: List[GraphChanges] = Client.storage.getDecodablePendingGraphChanges
+      var lastTransitChanges: List[GraphChanges] = Client.storage.getDecodablePendingGraphChanges(GlobalState.userId.now)
       eventProcessor.changesInTransit.foreach { lastTransitChanges = _ }
 
       var isFirstGraphRequest = true

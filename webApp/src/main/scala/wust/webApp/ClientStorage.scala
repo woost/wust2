@@ -1,5 +1,7 @@
 package wust.webApp
 
+import wust.util.Memo
+import wust.ids._
 import collection.mutable
 import cats.effect.SyncIO
 import io.circe._
@@ -26,8 +28,8 @@ class ClientStorage(implicit owner: Ctx.Owner) {
     val sidebarWithProjects = "wust.sidebar.projects"
     val taglistOpen = "wust.taglist.open"
     val filterlistOpen = "wust.filterlist.open"
-    val pendingChanges = "wust.pendingchanges"
-    val pendingChangesInvalid = "wust.pendingchanges.invalid"
+    def pendingChanges(userId:UserId) = s"wust.pendingchanges.${userId.toUuid.toString}"
+    def pendingChangesInvalid(userId:UserId) = s"wust.pendingchanges.invalid.${userId.toUuid.toString}"
     val backendTimeDelta = "wust.backendtimedelta"
   }
 
@@ -59,17 +61,16 @@ class ClientStorage(implicit owner: Ctx.Owner) {
     } else Var(None)
   }
 
-  def addPendingGraphChange(change:GraphChanges) = {
-    pendingChanges.update(_ :+ toJson(change))
+  def addPendingGraphChange(userId: UserId, change:GraphChanges) = {
+    pendingChanges(userId).update(_ :+ toJson(change))
   }
 
-  def clearPendingGraphChanges() = {
-    println("segment: clearing pending changes")
-    pendingChanges.update(_ => List.empty)
+  def clearPendingGraphChanges(userId: UserId) = {
+    pendingChanges(userId).update(_ => List.empty)
   }
 
-  def getDecodablePendingGraphChanges():List[GraphChanges] = {
-    val all = pendingChanges.now
+  def getDecodablePendingGraphChanges(userId: UserId):List[GraphChanges] = {
+    val all = pendingChanges(userId).now
     val validEncodedBuilder = mutable.ListBuffer.empty[String]
     val validDecodedBuilder = mutable.ListBuffer.empty[GraphChanges]
     val invalidBuilder = mutable.ListBuffer.empty[String]
@@ -87,31 +88,37 @@ class ClientStorage(implicit owner: Ctx.Owner) {
     val invalid = invalidBuilder.result()
 
     if(invalid.nonEmpty) {
-      pendingChangesInvalid.update(_ ++ invalid)
-      pendingChanges() = validEncodedBuilder.result()
+      pendingChangesInvalid(userId).update(_ ++ invalid)
+      pendingChanges(userId)() = validEncodedBuilder.result()
     }
 
     validDecodedBuilder.result()
   }
 
+
+  val pendingChanges = Memo.mutableHashMapMemo[UserId, Var[List[String]]](pendingChangesByUser)
+  val pendingChangesInvalid = Memo.mutableHashMapMemo[UserId, Var[List[String]]](pendingChangesInvalidByUser)
+
   //TODO: howto handle with events from other tabs?
-  private val pendingChanges: Var[List[String]] = {
+  private def pendingChangesByUser(userId: UserId): Var[List[String]] = {
+    val storageKey = keys.pendingChanges(userId)
     if(canAccessLs) {
       LocalStorage
-        .handlerWithoutEvents[SyncIO](keys.pendingChanges)
+        .handlerWithoutEvents[SyncIO](storageKey)
         .unsafeRunSync()
         .mapHandler[List[String]](changes => Option(toJson(changes)))(_.flatMap(fromJson[List[String]]).getOrElse(List.empty))
-        .unsafeToVar(internal(keys.pendingChanges).flatMap(fromJson[List[String]]).getOrElse(List.empty))
+        .unsafeToVar(internal(storageKey).flatMap(fromJson[List[String]]).getOrElse(List.empty))
     } else Var(List.empty)
   }
 
-  private val pendingChangesInvalid: Var[List[String]] = {
+  private def pendingChangesInvalidByUser(userId: UserId): Var[List[String]] = {
+    val storageKey = keys.pendingChangesInvalid(userId)
     if(canAccessLs) {
       LocalStorage
-        .handlerWithoutEvents[SyncIO](keys.pendingChangesInvalid)
+        .handlerWithoutEvents[SyncIO](storageKey)
         .unsafeRunSync()
         .mapHandler[List[String]](changes => Option(toJson(changes)))(_.flatMap(fromJson[List[String]]).getOrElse(List.empty))
-        .unsafeToVar(internal(keys.pendingChangesInvalid).flatMap(fromJson[List[String]]).getOrElse(List.empty))
+        .unsafeToVar(internal(storageKey).flatMap(fromJson[List[String]]).getOrElse(List.empty))
     } else Var(List.empty)
   }
 
