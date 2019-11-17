@@ -12,6 +12,7 @@ import wust.api._
 import wust.graph._
 import wust.ids._
 import wust.sdk._
+import wust.util.algorithm.dfs
 import wust.webApp.jsdom.{ Notifications, ServiceWorker }
 import wust.webApp.parsers.{ UrlConfigParser, UrlConfigWriter }
 import wust.webApp.views._
@@ -175,7 +176,15 @@ object GlobalState {
   val showPageNotFound = Rx { !isLoading() && !pageExistsInGraph() && viewIsContent() }
 
   def focus(nodeId: NodeId, needsGet: Boolean = true) = {
-    urlConfig.update(_.focus(Page(nodeId), needsGet = needsGet))
+    val alreadyLoaded = (
+      for {
+        pageId <- page.now.parentId
+        pageIdx <- graph.now.idToIdx(pageId)
+        nodeIdx <- graph.now.idToIdx(nodeId)
+      } yield dfs.exists(_(pageIdx), dfs.withStart, graph.now.childrenIdx, isFound = { _ == nodeIdx })
+    ).getOrElse(false)
+
+    urlConfig.update(_.focus(Page(nodeId), needsGet = needsGet && !alreadyLoaded))
   }
 
   def focusSubPage(nodeIdOpt: Option[NodeId]) = {
@@ -263,21 +272,21 @@ object GlobalState {
         focus(nodeId)
         graph.now.nodesById(nodeId).foreach { node =>
           node.role match {
-            case NodeRole.Task => FeatureState.use(Feature.ZoomIntoTask)
+            case NodeRole.Task    => FeatureState.use(Feature.ZoomIntoTask)
             case NodeRole.Message => FeatureState.use(Feature.ZoomIntoMessage)
-            case NodeRole.Note => FeatureState.use(Feature.ZoomIntoNote)
-            case _ =>
+            case NodeRole.Note    => FeatureState.use(Feature.ZoomIntoNote)
+            case _                =>
           }
         }
       },
     )
   }
 
-  def showOnlyInFullMode(modifier: => VDomModifier, additionalModes:List[PresentationMode] = Nil)(implicit ctx:Ctx.Owner): VDomModifier = {
+  def showOnlyInFullMode(modifier: => VDomModifier, additionalModes: List[PresentationMode] = Nil)(implicit ctx: Ctx.Owner): VDomModifier = {
     GlobalState.presentationMode.map {
-      case PresentationMode.Full => modifier
+      case PresentationMode.Full                 => modifier
       case mode if additionalModes contains mode => modifier
-      case _ => VDomModifier.empty
+      case _                                     => VDomModifier.empty
     }
   }
 
