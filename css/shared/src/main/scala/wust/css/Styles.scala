@@ -138,15 +138,15 @@ object CommonStyles extends StyleSheet.Standalone
   import dsl._
 
   ".ui.primary.button" - (
-    backgroundColor := "#1A73E8"
+    backgroundColor(c"#1A73E8"),
   )
 
   ".ui.primary.button:hover, .ui.primary.button:focus" - (
-    backgroundColor := "#2B7DE9"
+    backgroundColor(c"#2B7DE9"),
   )
 
   ".ui.primary.button:active" - (
-    backgroundColor := "#5094ED"
+    backgroundColor(c"#5094ED"),
   )
 
   ".ui.message.warning" - (
