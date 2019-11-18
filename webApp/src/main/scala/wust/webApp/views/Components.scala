@@ -29,6 +29,7 @@ import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{BrowserDetect, Elements, UI}
 import wust.facades.segment.Segment
+import java.util.regex.Pattern
 
 import scala.collection.breakOut
 import scala.scalajs.js
@@ -123,7 +124,7 @@ object Components {
         val edge = graph.edges(edgeIdx).as[Edge.Mention]
         val mentionName = "@" + InputMention.stringToMentionsString(edge.data.mentionName)
         // bold with markdown. how to inject html with popup?
-        str.replace(mentionName, s"**${mentionName}**")
+        str.replaceFirst(Pattern.quote(InputMention.unescapeMentionsString(mentionName)), s"**${mentionName}**")
       }
     }
 

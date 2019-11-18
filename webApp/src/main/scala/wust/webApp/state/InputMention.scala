@@ -17,4 +17,8 @@ object InputMention {
   def stringToMentionsString(str: String): String = {
     StringOps.trimToMaxLength(str.replace("\\", "\\\\").replace(" ", "\\ "), 100)
   }
+
+  def unescapeMentionsString(str: String): String = {
+    str.replace("\\ ", " ").replace("\\\\", "\\")
+  }
 }
