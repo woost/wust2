@@ -6,8 +6,9 @@ import wust.facades.draggable._
 import wust.webApp.DebugOnly
 import wust.webApp.dragdrop.DragValidation._
 import wust.webApp.state.GlobalState
-import wust.webApp.views.DragComponents.{readDragContainer, readDragPayload, readDragTarget, writeDragPayload}
+import wust.webApp.views.DragComponents.{ readDragContainer, readDragPayload, readDragTarget, writeDragPayload }
 import wust.webUtil.JSDefined
+import collection.mutable
 
 import scala.scalajs.js
 
@@ -29,7 +30,7 @@ object SortableEvents {
   })
 
   def init(): Unit = {
-    new SortableEvents( sortable)
+    new SortableEvents(sortable)
   }
 }
 
@@ -42,12 +43,27 @@ class SortableEvents(draggable: Draggable) {
     GlobalState.eventProcessor.stopEventProcessing.onNext(true)
   }
   def onStopDrag(): Unit = {
+    // actively repair the containers, since drags can be aborted / emit empty graphchanges
+    // happens when creating containment cycles or drag with ctrl (copy)
+    domCleanup()
     GlobalState.eventProcessor.stopEventProcessing.onNext(false)
+  }
+
+  val dirtyContainers = mutable.HashSet.empty[HTMLElement]
+  def setDirty(element: HTMLElement): Unit = {
+    snabbdom.VNodeProxy.setDirty(element)
+    dirtyContainers += element
+  }
+  def domCleanup(): Unit = {
+    dirtyContainers.foreach{ element =>
+      readDragContainer(element).foreach(_.triggerRepair.onNext(()))
+    }
+    dirtyContainers.clear()
   }
 
   draggable.on[DragStartEvent]("drag:start", (e: DragStartEvent) => {
     onStartDrag()
-    snabbdom.VNodeProxy.setDirty(e.sourceContainer)
+    setDirty(e.sourceContainer)
     //    dragStartEvent.onNext(e)
     DebugOnly {
       val payload = readDragPayload(e.originalSource)
@@ -56,12 +72,12 @@ class SortableEvents(draggable: Draggable) {
   })
 
   draggable.on[DragOutEvent]("drag:out", { (e: DragOutEvent) =>
-    snabbdom.VNodeProxy.setDirty(e.sourceContainer)
+    setDirty(e.sourceContainer)
     currentOverEvent = js.undefined
   })
 
   draggable.on[DragOverContainerEvent]("drag:over:container", (e: DragOverContainerEvent) => {
-    e.overContainer.foreach(snabbdom.VNodeProxy.setDirty)
+    e.overContainer.foreach(setDirty)
     DebugOnly {
       for {
         overContainer <- e.overContainer
@@ -72,13 +88,13 @@ class SortableEvents(draggable: Draggable) {
   })
 
   draggable.on[DragOutContainerEvent]("drag:out:container", (e: DragOutContainerEvent) => {
-    snabbdom.VNodeProxy.setDirty(e.overContainer)
+    setDirty(e.overContainer)
     currentOverContainerEvent = js.undefined
   })
 
   draggable.on[SortableStartEvent]("sortable:start", { (sortableStartEvent: SortableStartEvent) =>
     onStartDrag()
-    snabbdom.VNodeProxy.setDirty(sortableStartEvent.startContainer)
+    setDirty(sortableStartEvent.startContainer)
     // copy dragpayload reference from source to mirror // https://github.com/Shopify/draggable/issues/245
     val payload: js.UndefOr[DragPayload] = readDragPayload(sortableStartEvent.dragEvent.originalSource)
     payload.foreach(writeDragPayload(sortableStartEvent.dragEvent.source, _))
@@ -91,7 +107,7 @@ class SortableEvents(draggable: Draggable) {
 
   // when dragging over
   draggable.on[SortableSortEvent]("sortable:sort", (sortableSortEvent: SortableSortEvent) => {
-    sortableSortEvent.overContainer.foreach(snabbdom.VNodeProxy.setDirty)
+    sortableSortEvent.overContainer.foreach(setDirty)
 
     (sortableSortEvent, currentOverContainerEvent) match {
       case (sortableSortEvent, JSDefined(currentOverContainerEvent)) =>
@@ -111,7 +127,7 @@ class SortableEvents(draggable: Draggable) {
   })
 
   draggable.on[DragOverEvent]("drag:over", (dragOverEvent: DragOverEvent) => {
-    snabbdom.VNodeProxy.setDirty(dragOverEvent.overContainer)
+    setDirty(dragOverEvent.overContainer)
     DebugOnly {
       readDragTarget(dragOverEvent.over).foreach { target => scribe.debug(s"Dragging over: $target") }
     }
@@ -133,7 +149,7 @@ class SortableEvents(draggable: Draggable) {
   // when dropping
   draggable.on[SortableStopEvent]("sortable:stop", (sortableStopEvent: SortableStopEvent) => {
     try {
-      snabbdom.VNodeProxy.setDirty(sortableStopEvent.newContainer)
+      setDirty(sortableStopEvent.newContainer)
       scribe.debug(s"moved from position ${sortableStopEvent.oldIndex} to new position ${sortableStopEvent.newIndex}")
       (sortableStopEvent, currentOverContainerEvent, currentOverEvent) match {
         case (sortableStopEvent, JSDefined(currentOverContainerEvent), JSDefined(currentOverEvent)) =>
@@ -142,15 +158,13 @@ class SortableEvents(draggable: Draggable) {
           val currentEvent = dom.window.asInstanceOf[js.Dynamic].event.asInstanceOf[js.UndefOr[js.Dynamic]].map(_.detail.originalEvent)
           val ctrlDown = currentEvent.exists(_.ctrlKey.asInstanceOf[Boolean])
           val shiftDown = currentEvent.exists(_.shiftKey.asInstanceOf[Boolean])
+
           if (overSortcontainer) {
-            performSort( sortableStopEvent, currentOverContainerEvent, currentOverEvent, ctrlDown, shiftDown)
-            // actively repair the containers, since drags can be aborted / emit empty graphchanges
-            // happens when creating containment cycles or drag with ctrl (copy)
-            readDragContainer(sortableStopEvent.oldContainer).foreach(_.triggerRepair.onNext(()))
-            readDragContainer(sortableStopEvent.newContainer).foreach(_.triggerRepair.onNext(()))
+            performSort(sortableStopEvent, currentOverContainerEvent, currentOverEvent, ctrlDown, shiftDown)
           } else {
-            performDrag( sortableStopEvent, currentOverEvent, ctrlDown, shiftDown)
+            performDrag(sortableStopEvent, currentOverEvent, ctrlDown, shiftDown)
           }
+
         case _ =>
           scribe.debug("dropped outside container or target")
       }
