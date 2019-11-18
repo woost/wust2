@@ -1558,6 +1558,11 @@ object CommonStyles extends StyleSheet.Standalone
     backgroundColor(c"#494653"),
   )
 
+  ".topBanner.warning" - (
+    color.black,
+    backgroundColor(c"#FEC006"),
+  )
+
   val tabsPadding = 7.px
   ".viewswitcher-item" - (
     fontSize(20 px),

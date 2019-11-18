@@ -155,7 +155,8 @@ object MainView {
     div(
       cls := "topBannerContainer",
       Rx {
-        WoostNotification.banner(GlobalState.permissionState())
+        if (GlobalState.automationIsDisabled()) WoostNotification.automationIsDisabledBanner
+        else WoostNotification.banner(GlobalState.permissionState())
       }
     )
   }

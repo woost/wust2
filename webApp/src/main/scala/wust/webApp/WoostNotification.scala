@@ -133,6 +133,25 @@ object WoostNotification {
     )
   }
 
+  def automationIsDisabledBanner(implicit ctx: Ctx.Owner): VDomModifier = {
+    def mobileText = div(
+      marginLeft.auto, marginRight.auto,
+      s"Automations are temporarily disabled, ", span("enable again.", textDecoration.underline),
+    )
+    def desktopText = div(
+      marginLeft.auto, marginRight.auto,
+      s"Automations are temporarily disabled, ", span("click to enable again.", textDecoration.underline),
+    )
+
+    div(
+      Elements.topBanner(Some(desktopText), Some(mobileText)),
+      cls := "warning",
+      onClick foreach {
+        GlobalState.automationIsDisabled() = false
+      },
+    )
+  }
+
   def banner(permissionState: PermissionState)(implicit ctx: Ctx.Owner): VDomModifier = Rx {
     if(!GlobalState.askedForNotifications() && permissionState == PermissionState.prompt) {
       def mobileText = div(
@@ -140,7 +159,7 @@ object WoostNotification {
         s"Enable ", span("notifications", textDecoration.underline),
       )
       def desktopText = div(
-      marginLeft.auto,
+        marginLeft.auto,
         s"Click here to ", span("enable notifications.", textDecoration.underline),
       )
 

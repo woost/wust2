@@ -91,6 +91,23 @@ object PageSettingsMenu {
       })
     }
 
+    val automationToggle = Rx {
+      a(
+        cursor.pointer,
+        cls := "item",
+        Elements.icon(Icons.automate),
+        span(
+          GlobalState.automationIsDisabled.map {
+            case true => "Re-enable Automations"
+            case false => "Temporarily disable Automations"
+          }
+        ),
+        onClick.stopPropagation foreach {
+          GlobalState.automationIsDisabled.update(!_)
+        }
+      )
+    }
+
     val copyItem = Rx {
       VDomModifier.ifTrue(canWrite())(channelAsContent().map { channel =>
         GraphChangesAutomationUI.copyNodeItem( channel.id).foreach({ case (node, changes) =>
@@ -126,7 +143,7 @@ object PageSettingsMenu {
       channelAsContent().map(WoostNotification.generateNotificationItem( GlobalState.permissionState(), GlobalState.graph(), GlobalState.user().toNode, _))
     }
 
-    List[VDomModifier](notificationItem, searchItem, importItem, nodeRoleItem, /*copyItem,*/ /*resyncWithTemplatesItem, */ leaveItem, deleteItem)
+    List[VDomModifier](notificationItem, searchItem, importItem, nodeRoleItem, /*copyItem,*/ /*resyncWithTemplatesItem, */ leaveItem, deleteItem, automationToggle)
 
   }
 
