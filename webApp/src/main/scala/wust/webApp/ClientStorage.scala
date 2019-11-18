@@ -73,31 +73,29 @@ class ClientStorage(implicit owner: Ctx.Owner) {
     val all = pendingChanges(userId).now
     val validEncodedBuilder = mutable.ListBuffer.empty[String]
     val validDecodedBuilder = mutable.ListBuffer.empty[GraphChanges]
-    val invalidBuilder = mutable.ListBuffer.empty[String]
     all.foreach { encoded =>
       decode[GraphChanges](encoded) match {
         case Left(error) => 
-          invalidBuilder += encoded
-          Segment.trackError("Failed to decode pending GraphChange", s"${error.toString}: ${encoded}")
+          val errorId = NodeId.fresh().toUuid.toString
+          Segment.trackError("Failed to decode pending GraphChange", s"${errorId}")
+          Client.api.log(s"Failed to decode pending GraphChange: errorId=$errorId, msg=$error, change=$encoded")
         case Right(valid) => 
           validEncodedBuilder += encoded
           validDecodedBuilder += valid
       }
     }
 
-    val invalid = invalidBuilder.result()
+    val validDecoded = validDecodedBuilder.result()
 
-    if(invalid.nonEmpty) {
-      pendingChangesInvalid(userId).update(_ ++ invalid)
+    if(all.size != validDecoded.size) {
       pendingChanges(userId)() = validEncodedBuilder.result()
     }
 
-    validDecodedBuilder.result()
+    validDecoded
   }
 
 
   val pendingChanges = Memo.mutableHashMapMemo[UserId, Var[List[String]]](pendingChangesByUser)
-  val pendingChangesInvalid = Memo.mutableHashMapMemo[UserId, Var[List[String]]](pendingChangesInvalidByUser)
 
   //TODO: howto handle with events from other tabs?
   private def pendingChangesByUser(userId: UserId): Var[List[String]] = {
@@ -110,18 +108,6 @@ class ClientStorage(implicit owner: Ctx.Owner) {
         .unsafeToVar(internal(storageKey).flatMap(fromJson[List[String]]).getOrElse(List.empty))
     } else Var(List.empty)
   }
-
-  private def pendingChangesInvalidByUser(userId: UserId): Var[List[String]] = {
-    val storageKey = keys.pendingChangesInvalid(userId)
-    if(canAccessLs) {
-      LocalStorage
-        .handlerWithoutEvents[SyncIO](storageKey)
-        .unsafeRunSync()
-        .mapHandler[List[String]](changes => Option(toJson(changes)))(_.flatMap(fromJson[List[String]]).getOrElse(List.empty))
-        .unsafeToVar(internal(storageKey).flatMap(fromJson[List[String]]).getOrElse(List.empty))
-    } else Var(List.empty)
-  }
-
 
   val sidebarOpen: Var[Option[Boolean]] = {
     if(canAccessLs) {
