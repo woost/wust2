@@ -40,7 +40,7 @@ object DoodleView extends AppDefinition {
     onClick.use(AppDefinition.State.App) --> state
   )
 
-  override def header(state: SinkObserver[AppDefinition.State])(implicit ctx: Ctx.Owner): VDomModifier = {
+  override def header(state: Handler[AppDefinition.State])(implicit ctx: Ctx.Owner): VDomModifier = {
     div(
       paddingLeft := "10px",
       paddingRight := "10px",
@@ -57,13 +57,17 @@ object DoodleView extends AppDefinition {
         cursor.pointer
       ),
 
-      createTodoButton(state).apply(
-        cls := "mini compact"
-      )
+      state.map {
+        case AppDefinition.State.Landing =>
+          createTodoButton(state).apply(
+            cls := "mini compact"
+          )
+        case _ => VDomModifier.empty
+      }
     )
   }
 
-  def landing(state: SinkObserver[AppDefinition.State])(implicit ctx: Ctx.Owner): VDomModifier = {
+  def landing(state: Handler[AppDefinition.State])(implicit ctx: Ctx.Owner): VDomModifier = {
     def advantageBlock(icon: VDomModifier, title: String, description: String) = div(
       margin := "5px",
       padding := "10px",
@@ -117,18 +121,16 @@ object DoodleView extends AppDefinition {
         Styles.flex,
         margin := "20px",
 
-        advantageBlock(VDomModifier(Icons.share, color := "blue"), "Suggest Todos", "Setup and customize your Todos and Requirements."),
+        advantageBlock(VDomModifier(Icons.tasks, color := "blue"), "Suggest Todos", "Setup and customize your Todos and Requirements."),
 
         advantageBlock(VDomModifier(Icons.share, color := "gray"), "Invite Participants", "Send the link and work together with other participants live."),
 
         advantageBlock(VDomModifier(freeSolid.faCheck, color := "green"), "Get Things Done", "Get a quick Overview of what is done and what still needs to be worked on.")
       ),
-
-      createButton
     )
   }
 
-  def app(state: SinkObserver[AppDefinition.State])(implicit ctx: Ctx.Owner): VDomModifier = {
+  def app(state: Handler[AppDefinition.State])(implicit ctx: Ctx.Owner): VDomModifier = {
 
     div(
       cls := "ui segments",

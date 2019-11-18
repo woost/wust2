@@ -32,7 +32,7 @@ import wust.webUtil.Elements
 
 object ThreadTrackerView extends AppDefinition {
 
-  def landing(state: SinkObserver[AppDefinition.State])(implicit ctx: Ctx.Owner): VDomModifier = {
+  def landing(state: Handler[AppDefinition.State])(implicit ctx: Ctx.Owner): VDomModifier = {
     val chatRoomName = Var("")
     def createRoom(name: String = chatRoomName.now): Unit = {
       val roomName = if(name.nonEmpty) name else "New Chat Room"
@@ -121,7 +121,7 @@ object ThreadTrackerView extends AppDefinition {
     ),
   }
 
-  def app(state: SinkObserver[AppDefinition.State])(implicit ctx: Ctx.Owner): VDomModifier = {
+  def app(state: Handler[AppDefinition.State])(implicit ctx: Ctx.Owner): VDomModifier = {
     Rx {
       val viewConfig = GlobalState.viewConfig()
       GlobalState.mainFocusState(viewConfig).map(focusState => ListWithChatView(focusState))
