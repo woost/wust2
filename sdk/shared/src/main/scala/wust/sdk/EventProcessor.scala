@@ -77,6 +77,7 @@ class EventProcessor private (
   //TODO: publish only Observer? publishtoone subject? because used as hot observable?
   val changes = PublishSubject[GraphChanges]
   val changesRemoteOnly = PublishSubject[GraphChanges]
+  val changesWithoutEnrich = PublishSubject[GraphChanges]
   val localEvents = PublishSubject[ApiEvent.GraphContent]
   localEvents.foreach { e =>
     scribe.debug("EventProcessor.localEvents: " + e)
@@ -88,18 +89,24 @@ class EventProcessor private (
     var lastGraph = Graph.empty
     var lastUser: AuthUser = initialAuth.user
 
-    def enrichedChangesf(changes: Observable[GraphChanges]) = changes.map { changes =>
+    def enrichedChangesf(changes: Observable[GraphChanges], doExternalEnrich: Boolean = true) = changes.map { changes =>
       val graph = lastGraph
       val user = lastUser
-      val newChanges = enrichChanges(changes, user.id, graph)
+      val newChanges = if (doExternalEnrich) enrichChanges(changes, user.id, graph) else changes
       scribe.info(s"Local Graphchanges: ${newChanges.toPrettyString(graph)}")
       NewGraphChanges.forPrivate(user.toNode, newChanges.consistent.withAuthor(user.id))
     }.filter(_.changes.nonEmpty)
 
     val localChanges = enrichedChangesf(changes).share
     val localChangesRemoteOnly = enrichedChangesf(changesRemoteOnly).share
+    val localChangesWithoutEnrich = enrichedChangesf(changesWithoutEnrich, doExternalEnrich = false).share
 
-    val graphEvents = BufferWhenTrue(Observable(eventStream, localEvents.map(Seq(_)), localChanges.map(Seq(_))).merge, stopEventProcessing)
+    val graphEvents = BufferWhenTrue(Observable(
+      eventStream,
+      localEvents.map(Seq(_)),
+      localChanges.map(Seq(_)),
+      localChangesWithoutEnrich.map(Seq(_))
+    ).merge, stopEventProcessing)
 
     currentUser.subscribe(
       { user =>
@@ -135,7 +142,7 @@ class EventProcessor private (
     )
 
     (
-      localChanges.map(_.changes),
+      Observable(localChanges, localChangesWithoutEnrich).merge.map(_.changes),
       localChangesRemoteOnly.map(_.changes),
       rawGraph
     )

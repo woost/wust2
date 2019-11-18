@@ -50,10 +50,10 @@ object GlobalStateFactory {
     }
 
     // on load, submit pending changes from localstorage
-    Client.storage.getDecodablePendingGraphChanges(GlobalState.userId.now).foreach(eventProcessor.changes.onNext)
+    Client.storage.getDecodablePendingGraphChanges(GlobalState.userId.now).foreach(eventProcessor.changesWithoutEnrich.onNext)
 
-    // from this point on, backup every change in localstorage
-    eventProcessor.changes.foreach (change => Client.storage.addPendingGraphChange(GlobalState.userId.now, change))
+    // from this point on, backup every change in localstorage (including applied automations)
+    eventProcessor.localChanges.foreach (change => Client.storage.addPendingGraphChange(GlobalState.userId.now, change))
 
     // after changes are synced, clear pending changes
     GlobalState.isSynced.foreach { synced =>
