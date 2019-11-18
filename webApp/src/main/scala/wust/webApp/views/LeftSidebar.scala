@@ -379,9 +379,11 @@ object LeftSidebar {
         onChannelClick(nodeId),
         cls := "node",
         Rx{
-          VDomModifier.ifTrue(enableDragging())(
+          if (enableDragging()) VDomModifier(
             DragComponents.drag(DragItem.Channel(nodeId, traverseState.tail.headOption)),
             cls := "cursor-move-important",
+          ) else VDomModifier(
+            DragComponents.drag(target = DragItem.Channel(nodeId, traverseState.tail.headOption)),
           )
         },
         permissionLevel.map(Permission.permissionIndicatorIfPublic(_, VDomModifier(fontSize := "0.7em", color.gray, marginLeft.auto, marginRight := "5px"))),
