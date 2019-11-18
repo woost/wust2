@@ -210,6 +210,13 @@ class EventProcessor private (
     .map(_.map(_._1))
     .share
 
+  sealed trait SendChangeResult
+  object SendChangeResult {
+    case object Success extends SendChangeResult
+    case object Fail extends SendChangeResult
+    case object NotConnected extends SendChangeResult
+  }
+
   private def sendChanges(changes: Seq[GraphChanges]): Future[Boolean] = {
     //TODO: why is import wust.util._ not enough to resolve RichFuture?
     // We only need it for the 2.12 polyfill
