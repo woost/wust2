@@ -14,7 +14,7 @@ import Def.{setting => dep}
 crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.10")
 scalaVersion in ThisBuild := crossScalaVersions.value.last
 
-// Global / onChangedBuildSource := ReloadOnSourceChanges //TODO: reactivate for sbt-1.3.0
+Global / onChangedBuildSource := ReloadOnSourceChanges
 
 lazy val commonSettings = Seq(
 
