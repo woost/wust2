@@ -4,6 +4,7 @@ import fontAwesome.{ freeSolid, _ }
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.dom.dsl.styles.extra._
 import outwatch.ext.monix._
 import outwatch.reactive._
 import rx._
@@ -61,32 +62,32 @@ object LeftSidebar {
                 Styles.flex,
                 alignItems.center,
                 marginTop := "5px",
-                button(
-                  cls := "ui mini compact basic button",
-                  marginLeft := "3px",
-                  Rx { VDomModifier.ifTrue(enableDragging())(cls := "green") },
+                paddingLeft := "5px",
+                paddingRight := "5px",
+                UI.toggle(span(
                   div(
-                    cls := "fa-fw",
-                    freeRegular.faHandPaper,
-                    enableDragging map {
-                      case false => VDomModifier(
-                        UI.popup("bottom center") := "Enable Dragging",
-                      )
-                      case true => VDomModifier(
-                        UI.popup("bottom center") := "Disable Dragging",
-                      )
-                    }
+                    Rx { VDomModifier.ifNot(enableDragging())(opacity := 0.5) },
+                    "Dragging",
                   ),
-                  onClick.stopPropagation.foreach(enableDragging.update(!_))
+                ), enableDragging).apply(
+                  transform := "scale(0.7)",
+                  transformOrigin := "left",
+                  enableDragging map {
+                    case false => VDomModifier(
+                      UI.popup("bottom center") := "Enable Dragging",
+                    )
+                    case true => VDomModifier(
+                      UI.popup("bottom center") := "Disable Dragging",
+                    )
+                  }
                 ),
                 newProjectButton().apply(
+                  marginLeft.auto,
                   cls := "newChannelButton-large " + buttonStyles,
                   onClick foreach {
                     FeatureState.use(Feature.CreateProjectFromExpandedLeftSidebar)
                   },
                   marginTop := "0px",
-                  marginLeft.auto,
-                  marginRight.auto,
                 ),
                 marginBottom := "15px"
               ),
@@ -382,7 +383,8 @@ object LeftSidebar {
           if (enableDragging()) VDomModifier(
             DragComponents.drag(DragItem.Channel(nodeId, traverseState.tail.headOption)),
             cls := "cursor-move-important",
-          ) else VDomModifier(
+          )
+          else VDomModifier(
             DragComponents.drag(target = DragItem.Channel(nodeId, traverseState.tail.headOption)),
           )
         },
