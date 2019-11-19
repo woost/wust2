@@ -56,7 +56,7 @@ object Deps {
   val scalarx = dep("com.github.cornerman.scalarx" %%% "scalarx" % "7daef55")
   // val scalarx = dep("com.github.fdietze.duality" %%% "scalarx" % "fc761c9")
   val outwatch = new {
-    private val version = "2a6a06aa"
+    private val version = "2205224"
     // val core = dep("io.github.outwatch" %%% "outwatch" % "0.11.1-SNAPSHOT")
     val core = dep("com.github.cornerman.outwatch" %%% "outwatch" % version)
     // val monix = dep("io.github.outwatch" %%% "outwatch-monix" % "0.11.1-SNAPSHOT")
