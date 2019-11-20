@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import colorado.RGB
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.ext.monix._
@@ -7,14 +8,17 @@ import rx._
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
+import wust.sdk.{BaseColors, NodeColor}
 import wust.util.collection._
 import wust.webApp.dragdrop.DragItem
-import wust.webApp.state.{ EmojiReplacer, FeatureState, FocusState, GlobalState, ScreenSize }
+import wust.webApp.state.{EmojiReplacer, FeatureState, FocusState, GlobalState, ScreenSize, TraverseState}
 import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.registerDragContainer
-import wust.webApp.{ Icons, Permission }
+import wust.webApp.{Icons, Permission}
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{ BrowserDetect, UI }
+import wust.webUtil.{BrowserDetect, Elements, UI}
+
+import scala.collection.breakOut
 
 // Shows overview over a project:
 // - subprojects
@@ -34,10 +38,10 @@ object DashboardView {
       margin := "10px"
     )
 
-    val projectNodes = Rx { getProjectList(GlobalState.graph(), focusState.focusedId) }
-
     val showTasksOfSubprojects = Var(false)
     val selectedUserId: Var[Option[UserId]] = Var(Some(GlobalState.userId.now))
+
+    val traverseState = TraverseState(focusState.focusedId)
 
     val detailWidgets = VDomModifier(
       Styles.flex,
@@ -47,6 +51,7 @@ object DashboardView {
       //TODO: renderSubprojects mit summary
       div(
         width := "100%",
+        VDomModifier.ifNot(BrowserDetect.isPhone)( UI.segment("Distribution of Tasks in Columns", renderStagesChart(traverseState).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod, width := "540px", marginLeft.auto, marginRight.auto)),
         div(
           Styles.flex,
           alignItems.flexStart,
@@ -197,4 +202,62 @@ object DashboardView {
       VDomModifier.ifTrue(isDeleted)(cls := "node-deleted"),
     )
   }
+
+  private def renderStagesChart(traverseState: TraverseState)(implicit ctx: Ctx.Owner) = {
+    import typings.chartDotJs.chartDotJsMod._
+    import scala.scalajs.js
+    import scala.scalajs.js.`|`
+    import scala.scalajs.js.JSConverters._
+
+    val canvasData = Rx {
+      val graph = GlobalState.graph()
+
+
+      val activeStages = KanbanData.columnNodes(graph, traverseState).collect{case n if n._2 == NodeRole.Stage => graph.nodesByIdOrThrow(n._1 )}
+
+      val inboxSize = KanbanData.inboxNodesCount(graph, traverseState)
+      val stagesChildren = activeStages.map(node => (node.str, graph.notDeletedChildrenIdx(graph.idToIdxOrThrow(node.id)).length))
+
+      val stagesLabels: js.Array[String | js.Array[String]] = stagesChildren.map(x => (x._1): String | js.Array[String])(breakOut)
+      val stagesNum: js.Array[js.UndefOr[ChartPoint | Double | Null]] = stagesChildren.map(x => js.defined[ChartPoint | Double | Null](x._2))(breakOut)
+      val stageColor: js.Array[RGB] = activeStages.map(n => BaseColors.kanbanColumnBg.copy(h = NodeColor.hue(n.id)).rgb)(breakOut)
+
+      (
+        js.Array[String | js.Array[String]]("Uncategorized")                    ++ stagesLabels,
+        js.Array[js.UndefOr[ChartPoint | Double | Null]](js.defined(inboxSize: Double)) ++ stagesNum,
+        js.Array[RGB](BaseColors.kanbanColumnBg.rgb)                                    ++ stageColor
+      )
+    }
+
+    div(
+      canvasData.map { case (chartLabels, chartPoints, chartColor) =>
+        Elements.chartCanvas {
+          ChartConfiguration(
+            `type` = "bar",
+            data = new ChartData {
+              labels = chartLabels
+              datasets = js.Array(new ChartDataSets {
+                label = "# of Tasks per Column"
+                data = chartPoints
+                backgroundColor = chartColor.map(c => s"rgba(${c.ri}, ${c.gi}, ${c.bi}, 0.2)")
+                borderColor = chartColor.map(_.toCSS)
+                borderWidth = 1.0
+              })
+            },
+            options = new ChartOptions {
+              scales = new ChartScales {
+                yAxes = js.Array(new ChartYAxe {
+                  ticks = new TickOptions {
+                    beginAtZero = true
+                    stepSize = 1
+                  }
+                })
+              }
+            }
+          )
+        }
+      },
+    )
+  }
 }
+
