@@ -49,7 +49,7 @@ object TemplateView {
       TemplateDescription(
         name = TemplateName("HR"),
         shortDescription = "Human-Resource Kanban Board",
-        longDescription = "Setup a Kanban Board for Coaching external Entities",
+        longDescription = "Setup a Kanban Board for managing HR pipelines",
         imgSrc = "templates/hr.png" //TODO
       ) ::
       Nil
@@ -66,8 +66,9 @@ object TemplateView {
                 graph.nodes(templateIdx) match {
                   case templateNode: Node.Content =>
                     val newNode = templateNode.copy(id = NodeId.fresh, meta = NodeMeta.default)
-                    val changes = GraphChangesAutomation.copySubGraphOfNode(GlobalState.userId.now, GlobalState.rawGraph.now, newNode, templateNodeIdxs = Array(templateIdx), isFullCopy = true)
-                    GlobalState.submitChanges(changes merge GraphChanges.connect(Edge.Pinned)(newNode.id, GlobalState.userId.now))
+                    val changes = GraphChangesAutomation.copySubGraphOfNode(GlobalState.userId.now, graph, newNode, templateNodeIdxs = Array(templateIdx), isFullCopy = true)
+                    GlobalState.submitChanges(changes merge GraphChanges(addNodes = Array(newNode)) merge GraphChanges.connect(Edge.Pinned)(newNode.id, GlobalState.userId.now))
+                    GlobalState.urlConfig.update(_.focus(Page(newNode.id), needsGet = false))
                   case _ => ()
                 }
               }

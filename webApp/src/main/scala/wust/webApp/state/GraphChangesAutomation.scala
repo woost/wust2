@@ -480,7 +480,7 @@ object GraphChangesAutomation {
             if (descendant.role == newNode.role) { // without explicit reference, we only apply to the same noderole.
               newNodeIsTouched = true
               referencedTemplateIds += descendant.id
-              addEdges += Edge.DerivedFromTemplate(nodeId = newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
+              if (!isFullCopy) addEdges += Edge.DerivedFromTemplate(nodeId = newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
               alreadyExistingNodes += newNode.id -> newNode
               alreadyExistingNodes += descendant.id -> newNode
               replacedNodes += descendant.id -> newNode
@@ -490,7 +490,7 @@ object GraphChangesAutomation {
           } else getAlreadyExistingNodes(descendantIdx) match { // this is not a template node, search for already existing node.
             case Some(implementationNodes) => implementationNodes.forall { implementationNode =>
               if (implementationNode.id != descendant.id) {
-                addEdges += Edge.DerivedFromTemplate(nodeId = implementationNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
+                if (!isFullCopy) addEdges += Edge.DerivedFromTemplate(nodeId = implementationNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
                 replacedNodes += descendant.id -> implementationNode
                 val useTemplateData = descendant.role == NodeRole.Neutral // only edit already existing properties with template string (neutral)
                 applyTemplateToNode(newNode = implementationNode, templateNode = descendant, useTemplateData = useTemplateData)
@@ -499,7 +499,7 @@ object GraphChangesAutomation {
             }
             case None =>
               val copyNode = copyAndTransformNode(descendant)
-              addEdges += Edge.DerivedFromTemplate(nodeId = copyNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
+              if (!isFullCopy) addEdges += Edge.DerivedFromTemplate(nodeId = copyNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
               alreadyExistingNodes += descendant.id -> copyNode
               replacedNodes += descendant.id -> copyNode
               true
@@ -522,13 +522,13 @@ object GraphChangesAutomation {
                     if (descendantReferenceEdge.data.isCreate) { //create should only be done once, copy onlf it our own template is not defined
                       getAlreadyExistingNodes(descendantIdx) match {
                         case Some(alreadyCopiedDescendants) if alreadyCopiedDescendants.exists(_.id == implementationNode.id) =>
-                          addEdges += Edge.DerivedFromTemplate(nodeId = implementationNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
+                          if (!isFullCopy) addEdges += Edge.DerivedFromTemplate(nodeId = implementationNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
                           alreadyExistingNodes += descendant.id -> implementationNode
                           replacedNodes += descendant.id -> implementationNode
                           applyTemplateToNode(newNode = implementationNode, templateNode = descendant)
                         case _ =>
                           val copyNode = copyAndTransformNode(implementationNode.as[Node.Content])
-                          addEdges += Edge.DerivedFromTemplate(nodeId = copyNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
+                          if (!isFullCopy) addEdges += Edge.DerivedFromTemplate(nodeId = copyNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
                           alreadyExistingNodes += descendant.id -> copyNode
                           replacedNodes += descendant.id -> copyNode
                           applyTemplateToNode(newNode = copyNode, templateNode = descendant, useTemplateData = descendantReferenceEdge.data.isRename)
@@ -538,7 +538,7 @@ object GraphChangesAutomation {
                         case Some(alreadyReferencedDescendants) => !alreadyReferencedDescendants.exists(_.id == implementationNode.id)
                         case _ => true
                       }
-                      addEdges += Edge.DerivedFromTemplate(nodeId = implementationNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
+                      if (!isFullCopy) addEdges += Edge.DerivedFromTemplate(nodeId = implementationNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
                       alreadyExistingNodes += descendant.id -> implementationNode
                       replacedNodes += descendant.id -> implementationNode
                       applyTemplateToNode(newNode = implementationNode, templateNode = descendant, useTemplateData = canUseTemplateData && descendantReferenceEdge.data.isRename)
@@ -577,7 +577,7 @@ object GraphChangesAutomation {
     // that we copy the edge structure that the template node had.
     graph.edges.foreach {
       //TODO: we might need them if we want to copy automations..., need to figure out which ones are from this template and which ones are from the others...
-      case _: Edge.DerivedFromTemplate if !isFullCopy                                    => () // do not copy derived info, we get new derive infos for new nodes
+      case _: Edge.DerivedFromTemplate                                     => () // do not copy derived info, we get new derive infos for new nodes
       case _: Edge.ReferencesTemplate  if !isFullCopy                                   => () // do not copy reference info, we only want this on the template node
 
       case _: Edge.Member  if isFullCopy                                   => () // do not copy member if doing full copy

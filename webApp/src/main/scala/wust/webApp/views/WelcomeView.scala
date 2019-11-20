@@ -9,6 +9,7 @@ import wust.ids.Feature
 import wust.util._
 import wust.webApp.state.{FeatureState, GlobalState, ScreenSize, PresentationMode}
 import wust.webApp.views.Components._
+import wust.webApp.StagingOnly
 import wust.webUtil.outwatchHelpers._
 
 object WelcomeView {
@@ -40,7 +41,9 @@ object WelcomeView {
             welcomeMessage(Styles.flexStatic, marginBottom := "50px"),
           )
         },
-        // TemplateView.render.apply(margin := "10px"),
+        StagingOnly {
+          TemplateView.render.apply(margin := "10px")
+        },
         newProjectButton(Styles.flexStatic),
         div (width := "1px", height := "1px", Styles.flexStatic), // margin bottom hack for flexbox
       )

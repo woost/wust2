@@ -54,11 +54,18 @@ object AdminView {
 
           h5("Existing Templates"),
 
-          allTemplates.map { template =>
-            div(
-              template.toString //TODO render and reload
-            )
-          },
+          div(
+            marginLeft := "10px",
+            cls := "enable-text-selection",
+            //TODO render and reload after save
+            allTemplates.map(_.map { template =>
+              div(
+                Styles.flex,
+                b(template.name, marginRight := "10px"),
+                template.nodeId.toBase58
+              )
+            })
+          ),
 
           h5("New Template"),
 
