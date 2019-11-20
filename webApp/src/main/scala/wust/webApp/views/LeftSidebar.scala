@@ -67,17 +67,17 @@ object LeftSidebar {
                 UI.toggle(span(
                   div(
                     Rx { VDomModifier.ifNot(enableDragging())(opacity := 0.5) },
-                    "Dragging",
+                    "Drag&Drop",
                   ),
                 ), enableDragging).apply(
                   transform := "scale(0.7)",
                   transformOrigin := "left",
                   enableDragging map {
                     case false => VDomModifier(
-                      UI.popup("bottom center") := "Enable Dragging",
+                      UI.popup("bottom center") := "Enable drag&drop of projects",
                     )
                     case true => VDomModifier(
-                      UI.popup("bottom center") := "Disable Dragging",
+                      UI.popup("bottom center") := "Disable drag&drop of projects",
                     )
                   }
                 ),
