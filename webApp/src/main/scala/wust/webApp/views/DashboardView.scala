@@ -212,10 +212,10 @@ object DashboardView {
     val canvasData = Rx {
       val graph = GlobalState.graph()
 
-
-      val activeStages = KanbanData.columnNodes(graph, traverseState).collect{case n if n._2 == NodeRole.Stage => graph.nodesByIdOrThrow(n._1 )}
-
       val inboxSize = KanbanData.inboxNodesCount(graph, traverseState)
+
+      //TODO: check whether a column hast nested stages
+      val activeStages = KanbanData.columnNodes(graph, traverseState).collect{case n if n._2 == NodeRole.Stage => graph.nodesByIdOrThrow(n._1 )}
       val stagesChildren = activeStages.map(node => (node.str, graph.notDeletedChildrenIdx(graph.idToIdxOrThrow(node.id)).length))
 
       val stagesLabels: js.Array[String | js.Array[String]] = stagesChildren.map(x => (x._1): String | js.Array[String])(breakOut)
