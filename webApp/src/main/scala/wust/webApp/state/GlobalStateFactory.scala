@@ -323,10 +323,14 @@ object GlobalStateFactory {
     }
 
     // we send client errors from javascript to the backend
-    dom.window.addEventListener("error", { (e: dom.ErrorEvent) =>
-      Client.api.log(s"Javascript Error: ${e.message}.")
-      Segment.trackError("Javascript Error", e.message)
-      DevOnly { UI.toast(e.message, level = ToastLevel.Error) }
+    outwatch.dom.dsl.events.window.onError.foreach({ (e: dom.ErrorEvent) =>
+      e.message match {
+        case "Uncaught TypeError: Cannot read property 'insertBefore' of null" => // draggable
+        case _ =>
+          Client.api.log(s"Javascript Error: ${e.message}.")
+          Segment.trackError("Javascript Error", e.message)
+          DevOnly { UI.toast(e.message, level = ToastLevel.Error) }
+      }
     })
 
     GlobalState.userId.foreach { userId =>
