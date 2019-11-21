@@ -17,6 +17,7 @@ import wust.webApp.views.DragComponents.registerDragContainer
 import wust.webApp.{Icons, Permission}
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{BrowserDetect, Elements, UI}
+import wust.webApp.StagingOnly
 
 import scala.collection.breakOut
 import scala.scalajs.js.UndefOr
@@ -52,7 +53,9 @@ object DashboardView {
       //TODO: renderSubprojects mit summary
       div(
         width := "100%",
-        VDomModifier.ifNot(BrowserDetect.isPhone)( UI.segment("Distribution of Tasks in Columns", renderStagesChart(traverseState).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod, width := "540px", marginLeft.auto, marginRight.auto)),
+        StagingOnly {
+          VDomModifier.ifNot(BrowserDetect.isPhone)( UI.segmentWithoutHeader(renderStagesChart(traverseState).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod, width := "400px", marginLeft.auto)),
+        },
         div(
           Styles.flex,
           alignItems.flexStart,
@@ -253,7 +256,7 @@ object DashboardView {
             data = new ChartData {
               labels = chartLabels
               datasets = js.Array(new ChartDataSets {
-                label = "# of Tasks per Column"
+                label = "# Tasks"
                 data = chartPoints
                 backgroundColor = chartColors.map(c => s"rgba(${c.ri}, ${c.gi}, ${c.bi}, 0.2)")
                 borderColor = chartColors.map(_.toCSS)
@@ -265,7 +268,7 @@ object DashboardView {
                 yAxes = js.Array(new ChartYAxe {
                   ticks = new TickOptions {
                     beginAtZero = true
-                    stepSize = steps
+                    // stepSize = steps
                   }
                 })
               }

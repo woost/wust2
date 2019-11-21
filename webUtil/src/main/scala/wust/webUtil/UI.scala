@@ -321,6 +321,15 @@ object UI {
     )
   )
 
+  def segmentWithoutHeader(description: VDomModifier, segmentClass: String = "", segmentsClass: String = "") = div(
+    cls := s"ui segments $segmentsClass",
+    div(
+      cls := s"ui segment $segmentClass",
+      padding := "0.5em 0.5em",
+      description
+    )
+  )
+
 
   def toggleButton(active: Rx[Boolean])(implicit ctx: Ctx.Owner): VNode = button(
     cls := "ui button",
