@@ -56,8 +56,10 @@ object GlobalStateFactory {
     eventProcessor.localChanges.foreach (change => Client.storage.addPendingGraphChange(GlobalState.userId.now, change))
 
     // after changes are synced, clear pending changes
-    GlobalState.isSynced.foreach { synced =>
-      if(synced) Client.storage.clearPendingGraphChanges(GlobalState.userId.now)
+    eventProcessor.sendingChanges.foreach { status =>
+      if(status.success) {
+        Client.storage.deletePendingGraphChanges(GlobalState.userId.now, status.changes)
+      }
     }
 
     SourceStream.merge(EditableContent.currentlyEditing, UI.currentlyEditing).subscribe(eventProcessor.stopEventProcessing)
