@@ -245,6 +245,8 @@ object DashboardView {
           (data._1.toJSArray, data._2.toJSArray, data._3.toJSArray)
         }
 
+        val steps = math.ceil(rawDataContainer.map(_.dataPoints).max / 10)
+
         Elements.chartCanvas {
           ChartConfiguration(
             `type` = "bar",
@@ -263,7 +265,7 @@ object DashboardView {
                 yAxes = js.Array(new ChartYAxe {
                   ticks = new TickOptions {
                     beginAtZero = true
-                    stepSize = 1
+                    stepSize = steps
                   }
                 })
               }
