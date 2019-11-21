@@ -143,7 +143,7 @@ object PageSettingsMenu {
       channelAsContent().map(WoostNotification.generateNotificationItem( GlobalState.permissionState(), GlobalState.graph(), GlobalState.user().toNode, _))
     }
 
-    List[VDomModifier](notificationItem, searchItem, importItem, nodeRoleItem, copyItem, /*resyncWithTemplatesItem, */ leaveItem, deleteItem, automationToggle)
+    List[VDomModifier](notificationItem, searchItem, importItem, nodeRoleItem, /*resyncWithTemplatesItem, */ leaveItem, deleteItem, automationToggle) ++ StagingOnly(copyItem : VDomModifier)
 
   }
 
