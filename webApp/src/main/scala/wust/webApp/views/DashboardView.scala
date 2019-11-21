@@ -19,6 +19,7 @@ import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{BrowserDetect, Elements, UI}
 
 import scala.collection.breakOut
+import scala.scalajs.js.UndefOr
 
 // Shows overview over a project:
 // - subprojects
@@ -209,28 +210,41 @@ object DashboardView {
     import scala.scalajs.js.`|`
     import scala.scalajs.js.JSConverters._
 
-    val canvasData = Rx {
+    case class CanvasDataContainer(label: String, labelColor: RGB, dataPoints: Double)
+    val rawCanvasData = Rx {
       val graph = GlobalState.graph()
 
-      val inboxSize = KanbanData.inboxNodesCount(graph, traverseState)
+      val uncategorizedColumn = CanvasDataContainer(
+        label = "Uncategorized",
+        labelColor = BaseColors.kanbanColumnBg.rgb,
+        dataPoints = KanbanData.inboxNodesCount(graph, traverseState)
+      )
 
       //TODO: check whether a column hast nested stages
-      val activeStages = KanbanData.columnNodes(graph, traverseState).collect{case n if n._2 == NodeRole.Stage => graph.nodesByIdOrThrow(n._1 )}
-      val stagesChildren = activeStages.map(node => (node.str, graph.notDeletedChildrenIdx(graph.idToIdxOrThrow(node.id)).length))
+      uncategorizedColumn +: KanbanData.columnNodes(graph, traverseState).collect {
+        case n if n._2 == NodeRole.Stage =>
+          val node = graph.nodesByIdOrThrow(n._1 )
+          val (stageName, stageChildren) = (node.str, graph.notDeletedChildrenIdx(graph.idToIdxOrThrow(node.id)).length: Double)
 
-      val stagesLabels: js.Array[String | js.Array[String]] = stagesChildren.map(x => (x._1): String | js.Array[String])(breakOut)
-      val stagesNum: js.Array[js.UndefOr[ChartPoint | Double | Null]] = stagesChildren.map(x => js.defined[ChartPoint | Double | Null](x._2))(breakOut)
-      val stageColor: js.Array[RGB] = activeStages.map(n => BaseColors.kanbanColumnBg.copy(h = NodeColor.hue(n.id)).rgb)(breakOut)
-
-      (
-        js.Array[String | js.Array[String]]("Uncategorized")                    ++ stagesLabels,
-        js.Array[js.UndefOr[ChartPoint | Double | Null]](js.defined(inboxSize: Double)) ++ stagesNum,
-        js.Array[RGB](BaseColors.kanbanColumnBg.rgb)                                    ++ stageColor
-      )
+          CanvasDataContainer(
+            label = stageName,
+            labelColor = BaseColors.kanbanColumnBg.copy(h = NodeColor.hue(node.id)).rgb,
+            dataPoints = stageChildren
+          )
+      }
     }
 
     div(
-      canvasData.map { case (chartLabels, chartPoints, chartColor) =>
+      rawCanvasData.map { rawDataContainer =>
+        val (chartLabels, chartPoints, chartColors) = {
+          val data = rawDataContainer.unzip3 { rawData =>
+            val labels: String | js.Array[String] = (rawData.label: String | js.Array[String])
+            val points: js.UndefOr[ChartPoint | Double | Null] = js.defined[ChartPoint | Double | Null](rawData.dataPoints)
+            (labels, points, rawData.labelColor)
+          }
+          (data._1.toJSArray, data._2.toJSArray, data._3.toJSArray)
+        }
+
         Elements.chartCanvas {
           ChartConfiguration(
             `type` = "bar",
@@ -239,8 +253,8 @@ object DashboardView {
               datasets = js.Array(new ChartDataSets {
                 label = "# of Tasks per Column"
                 data = chartPoints
-                backgroundColor = chartColor.map(c => s"rgba(${c.ri}, ${c.gi}, ${c.bi}, 0.2)")
-                borderColor = chartColor.map(_.toCSS)
+                backgroundColor = chartColors.map(c => s"rgba(${c.ri}, ${c.gi}, ${c.bi}, 0.2)")
+                borderColor = chartColors.map(_.toCSS)
                 borderWidth = 1.0
               })
             },
