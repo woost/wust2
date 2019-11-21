@@ -60,6 +60,10 @@ object AuthView {
       }
     }
 
+    GlobalState.user.foreach { user =>
+      userValue.update(_.copy(username = user.name))
+    }
+
     div(
       Styles.flex,
       overflow.auto,
