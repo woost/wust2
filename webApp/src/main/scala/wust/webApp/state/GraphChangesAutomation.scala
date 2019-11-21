@@ -577,7 +577,7 @@ object GraphChangesAutomation {
     // that we copy the edge structure that the template node had.
     graph.edges.foreach {
       //TODO: we might need them if we want to copy automations..., need to figure out which ones are from this template and which ones are from the others...
-      case _: Edge.DerivedFromTemplate                                     => () // do not copy derived info, we get new derive infos for new nodes
+      case _: Edge.DerivedFromTemplate if !isFullCopy                                    => () // do not copy derived info, we get new derive infos for new nodes
       case _: Edge.ReferencesTemplate  if !isFullCopy                                   => () // do not copy reference info, we only want this on the template node
 
       case _: Edge.Member  if isFullCopy                                   => () // do not copy member if doing full copy
