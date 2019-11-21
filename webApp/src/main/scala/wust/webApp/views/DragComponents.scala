@@ -66,7 +66,7 @@ object DragComponents {
       VDomModifier(
         //TODO: draggable bug: draggable sets display:none, then does not restore the old value https://github.com/Shopify/draggable/issues/318
         cls := "draggable", // makes this element discoverable for the Draggable library
-        cls := "drag-feedback", // visual feedback for drag-start
+        VDomModifier.ifNot(payload == DragItem.DisableDrag)(cls := "drag-feedback"), // visual feedback for drag-start
         VDomModifier.ifTrue(disableDrag)(cursor.auto), // overwrites cursor set by .draggable class
         prop(DragItem.payloadPropName) := (() => payload),
         prop(DragItem.targetPropName) := (() => target),
@@ -79,7 +79,7 @@ object DragComponents {
     ): VDomModifier = {
       VDomModifier(
         // This element becomes the draghandle itself
-        dragHandleModifier,
+        VDomModifier.ifNot(payload == DragItem.DisableDrag)(dragHandleModifier),
         DragComponents.dragWithHandle(payload, target),
       )
     }
