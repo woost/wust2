@@ -386,6 +386,7 @@ object MembersModal {
                 minWidth := "250px",
               ),
               inputModifiers = VDomModifier(
+                value <-- clear.map(_ => ""),
                 onDomMount.asHtml.foreach { e => inputElement = e.asInstanceOf[dom.html.Input] },
                 tpe := "email",
                 flex := "1",
