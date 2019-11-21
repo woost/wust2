@@ -46,17 +46,21 @@ object LeftSidebar {
 
         GenericSidebar.Config(
           mainModifier = VDomModifier(
-            registerDragContainer(DragContainer.Sidebar),
-            drag(target = DragItem.Sidebar)
           ),
           openModifier = VDomModifier(
             header.apply(Styles.flexStatic),
             div(
               Styles.flex,
               flexDirection.column,
+              height := "100%",
               minHeight := "100px",
+
               channels(filteredToplevelChannels, sidebarWithProjects, sidebarFilter, enableDragging).append(),
               invitations(invites).apply(Styles.flexStatic),
+
+              registerDragContainer(DragContainer.Sidebar),
+              drag(target = DragItem.Sidebar),
+
               div(
                 Styles.flexStatic,
                 Styles.flex,
@@ -152,7 +156,11 @@ object LeftSidebar {
           closedModifier = Some(VDomModifier(
             minWidth := s"${minWidthSidebar}px", // this is needed when the hamburger is not rendered inside the sidebar
             hamburger,
+
             channelIcons(toplevelChannels, minWidthSidebar),
+
+            registerDragContainer(DragContainer.Sidebar),
+            drag(target = DragItem.Sidebar),
           ))
         )
       }
