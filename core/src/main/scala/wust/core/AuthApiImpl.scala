@@ -69,12 +69,12 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow, oAut
         state.auth.flatMap(_.dbUserOpt) match {
           case Some(AuthUser.Implicit(prevUserId, _, _, _)) =>
             db.ctx.transaction { implicit ec =>
-              db.user.mergeImplicitUser(prevUserId, user.id).map {
-                case true =>
+              db.user.mergeImplicitUser(prevUserId, user.id, user.data.name).map {
+                case Some(user) =>
                   resultOnVerifiedAuthAfterLogin(user, replaces = Some(prevUserId)).map { _ =>
                     AuthResult.Success
                   }
-                case false =>
+                case None =>
                   scribe.warn("Failed to merge implicit user for login: " + user)
                   Returns.error(ApiError.InternalServerError)
               }
@@ -96,10 +96,10 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow, oAut
         state.auth.flatMap(_.dbUserOpt) match {
           case Some(AuthUser.Implicit(prevUserId, _, _, _)) =>
             db.ctx.transaction { implicit ec =>
-              db.user.mergeImplicitUser(prevUserId, user.id).map {
-                case true =>
+              db.user.mergeImplicitUser(prevUserId, user.id, user.data.name).map {
+                case Some(user) =>
                   resultOnVerifiedAuthAfterLogin(user, replaces = Some(prevUserId)).map { auth => Some(auth) }
-                case false =>
+                case None =>
                   scribe.warn("Failed to merge implicit user for login: " + user)
                   Returns.error(ApiError.InternalServerError)
               }
@@ -220,7 +220,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow, oAut
       case Some(tokenUser: AuthUser.Implicit) => db.ctx.transaction { implicit ec =>
         for {
             Some(_) <- db.user.checkIfEqualUserExists(tokenUser)
-            true <- db.user.mergeImplicitUser(implicitId = tokenUser.id, userId = user.id)
+            Some(user) <- db.user.mergeImplicitUser(implicitId = tokenUser.id, userId = user.id, userName = user.name)
           } yield Returns((), Seq(ReplaceNode(tokenUser.id, user.toNode)))
       }
       case _ => Future.successful(Returns.error(ApiError.Forbidden))

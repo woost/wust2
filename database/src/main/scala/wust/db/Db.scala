@@ -392,19 +392,28 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
         })
     }
 
-    def mergeImplicitUser(implicitId: UserId, userId: UserId)(implicit ec: TransactionalExecutionContext ): Future[Boolean] = {
-      if (implicitId == userId) Future.successful(true)
-      else get(implicitId).flatMap { user =>
-        val isAllowed: Boolean = user.fold(false)(_.data.isImplicit)
-        if (isAllowed) {
-          val q = quote {
-            infix"""select mergeFirstUserIntoSecond(${lift(implicitId)}, ${lift(userId)})"""
-              .as[Delete[User]]
+    def mergeImplicitUser(implicitId: UserId, userId: UserId, userName: String)(implicit ec: TransactionalExecutionContext ): Future[Option[User]] = {
+      if (implicitId == userId) Future.successful(None)
+      else get(implicitId).flatMap {
+        case Some(user) if user.data.isImplicit =>
+          val setUserName = if (userName.isEmpty) ctx.run(
+            infix"update node set data = node.data || jsonb_build_object('name', ${lift(user.data.name)}::text) where node.id = ${lift(userId)}".as[Update[Node]]
+          ).map(_ => ()) else Future.successful(())
+
+          setUserName.flatMap { _ =>
+            val q = quote {
+              infix"""select mergeFirstUserIntoSecond(${lift(implicitId)}, ${lift(userId)})"""
+                .as[Delete[User]]
+            }
+
+            ctx.run(q).flatMap { numberInserts =>
+              checkUnexpected(numberInserts == 1, (), s"Unexpected number of mergeUser inserts: $numberInserts / 1").flatMap { _ =>
+                get(userId) // TODO; should be done in query...
+              }
+            }
           }
-          ctx.run(q).flatMap { numberInserts =>
-            checkUnexpected(numberInserts == 1, true, s"Unexpected number of mergeUser inserts: $numberInserts / 1")
-          }
-        } else Future.successful(false)
+        case _ =>
+          Future.successful(None)
       }
     }
 
