@@ -159,22 +159,34 @@ class EventProcessor private (
     obs.runToFuture
   }
 
-  case class ChangesIndex(changes: GraphChanges, index: Long, retries: Int)
-  private val localChangesIndexed: Observable[(GraphChanges, Long)] = Observable(localChanges, localChangesRemoteOnly).merge.zipWithIndex.map{ case (c, i) => ChangesIndex(c, i)).asyncBoundary(Unbounded)
+  case class ChangesIndex(changes: GraphChanges, index: Long)
+  private val localChangesIndexed: Observable[ChangesIndex] =
+    Observable(localChanges, localChangesRemoteOnly).merge.zipWithIndex.map{ case (c, i) => ChangesIndex(c, i) }.asyncBoundary(Unbounded)
 
-  private val sendingChanges: Observable[Long] = {
+  case class SendChangesStatus(index: Long, success: Boolean)
+  private val sendingChanges: Observable[SendChangesStatus] = {
+    case class ChangesIndexRetried(changes: List[GraphChanges], index: Long, retries: Int = 0)
+
     val localChangesIndexedBusy = localChangesIndexed.bufferIntrospective(maxSize = 10)
-      .map(list => (list.map(_._1), list.last._2))
+      .map(list => ChangesIndexRetried(list.map(_.changes), list.last.index))
 
     Observable.tailRecM(localChangesIndexedBusy.delayOnNext(500 millis)) { changes =>
-      changes.flatMap {
-        case (c, idx) =>
-          Observable.fromFuture(sendChangesAndLog(c)).map {
-            case SendChangeResult.Success => Right(idx)
-            // case SendChangeResult.Rejected => 
-            case _ =>
+      changes.flatMap { c =>
+          Observable.fromFuture(sendChangesAndLog(c.changes)).map {
+            case SendChangeResult.Success => Right(SendChangesStatus(c.index, success = true))
+            case SendChangeResult.Rejected => Right(SendChangesStatus(c.index, success = false)) //TODO: and now what, wecould not send the changes
+
+            case SendChangeResult.Error(error) => error match {
+              case ApiError.IncompatibleApi => Right(SendChangesStatus(c.index, success = false))
+              case ApiError.InternalServerError =>
+                // TODO delay with exponential backoff
+                Left(Observable(c).sample(5 seconds))
+              case ApiError.Unauthorized => Right(SendChangesStatus(c.index, success = false))
+              case ApiError.Forbidden => Right(SendChangesStatus(c.index, success = false))
+            }
+            case SendChangeResult.UnexpectedError(t) =>
               // TODO delay with exponential backoff
-              Left(Observable((c, idx)).sample(5 seconds))
+              Left(Observable(c).sample(5 seconds))
           }
       }
     }.share
@@ -203,7 +215,8 @@ class EventProcessor private (
   )
 
   val changesInTransit: Observable[List[GraphChanges]] = localChangesIndexed
-    .combineLatest[Long](sendingChanges.startWith(Seq(-1)))
+    .map(c => (c.changes, c.index))
+    .combineLatest[Long](sendingChanges.map(_.index).prepend(-1L))
     .scan(List.empty[(GraphChanges, Long)]) {
       case (prevList, (nextLocal, sentIdx)) =>
         (prevList :+ nextLocal) collect { case t @ (_, idx) if idx > sentIdx => t }
