@@ -3,6 +3,7 @@ package wust.webApp.views
 import outwatch.dom.VDomModifier
 import wust.webApp.Icons
 import wust.webUtil.outwatchHelpers._
+import wust.webApp.state.GlobalState
 
 
 sealed trait ViewGraphTransformation{
@@ -52,7 +53,7 @@ object ViewGraphTransformation {
     case object onlyAssignedTo extends ViewGraphTransformation {
       def icon = Icons.task
       def description = s"Show items assigned to me"
-      def transform = GraphOperation.OnlyAssignedTo
+      def transform = GraphOperation.OnlyAssignedTo(GlobalState.userId.now)
     }
     case object onlyNotAssigned extends ViewGraphTransformation {
       def icon = Icons.task

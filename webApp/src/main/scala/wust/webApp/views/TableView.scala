@@ -317,7 +317,7 @@ object TableView {
 
           sort() = None // reset sorting again, so the new node appears at the bottom :)
           val addNode = GraphChanges.addNodeWithParent(newNode, ParentId(focusedId))
-          val addTags = ViewFilter.addCurrentlyFilteredTags(newNode.id)
+          val addTags = ViewFilter.addCurrentlyFilteredTagsAndAssignments(newNode.id)
           GlobalState.submitChanges(addNode merge addTags merge sub.changes(newNode.id))
 
           ()

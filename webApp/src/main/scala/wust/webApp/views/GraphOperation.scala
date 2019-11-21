@@ -68,7 +68,7 @@ object GraphOperation {
     }
   }
 
-  case object OnlyAssignedTo extends UserViewGraphTransformation {
+  final case class OnlyAssignedTo(userId: UserId) extends UserViewGraphTransformation {
     def filterWithViewData(pageIdx: Option[Int], userIdx: Int, graph: Graph): EdgeFilter = {
       Some({ (_, edgeIdx) =>
         val childIdx = graph.edgesIdx.b(edgeIdx)

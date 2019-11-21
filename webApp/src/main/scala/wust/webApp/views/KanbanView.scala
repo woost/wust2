@@ -363,7 +363,7 @@ object KanbanView {
       val graph = GlobalState.graph.now
       val workspaces = graph.workspacesForParent(graph.idToIdxOrThrow(nodeId)).viewMap(idx => ParentId(graph.nodeIds(idx)))
       val addNode = GraphChanges.addNodeWithParent(createdNode, (workspaces :+ ParentId(nodeId)).distinct)
-      val addTags = ViewFilter.addCurrentlyFilteredTags( createdNode.id)
+      val addTags = ViewFilter.addCurrentlyFilteredTagsAndAssignments( createdNode.id)
 
       GlobalState.submitChanges(addNode merge addTags merge sub.changes(createdNode.id))
       FeatureState.use(Feature.CreateTaskInKanban)

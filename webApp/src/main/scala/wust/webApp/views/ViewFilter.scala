@@ -3,10 +3,11 @@ package wust.webApp.views
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.graph.GraphChanges
+import wust.graph.{GraphChanges, Edge}
 import wust.ids._
 import wust.webApp.state.{FeatureState, GlobalState, ScreenSize}
 import wust.webUtil.outwatchHelpers._
+import collection.mutable
 
 object ViewFilter {
 
@@ -37,13 +38,16 @@ object ViewFilter {
     )
   }
 
-  def addCurrentlyFilteredTags(nodeId: NodeId) = {
-    val currentTagFilters: Seq[ParentId] = {
-      GlobalState.graphTransformations.now.collect {
-        case GraphOperation.OnlyTaggedWith(tagId) => ParentId(tagId)
-      }
+  def addCurrentlyFilteredTagsAndAssignments(nodeId: NodeId) = {
+    val tagFilters = new mutable.ArrayBuilder.ofRef[ParentId]
+    val assignmentFilters = new mutable.ArrayBuilder.ofRef[UserId]
+    GlobalState.graphTransformations.now.foreach {
+      case GraphOperation.OnlyTaggedWith(tagId) => tagFilters += ParentId(tagId)
+      case GraphOperation.OnlyAssignedTo(userId) => assignmentFilters += userId
+      case _ =>
     }
-    GraphChanges.addToParents(ChildId(nodeId), currentTagFilters)
+    GraphChanges.addToParents(ChildId(nodeId), tagFilters.result()) merge
+    GraphChanges.connect(Edge.Assigned)(nodeId, assignmentFilters.result())
   }
 
   def filterBySearchInputWithIcon(implicit ctx: Ctx.Owner) = {
