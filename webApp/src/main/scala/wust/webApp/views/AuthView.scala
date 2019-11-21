@@ -94,7 +94,6 @@ object AuthView {
               value <-- userValue.map(_.username),
               tpe := "text",
               required := true,
-              attr("autocomplete") := "name",
               display.block,
               margin := "auto",
               onInput.value foreach { str => userValue.update(_.copy(username = str.trim)) },
