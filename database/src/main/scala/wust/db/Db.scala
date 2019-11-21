@@ -278,10 +278,22 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       ).map(_ == 1)
     }
     def getAll(userId: UserId)(implicit ec: ExecutionContext): Future[Seq[NodeTemplate]] = {
-      ctx.run(query[NodeTemplate].filter(t => canAccessNodeQuery(t.nodeId, lift(userId))))
+      // we are not checking node can access but only whether the template is public read
+      val q = quote(for {
+        t <- query[NodeTemplate]
+        p <- query[NodeRaw].join(n => n.id == t.nodeId && n.accessLevel == lift(NodeAccess.Read: NodeAccess))
+      } yield t)
+
+      ctx.run(q)
     }
     def get(userId: UserId, name: TemplateName)(implicit ec: ExecutionContext): Future[Option[NodeTemplate]] = {
-      ctx.run(query[NodeTemplate].filter(t => t.name == lift(name) && canAccessNodeQuery(t.nodeId, lift(userId)))).map(_.headOption)
+      // we are not checking node can access but only whether the template is public read
+      val q = quote(for {
+        t <- query[NodeTemplate].filter(t => t.name == lift(name))
+        p <- query[NodeRaw].join(n => n.id == t.nodeId && n.accessLevel == lift(NodeAccess.Read: NodeAccess))
+      } yield t)
+
+      ctx.run(q).map(_.headOption)
     }
 
     private val canAccessNodeQuery = quote { (nodeId: NodeId, userId: UserId) =>
