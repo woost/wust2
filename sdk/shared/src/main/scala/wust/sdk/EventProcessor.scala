@@ -159,7 +159,8 @@ class EventProcessor private (
     obs.runToFuture
   }
 
-  private val localChangesIndexed: Observable[(GraphChanges, Long)] = Observable(localChanges, localChangesRemoteOnly).merge.zipWithIndex.asyncBoundary(Unbounded)
+  case class ChangesIndex(changes: GraphChanges, index: Long, retries: Int)
+  private val localChangesIndexed: Observable[(GraphChanges, Long)] = Observable(localChanges, localChangesRemoteOnly).merge.zipWithIndex.map{ case (c, i) => ChangesIndex(c, i)).asyncBoundary(Unbounded)
 
   private val sendingChanges: Observable[Long] = {
     val localChangesIndexedBusy = localChangesIndexed.bufferIntrospective(maxSize = 10)
@@ -168,10 +169,10 @@ class EventProcessor private (
     Observable.tailRecM(localChangesIndexedBusy.delayOnNext(500 millis)) { changes =>
       changes.flatMap {
         case (c, idx) =>
-          Observable.fromFuture(sendChanges(c)).map {
-            case true =>
-              Right(idx)
-            case false =>
+          Observable.fromFuture(sendChangesAndLog(c)).map {
+            case SendChangeResult.Success => Right(idx)
+            // case SendChangeResult.Rejected => 
+            case _ =>
               // TODO delay with exponential backoff
               Left(Observable((c, idx)).sample(5 seconds))
           }
@@ -213,45 +214,54 @@ class EventProcessor private (
   sealed trait SendChangeResult
   object SendChangeResult {
     case object Success extends SendChangeResult
-    case object Fail extends SendChangeResult
-    case object NotConnected extends SendChangeResult
+    sealed trait Failure extends SendChangeResult
+    case class Error(error:ApiError) extends Failure
+    case class UnexpectedError(error:Throwable) extends Failure
+    case object Rejected extends Failure
   }
 
-  private def sendChanges(changes: Seq[GraphChanges]): Future[Boolean] = {
-    //TODO: why is import wust.util._ not enough to resolve RichFuture?
-    // We only need it for the 2.12 polyfill
-    new wust.util.RichFuture(sendChange(changes.toList)).transform {
-      case Success(success) =>
-        if (!success) {
-          scribe.warn(s"ChangeGraph request returned false: $changes")
-          analyticsTrackError("ChangeGraph request returned false", s"$changes")
-        }
+  private def logSendChangeResult(changes: Seq[GraphChanges], result: SendChangeResult): Unit = result match {
+    case SendChangeResult.Success => ()
+    case SendChangeResult.Error(error) => error match {
+      case ApiError.Forbidden =>
+        scribe.warn(s"ChangeGraph request forbidden, will ignore changes: $changes")
+        analyticsTrackError("Changes Forbidden", "forbidden")
 
-        Success(success)
+        forbiddenChangesSubject.onNext(changes)
+        //TODO: we should prompt user for errors and notify him of problem. for now just accept, these changes will be lost.
+        //TODO: stop processing, prompt for reload. case ApiError.IncompatibleApi =>
+
+      case error =>
+        scribe.warn(s"ChangeGraph request with error respoonse '${error}': $changes")
+        analyticsTrackError("ChangeGraph request with error respoonse", s"'${error}': $changes")
+    }
+    case SendChangeResult.UnexpectedError(t) =>
+
+      scribe.warn(s"ChangeGraph request failed '${t}': $changes")
+      analyticsTrackError("ChangeGraph request failed", s"'${t}': $changes")
+    case SendChangeResult.Rejected =>
+      scribe.warn(s"ChangeGraph request returned false: $changes")
+      analyticsTrackError("ChangeGraph request returned false", s"$changes")
+  }
+
+  private def sendChangesRecovered(changes: Seq[GraphChanges]): Future[SendChangeResult] = {
+    sendChange(changes.toList).transform {
+      case Success(true) => Success(SendChangeResult.Success)
+      case Success(false) => Success(SendChangeResult.Rejected)
       case Failure(t) =>
         t match {
           case e: covenant.ws.WsClient.ErrorException[ApiError @unchecked] =>
-            e.error match {
-              case ApiError.Forbidden =>
-                scribe.warn(s"ChangeGraph request forbidden, will ignore changes: $changes")
-                analyticsTrackError("Changes Forbidden", "forbidden")
-
-                forbiddenChangesSubject.onNext(changes)
-
-                Success(true) //TODO: we should prompt user for errors and notify him of problem. for now just accept, these changes will be lost.
-
-              //TODO: stop processing, prompt for reload. case ApiError.IncompatibleApi =>
-
-              case _ =>
-                scribe.warn(s"ChangeGraph request with error respoonse '${e.error}': $changes")
-                analyticsTrackError("ChangeGraph request with error respoonse", s"'${e.error}': $changes")
-                Success(false)
-            }
-          case _ =>
-            scribe.warn(s"ChangeGraph request failed '${t}': $changes")
-            analyticsTrackError("ChangeGraph request failed", s"'${t}': $changes")
-            Success(false)
+            Success(SendChangeResult.Error(e.error))
+          case e =>
+            Success(SendChangeResult.UnexpectedError(e))
         }
+    }
+  }
+
+  private def sendChangesAndLog(changes: Seq[GraphChanges]): Future[SendChangeResult] = {
+    sendChangesRecovered(changes).map { r =>
+      logSendChangeResult(changes, r)
+      r
     }
   }
 }
