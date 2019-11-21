@@ -161,33 +161,33 @@ class EventProcessor private (
 
   case class ChangesIndex(changes: GraphChanges, index: Long)
   private val localChangesIndexed: Observable[ChangesIndex] =
-    Observable(localChanges, localChangesRemoteOnly).merge.zipWithIndex.map{ case (c, i) => ChangesIndex(c, i) }.asyncBoundary(Unbounded)
+    Observable(localChanges, localChangesRemoteOnly).merge
+      .zipWithIndex.map{ case (c, i) => ChangesIndex(c, i) }
+      .asyncBoundary(Unbounded)
 
-  case class SendChangesStatus(index: Long, success: Boolean)
-  private val sendingChanges: Observable[SendChangesStatus] = {
-    case class ChangesIndexRetried(changes: List[GraphChanges], index: Long, retries: Int = 0)
+  case class SendChangesStatus(changes: GraphChanges, index: Long, success: Boolean)
+  val sendingChanges: Observable[SendChangesStatus] = {
+    Observable.tailRecM(localChangesIndexed.map(_ -> 0).delayOnNext(500 millis)) { changes =>
+      changes.flatMap { case (c, retries) =>
+        val maxRetries = 3
+        @inline def success = Right(SendChangesStatus(c.changes, c.index, success = true))
+        @inline def failure = Right(SendChangesStatus(c.changes, c.index, success = false))
+        @inline def retry = {
+          if (retries >= maxRetries) failure
+          else Left(Observable(c -> (retries + 1)).sample(Math.pow(3, (retries + 1)) seconds))
+        }
 
-    val localChangesIndexedBusy = localChangesIndexed.bufferIntrospective(maxSize = 10)
-      .map(list => ChangesIndexRetried(list.map(_.changes), list.last.index))
-
-    Observable.tailRecM(localChangesIndexedBusy.delayOnNext(500 millis)) { changes =>
-      changes.flatMap { c =>
-          Observable.fromFuture(sendChangesAndLog(c.changes)).map {
-            case SendChangeResult.Success => Right(SendChangesStatus(c.index, success = true))
-            case SendChangeResult.Rejected => Right(SendChangesStatus(c.index, success = false)) //TODO: and now what, wecould not send the changes
-
-            case SendChangeResult.Error(error) => error match {
-              case ApiError.IncompatibleApi => Right(SendChangesStatus(c.index, success = false))
-              case ApiError.InternalServerError =>
-                // TODO delay with exponential backoff
-                Left(Observable(c).sample(5 seconds))
-              case ApiError.Unauthorized => Right(SendChangesStatus(c.index, success = false))
-              case ApiError.Forbidden => Right(SendChangesStatus(c.index, success = false))
-            }
-            case SendChangeResult.UnexpectedError(t) =>
-              // TODO delay with exponential backoff
-              Left(Observable(c).sample(5 seconds))
+        Observable.fromFuture(sendChangesAndLog(c.changes :: Nil)).map {
+          case SendChangeResult.Success => success
+          case SendChangeResult.Rejected => failure
+          case SendChangeResult.Error(error) => error match {
+            case ApiError.IncompatibleApi => failure
+            case ApiError.InternalServerError => retry
+            case ApiError.Unauthorized => failure
+            case ApiError.Forbidden => failure
           }
+          case SendChangeResult.UnexpectedError(t) => retry
+        }
       }
     }.share
   }
