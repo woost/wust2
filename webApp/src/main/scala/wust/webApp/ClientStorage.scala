@@ -1,5 +1,8 @@
 package wust.webApp
 
+import wust.webApp.jsdom.Base64Codec
+import wust.api.serialize.Boopickle._
+import boopickle.Default._
 import wust.facades.jsSha256.Sha256
 import wust.util.Memo
 import wust.ids._
@@ -62,17 +65,19 @@ class ClientStorage(implicit owner: Ctx.Owner) {
     } else Var(None)
   }
 
-  private def graphChangeToHash(json:String):String = Sha256.sha224(json)
+  private def graphChangeToHash(serialized:String):String = Sha256.sha224(serialized)
+  private def encodeBoopickleBase64(change: GraphChanges):String = Base64Codec.encode(Pickle.intoBytes(change))
+  private def decodeBoopickleBase64(encoded: String):Option[GraphChanges] = Try(Unpickle[GraphChanges].fromBytes(Base64Codec.decode(encoded))).toOption
 
   def addPendingGraphChange(userId: UserId, change:GraphChanges) = {
-    val changeJson = toJson(change)
-    val key = graphChangeToHash(changeJson)
-    pendingChanges(userId).update(_.updated(key, changeJson))
+    val changeSerialized = encodeBoopickleBase64(change)
+    val key = graphChangeToHash(changeSerialized)
+    pendingChanges(userId).update(_.updated(key, changeSerialized))
   }
 
   def deletePendingGraphChanges(userId: UserId, changes:GraphChanges) = {
-    val changeJson = toJson(changes)
-    val key = graphChangeToHash(changeJson)
+    val changeSerialized = encodeBoopickleBase64(changes)
+    val key = graphChangeToHash(changeSerialized)
     pendingChanges(userId).update(_ - key)
   }
 
@@ -81,13 +86,13 @@ class ClientStorage(implicit owner: Ctx.Owner) {
     val invalidKeysBuilder = mutable.ListBuffer.empty[String]
     val validDecodedBuilder = mutable.ListBuffer.empty[GraphChanges]
     all.foreach { case(key, encoded) =>
-      decode[GraphChanges](encoded) match {
-        case Left(error) => 
+      decodeBoopickleBase64(encoded) match {
+        case None => 
           invalidKeysBuilder += key
           val errorId = NodeId.fresh().toUuid.toString
           Segment.trackError("Failed to decode pending GraphChange", s"${errorId}")
-          Client.api.log(s"Failed to decode pending GraphChange: errorId=$errorId, msg=$error, change=$encoded")
-        case Right(valid) => 
+          Client.api.log(s"Failed to decode pending GraphChange: errorId=$errorId, change=$encoded")
+        case Some(valid) => 
           validDecodedBuilder += valid
       }
     }
