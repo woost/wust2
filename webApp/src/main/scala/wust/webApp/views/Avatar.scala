@@ -4,12 +4,15 @@ import java.lang.Math._
 
 import colorado.HCL
 import outwatch.dom.{VNode, _}
+import outwatch.reactive.SourceStream
 import wust.graph.Node
 import wust.sdk.NodeColor.genericHue
 import wust.webApp.Client
 import wust.webApp.dragdrop.DragItem
+import wust.webApp.state.GlobalState
 import wust.webApp.views.DragComponents.drag
 import wust.webUtil.outwatchHelpers._
+import outwatch.reactive.handler._
 
 import scala.scalajs.js
 
@@ -17,7 +20,7 @@ object Avatar {
   import dsl._
   //TODO: less-angry rainbow? https://bl.ocks.org/mbostock/310c99e53880faec2434
 
-  def user(user: Node.User, size: String, enableDrag: Boolean = true) = {
+  def user(user: Node.User, size: String, enableDrag: Boolean = true, enableClickFilter: Boolean = false) = {
     val vnode = user.data.imageFile match {
       case None => verticalMirror(user.id, 5)
       case Some(key) =>
@@ -30,11 +33,25 @@ object Avatar {
         )
     }
 
+    val filterOnOtherAvatar = SourceStream.map(GlobalState.graphTransformations)(_.exists(gt => gt.isInstanceOf[GraphOperation.OnlyAssignedTo] && gt.asInstanceOf[GraphOperation.OnlyAssignedTo].userId != user.id))
+
     vnode.append(
       cls := "avatar",
       width := size,
       height := size,
-      VDomModifier.ifTrue(enableDrag)(drag(payload = DragItem.User(user.id)))
+      filterOnOtherAvatar.map(VDomModifier.ifTrue(_)(opacity := 0.2)),
+      VDomModifier.ifTrue(enableDrag)(drag(payload = DragItem.User(user.id))),
+      VDomModifier.ifTrue(enableClickFilter)(
+        onClick.stopPropagation.use(user.id).map { uid =>
+          val gts: Seq[UserViewGraphTransformation] = GlobalState.graphTransformations.now
+          val base = gts.find(gt => gt.isInstanceOf[GraphOperation.OnlyAssignedTo] && gt.asInstanceOf[GraphOperation.OnlyAssignedTo].userId == uid)
+          base.fold(
+            gts.filterNot(_.isInstanceOf[GraphOperation.OnlyAssignedTo]) :+ GraphOperation.OnlyAssignedTo(uid)
+          )(
+            gt => gts.filterNot(_ == gt)
+          )
+        } --> GlobalState.graphTransformations,
+      ),
     )
   }
 

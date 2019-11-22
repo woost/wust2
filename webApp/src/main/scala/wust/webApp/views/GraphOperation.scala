@@ -72,7 +72,7 @@ object GraphOperation {
     def filterWithViewData(pageIdx: Option[Int], userIdx: Int, graph: Graph): EdgeFilter = {
       Some({ (_, edgeIdx) =>
         val childIdx = graph.edgesIdx.b(edgeIdx)
-        graph.nodes(childIdx).role != NodeRole.Task || graph.assignedUsersIdx.contains(childIdx)(userIdx)
+        graph.nodes(childIdx).role != NodeRole.Task || graph.assignedUsersIdx.contains(childIdx)(graph.idToIdxOrThrow(userId))
       })
     }
   }

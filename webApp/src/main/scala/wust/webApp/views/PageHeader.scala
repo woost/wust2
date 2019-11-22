@@ -73,7 +73,7 @@ object PageHeader {
     val channelMembersList = Rx {
       VDomModifier.ifTrue(GlobalState.screenSize() != ScreenSize.Small)(
         // line-height:0 fixes vertical alignment, minimum fit one member
-        SharedViewElements.channelMembers(pageNodeId).apply(marginLeft := "5px", lineHeight := "0", maxWidth := "200px")
+        SharedViewElements.channelMembers(pageNodeId, enableClickFilter = true).apply(marginLeft := "5px", lineHeight := "0", maxWidth := "200px")
       )
     }
 

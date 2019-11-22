@@ -488,7 +488,7 @@ object SharedViewElements {
     )
   }
 
-  def channelMembers(channelId: NodeId)(implicit ctx: Ctx.Owner) = {
+  def channelMembers(channelId: NodeId, enableClickFilter: Boolean = false)(implicit ctx: Ctx.Owner) = {
     val marginLeftPx = 2
     val sizePx = 22
     div(
@@ -504,7 +504,7 @@ object SharedViewElements {
         val members = graph.membersByIndex(nodeIdx)
 
         members.map(user => div(
-          Avatar.user(user, size = s"${sizePx}px")(
+          Avatar.user(user, size = s"${sizePx}px", enableClickFilter = enableClickFilter)(
             marginLeft := s"${marginLeftPx}px",
             marginTop := "1px",
             marginBottom := "1px",
