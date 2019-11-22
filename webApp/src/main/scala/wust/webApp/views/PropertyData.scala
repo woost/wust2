@@ -15,22 +15,28 @@ object PropertyData {
   final case class BasicInfo(node: Node, tags: Seq[Node.Content], stages: Seq[Node.Content], assignedUsers: Seq[Node.User], propertyMap: BasicMap[String, List[PropertyValue]], reverseProperties: Seq[Node]) {
     def isEmpty = tags.isEmpty && assignedUsers.isEmpty && propertyMap.isEmpty
   }
+
+  def getProperties(graph: Graph, nodeIdx: Int) = {
+    val properties = BasicMap.ofString[List[PropertyValue]]()
+    graph.propertiesEdgeIdx.foreachElement(nodeIdx) { idx =>
+      val edge = graph.edges(idx).as[Edge.LabeledProperty]
+      val value = PropertyValue(edge, graph.nodesByIdOrThrow(edge.propertyId).as[Node.Content])
+      properties.get(edge.data.key).fold {
+        properties += edge.data.key -> List(value)
+      } { props =>
+        properties += edge.data.key -> (value :: props)
+      }
+    }
+    properties
+  }
+
   object BasicInfo {
     def apply(graph: Graph, nodeIdx: Int): BasicInfo = {
       val node: Node = graph.nodes(nodeIdx)
       val tags: Array[Node.Content] = graph.tagParentsIdx.map(nodeIdx)(idx => graph.nodes(idx).as[Node.Content]).sortBy(_.data.str)
       val stages: Array[Node.Content] = graph.stageParentsIdx.map(nodeIdx)(idx => graph.nodes(idx).as[Node.Content]).sortBy(_.data.str)
       val assignedUsers: Array[Node.User] = graph.assignedUsersIdx.map(nodeIdx)(idx => graph.nodes(idx).as[Node.User])
-      val properties = BasicMap.ofString[List[PropertyValue]]()
-      graph.propertiesEdgeIdx.foreachElement(nodeIdx) { idx =>
-        val edge = graph.edges(idx).as[Edge.LabeledProperty]
-        val value = PropertyValue(edge, graph.nodesByIdOrThrow(edge.propertyId).as[Node.Content])
-        properties.get(edge.data.key).fold {
-          properties += edge.data.key -> List(value)
-        } { props =>
-          properties += edge.data.key -> (value :: props)
-        }
-      }
+      val properties = getProperties(graph, nodeIdx)
       val reverseProperties: Array[Node] = graph.propertiesEdgeReverseIdx.map(nodeIdx) { idx =>
         val nodeIdx = graph.edgesIdx.a(idx)
         graph.nodes(nodeIdx)

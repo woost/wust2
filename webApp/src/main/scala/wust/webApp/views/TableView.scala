@@ -38,6 +38,23 @@ object TableView {
   }
 
   def table(graph: Graph, focusState: FocusState, roles: List[NodeRole], sort: Var[Option[UI.ColumnSort]], viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VDomModifier = {
+
+    val node = Rx {
+      val g = GlobalState.rawGraph()
+      g.nodesById(focusState.focusedId)
+    }
+
+    val tableSettings = node.map(_.flatMap(_.settings).fold(TableSettings.default)(_.tableOrDefault))
+    val updateTableSettings: (TableSettings => TableSettings) => Unit = f => node.now.map {
+      case node: Node.Content =>
+        val newNode = node.updateSettings(_.updateTable(f))
+        GlobalState.submitChanges(GraphChanges.addNode(newNode))
+      case _                  => ()
+    }
+
+    // Toggle
+    val containsAnyNestedRef = Var(false) // Need to improve this
+
     val focusedId = focusState.focusedId
     val focusedIdx = graph.idToIdxOrThrow(focusedId)
 
@@ -103,228 +120,236 @@ object TableView {
             Icons.edit,
             onClick.stopPropagation.use(true) --> editMode
           )
-          case true => VDomModifier.empty
+          case true  => VDomModifier.empty
         }
       )
     }
 
-    val childrenIdxs: Array[Int] = {
-      val arr = graph.childrenIdx(focusedIdx).toArray
-      if (roles.isEmpty) arr else arr.filter { childrenIdx =>
-        val node = graph.nodes(childrenIdx)
-        roles.contains(node.role)
-      }
+    tableSettings.map { case TableSettings(showNested) =>
+      val childrenIdxs = if(showNested) {
+        val arr = graph.childrenIdx(focusedIdx)
+        val childrenPropertyIdxs = arr.map { childIdx =>
+          val propertyEdgeIdxsOfChild = graph.propertiesEdgeIdx(childIdx)
+          val propertyIdxsOfChild = propertyEdgeIdxsOfChild.map(graph.edgesIdx(_)._2)
+          val propertyIdxOfReferences = propertyIdxsOfChild.collect { case idx if graph.nodes(idx).role != NodeRole.Neutral => idx }
+          propertyIdxOfReferences
+        }
+        val propertyIdxs: IndexedSeq[Int] = childrenPropertyIdxs.flatten // childrenPropertyIdxs.map(childPropertiesIdxs => )
+        propertyIdxs.toArray
+      } else {
+        val arr = graph.childrenIdx(focusedIdx).toArray
+        if (roles.isEmpty) arr else arr.filter { childrenIdx =>
+          val node = graph.nodes(childrenIdx)
+          roles.contains(node.role)
+        }
     }
 
-    val propertyGroup = PropertyData.Group(graph, childrenIdxs)
+      val propertyGroup = PropertyData.Group(graph, childrenIdxs)
 
-    val nodeColumns: Seq[UI.Column] = {
-      val columns = new mutable.ArrayBuffer[UI.Column]
+      val nodeColumns: Seq[UI.Column] = {
+        val columns = new mutable.ArrayBuffer[UI.Column]
 
-      columns += UI.Column(
-        "#",
-        propertyGroup.infos.zipWithIndex.map {
-          case (property, idx) =>
-            UI.ColumnEntry(
-              idx,
-              VDomModifier(
-                backgroundColor := "#f9fafb", // same color as header of table
-                Components.sidebarNodeFocusVisualizeRightMod(GlobalState.rightSidebarNode, property.node.id),
-                Components.sidebarNodeFocusClickMod(property.node.id, focusState),
-                div(
-                  fontSize.xxSmall,
-                  idx + 1,
+        columns += UI.Column(
+          "#",
+          propertyGroup.infos.zipWithIndex.map {
+            case (property, idx) =>
+              UI.ColumnEntry(
+                idx,
+                VDomModifier(
+                  backgroundColor := "#f9fafb", // same color as header of table
+                  Components.sidebarNodeFocusVisualizeRightMod(GlobalState.rightSidebarNode, property.node.id),
+                  Components.sidebarNodeFocusClickMod(property.node.id, focusState),
+                  div(
+                    fontSize.xxSmall,
+                    idx + 1,
+                  )
+                ),
+                rowModifier = VDomModifier(
+                  Components.sidebarNodeFocusVisualizeMod(focusState.itemIsFocused(property.node.id)),
+                  DragItem.fromNodeRole(property.node.id, property.node.role).map(item => DragComponents.drag(target = item))
                 )
-              ),
-              rowModifier = VDomModifier(
-                Components.sidebarNodeFocusVisualizeMod(focusState.itemIsFocused(property.node.id)),
-                DragItem.fromNodeRole(property.node.id, property.node.role).map(item => DragComponents.drag(target = item))
               )
-            )
-        }(breakOut)
-      )
-
-      columns += UI.Column(
-        columnHeader("Name"),
-        propertyGroup.infos.map { property =>
-          columnEntryOfNodes(property.node.id, Array(None -> property.node))
-        }(breakOut)
-      )
-
-      if (propertyGroup.infos.exists(_.tags.nonEmpty))
-        columns += UI.Column(
-          columnHeader("Tags"),
-          propertyGroup.infos.map { property =>
-            columnEntryOfNodes(property.node.id, property.tags.map(None -> _))
           }(breakOut)
         )
 
-      if (propertyGroup.infos.exists(_.stages.nonEmpty))
         columns += UI.Column(
-          columnHeader("Stage"),
+          columnHeader("Name"),
           propertyGroup.infos.map { property =>
-            columnEntryOfNodes(property.node.id, property.stages.map(None -> _))
+            columnEntryOfNodes(property.node.id, Array(None -> property.node))
           }(breakOut)
         )
 
-      if (propertyGroup.infos.exists(_.assignedUsers.nonEmpty))
-        columns += UI.Column(
-          columnHeader("Assigned"),
-          propertyGroup.infos.map { property =>
-            columnEntryOfNodes(property.node.id, property.assignedUsers.map(None -> _))
-          }(breakOut)
-        )
+        if (propertyGroup.infos.exists(_.tags.nonEmpty))
+          columns += UI.Column(
+            columnHeader("Tags"),
+            propertyGroup.infos.map { property =>
+              columnEntryOfNodes(property.node.id, property.tags.map(None -> _))
+            }(breakOut)
+          )
 
-      columns
-    }
+        if (propertyGroup.infos.exists(_.stages.nonEmpty))
+          columns += UI.Column(
+            columnHeader("Stage"),
+            propertyGroup.infos.map { property =>
+              columnEntryOfNodes(property.node.id, property.stages.map(None -> _))
+            }(breakOut)
+          )
 
-    val propertyColumns: List[UI.Column] = propertyGroup.properties.map { property =>
-      val (predictedType, predictedShowOnCard) = property.groups.find(_.values.nonEmpty).fold((Option.empty[NodeTypeSelection], false)) { group =>
-        val value = group.values.head
-        val node = value.node
-        val edge = value.edge
-        val tpe = node.role match {
-          case NodeRole.Neutral => NodeTypeSelection.Data(node.data.tpe)
-          case _                => NodeTypeSelection.Ref
-        }
-        (Some(tpe), edge.data.showOnCard)
+        if (propertyGroup.infos.exists(_.assignedUsers.nonEmpty))
+          columns += UI.Column(
+            columnHeader("Assigned"),
+            propertyGroup.infos.map { property =>
+              columnEntryOfNodes(property.node.id, property.assignedUsers.map(None -> _))
+            }(breakOut)
+          )
+
+        columns
       }
-      UI.Column(
-        columnHeaderWithDelete(property.key, property.groups.flatMap(_.values.map(_.edge))),
-        property.groups.map { group =>
-          columnEntryOfNodes(group.node.id, group.values.map(v => Some(v.edge) -> v.node),
-            cellModifier = VDomModifier.ifTrue(group.values.isEmpty)(
-              cls := "grey",
-              display.tableCell, // needed because semantic ui rewrites the td cell to be inline-block, but that messes with our layout.
-              div(
-                Styles.growFull,
-                Styles.flex,
-                alignItems.center,
-                div(freeSolid.faPlus, cls := "fa-fw", marginLeft.auto, marginRight.auto),
+
+      val propertyColumns: List[UI.Column] = propertyGroup.properties.map { property =>
+        val (predictedType, predictedShowOnCard) = property.groups.find(_.values.nonEmpty).fold((Option.empty[NodeTypeSelection], false)) { group =>
+          val value = group.values.head
+          val node = value.node
+          val edge = value.edge
+          val tpe = node.role match {
+            case NodeRole.Neutral => NodeTypeSelection.Data(node.data.tpe)
+            case _                => containsAnyNestedRef() = true; NodeTypeSelection.Ref // TODO: Prevent sideeffect of containsAnyNestedRef here
+          }
+          (Some(tpe), edge.data.showOnCard)
+        }
+        UI.Column(
+          columnHeaderWithDelete(property.key, property.groups.flatMap(_.values.map(_.edge))),
+          property.groups.map { group =>
+            columnEntryOfNodes(group.node.id, group.values.map(v => Some(v.edge) -> v.node),
+              cellModifier = VDomModifier.ifTrue(group.values.isEmpty)(
+                cls := "grey",
+                display.tableCell, // needed because semantic ui rewrites the td cell to be inline-block, but that messes with our layout.
+                div(
+                  Styles.growFull,
+                  Styles.flex,
+                  alignItems.center,
+                  div(freeSolid.faPlus, cls := "fa-fw", marginLeft.auto, marginRight.auto),
+                ),
+                ItemProperties.managePropertiesDropdown(
+                  ItemProperties.Target.Node(group.node.id),
+                  ItemProperties.TypeConfig(prefilledType = predictedType, hidePrefilledType = true),
+                  ItemProperties.EdgeFactory.labeledProperty(property.key, predictedShowOnCard)
+                ),
+              ))
+          }(breakOut)
+        )
+      }(breakOut)
+
+      val keepPropertyAsDefault = Var(false)
+
+      VDomModifier(
+        div(
+          cls := "ui mini form",
+          width := "100%",
+          padding := "5px",
+          Styles.flex,
+          alignItems.flexStart,
+          UI.sortableTable(nodeColumns ++ propertyColumns, sort),
+
+          VDomModifier.ifTrue(propertyGroup.infos.nonEmpty)(div(
+            Styles.flexStatic,
+            Styles.flex,
+            flexDirection.column,
+            margin := "10px",
+
+            div(
+              button(
+                cls := "ui mini compact button",
+                "+ New Column"
               ),
               ItemProperties.managePropertiesDropdown(
-                ItemProperties.Target.Node(group.node.id),
-                ItemProperties.TypeConfig(prefilledType = predictedType, hidePrefilledType = true),
-                ItemProperties.EdgeFactory.labeledProperty(property.key, predictedShowOnCard)
-              ),
-            ))
-        }(breakOut)
-      )
-    }(breakOut)
-
-    val keepPropertyAsDefault = Var(false)
-
-    VDomModifier(
-      div(
-        cls := "ui mini form",
-        width := "100%",
-        padding := "5px",
-        Styles.flex,
-        alignItems.flexStart,
-        UI.sortableTable(nodeColumns ++ propertyColumns, sort),
-
-        VDomModifier.ifTrue(propertyGroup.infos.nonEmpty)(div(
-          Styles.flexStatic,
-          Styles.flex,
-          flexDirection.column,
-          margin := "10px",
-
-          div(
-            button(
-              cls := "ui mini compact button",
-              "+ New Column"
-            ),
-            ItemProperties.managePropertiesDropdown(
-              target = ItemProperties.Target.Custom({ (selectedKey, changesf) =>
-                if (keepPropertyAsDefault.now) {
-                  val templateNode = Node.Content(NodeData.Markdown(s"Default for row '${selectedKey.fold("")(_.string)}'"), targetRole)
-                  val changes = changesf(templateNode.id) merge GraphChanges(
-                    addNodes = Array(templateNode),
-                    addEdges = Array(
-                      Edge.Child(ParentId(focusedId), ChildId(templateNode.id)),
-                      Edge.Automated(focusedId, templateNodeId = TemplateId(templateNode.id))
+                target = ItemProperties.Target.Custom({ (selectedKey, changesf) =>
+                  if (keepPropertyAsDefault.now) {
+                    val templateNode = Node.Content(NodeData.Markdown(s"Default for row '${ selectedKey.fold("")(_.string) }'"), targetRole)
+                    val changes = changesf(templateNode.id) merge GraphChanges(
+                      addNodes = Array(templateNode),
+                      addEdges = Array(
+                        Edge.Child(ParentId(focusedId), ChildId(templateNode.id)),
+                        Edge.Automated(focusedId, templateNodeId = TemplateId(templateNode.id))
+                      )
                     )
+                    // now we add these changes with the template node to a temporary graph, because ChangesAutomation needs the template node in the graph
+                    val tmpGraph = GlobalState.rawGraph.now applyChanges changes
+                    val templateIdx = tmpGraph.idToIdxOrThrow(templateNode.id)
+                    // run automation of this template for each row
+                    propertyGroup.infos.foldLeft[GraphChanges](changes)((changes, info) => changes merge GraphChangesAutomation.copySubGraphOfNode(GlobalState.user.now.id, tmpGraph, info.node, templateNodeIdxs = Array(templateIdx)))
+                  } else propertyGroup.infos.foldLeft[GraphChanges](GraphChanges.empty)((changes, info) => changes merge changesf(info.node.id))
+                }, keepPropertyAsDefault),
+                dropdownModifier = cls := "top left",
+                descriptionModifier = div(
+                  padding := "10px",
+                  div(
+                    UI.toggle("Keep as default", keepPropertyAsDefault).apply(marginBottom := "5px"),
                   )
-                  // now we add these changes with the template node to a temporary graph, because ChangesAutomation needs the template node in the graph
-                  val tmpGraph = GlobalState.rawGraph.now applyChanges changes
-                  val templateIdx = tmpGraph.idToIdxOrThrow(templateNode.id)
-                  // run automation of this template for each row
-                  propertyGroup.infos.foldLeft[GraphChanges](changes)((changes, info) => changes merge GraphChangesAutomation.copySubGraphOfNode(GlobalState.user.now.id, tmpGraph, info.node, templateNodeIdxs = Array(templateIdx)))
-                } else propertyGroup.infos.foldLeft[GraphChanges](GraphChanges.empty)((changes, info) => changes merge changesf(info.node.id))
-              }, keepPropertyAsDefault),
-              dropdownModifier = cls := "top left",
-              descriptionModifier = div(
-                padding := "10px",
-                div(
-                  UI.toggle("Keep as default", keepPropertyAsDefault).apply(marginBottom := "5px"),
-
-                // GraphChangesAutomationUI.settingsButton(
-                //   focusedId,
-                //   activeMod = visibility.visible,
-                //   viewRender = viewRender,
-                //   tooltipDirection = "left center"
-                // ).prepend(span("Manage automations", marginRight := "5px"))
-                )
+                ),
               ),
             ),
-          ),
 
-          globalEditMode.map[VDomModifier] {
-            case Some((name, edges)) => div(
-              Styles.flex,
-              alignItems.flexEnd,
-              flexDirection.column,
-              marginTop := "10px",
-              padding := "5px",
-              backgroundColor := "white",
-              boxShadow := "0px 0px 3px 0px rgba(0, 0, 0, 0.75)",
-              borderRadius := "3px",
+            globalEditMode.map[VDomModifier] {
+              case Some((name, edges)) => div(
+                Styles.flex,
+                alignItems.flexEnd,
+                flexDirection.column,
+                marginTop := "10px",
+                padding := "5px",
+                backgroundColor := "white",
+                boxShadow := "0px 0px 3px 0px rgba(0, 0, 0, 0.75)",
+                borderRadius := "3px",
 
-              b(s"Edit Column '$name'", marginBottom := "5px"),
+                b(s"Edit Column '$name'", marginBottom := "5px"),
 
-              UI.checkboxEmitter(span(Icons.showOnCard, " Show on Card"), edges.forall(_.data.showOnCard)).map { showOnCard =>
-                GraphChanges(addEdges = edges.collect { case edge if edge.data.showOnCard != showOnCard => edge.copy(data = edge.data.copy(showOnCard = showOnCard)) }(breakOut))
-              } --> GlobalState.eventProcessor.changes,
+                UI.checkboxEmitter(span(Icons.showOnCard, " Show on Card"), edges.forall(_.data.showOnCard)).map { showOnCard =>
+                  GraphChanges(addEdges = edges.collect { case edge if edge.data.showOnCard != showOnCard => edge.copy(data = edge.data.copy(showOnCard = showOnCard)) }(breakOut))
+                } --> GlobalState.eventProcessor.changes,
 
-              div(
-                marginTop := "5px",
-                cls := "ui mini compact red button",
-                keyed, // TODO: this key is a hack. if we leave it out the onclick event of edit-icon only works once! with this key, it works. outwatch-bug!
-                Icons.delete,
-                " Delete",
-                onClick.stopPropagation.foreach {
-                  if (dom.window.confirm(s"Do you really want to remove the column '$name' in all children?")) {
-                    GlobalState.submitChanges(GraphChanges(delEdges = edges.map(e => e)(breakOut)))
-                  }
-                  ()
-                },
+                div(
+                  marginTop := "5px",
+                  cls := "ui mini compact red button",
+                  keyed, // TODO: this key is a hack. if we leave it out the onclick event of edit-icon only works once! with this key, it works. outwatch-bug!
+                  Icons.delete,
+                  " Delete",
+                  onClick.stopPropagation.foreach {
+                    if (dom.window.confirm(s"Do you really want to remove the column '$name' in all children?")) {
+                      GlobalState.submitChanges(GraphChanges(delEdges = edges.map(e => e)(breakOut)))
+                    }
+                    ()
+                  },
+                )
               )
+              case None                => VDomModifier.empty
+            },
+
+            exportToCsvButton(graph.nodes(focusedIdx), propertyGroup).apply(marginTop := "20px"),
+            VDomModifier.ifTrue(containsAnyNestedRef() || showNested)(
+              (UI.toggleEmitter("Show properties of referenced nodes", showNested) foreach { updateTableSettings(t => t.copy(showNested = !showNested)) }).apply(marginTop := "20px")
             )
-            case None => VDomModifier.empty
-          },
+          )),
+        ),
 
-          exportToCsvButton(graph.nodes(focusedIdx), propertyGroup).apply(marginTop := "20px"),
-        )),
-      ),
+        button(
+          margin := "10px",
+          cls := "ui mini compact button",
+          "+ New Row",
+          cursor.pointer,
+          onClickNewNamePrompt(header = "Add a new Row", placeholder = Placeholder(s"Name of row")).foreach { sub =>
+            val newNode = Node.Content(NodeData.Markdown(sub.text), targetRole)
 
-      button(
-        margin := "10px",
-        cls := "ui mini compact button",
-        "+ New Row",
-        cursor.pointer,
-        onClickNewNamePrompt(header = "Add a new Row", placeholder = Placeholder(s"Name of row")).foreach { sub =>
-          val newNode = Node.Content(NodeData.Markdown(sub.text), targetRole)
+            sort() = None // reset sorting again, so the new node appears at the bottom :)
+            val addNode = GraphChanges.addNodeWithParent(newNode, ParentId(focusedId))
+            val addTags = ViewFilter.addCurrentlyFilteredTagsAndAssignments(newNode.id)
+            GlobalState.submitChanges(addNode merge addTags merge sub.changes(newNode.id))
 
-          sort() = None // reset sorting again, so the new node appears at the bottom :)
-          val addNode = GraphChanges.addNodeWithParent(newNode, ParentId(focusedId))
-          val addTags = ViewFilter.addCurrentlyFilteredTagsAndAssignments(newNode.id)
-          GlobalState.submitChanges(addNode merge addTags merge sub.changes(newNode.id))
-
-          ()
-        }
-      ),
-      registerDragContainer(DragContainer.Default)
-    )
+            ()
+          }
+        ),
+        registerDragContainer(DragContainer.Default)
+      )
+    }
   }
 
   def exportToCsvButton(node: Node, propertyGroup: PropertyData.Group) = {
