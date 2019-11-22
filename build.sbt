@@ -14,7 +14,7 @@ import Def.{setting => dep}
 crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.10")
 scalaVersion in ThisBuild := crossScalaVersions.value.last
 
-// Global / onChangedBuildSource := ReloadOnSourceChanges disabled, since it doesn't recover state of devserver
+Global / onChangedBuildSource := IgnoreSourceChanges // disabled, since it doesn't recover state of devserver
 
 lazy val commonSettings = Seq(
 
