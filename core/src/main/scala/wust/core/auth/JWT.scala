@@ -1,6 +1,7 @@
 package wust.core.auth
 
 import java.time.Instant
+import java.time.Clock
 
 import io.circe._
 import io.circe.syntax._
@@ -18,6 +19,8 @@ class JWT(secret: String, authTokenLifeTime: Duration) {
   private val algorithm = JwtAlgorithm.HS256
   private val issuer = "wust"
   private val audience = "wust"
+
+  implicit val clock: Clock = Clock.systemUTC
 
   // implicit users have an endless token lifetime, because they have no password.
   // the jwt token is the only way to login as this implicit user. the token is

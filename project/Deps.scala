@@ -21,12 +21,12 @@ object Deps {
     val kittens = dep("org.typelevel" %%% "kittens" % "1.2.1")
   }
   val akka = new {
-    private val version = "2.5.25"
-    private val httpVersion = "10.1.9"
+    private val version = "2.5.26"
+    private val httpVersion = "10.1.10"
     val http = dep("com.typesafe.akka" %% "akka-http" % httpVersion)
     val httpCore = dep("com.typesafe.akka" %% "akka-http-core" % httpVersion)
-    val httpCirce = dep("de.heikoseeberger" %% "akka-http-circe" % "1.22.0")
-    val httpPlay = dep("de.heikoseeberger" %% "akka-http-play-json" % "1.22.0")
+    val httpCirce = dep("de.heikoseeberger" %% "akka-http-circe" % "1.27.0")
+    val httpPlay = dep("de.heikoseeberger" %% "akka-http-play-json" % "1.27.0")
     val httpCors = dep("ch.megard" %% "akka-http-cors" % "0.3.1")
     val stream = dep("com.typesafe.akka" %% "akka-stream" % version)
     val actor = dep("com.typesafe.akka" %% "akka-actor" % version)
@@ -38,7 +38,7 @@ object Deps {
   // val boopickle = dep("com.github.suzaku-io.boopickle" %%% "boopickle-shapeless" % "680e03c")
   val boopickle = dep("io.suzaku" %%% "boopickle" % "1.3.1")
   val circe = new {
-    private val version = "0.11.1"
+    private val version = "0.12.2"
     val core = dep("io.circe" %%% "circe-core" % version)
     val generic = dep("io.circe" %%% "circe-generic" % version)
     val genericExtras = dep("io.circe" %%% "circe-generic-extras" % version)
@@ -107,7 +107,8 @@ object Deps {
   // auth
   val hasher = dep("com.roundeights" %% "hasher" % "1.2.0")
   val jbcrypt = dep("org.mindrot" % "jbcrypt" % "0.4")
-  val jwt = dep("com.pauldijou" %% "jwt-circe" % "2.1.0")
+  val jwt = dep("com.pauldijou" %% "jwt-circe" % "4.2.0")
+  val bouncyCastle = dep("org.bouncycastle" % "bcpkix-jdk15on" % "1.60")
   val oAuthServer = dep("com.nulab-inc" %% "scala-oauth2-core" % "1.3.0")
   val oAuthAkkaProvider = dep("com.nulab-inc" %% "akka-http-oauth2-provider" % "1.3.0")
   val oAuthClient = dep("com.github.fdietze" % "akka-http-oauth2-client" % "cf77841")

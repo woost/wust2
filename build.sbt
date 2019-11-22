@@ -471,6 +471,7 @@ lazy val core = project
         Deps.boopickle.value ::
         Deps.cats.kittens.value ::
         Deps.jwt.value ::
+        Deps.bouncyCastle.value ::
         Deps.hasher.value ::
         Deps.jbcrypt.value ::
         Deps.javaMail.value ::
