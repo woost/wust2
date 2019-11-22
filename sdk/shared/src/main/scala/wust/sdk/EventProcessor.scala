@@ -92,9 +92,9 @@ class EventProcessor private (
     def enrichedChangesf(changes: Observable[GraphChanges], doExternalEnrich: Boolean = true) = changes.map { changes =>
       val graph = lastGraph
       val user = lastUser
-      val newChanges = if (doExternalEnrich) enrichChanges(changes, user.id, graph) else changes
+      val newChanges = if (doExternalEnrich) enrichChanges(changes, user.id, graph).consistent.withAuthor(user.id) else changes
       scribe.info(s"Local Graphchanges: ${newChanges.toPrettyString(graph)}")
-      NewGraphChanges.forPrivate(user.toNode, newChanges.consistent.withAuthor(user.id))
+      NewGraphChanges.forPrivate(user.toNode, newChanges)
     }.filter(_.changes.nonEmpty)
 
     val localChanges = enrichedChangesf(changes).share
