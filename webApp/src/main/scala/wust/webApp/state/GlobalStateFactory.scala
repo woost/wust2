@@ -27,6 +27,9 @@ import rx.async.Platform._
 import scala.concurrent.duration._
 import wust.facades.segment.Segment
 import wust.api.AuthUser
+import scala.concurrent.Future
+import scala.util.Success
+import scala.util.Failure
 
 object GlobalStateFactory {
   def init(): Unit = {
@@ -156,17 +159,11 @@ object GlobalStateFactory {
       }
     }
 
-    def getNewGraph(page: Page) = {
-      isLoading() = true
-      val graph = for {
+    def getNewGraph(page: Page): Future[Graph] = {
+      for {
         graph <- Client.api.getGraph(page)
       } yield enrichVisitedGraphWithSideEffects(page, graph)
-
-      graph.transform { result =>
-        isLoading() = false
-        result
       }
-    }
 
     // if we have a payment success on startup, then notify user.
     urlConfig.now.info.foreach {
@@ -187,8 +184,15 @@ object GlobalStateFactory {
             urlConfig.update(_.copy(invitation = None))
 
             // get a new graph with new right after the accepted invitation
-            getNewGraph(viewConfig.pageChange.page).foreach { graph =>
-              eventProcessor.localEvents.onNext(ReplaceGraph(graph))
+            isLoading() = true
+            getNewGraph(viewConfig.pageChange.page).onComplete {
+              case Success(graph) =>
+                eventProcessor.localEvents.onNext(ReplaceGraph(graph)).foreach { _ =>
+                  isLoading() = false
+            }
+              case Failure(_) =>
+                //TODO: send empty graph event?
+                isLoading() = false
             }
             if (wasAssumed) {
               Segment.trackEvent("New Unregistered User", js.Dynamic.literal(`type` = "invite", via = "token"))
@@ -268,15 +272,25 @@ object GlobalStateFactory {
             isFirstGraphRequest = false
 
             result
+        }.map{ userAndPage =>
+          isLoading() = true
+          userAndPage
         }.switchMap {
           case (viewConfig, user) =>
             val currentTransitChanges = lastTransitChanges.fold(GraphChanges.empty)(_ merge _)
             SourceStream
               .fromFuture(getNewGraph(viewConfig.pageChange.page))
-              .recover { case _ => Graph.empty }
+              .recover {
+                case _ =>
+                  isLoading() = false // TODO: capture error case later, after switchmap did its thing?
+                  Graph.empty
+              }
               .map(g => ReplaceGraph(g.applyChanges(currentTransitChanges)))
+            }.foreach { graphEvent =>
+              eventProcessor.localEvents.onNext(graphEvent).foreach { _ =>
+              isLoading() = false
         }
-        .subscribe(eventProcessor.localEvents)
+    }
     }
 
     GlobalState.permissionState.triggerLater { state =>
@@ -398,6 +412,7 @@ object GlobalStateFactory {
       view.debug("view")
       user.debug("auth")
       selectedNodes.debug("selected")
+      isLoading.debug("isLoading")
     }
   }
 }
