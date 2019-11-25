@@ -35,13 +35,12 @@ object ListWithChatView {
   def apply(originalFocusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
 
     val topLevelId: NodeId = originalFocusState.focusedId
-    def isTopLevel(nodeId: NodeId): Boolean = nodeId == topLevelId
     def focusOrToplevel(nodeIdOpt: Option[NodeId]): NodeId = nodeIdOpt.getOrElse(topLevelId)
     val chatFocus: Var[NodeId] = Var(focusOrToplevel(GlobalState.subPage.now.parentId))
 
     // sync with urlConfig.subPage
     chatFocus.triggerLater{ nodeId =>
-      if (isTopLevel(nodeId))
+      if (nodeId == topLevelId)
         GlobalState.focusSubPage(None)
       else
         GlobalState.focusSubPage(Some(nodeId))
@@ -71,7 +70,9 @@ object ListWithChatView {
           Styles.flex,
           flexDirection.column,
           backgroundColor := Colors.contentBgShade,
-          h2("Threads", fontSize := "18px", padding := "10px", marginBottom := "0px", paddingBottom := "0px"),
+          h2(
+            "Threads", fontSize := "18px", padding := "10px", marginBottom := "0px", paddingBottom := "0px"
+          ),
           ListView(focusState, autoFocusInsert = false, showNestedInputFields = true).apply(
             width := "300px",
             minWidth := "300px",
@@ -85,12 +86,7 @@ object ListWithChatView {
         flexShrink := 0,
         Styles.flex,
         flexDirection.column,
-        Rx{
-          val focusedTopLevel = isTopLevel(chatFocus())
-          VDomModifier.ifNot(focusedTopLevel)(
-            chatHeader(originalFocusState, focusState, chatFocus)
-          )
-        },
+        chatHeader(originalFocusState, focusState, chatFocus, topLevelId),
         Rx {
           val chatFocusedId = chatFocus()
           ChatView(focusState.copy(focusedId = chatFocusedId)).apply(
@@ -101,7 +97,7 @@ object ListWithChatView {
     )
   }
 
-  private def chatHeader(originalFocusState: FocusState, focusState: FocusState, chatFocus: Var[NodeId])(implicit ctx: Ctx.Owner) = {
+  private def chatHeader(originalFocusState: FocusState, focusState: FocusState, chatFocus: Var[NodeId], topLevelId: NodeId)(implicit ctx: Ctx.Owner) = {
     val tooltipPosition = "bottom center"
     val buttonMods = VDomModifier(
       Styles.flexStatic,
@@ -112,30 +108,48 @@ object ListWithChatView {
     Rx {
       val chatFocusedId = chatFocus()
       val graph = GlobalState.rawGraph()
-      div(
-        // backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(chatFocusedId)).toHex,
-        Styles.flexStatic,
-        Styles.flex,
-        alignItems.center,
-
-        padding := "8px 10px",
-        BreadCrumbs(
-          graph,
-          start = BreadCrumbs.EndPoint.Node(focusState.focusedId, inclusive = true),
-          end = BreadCrumbs.EndPoint.Node(chatFocusedId),
-          nodeId => chatFocus() = nodeId,
-          hideIfSingle = false
-        ).apply(paddingBottom := "3px"),
-
+      VDomModifier.ifNot(chatFocusedId == topLevelId)(
         div(
-          div(cls := "fa-fw", Icons.edit),
-          UI.tooltip(tooltipPosition) := "Edit Thread",
-          buttonMods,
-          marginLeft := "10px",
-          onClickDefault.foreach { originalFocusState.onItemSingleClick(FocusPreference(chatFocusedId)) },
-        ),
-        MembersModal.settingsButton(chatFocusedId, tooltip = "Add members to this thread", tooltipPosition = tooltipPosition).apply(buttonMods),
+          // backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(chatFocusedId)).toHex,
+          Styles.flexStatic,
+          Styles.flex,
+          alignItems.center,
+
+          padding := "8px 10px",
+          backButton(chatFocus, topLevelId),
+          BreadCrumbs(
+            graph,
+            start = BreadCrumbs.EndPoint.Node(focusState.focusedId, inclusive = true),
+            end = BreadCrumbs.EndPoint.Node(chatFocusedId),
+            nodeId => chatFocus() = nodeId,
+            hideIfSingle = false
+          ).apply(paddingBottom := "3px"),
+
+          div(
+            div(cls := "fa-fw", Icons.edit),
+            UI.tooltip(tooltipPosition) := "Edit Thread",
+            buttonMods,
+            marginLeft := "10px",
+            onClickDefault.foreach { originalFocusState.onItemSingleClick(FocusPreference(chatFocusedId)) },
+          ),
+          MembersModal.settingsButton(chatFocusedId, tooltip = "Add members to this thread", tooltipPosition = tooltipPosition).apply(buttonMods),
+        )
       )
     }
   }
+
+  def backButton(chatFocus: Var[NodeId], topLevelId: NodeId)(implicit ctx: Ctx.Owner) = Rx{
+    VDomModifier.ifTrue(chatFocus() != topLevelId)(
+      span(
+        freeSolid.faArrowLeft,
+        cls := "fa-fw",
+        marginRight := "0.5em",
+        cls := "hover-full-opacity",
+        onClickDefault.foreach {
+          chatFocus() = topLevelId
+        }
+      )
+    )
+  }
+
 }
