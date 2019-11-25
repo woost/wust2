@@ -225,7 +225,7 @@ object DashboardView {
 
       //TODO: check whether a column hast nested stages
       uncategorizedColumn +: KanbanData.columnNodes(graph, traverseState).collect {
-        case n if n._2 == NodeRole.Stage =>
+        case n if n._2 == NodeRole.Stage && !graph.isDoneStage(n._1) =>
           val node = graph.nodesByIdOrThrow(n._1 )
           val (stageName, stageChildren) = (node.str, graph.notDeletedChildrenIdx(graph.idToIdxOrThrow(node.id)).length: Double)
 
