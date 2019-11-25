@@ -543,11 +543,12 @@ object Elements {
     // we have a heuristic which kind of text we want to interpret as html. For one-line texts, we ignore html formatting,
     // becasue otherwise we get weird html when pasting links. Only multi-line texts are interpreted as html if html available.
     onPaste.foreach { event =>
-      if (event.clipboardData != js.undefined) {
-        val htmlText = event.clipboardData.getData("text/html")
-        if (htmlText != js.undefined && htmlText != null && htmlText.linesIterator.length > 1) {
-          event.preventDefault()
-          event.currentTarget.asInstanceOf[dom.html.Input].value = htmlText
+      (event.clipboardData: js.UndefOr[dom.DataTransfer]).foreach { clipboardData =>
+        (clipboardData.getData("text/html"): js.UndefOr[String]).foreach { htmlText =>
+          if (htmlText != null && htmlText.linesIterator.length > 1) {
+            event.preventDefault()
+            event.currentTarget.asInstanceOf[dom.html.Input].value = htmlText
+          }
         }
       }
     }
