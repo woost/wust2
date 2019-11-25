@@ -233,8 +233,7 @@ object Components {
         EditableContent.inlineEditorOrRender[String](key, editKey, _ => key => span(key + ":", cls := "propertykey")).editValue.collect { case newKey if newKey != key =>
           GraphChanges(addEdges = properties.map(p => p.edge.copy(data = p.edge.data.copy(key = newKey)))(breakOut), delEdges = properties.map(_.edge)(breakOut)),
         } --> GlobalState.eventProcessor.changes,
-        cursor.pointer,
-        onClick.stopPropagation.use(true) --> editKey,
+        onClickDefault.use(true) --> editKey,
       ),
 
       div(
@@ -326,6 +325,7 @@ object Components {
 
     span(
       cls := "ui label property",
+      onClick.stopPropagation.discard, // prevent clicks on property to zoom or focus
       VDomModifier.ifTrue(isReference)(cls := "reference"),
       fullWidthForReferences,
 
