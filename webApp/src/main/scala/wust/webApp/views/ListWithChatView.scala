@@ -33,26 +33,28 @@ import scala.scalajs.js
 object ListWithChatView {
 
   def apply(originalFocusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
-    val chatFocus = Var(GlobalState.subPage.now.parentId.getOrElse(originalFocusState.focusedId))
+
+    val topLevelId: NodeId = originalFocusState.focusedId
+    def isTopLevel(nodeId: NodeId): Boolean = nodeId == topLevelId
+    def focusOrToplevel(nodeIdOpt: Option[NodeId]): NodeId = nodeIdOpt.getOrElse(topLevelId)
+    val chatFocus: Var[NodeId] = Var(focusOrToplevel(GlobalState.subPage.now.parentId))
+
+    // sync with urlConfig.subPage
     chatFocus.triggerLater{ nodeId =>
-      if (nodeId == originalFocusState.focusedId)
+      if (isTopLevel(nodeId))
         GlobalState.focusSubPage(None)
       else
         GlobalState.focusSubPage(Some(nodeId))
     }
-    GlobalState.subPage.triggerLater{ page =>
-      chatFocus() = page.parentId.getOrElse(originalFocusState.focusedId)
-    }
+    GlobalState.subPage.triggerLater{ page => chatFocus() = focusOrToplevel(page.parentId) }
 
     val focusState = originalFocusState.copy(
-      contextParentIdAction = { nodeId =>
-        chatFocus() = nodeId
-      },
+      contextParentIdAction = { nodeId => chatFocus() = nodeId },
       onItemSingleClick = { focusPreference =>
         val nodeId = focusPreference.nodeId
         focusPreference.view match {
           // clicking on card and comment icon toggles in embedded chat view
-          case None | Some(View.Chat) => chatFocus() = if (chatFocus.now == nodeId) originalFocusState.focusedId else nodeId
+          case None | Some(View.Chat) => chatFocus() = if (chatFocus.now == nodeId) topLevelId else nodeId
           // clicking on other icons behaves as usual
           case Some(view)             => originalFocusState.onItemSingleClick(focusPreference)
         }
@@ -84,7 +86,7 @@ object ListWithChatView {
         Styles.flex,
         flexDirection.column,
         Rx{
-          val focusedTopLevel = chatFocus() == originalFocusState.focusedId
+          val focusedTopLevel = isTopLevel(chatFocus())
           VDomModifier.ifNot(focusedTopLevel)(
             chatHeader(originalFocusState, focusState, chatFocus)
           )
