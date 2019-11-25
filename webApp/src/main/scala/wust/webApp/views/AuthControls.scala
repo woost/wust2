@@ -11,6 +11,7 @@ import wust.webApp.Client
 import wust.webApp.state._
 import wust.webApp.views.DragComponents.registerDragContainer
 import wust.webUtil.outwatchHelpers._
+import wust.webUtil.Elements.onClickDefault
 import wust.facades.segment.Segment
 
 object AuthControls {
@@ -25,14 +26,7 @@ object AuthControls {
         alignItems.center,
 
         VDomModifier.ifTrue(user.name.nonEmpty)(
-          Avatar.user(user.toNode, size = "20px"),
-          span(
-            cls := "username",
-            user.name,
-            padding := "0 5px",
-            Styles.wordWrap
-          ),
-          registerDragContainer,
+          renderAvatarWithUsername(user)
         ),
 
         loginSignupButtons(loginButtonStyleLoggedOut, signupButtonStyleLoggedOut, showLogin).apply(Styles.flexStatic)
@@ -40,22 +34,31 @@ object AuthControls {
       case user: AuthUser.Real => div(
         Styles.flex,
         alignItems.center,
-        Avatar.user(user.toNode, size = "20px"),
-        span(
-          cls := "username",
-          user.name,
-          padding := "0 5px",
-          Styles.wordWrap
-        ),
-        cursor.pointer,
-        onClick foreach {
-          GlobalState.urlConfig.update(_.focus(View.UserSettings))
-          FeatureState.use(Feature.ClickAvatarInAuthStatus)
-        },
-        registerDragContainer,
-        logoutButton(buttonStyleLoggedIn)
+
+        renderAvatarWithUsername(user),
+        logoutButton (buttonStyleLoggedIn).apply(Styles.flexStatic)
       )
     }
+
+  def renderAvatarWithUsername(user: AuthUser) = {
+    div(
+      Styles.flex,
+      alignItems.center,
+      Avatar.user(user.toNode, size = "20px"),
+      span(
+        cls := "username",
+        user.name,
+        padding := "0 5px",
+        Styles.wordWrap
+      ),
+      cursor.pointer,
+      onClickDefault.foreach {
+        GlobalState.urlConfig.update(_.focus(View.UserSettings))
+        FeatureState.use(Feature.ClickAvatarInAuthStatus)
+      },
+      registerDragContainer,
+    )
+  }
 
   private def loginSignupButtons(loginButtonStyle: String, signupButtonStyle: String, showLogin: Boolean)(implicit ctx: Ctx.Owner) =
     div(

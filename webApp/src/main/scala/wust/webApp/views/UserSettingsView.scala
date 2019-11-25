@@ -83,7 +83,7 @@ object UserSettingsView {
 
         val currentPlan = userDetail.map {
           case Some(userDetail) => userDetail.plan
-          case None => PaymentPlan.Free
+          case None             => PaymentPlan.Free
         }
 
         VDomModifier(
@@ -93,21 +93,22 @@ object UserSettingsView {
             margin := "10px",
 
             currentPlan.map {
-              case PaymentPlan.Free => "Free Account"
+              case PaymentPlan.Free     => "Free Account"
               case PaymentPlan.Business => "Business Account"
             }
           ),
 
-          UI.accordion(
-            Seq(
-              accordionEntry("Account Settings", accountSettings(user, userDetail, detailsUnavailable), active = true),
-              accordionEntry( span( i(Icons.plugin), b(" Plugins") ), pluginSettings(user)),
-              accordionEntry( span( i(Icons.files), b(" Uploaded Files") ), uploadSettings( user)),
-              accordionEntry( b("§ Legal Information" ), LegalNotice.information),
-            ),
-            styles = "fluid",
-            exclusive = false,
-          )
+          Rx{
+            UI.accordion(
+              Seq.empty ++
+                (if(userDetail().isDefined) Some(accordionEntry("Account Settings", accountSettings(user, userDetail, detailsUnavailable), active = true)) else None) ++
+                (if(userDetail().exists(_.verified)) Some(accordionEntry(span(i(Icons.plugin), b(" Plugins")), pluginSettings(user))) else None) ++
+                (if(userDetail().exists(_.verified)) Some(accordionEntry(span(i(Icons.files), b(" Uploaded Files")), uploadSettings(user))) else None) ++
+                Some(accordionEntry(b("§ Legal Information"), LegalNotice.information)),
+              styles = "fluid",
+              exclusive = false,
+            )
+          }
         )
       }
     )
@@ -216,7 +217,7 @@ object UserSettingsView {
         margin := "10px 30px 10px 0px",
         minWidth := "200px",
         maxWidth := "400px",
-        changeEmail( user, userDetail, detailsUnavailable)
+        changeEmail(user, userDetail, detailsUnavailable)
       ),
       div(
         margin := "10px 30px 10px 0px",
