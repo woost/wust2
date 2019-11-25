@@ -147,8 +147,8 @@ object JWT {
     import io.circe._
     import io.circe.generic.extras.auto._
     import io.circe.generic.extras.semiauto._
-    implicit val decoder: Decoder[CustomClaim] = deriveDecoder[CustomClaim]
-    implicit val encoder: Encoder[CustomClaim] = deriveEncoder[CustomClaim]
+    implicit val decoder: Decoder[CustomClaim] = deriveConfiguredDecoder[CustomClaim]
+    implicit val encoder: Encoder[CustomClaim] = deriveConfiguredEncoder[CustomClaim]
   }
 }
 

@@ -81,8 +81,8 @@ object ServiceWorker {
     import io.circe.generic.extras.semiauto._
     import wust.api.serialize.Circe._ // das gibt die die config mit `{"type": "SubClassName", .... }`
 
-    implicit val serviceWorkerMessageEncoder: Encoder[WorkerMessage] = deriveEncoder[WorkerMessage]
-    implicit val serviceWorkerMessageDecoder: Decoder[WorkerMessage] = deriveDecoder[WorkerMessage]
+    implicit val serviceWorkerMessageEncoder: Encoder[WorkerMessage] = deriveConfiguredEncoder[WorkerMessage]
+    implicit val serviceWorkerMessageDecoder: Decoder[WorkerMessage] = deriveConfiguredDecoder[WorkerMessage]
   }
 
   final case class AuthMessage(token: Authentication.Token) extends WorkerMessage
