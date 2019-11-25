@@ -19,14 +19,12 @@ object AuthControls {
   def authStatusOnColoredBackground(showLogin: Boolean = true)(implicit ctx: Ctx.Owner) = authStatus(buttonStyleLoggedIn = "inverted", loginButtonStyleLoggedOut = "inverted", signupButtonStyleLoggedOut = "inverted", showLogin)
   def authStatus(buttonStyleLoggedIn: String, loginButtonStyleLoggedOut: String, signupButtonStyleLoggedOut: String, showLogin: Boolean = true)(implicit ctx: Ctx.Owner): Rx[VNode] =
     GlobalState.user.map {
-      case user: AuthUser.Assumed  => loginSignupButtons(loginButtonStyleLoggedOut, signupButtonStyleLoggedOut, showLogin).apply(Styles.flexStatic)
-      case user: AuthUser.Implicit => loginSignupButtons(loginButtonStyleLoggedOut, signupButtonStyleLoggedOut, showLogin).apply(Styles.flexStatic)
-      case user: AuthUser.Real => div(
+      case user: AuthUser.Assumed => loginSignupButtons(loginButtonStyleLoggedOut, signupButtonStyleLoggedOut, showLogin).apply(Styles.flexStatic)
+      case user: AuthUser.Implicit => div(
         Styles.flex,
         alignItems.center,
-        div(
-          Styles.flex,
-          alignItems.center,
+
+        VDomModifier.ifTrue(user.name.nonEmpty)(
           Avatar.user(user.toNode, size = "20px"),
           span(
             cls := "username",
@@ -34,13 +32,27 @@ object AuthControls {
             padding := "0 5px",
             Styles.wordWrap
           ),
-          cursor.pointer,
-          onClick foreach {
-            GlobalState.urlConfig.update(_.focus(View.UserSettings))
-            FeatureState.use(Feature.ClickAvatarInAuthStatus)
-          },
           registerDragContainer,
         ),
+
+        loginSignupButtons(loginButtonStyleLoggedOut, signupButtonStyleLoggedOut, showLogin).apply(Styles.flexStatic)
+      )
+      case user: AuthUser.Real => div(
+        Styles.flex,
+        alignItems.center,
+        Avatar.user(user.toNode, size = "20px"),
+        span(
+          cls := "username",
+          user.name,
+          padding := "0 5px",
+          Styles.wordWrap
+        ),
+        cursor.pointer,
+        onClick foreach {
+          GlobalState.urlConfig.update(_.focus(View.UserSettings))
+          FeatureState.use(Feature.ClickAvatarInAuthStatus)
+        },
+        registerDragContainer,
         logoutButton(buttonStyleLoggedIn)
       )
     }
