@@ -128,24 +128,22 @@ object GlobalState {
 
   val viewConfig: Rx[ViewConfig] = {
 
-    var lastViewConfig: ViewConfig = ViewConfig(View.Empty, Page.empty, Page.empty)
+    var lastViewConfig: ViewConfig = ViewConfig(View.Empty, Page.empty)
 
-    val viewAndPageAndSanitizedPageAndSubPage: Rx[(Option[View], Page, Page, Page)] = Rx {
+    val viewAndPageAndSanitizedPage: Rx[(Option[View], Page, Page)] = Rx {
       val rawPage = urlConfig().pageChange.page
-      val rawSubPage = urlConfig().subPage
       val rawView = urlConfig().view
       (
         rawView,
         rawPage,
         rawPage.copy(rawPage.parentId.filter(rawGraph().contains)),
-        rawSubPage.copy(rawSubPage.parentId.filter(rawGraph().contains))
       )
     }
 
     Rx {
       if (!isLoading()) {
-        val tmp = viewAndPageAndSanitizedPageAndSubPage()
-        val (rawView, rawPage, sanitizedPage, sanitizedSubPage) = tmp
+        val tmp = viewAndPageAndSanitizedPage()
+        val (rawView, rawPage, sanitizedPage) = tmp
 
         val visibleView: View.Visible = rawPage.parentId match {
           case None => rawView match {
@@ -158,7 +156,7 @@ object GlobalState {
             bestView
         }
 
-        lastViewConfig = ViewConfig(visibleView, sanitizedPage, sanitizedSubPage)
+        lastViewConfig = ViewConfig(visibleView, sanitizedPage)
       }
 
       lastViewConfig
@@ -171,7 +169,12 @@ object GlobalState {
   val urlPage = urlConfig.map(_.pageChange.page)
   val presentationMode: Rx[PresentationMode] = urlConfig.map(_.mode)
   val page: Rx[Page] = viewConfig.map(_.page)
-  val subPage: Rx[Page] = viewConfig.map(_.subPage)
+
+  val subPage = Rx{ 
+    val rawSubPage = urlConfig().subPage 
+    rawSubPage.copy(parentId = rawSubPage.parentId.filter(rawGraph().contains))
+  }
+
   val pageExistsInGraph: Rx[Boolean] = Rx{ page().parentId.exists(rawGraph().contains) }
   val showPageNotFound = Rx { !isLoading() && !pageExistsInGraph() && viewIsContent() }
 
