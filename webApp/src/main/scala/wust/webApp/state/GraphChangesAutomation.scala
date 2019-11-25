@@ -1,5 +1,6 @@
 package wust.webApp.state
 
+import com.github.ghik.silencer.silent
 import wust.facades.segment.Segment
 import org.scalajs.dom
 import rx.Var
@@ -55,6 +56,7 @@ private object StringWalker {
 object GraphChangesAutomation {
 
   val templateVariableRegex = "\\$(@)?\\{woost((\\.[^\\.\\}]+)+)\\}".r
+  @silent("possible missing interpolator")
   def replaceVariableInText(userId: UserId, graph: Graph, node: Node, templateText: String, newEdges: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]], newEdgesReverse: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]]): (String, Array[Edge]) = try {
 
     val extraEdges = Array.newBuilder[Edge]
