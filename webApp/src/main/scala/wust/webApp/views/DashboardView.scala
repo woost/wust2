@@ -53,9 +53,11 @@ object DashboardView {
       //TODO: renderSubprojects mit summary
       div(
         width := "100%",
-        StagingOnly {
-          VDomModifier.ifNot(BrowserDetect.isPhone)( UI.segmentWithoutHeader(renderStagesChart(traverseState).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod, width := "400px", marginLeft.auto)),
-        },
+        div(
+          Styles.flex,
+          flexDirection.rowReverse,
+          VDomModifier.ifNot(BrowserDetect.isPhone)( UI.segmentWithoutHeader(renderStagesChart(traverseState).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod, width := "400px") ),
+        ),
         div(
           Styles.flex,
           alignItems.flexStart,
