@@ -146,6 +146,60 @@ object TableView {
 
       val propertyGroup = PropertyData.Group(graph, childrenIdxs)
 
+      def emtpyCellModifier(groupNodeId: NodeId, predictedType: Option[NodeTypeSelection], predictedShowOnCard: Boolean, propertyKey: String) = {
+        VDomModifier(
+                cls := "grey",
+                display.tableCell, // needed because semantic ui rewrites the td cell to be inline-block, but that messes with our layout.
+                div(
+                  Styles.growFull,
+                  Styles.flex,
+                  alignItems.center,
+                  div(freeSolid.faPlus, cls := "fa-fw", marginLeft.auto, marginRight.auto),
+                ),
+                ItemProperties.managePropertiesDropdown(
+                  ItemProperties.Target.Node(groupNodeId),// ItemProperties.Target.Node(group.node.id),
+                  ItemProperties.TypeConfig(prefilledType = predictedType, hidePrefilledType = true),
+                  ItemProperties.EdgeFactory.labeledProperty(propertyKey, predictedShowOnCard)// ItemProperties.EdgeFactory.labeledProperty(property.key, predictedShowOnCard)
+                ),
+              )
+      }
+
+      def nodeTypeFromNode(node: Node) = node.role match {
+        case NodeRole.Neutral => NodeTypeSelection.Data(node.data.tpe)
+        case _                => containsAnyNestedRef() = true; NodeTypeSelection.Ref // TODO: Prevent sideeffect of containsAnyNestedRef here
+      }
+
+      def showOnCard(edge: Edge.LabeledProperty) = edge.data.showOnCard
+
+      val propertyColumns: List[UI.Column] = propertyGroup.properties.map { property =>
+        val (predictedType, predictedShowOnCard) = property.groups.find(_.values.nonEmpty).fold((Option.empty[NodeTypeSelection], false)) { group =>
+          val value = group.values.head
+          val tpe = nodeTypeFromNode(value.node)
+          val show = showOnCard(value.edge)
+          (Some(tpe), show)
+        }
+
+        UI.Column(
+          columnHeaderWithDelete(property.key, property.groups.flatMap(_.values.map(_.edge))),
+          property.groups.map { group =>
+            columnEntryOfNodes(
+              group.node.id,
+              group.values.map(v => Some(v.edge) -> v.node),
+              cellModifier = VDomModifier.ifTrue(group.values.isEmpty)(emtpyCellModifier(group.node.id, predictedType, predictedShowOnCard, property.key)))
+          }(breakOut)
+        )
+      }(breakOut)
+
+      val referrerProperty: UI.Column = UI.Column(
+        columnHeader("Referrer"),
+        propertyGroup.infos.map { nodeInfo =>
+          columnEntryOfNodes(
+            nodeInfo.node.id,
+            nodeInfo.reverseProperties.map(None -> _)(breakOut),
+          )
+        }(breakOut)
+      )
+
       val nodeColumns: Seq[UI.Column] = {
         val columns = new mutable.ArrayBuffer[UI.Column]
 
@@ -171,6 +225,8 @@ object TableView {
               )
           }(breakOut)
         )
+
+        if(showNested) columns += referrerProperty
 
         columns += UI.Column(
           columnHeader("Name"),
@@ -205,40 +261,6 @@ object TableView {
 
         columns
       }
-
-      val propertyColumns: List[UI.Column] = propertyGroup.properties.map { property =>
-        val (predictedType, predictedShowOnCard) = property.groups.find(_.values.nonEmpty).fold((Option.empty[NodeTypeSelection], false)) { group =>
-          val value = group.values.head
-          val node = value.node
-          val edge = value.edge
-          val tpe = node.role match {
-            case NodeRole.Neutral => NodeTypeSelection.Data(node.data.tpe)
-            case _                => containsAnyNestedRef() = true; NodeTypeSelection.Ref // TODO: Prevent sideeffect of containsAnyNestedRef here
-          }
-          (Some(tpe), edge.data.showOnCard)
-        }
-        UI.Column(
-          columnHeaderWithDelete(property.key, property.groups.flatMap(_.values.map(_.edge))),
-          property.groups.map { group =>
-            columnEntryOfNodes(group.node.id, group.values.map(v => Some(v.edge) -> v.node),
-              cellModifier = VDomModifier.ifTrue(group.values.isEmpty)(
-                cls := "grey",
-                display.tableCell, // needed because semantic ui rewrites the td cell to be inline-block, but that messes with our layout.
-                div(
-                  Styles.growFull,
-                  Styles.flex,
-                  alignItems.center,
-                  div(freeSolid.faPlus, cls := "fa-fw", marginLeft.auto, marginRight.auto),
-                ),
-                ItemProperties.managePropertiesDropdown(
-                  ItemProperties.Target.Node(group.node.id),
-                  ItemProperties.TypeConfig(prefilledType = predictedType, hidePrefilledType = true),
-                  ItemProperties.EdgeFactory.labeledProperty(property.key, predictedShowOnCard)
-                ),
-              ))
-          }(breakOut)
-        )
-      }(breakOut)
 
       val keepPropertyAsDefault = Var(false)
 
