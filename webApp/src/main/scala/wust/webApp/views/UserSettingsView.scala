@@ -275,7 +275,7 @@ object UserSettingsView {
             header = Some("Last Step: Verify your email address"),
             content = Some(VDomModifier(
               div(
-                s"Your email address is not verified yet. Check your emails (and spam) for the verification email. Or ",
+                s"Your email address is not verified yet. Check your emails (including spam) for the verification email. Or: ",
                 a(
                   href := "#",
                   marginLeft := "auto",
@@ -287,7 +287,7 @@ object UserSettingsView {
                     }
                   }
                 ),
-                ". If you misspelled it, simply enter your correct email address in the field and click the ", b("Change email"), " button again."
+                ". If you misspelled it, simply enter your correct email address in the field above and click the ", b("Change email"), " button again."
               )
             ))
           )
