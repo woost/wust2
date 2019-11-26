@@ -31,7 +31,6 @@ object AssignedTasksData {
           decendentNodeIdx == nodeIdx &&
             !graph.isDoneInAllWorkspaces(nodeIdx, Array(focusedIdx)) &&
             graph.nodes(nodeIdx).role == NodeRole.Task
-          //            !InlineList.contains(NodeRole.Stage, NodeRole.Tag)(graph.nodes(nodeIdx).role)
         }
       )
       AssignedTasksStat(user, assignedTaskCount)
