@@ -117,7 +117,7 @@ object GlobalStateFactory {
 
     urlConfig.map(_.pageChange.page).triggerLater {
       closeAllOverlays()
-      graphTransformations() = defaultTransformations
+      GlobalState.resetGraphTransformation()
       GlobalState.clearSelectedNodes()
       GlobalState.automationIsDisabled() = false
       // The current step is createProject, because the page change happens before the viewswitcher is rendered. The rendering of the viewswitcher causes the tutoraial to advance to the next step via onDomMountContinue.

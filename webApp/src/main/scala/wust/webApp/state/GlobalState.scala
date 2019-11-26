@@ -242,6 +242,7 @@ object GlobalState {
   val defaultTransformations: Seq[UserViewGraphTransformation] = Seq(GraphOperation.ExcludeDeletedChildren, GraphOperation.AutomatedHideTemplates)
   // Allow filtering / transformation of the graph on globally
   val graphTransformations: Var[Seq[UserViewGraphTransformation]] = Var(defaultTransformations)
+  def resetGraphTransformation(): Unit = graphTransformations() = defaultTransformations
 
   // transform graph with graphTransformations
   val graph: Rx[Graph] = Rx {
