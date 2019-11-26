@@ -58,7 +58,7 @@ object EdgeData {
     def attachment = LabeledProperty("Attachment", showOnCard = true)
     def reference = LabeledProperty("Reference")
     def description = LabeledProperty("Description")
-    def dueDate = LabeledProperty("Due Date", showOnCard = true)
+    val dueDate = LabeledProperty("Due Date", showOnCard = true)
   }
 
   final case class Read(timestamp: EpochMilli) extends Named with EdgeData

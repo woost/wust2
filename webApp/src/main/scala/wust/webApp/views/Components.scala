@@ -323,8 +323,24 @@ object Components {
         )
     }
 
+    val isOverDue = {
+      val isDueDate = (key.data.key == EdgeData.LabeledProperty.dueDate.key)
+      def isOverDue = {
+        property.data match {
+          case NodeData.DateTime(dueDate) if EpochMilli.now isAfter dueDate => true
+          case _ => false
+        }
+      }
+      isDueDate && isOverDue
+    }
+
     span(
       cls := "ui label property",
+      VDomModifier.ifTrue(isOverDue)(
+        color := "#751f00",
+        backgroundColor := "#ffbbb3",
+        boxShadow := "0px 0 6px 0px hsla(6, 100%, 85%, 0.75)",
+      ),
       onClick.stopPropagation.discard, // prevent clicks on property to zoom or focus
       VDomModifier.ifTrue(isReference)(cls := "reference"),
       fullWidthForReferences,

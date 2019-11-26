@@ -1036,8 +1036,8 @@ object CommonStyles extends StyleSheet.Standalone
     lineHeight.inherit,
   )
 
-  ".property" - (
-    backgroundColor(c"#F2F5F8").important,
+  ".ui.label.property" - (
+    backgroundColor(c"#F2F5F8"),
     margin(2 px).important,
     padding(0.2 em, 0.3 em, 0.3 em, 0.4 em).important,
 
@@ -1058,7 +1058,7 @@ object CommonStyles extends StyleSheet.Standalone
       )
   )
   // unset line-heigt of p for equal height in properties
-  ".property p" - (
+  ".ui.label.property p" - (
     lineHeight.unset.important
   )
 
