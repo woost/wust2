@@ -12,8 +12,8 @@ import wust.webUtil.outwatchHelpers._
 
 object ChartData {
 
-  case class ChartDataContainer(label: String, labelColor: RGB, dataPoints: Double)
-  case class ChartRenderData(rawCanvasData: Rx.Dynamic[Seq[ChartDataContainer]], steps: Option[Double] = None, chartLabel: String = "# Tasks", chartType: String = "bar") {
+  case class ChartDataContainer(label: String, labelColor: RGB, dataValue: Double)
+  case class ChartRenderData(rawChartData: Rx.Dynamic[Seq[ChartDataContainer]], steps: Option[Double] = None, chartLabel: String = "# Tasks", chartType: String = "bar") {
 
     def render(implicit ctx: Ctx.Owner): HtmlVNode = {
       import typings.chartDotJs.chartDotJsMod._
@@ -22,17 +22,17 @@ object ChartData {
       import scala.scalajs.js.JSConverters._
 
       div(
-        rawCanvasData.map { rawDataContainer =>
+        rawChartData.map { rawDataContainer: Seq[ChartDataContainer] =>
           val (chartLabels, chartPoints, chartColors) = {
             val data = rawDataContainer.unzip3 { rawData =>
               val labels: String | js.Array[String] = (rawData.label: String | js.Array[String])
-              val points: js.UndefOr[ChartPoint | Double | Null] = js.defined[ChartPoint | Double | Null](rawData.dataPoints)
+              val points: js.UndefOr[ChartPoint | Double | Null] = js.defined[ChartPoint | Double | Null](rawData.dataValue)
               (labels, points, rawData.labelColor)
             }
             (data._1.toJSArray, data._2.toJSArray, data._3.toJSArray)
           }
 
-          val chartSteps = steps.getOrElse(math.max(math.ceil(rawDataContainer.map(_.dataPoints).max / 10), 1))
+          val chartSteps = if(rawDataContainer.isEmpty) 1 else steps.getOrElse(math.max(math.ceil( rawDataContainer.map(_.dataValue).max / 10), 1))
 
           Elements.chartCanvas {
             ChartConfiguration(
@@ -71,12 +71,15 @@ object ChartData {
       val users = graph.members(nodeId).map(_.id)
       val taskStats = AssignedTasksData.assignedTasksStats(graph, nodeId, users)
 
-      taskStats.map(stats =>
-        ChartDataContainer(
-          label = stats.user.str,
-          BaseColors.kanbanColumnBg.copy(h = NodeColor.hue(stats.user.id)).rgb,
-          dataPoints = stats.numTasks
-        )
+      taskStats.flatMap(stats =>
+        if(stats.numTasks > 0)
+          Some(ChartDataContainer(
+            label = stats.user.str,
+            BaseColors.kanbanColumnBg.copy(h = NodeColor.hue(stats.user.id)).rgb,
+            dataValue = stats.numTasks
+          ))
+        else
+          None
       )
     }
 
@@ -90,7 +93,7 @@ object ChartData {
       val uncategorizedColumn = ChartDataContainer(
         label = "Uncategorized",
         labelColor = BaseColors.kanbanColumnBg.rgb,
-        dataPoints = KanbanData.inboxNodesCount(graph, traverseState)
+        dataValue = KanbanData.inboxNodesCount(graph, traverseState)
       )
 
       //TODO: check whether a column hast nested stages
@@ -102,7 +105,7 @@ object ChartData {
           ChartDataContainer(
             label = stageName,
             labelColor = BaseColors.kanbanColumnBg.copy(h = NodeColor.hue(node.id)).rgb,
-            dataPoints = stageChildren
+            dataValue = stageChildren
           )
       }
     }
