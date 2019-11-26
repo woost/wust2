@@ -27,11 +27,9 @@ object AssignedTasksData {
     userIdxs.map { userIdx =>
       val user = graph.nodes(userIdx).asInstanceOf[Node.User]
       val assignedTaskCount = graph.assignedNodesIdx(userIdx).count(nodeIdx =>
-        graph.descendantsIdxExists(focusedIdx) { decendentNodeIdx =>
-          decendentNodeIdx == nodeIdx &&
-            !graph.isDoneInAllWorkspaces(nodeIdx, Array(focusedIdx)) &&
-            graph.nodes(nodeIdx).role == NodeRole.Task
-        }
+        graph.notDeletedChildrenIdx(focusedIdx).contains(nodeIdx) &&
+        graph.nodes(nodeIdx).role == NodeRole.Task &&
+        !graph.isDoneInAllWorkspaces(nodeIdx, Array(focusedIdx))
       )
       AssignedTasksStat(user, assignedTaskCount)
     }
