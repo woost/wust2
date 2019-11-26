@@ -197,6 +197,9 @@ object CommonStyles extends StyleSheet.Standalone
   ".hover-full-opacity" - (
     opacity(0.5),
   )
+  ".hover-full-opacity.opacity-75" - (
+    opacity(0.75),
+  )
   ".hover-full-opacity:hover" - (
     opacity(1),
   )

@@ -51,16 +51,18 @@ object ViewSwitcher {
     }
   }
 
-  val addViewIcon = freeSolid.faPlus
+  val addViewIcon = freeSolid.faCaretDown
   def apply(channelId: NodeId, currentView: Var[View], initialView: Option[View.Visible] = None)(implicit ctx: Ctx.Owner): VNode = {
     val closeDropdown = SinkSourceHandler.publish[Unit]
 
     def addNewViewTab = div(
-      cls := "viewswitcher-item",
+      cls := "hover-full-opacity opacity-75",
       div(
-        div(addViewIcon, fontSize := "16px", color := Colors.pageHeaderControl, paddingLeft := "2px", paddingRight := "2px"),
+        padding := "7px 10px",
+        div(addViewIcon, fontSize := "16px", color := "white", paddingLeft := "2px", paddingRight := "2px", UI.tooltip("bottom left") := "Add or remove views"),
 
         UI.dropdownMenu(VDomModifier(
+          color := Colors.fgColor,
           padding := "5px",
           div(cls := "item", display.none), //TODO ui dropdown needs at least one element
 
