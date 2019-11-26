@@ -55,6 +55,7 @@ object AuthControls {
       onClickDefault.foreach {
         GlobalState.urlConfig.update(_.focus(View.UserSettings))
         FeatureState.use(Feature.ClickAvatarInAuthStatus)
+        GlobalState.resetGraphTransformation()
       },
       registerDragContainer,
     )
