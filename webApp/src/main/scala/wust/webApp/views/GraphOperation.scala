@@ -1,9 +1,10 @@
 package wust.webApp.views
 
+import wust.util.algorithm.dfs
 import cats.Eval
 import flatland.ArraySet
-import wust.graph.{Edge, Graph}
-import wust.ids.{NodeId, NodeRole, UserId}
+import wust.graph.{ Edge, Graph }
+import wust.ids.{ NodeId, NodeRole, UserId }
 import wust.util.macros.InlineList
 import wust.webApp.search.Search
 
@@ -22,16 +23,31 @@ object GraphOperation {
     else graph.filterChildEdges((e, i) => edgeFilters.forall(_(e, i)))
   }
 
+  @inline private def noBoundaryRole(nodeIdx: Int, graph: Graph) = InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task, NodeRole.Note)(graph.nodes(nodeIdx).role)
+  @inline private def isBoundaryRole(nodeIdx: Int, graph: Graph) = !noBoundaryRole(nodeIdx, graph)
+
+  @inline private def foreachParentsAndChildrenInRoleBoundary(startIdx: Int, action: Int => Unit, graph: Graph): Unit = {
+    //TODO: why do we have to use notDeletedParentsIdx and notDeletedChildrenIdx here? shouldn't this be already handled by another filter?
+    dfs.foreachStopLocally(_(startIdx), dfs.withStart, graph.notDeletedParentsIdx, continue = { nodeIdx =>
+      val roleIsAllowed = noBoundaryRole(nodeIdx, graph)
+      if (roleIsAllowed) action(nodeIdx)
+      roleIsAllowed
+    })
+    dfs.foreachStopLocally(_(startIdx), dfs.afterStart, graph.notDeletedChildrenIdx, continue = { nodeIdx =>
+      val roleIsAllowed = noBoundaryRole(nodeIdx, graph)
+      if (roleIsAllowed) action(nodeIdx)
+      roleIsAllowed
+    })
+  }
+
   final case class OnlyTaggedWith(tagId: NodeId) extends UserViewGraphTransformation {
     def filterWithViewData(pageIdx: Option[Int], userIdx: Int, graph: Graph): EdgeFilter = {
       pageIdx.flatMap { _ =>
-        graph.idToIdx(tagId).map { tagIdx =>
-          (_, edgeIdx) =>
-            val childIdx = graph.edgesIdx.b(edgeIdx)
-            val node = graph.nodes(childIdx)
-            !InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task, NodeRole.Note)(node.role) ||
-              graph.tagParentsIdx.contains(childIdx)(tagIdx) ||
-              graph.descendantsIdxExists(tagIdx)(_ == childIdx)
+        graph.idToIdx(tagId).map { tagIdx => (_, edgeIdx) =>
+          val childIdx = graph.edgesIdx.b(edgeIdx)
+
+          def anyParentOrChildInBoundaryIsTaggedByTagOrSubtag = dfs.exists(foreachParentsAndChildrenInRoleBoundary(childIdx, _, graph), dfs.withStart, graph.notDeletedParentsIdx, isFound = _ == tagIdx)
+          isBoundaryRole(childIdx, graph) || anyParentOrChildInBoundaryIsTaggedByTagOrSubtag
         }
       }
     }
@@ -39,22 +55,20 @@ object GraphOperation {
 
   case object OnlyDeletedChildren extends UserViewGraphTransformation {
     def filterWithViewData(pageIdx: Option[Int], userIdx: Int, graph: Graph): EdgeFilter = {
-      pageIdx.map { _ =>
-        (_, edgeIdx) =>
-          val parentIdx = graph.edgesIdx.a(edgeIdx)
-          val childIdx = graph.edgesIdx.b(edgeIdx)
-          graph.isDeletedNowIdx(childIdx, parentIdx)
+      pageIdx.map { _ => (_, edgeIdx) =>
+        val parentIdx = graph.edgesIdx.a(edgeIdx)
+        val childIdx = graph.edgesIdx.b(edgeIdx)
+        graph.isDeletedNowIdx(childIdx, parentIdx)
       }
     }
   }
 
   case object ExcludeDeletedChildren extends UserViewGraphTransformation {
     def filterWithViewData(pageIdx: Option[Int], userIdx: Int, graph: Graph): EdgeFilter = {
-      pageIdx.map { _ =>
-        (_, edgeIdx) =>
-          val parentIdx = graph.edgesIdx.a(edgeIdx)
-          val childIdx = graph.edgesIdx.b(edgeIdx)
-          !graph.isDeletedNowIdx(childIdx, parentIdx)
+      pageIdx.map { _ => (_, edgeIdx) =>
+        val parentIdx = graph.edgesIdx.a(edgeIdx)
+        val childIdx = graph.edgesIdx.b(edgeIdx)
+        !graph.isDeletedNowIdx(childIdx, parentIdx)
       }
     }
   }
@@ -72,7 +86,16 @@ object GraphOperation {
     def filterWithViewData(pageIdx: Option[Int], userIdx: Int, graph: Graph): EdgeFilter = {
       Some({ (_, edgeIdx) =>
         val childIdx = graph.edgesIdx.b(edgeIdx)
-        graph.nodes(childIdx).role != NodeRole.Task || graph.assignedUsersIdx.contains(childIdx)(graph.idToIdxOrThrow(userId))
+
+        def anyParentIsAssigned = dfs.exists(_(childIdx), dfs.withStart, graph.notDeletedParentsIdx,
+          isIncluded = { nodeIdx => noBoundaryRole(nodeIdx, graph) },
+          isFound = { nodeIdx => graph.assignedUsersIdx.contains(nodeIdx)(graph.idToIdxOrThrow(userId)) })
+
+        def anyChildIsAssigned = dfs.exists(_(childIdx), dfs.afterStart, graph.notDeletedChildrenIdx,
+          isIncluded = { nodeIdx => noBoundaryRole(nodeIdx, graph) },
+          isFound = { nodeIdx => graph.assignedUsersIdx.contains(nodeIdx)(graph.idToIdxOrThrow(userId)) })
+
+        isBoundaryRole(childIdx, graph) || anyParentIsAssigned || anyChildIsAssigned
       })
     }
   }
