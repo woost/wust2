@@ -37,7 +37,12 @@ object GraphChangesAutomationUI {
 
     val header: VDomModifier = Rx {
       GlobalState.rawGraph().nodesById(focusedId).map { node =>
-        Modal.defaultHeader(node, "Automation", Icons.automate)
+        val automationTriggerDescription = node.role match {
+          case NodeRole.Stage => " (triggered when a card is moved into or created in this column)"
+          case NodeRole.Tag => " (triggered when a task is tagged)"
+          case _ => ""
+        }
+        Modal.defaultHeader(node, s"Automation$automationTriggerDescription", Icons.automate)
       }
     }
 
