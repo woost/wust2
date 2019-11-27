@@ -4,7 +4,6 @@ import java.nio.ByteBuffer
 
 import akka.actor.ActorSystem
 import akka.util.ByteStringBuilder
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import akka.http.scaladsl.marshalling.{Marshaller, ToResponseMarshaller}
 import akka.http.scaladsl.model.headers.HttpOriginRange
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse, StatusCodes}
@@ -150,6 +149,7 @@ object Server {
         }
       }
     } ~ (pathPrefix(ServerPaths.stripeWebhook) & post) {
+      import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._ // WARNING: only EVER import locally here. will break other json api!!!!!
       stripeWebhookEndpoint match {
         case Some(endpoint) =>
           headerValueByName("Stripe-Signature") { signature =>
