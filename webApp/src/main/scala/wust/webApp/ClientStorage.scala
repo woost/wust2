@@ -160,13 +160,13 @@ class ClientStorage(implicit owner: Ctx.Owner) {
     } else Var(None)
   }
 
-  val backendTimeDelta: Var[Long] = {
+  val backendTimeDelta: Var[DurationMilli] = {
     if(canAccessLs) {
       LocalStorage
         .handlerWithoutEvents[SyncIO](keys.backendTimeDelta)
         .unsafeRunSync()
-        .mapHandler[Long](delta => Option(toJson(delta)))(_.flatMap(fromJson[Long]).getOrElse(0L))
-        .unsafeToVar(internal(keys.backendTimeDelta).flatMap(fromJson[Long]).getOrElse(0L))
-    } else Var(0L)
+        .mapHandler[DurationMilli](delta => Option(toJson(delta)))(_.flatMap(fromJson[DurationMilli]).getOrElse(DurationMilli(0L)))
+        .unsafeToVar(internal(keys.backendTimeDelta).flatMap(fromJson[DurationMilli]).getOrElse(DurationMilli(0L)))
+    } else Var(DurationMilli(0L))
   }
 }

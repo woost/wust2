@@ -45,7 +45,7 @@ object StringJsOps {
         if hour >= 0 && hour < 24
         min <- StringOps.safeToInt(min)
         if min >= 0 && min < 60
-      } yield TimeMilli(EpochMilli(EpochMilli.hour * hour + EpochMilli.minute * min))
+      } yield TimeMilli(EpochMilli(DurationMilli.hour * hour + DurationMilli.minute * min))
       case _ => None
     }
   }

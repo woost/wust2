@@ -55,7 +55,17 @@ package object ids {
   }
   type MentionedId = MentionedId.Type
 
-  object DurationMilli extends TaggedType[Long]
+  object DurationMilli extends TaggedType[Long] {
+    implicit class RichDurationMilli(val t: DurationMilli) extends AnyVal {
+      @inline def times(that: Long): DurationMilli = DurationMilli((t:Long) * that)
+    }
+
+    @inline def second: DurationMilli = DurationMilli(1000L)
+    @inline def minute: DurationMilli = second times 60L
+    @inline def hour: DurationMilli = minute times 60L
+    @inline def day: DurationMilli = hour times 24L
+    @inline def week: DurationMilli = day times 7L
+  }
   type DurationMilli = DurationMilli.Type
 
   object DateTimeMilli extends OverTagged(EpochMilli)
@@ -68,15 +78,10 @@ package object ids {
   type DateMilli = DateMilli.Type
 
   object EpochMilli extends TaggedType[Long] {
-    var delta: Long = 0 //TODO we should not have a var here, we use the delta for something very specific in the client and not for every epochmilli instance!
+    var delta: DurationMilli = DurationMilli(0L) //TODO we should not have a var here, we use the delta for something very specific in the client and not for every epochmilli instance!
     def localNow: EpochMilli = EpochMilli(System.currentTimeMillis()) // UTC: https://docs.oracle.com/javase/8/docs/api/java/lang/System.html#currentTimeMillis--
-    @inline def now: EpochMilli = EpochMilli(localNow + delta)
+    @inline def now: EpochMilli = localNow plus delta
     @inline def zero: EpochMilli = EpochMilli(0L)
-    @inline def second: Long = 1000L
-    @inline def minute: Long = 60L * second
-    @inline def hour: Long = 60L * minute
-    @inline def day: Long = 24L * hour
-    @inline def week: Long = 7L * day
 
     @silent("deprecated")
     def parse(str: String) = Try(Date.parse(str)).toOption.map(EpochMilli(_))
@@ -85,11 +90,13 @@ package object ids {
     def fromLocalDateTime(d: LocalDateTime): EpochMilli = EpochMilli(d.toInstant(ZoneOffset.UTC).toEpochMilli)
     def fromZonedDateTime(d: ZonedDateTime): EpochMilli = EpochMilli(d.toInstant.toEpochMilli)
 
+
     implicit class RichEpochMilli(val t: EpochMilli) extends AnyVal {
       @inline def <(that: EpochMilli): Boolean = t < that
       @inline def >(that: EpochMilli): Boolean = t > that
       @inline def plus(duration: DurationMilli): EpochMilli = EpochMilli((t: Long) + (duration: Long))
       @inline def minus(duration: DurationMilli): EpochMilli = EpochMilli((t: Long) - (duration: Long))
+      @inline def minusEpoch(duration: EpochMilli): DurationMilli = DurationMilli((t: Long) - (duration: Long))
       @inline def isBefore(that: EpochMilli): Boolean = t < that
       @inline def isBeforeOrEqual(that: EpochMilli): Boolean = t <= that
       @inline def isAfter(that: EpochMilli): Boolean = t > that

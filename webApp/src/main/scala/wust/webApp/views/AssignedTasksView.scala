@@ -6,7 +6,7 @@ import outwatch.reactive._
 import rx._
 import wust.css.Styles
 import wust.graph.{ Edge, GraphChanges, Node }
-import wust.ids.{ ChildId, EpochMilli, ParentId, UserId }
+import wust.ids.{ ChildId, EpochMilli, ParentId, UserId, DurationMilli }
 import wust.util.collection._
 import wust.webApp.state.{ FocusState, GlobalState, Placeholder, TraverseState }
 import wust.webApp.views.AssignedTasksData.AssignedTask
@@ -25,7 +25,7 @@ object AssignedTasksView {
     date.setMinutes(0)
     date.setSeconds(0)
     date.setMilliseconds(0)
-    EpochMilli(date.getTime.toLong + days * EpochMilli.day)
+    EpochMilli(date.getTime.toLong) plus (DurationMilli.day times days)
   }
 
   def apply(focusState: FocusState, deepSearch: Boolean = false, selectedUserId: Var[Option[UserId]] = Var(Some(GlobalState.userId.now)))(implicit ctx: Ctx.Owner): VNode = {

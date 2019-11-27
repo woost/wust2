@@ -144,7 +144,7 @@ object Client {
 
   private def timeSync(): Unit = {
     Client.api.currentTime.foreach { backendNow =>
-      Client.storage.backendTimeDelta() = backendNow - EpochMilli.localNow
+      Client.storage.backendTimeDelta() = backendNow minusEpoch EpochMilli.localNow
     }
   }
 
