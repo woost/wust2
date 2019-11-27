@@ -323,24 +323,44 @@ object Components {
         )
     }
 
-    val isOverDue = {
+    val dueModifier = {
       val isDueDate = (key.data.key == EdgeData.LabeledProperty.dueDate.key)
-      def isOverDue = {
+      if(isDueDate) {
         property.data match {
-          case NodeData.DateTime(dueDate) if EpochMilli.now isAfter dueDate => true
-          case _ => false
+          case NodeData.DateTime(dueDate) if dueDate isBefore (EpochMilli.now minus DurationMilli.day) => 
+            VDomModifier(
+              // less red
+              color := "#75000e",
+              backgroundColor := "rgb(254, 221, 224)",
+              boxShadow := "rgba(254, 221, 224, 0.75) 0px 0px 6px 0px",
+              UI.tooltip("top center") := "Past due",
+            )
+          case NodeData.DateTime(dueDate) if dueDate isBefore EpochMilli.now => 
+            VDomModifier(
+              // red
+              color := "#751f00",
+              backgroundColor := "rgb(255, 186, 179)",
+              boxShadow := "rgba(255, 186, 179, 0.75) 0px 0px 6px 0px",
+              UI.tooltip("top center") := "Recently overdue",
+            )
+          case NodeData.DateTime(dueDate) if dueDate isBefore (EpochMilli.now plus DurationMilli.day) => 
+            VDomModifier(
+              // yellow
+              color := "#664400",
+              backgroundColor := "rgb(255, 247, 179)",
+              boxShadow := "rgba(255, 247, 179, 0.5) 0px 0px 6px 0px",
+              UI.tooltip("top center") := "Due in less than 24 hours",
+            )
+
+          case _ => VDomModifier.empty
         }
       }
-      isDueDate && isOverDue
+      else VDomModifier.empty
     }
 
     span(
       cls := "ui label property",
-      VDomModifier.ifTrue(isOverDue)(
-        color := "#751f00",
-        backgroundColor := "#ffbbb3",
-        boxShadow := "0px 0 6px 0px hsla(6, 100%, 85%, 0.75)",
-      ),
+      dueModifier,
       onClick.stopPropagation.discard, // prevent clicks on property to zoom or focus
       VDomModifier.ifTrue(isReference)(cls := "reference"),
       fullWidthForReferences,
