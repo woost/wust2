@@ -1,6 +1,7 @@
 package wust.webApp.views
 
 import wust.facades.hopscotch.Step
+import fontAwesome.fontawesome
 
 import scala.scalajs.js
 
@@ -47,7 +48,7 @@ object MainTutorial extends Tutorial {
 
     val explainViews = new Step {
       title = "Project Views"
-      content = "Every Project can have several views. Click <b>+</b> to add or remove views. Use the tabs to switch.<br/><br/>Click different tabs while holding down <b>Ctrl</b> to display multiple views simultaneously."
+      content = s"Every Project can have several views. Click ${fontawesome.icon(ViewSwitcher.addViewIcon).html} to add or remove views. Use the tabs to switch.<br/><br/>Click different tabs while holding down <b>Ctrl</b> to display multiple views simultaneously."
       var target = "tutorial-pageheader-viewswitcher"
       var placement = "bottom"
       showCTAButton = false
