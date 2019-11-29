@@ -125,6 +125,27 @@ object DragActions {
     }
   }
 
+
+  private def dragTaskIntoStage(payload: DragItem.Task, from: Kanban.Column, into: Kanban.Column, ctrl:Boolean) = {
+          def addTargetColumn = sortingChanges(graph, userId, sortableStopEvent, payload.nodeId, from, into)
+          def addTargetWorkspace = if (from.workspace != into.workspace) GraphChanges.connect(Edge.Child)(ParentId(into.workspace), ChildId(payload.nodeId)) else GraphChanges.empty
+          def disconnectSourceColumn = if (addTargetColumn.isEmpty || from.nodeId == into.nodeId) GraphChanges.empty else GraphChanges.disconnect(Edge.Child)(ParentId(from.nodeId), ChildId(payload.nodeId))
+          def disconnectWorkspace: GraphChanges = if (from.workspace != into.workspace)
+            GraphChanges.disconnect(Edge.Child)(ParentId(from.workspace), ChildId(payload.nodeId))
+          else GraphChanges.empty
+
+          if(from.nodeId != into.nodeId)
+            FeatureState.use(Feature.DragTaskToDifferentColumnInKanban)
+          else
+            FeatureState.use(Feature.ReorderTaskInKanban)
+
+          if (ctrl)
+            addTargetColumn merge addTargetWorkspace
+          else
+            addTargetColumn merge addTargetWorkspace merge disconnectSourceColumn merge disconnectWorkspace
+  }
+
+
   val dragAction: PartialFunction[(DragPayload, DragTarget, Boolean, Boolean), (Graph, UserId) => GraphChanges] = {
     import DragItem._
     import wust.graph.GraphChanges._
@@ -135,6 +156,7 @@ object DragActions {
       case (payload: ContentNode, target: Thread, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), target.nodeIds.map(ParentId(_)), graph, ctrl)
       case (payload: ContentNode, target: Workspace, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), ParentId(target.nodeId), graph, ctrl)
       case (payload: ContentNode, target: Channel, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), ParentId(target.nodeId), graph, ctrl)
+      case (payload: ContentNode, target: Sidebar.type, false, false) => (graph, userId) => pin(payload.nodeId, userId)
       case (payload: ContentNode, target: Sidebar.type, false, false) => (graph, userId) => pin(payload.nodeId, userId)
 
       case (payload: ContentNode, target: Tag, false, false) => (graph, userId) => linkInto(ChildId(payload.nodeId), ParentId(target.nodeId), graph)
@@ -160,6 +182,8 @@ object DragActions {
       case (payload: Stage, target: Channel, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), ParentId(target.nodeId), graph, ctrl)
 
       case (payload: User, target: ContentNode, false, false) => (graph, userId) => assign(target.nodeId, payload.userId)
+
+      case (payload: Task, target: Stage, ctrl, false) => (graph, userId) => dragTaskIntoStage(payload, )
     }
   }
 
