@@ -10,14 +10,6 @@ import wust.util.collection._
 //TODO move to other package...utils?
 object CsvHelper {
 
-  //TODO: column names and order should be in order with tableview
-  private val staticColumns =
-    "Name" ::
-    "Tags" ::
-    "Stages" ::
-    "Assignees" ::
-    Nil
-
   private val multiValueSeparator = ","
 
   def csvToChanges(csv: String): Either[String, GraphChanges.Import] = {
@@ -50,11 +42,11 @@ object CsvHelper {
               topLevelNodeIds += nodeId
             } else {
               column match {
-                case "Tags" => cellSplit(cell).foreach { tag =>
+                case TableView.StaticColumns.tags => cellSplit(cell).foreach { tag =>
                   allTags += (tag -> ChildId(nodeId))
                 }
 
-                case "Stages" => cellSplit(cell).foreach { stage =>
+                case TableView.StaticColumns.stages => cellSplit(cell).foreach { stage =>
                   allStages += (stage -> ChildId(nodeId))
                 }
 
@@ -108,17 +100,9 @@ object CsvHelper {
     def multiCell(row: Seq[String]): String = row.mkString(multiValueSeparator)
 
     // build the column header line
-    //TODO: column names and order should be in order with tableview
-    val staticColumns =
-      "Name" ::
-      "Tags" ::
-      "Stages" ::
-      "Assignees" ::
-      Nil
-
     val dynamicColumns = propertyGroup.properties.map(_.key)
 
-    val header = staticColumns ++ dynamicColumns
+    val header = TableView.StaticColumns.list.map(_.title) ++ dynamicColumns
 
     val config = CsvConfiguration.rfc.withHeader(CsvConfiguration.Header.Explicit(header))
     val stringWriter = new java.io.StringWriter

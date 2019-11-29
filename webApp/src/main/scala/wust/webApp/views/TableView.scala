@@ -21,6 +21,39 @@ import wust.webUtil.outwatchHelpers._
 import scala.collection.{ breakOut, mutable }
 
 object TableView {
+
+  object StaticColumns {
+    val entity = "Item"
+    val tags = "Tags"
+    val stages = "Stages"
+    val assignees = "Assignees"
+
+    final case class ColumnData(title: String, condition: PropertyData.BasicInfo => Boolean , dataExtractor: PropertyData.BasicInfo => Seq[(Option[Edge.LabeledProperty], Node)])
+    val list: List[ColumnData] =
+      ColumnData(
+        StaticColumns.entity,
+        (_: PropertyData.BasicInfo) => true,
+        (property: PropertyData.BasicInfo) => Array(None -> property.node)
+      ) ::
+        ColumnData(
+          StaticColumns.tags,
+          (property: PropertyData.BasicInfo) =>  property.tags.nonEmpty,
+          (property: PropertyData.BasicInfo) =>  property.tags.map(None -> _)
+        ) ::
+        ColumnData(
+          StaticColumns.stages,
+          (property: PropertyData.BasicInfo) =>  property.stages.nonEmpty,
+          (property: PropertyData.BasicInfo) =>  property.stages.map(None -> _)
+        ) ::
+        ColumnData(
+          StaticColumns.assignees,
+          (property: PropertyData.BasicInfo) =>  property.assignedUsers.nonEmpty,
+          (property: PropertyData.BasicInfo) =>  property.assignedUsers.map(None -> _)
+        ) ::
+        Nil
+  }
+
+
   def apply(focusState: FocusState, roles: List[NodeRole], viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VNode = {
     val sort = Var[Option[UI.ColumnSort]](None)
 
@@ -228,36 +261,15 @@ object TableView {
 
         if(showNested) columns += referrerProperty
 
-        columns += UI.Column(
-          columnHeader("Name"),
-          propertyGroup.infos.map { property =>
-            columnEntryOfNodes(property.node.id, Array(None -> property.node))
-          }(breakOut)
-        )
-
-        if (propertyGroup.infos.exists(_.tags.nonEmpty))
-          columns += UI.Column(
-            columnHeader("Tags"),
-            propertyGroup.infos.map { property =>
-              columnEntryOfNodes(property.node.id, property.tags.map(None -> _))
-            }(breakOut)
-          )
-
-        if (propertyGroup.infos.exists(_.stages.nonEmpty))
-          columns += UI.Column(
-            columnHeader("Stage"),
-            propertyGroup.infos.map { property =>
-              columnEntryOfNodes(property.node.id, property.stages.map(None -> _))
-            }(breakOut)
-          )
-
-        if (propertyGroup.infos.exists(_.assignedUsers.nonEmpty))
-          columns += UI.Column(
-            columnHeader("Assigned"),
-            propertyGroup.infos.map { property =>
-              columnEntryOfNodes(property.node.id, property.assignedUsers.map(None -> _))
-            }(breakOut)
-          )
+        StaticColumns.list.map { (staticColumn: StaticColumns.ColumnData ) =>
+          if(propertyGroup.infos.exists(staticColumn.condition))
+            columns += UI.Column(
+              columnHeader(staticColumn.title),
+              propertyGroup.infos.map { property =>
+                columnEntryOfNodes(property.node.id, staticColumn.dataExtractor(property))
+              }(breakOut)
+            )
+        }
 
         columns
       }
