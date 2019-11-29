@@ -112,4 +112,31 @@ object ChartData {
 
     ChartRenderData(rawCanvasData).render
   }
+
+  def renderDeadlineChart(traverseState: TraverseState)(implicit ctx: Ctx.Owner): HtmlVNode = {
+    val rawCanvasData = Rx {
+      val graph = GlobalState.graph()
+
+      val uncategorizedColumn = ChartDataContainer(
+        label = "Uncategorized",
+        labelColor = BaseColors.kanbanColumnBg.rgb,
+        dataValue = KanbanData.inboxNodesCount(graph, traverseState)
+      )
+
+      //TODO: check whether a column hast nested stages
+      uncategorizedColumn +: KanbanData.columnNodes(graph, traverseState).collect {
+        case n if n._2 == NodeRole.Stage && !graph.isDoneStage(n._1) =>
+          val node = graph.nodesByIdOrThrow(n._1 )
+          val (stageName, stageChildren) = (node.str, graph.notDeletedChildrenIdx(graph.idToIdxOrThrow(node.id)).length: Double)
+
+          ChartDataContainer(
+            label = stageName,
+            labelColor = BaseColors.kanbanColumnBg.copy(h = NodeColor.hue(node.id)).rgb,
+            dataValue = stageChildren
+          )
+      }
+    }
+
+    ChartRenderData(rawCanvasData).render
+  }
 }

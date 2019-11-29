@@ -97,11 +97,11 @@ object FeatureDetails {
       )
       case CreateTaskInKanban => FeatureDetails (
         title = "Create Card (Kanban)",
-        description = VDomModifier(s"At the bottom of a column, click ", em(KanbanView.addCardText), " type a name in the field and press ", em("Enter"), ".")
+        description = VDomModifier("At the bottom of a column, click ", em(s"Add ${KanbanView.cardText}"), " type a name in the field and press ", em("Enter"), ".")
       )
       case CreateColumnInKanban => FeatureDetails (
         title = "Create Column (Kanban)",
-        description = VDomModifier(s"On the right side, click ", em(KanbanView.addColumnText), ", type a name in the field and press ", em("Enter"), ".")
+        description = VDomModifier("On the right side, click ", em(s"Add ${KanbanView.columnText}"), ", type a name in the field and press ", em("Enter"), ".")
       )
       case ReorderTaskInKanban => FeatureDetails (
         title = "Reorder Cards (Kanban)",
