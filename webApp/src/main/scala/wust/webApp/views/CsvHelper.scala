@@ -4,6 +4,7 @@ import kantan.csv._
 import wust.graph._
 import wust.ids._
 import wust.util.collection._
+import wust.webApp.views.TableView.StaticColumns
 
 // importing and exporting from csv and table. uses kantan.csv library to parse and write csv.
 
@@ -12,6 +13,7 @@ object CsvHelper {
 
   private val multiValueSeparator = ","
 
+  //TODO: Use first column name as setting for item name
   def csvToChanges(csv: String): Either[String, GraphChanges.Import] = {
 
     def cellSplit(cell: String): Seq[String] = cell.split(multiValueSeparator).filter(_.nonEmpty)
@@ -38,7 +40,7 @@ object CsvHelper {
           header.zip(row).foreachWithIndex { case (idx, (column, cell)) =>
             // always interpret the first column as the node name
             if (idx == 0) {
-              nodes += Node.Content(nodeId, NodeData.Markdown(cell), NodeRole.Task, NodeMeta.default, None)
+              nodes += Node.Content(nodeId, NodeData.Markdown(cell), NodeRole.Task, NodeMeta.default, None, None)
               topLevelNodeIds += nodeId
             } else {
               column match {
@@ -102,7 +104,7 @@ object CsvHelper {
     // build the column header line
     val dynamicColumns = propertyGroup.properties.map(_.key)
 
-    val header = TableView.staticColumnList.map(_.title) ++ dynamicColumns
+    val header = TableView.staticColumnList(node.settings.flatMap(_.global.map(_.itemName)).getOrElse(TableView.StaticColumns.Item.tpe)).map(_.title.tpe) ++ dynamicColumns
 
     val config = CsvConfiguration.rfc.withHeader(CsvConfiguration.Header.Explicit(header))
     val stringWriter = new java.io.StringWriter

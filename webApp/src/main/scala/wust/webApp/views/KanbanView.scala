@@ -22,17 +22,19 @@ import wust.webUtil.{BrowserDetect, Elements, Ownable, UI}
 import fontAwesome.freeRegular
 
 object KanbanView {
+  val columnText = "Column"
+  val cardText = "Card"
 
   def apply(focusState: FocusState, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VNode = {
-
-    val selectedNodeIds:Var[Set[NodeId]] = Var(Set.empty[NodeId])
-
-    val traverseState = TraverseState(focusState.focusedId)
-
     val node = Rx {
       val g = GlobalState.rawGraph()
       g.nodesById(focusState.focusedId)
     }
+    val itemName = node.map(_.flatMap(_.settings).fold(GlobalNodeSettings(Some(cardText)))(_.globalOrDefault).itemName)
+
+    val selectedNodeIds:Var[Set[NodeId]] = Var(Set.empty[NodeId])
+
+    val traverseState = TraverseState(focusState.focusedId)
 
     val kanbanSettings = node.map(_.flatMap(_.settings).fold(KanbanSettings.default)(_.kanbanOrDefault))
 
@@ -52,12 +54,12 @@ object KanbanView {
       alignItems.flexStart,
 
       kanbanSettings.map { settings =>
-        if (settings.hideUncategorized) minimizedInboxColumn(traverseState, updateKanbanSettings)
-        else renderInboxColumn(focusState, traverseState, viewRender, selectedNodeIds, updateKanbanSettings)
+        if (settings.hideUncategorized) minimizedInboxColumn(traverseState, itemName, updateKanbanSettings)
+        else renderInboxColumn(focusState, traverseState, viewRender, selectedNodeIds, itemName, updateKanbanSettings)
       },
 
       // inbox is separated, because it cannot be reordered. The others are in a sortable container
-      renderToplevelColumns(focusState, traverseState, viewRender, selectedNodeIds),
+      renderToplevelColumns(focusState, traverseState, viewRender, selectedNodeIds, itemName),
 
       newColumnArea(focusState, traverseState).apply(Styles.flexStatic),
     )
@@ -70,11 +72,12 @@ object KanbanView {
     nodeRole: NodeRole,
     viewRender: ViewRenderLike,
     selectedNodeIds:Var[Set[NodeId]],
+    itemName: Rx[String],
     isTopLevel: Boolean = false,
   )(implicit ctx: Ctx.Owner): VDomModifier = {
     nodeRole match {
       case NodeRole.Task => TaskNodeCard.renderThunk( focusState, traverseState, nodeId, selectedNodeIds, compactChildren = true)
-      case NodeRole.Stage => renderColumn( focusState, traverseState, nodeId, viewRender = viewRender, selectedNodeIds, isTopLevel = isTopLevel)
+      case NodeRole.Stage => renderColumn( focusState, traverseState, nodeId, viewRender = viewRender, selectedNodeIds, isTopLevel = isTopLevel, itemName = itemName)
       case _ => VDomModifier.empty
     }
   }
@@ -84,6 +87,7 @@ object KanbanView {
     traverseState: TraverseState,
     viewRender: ViewRenderLike,
     selectedNodeIds: Var[Set[NodeId]],
+    itemName: Rx[String],
   )(implicit ctx: Ctx.Owner): VDomModifier = {
     val columns = Rx {
       val graph = GlobalState.graph()
@@ -98,7 +102,7 @@ object KanbanView {
       Rx {
         VDomModifier(
           columns().map { columnId =>
-            renderColumn( focusState, traverseState, columnId, viewRender, selectedNodeIds, isTopLevel = true)
+            renderColumn( focusState, traverseState, columnId, viewRender, selectedNodeIds, itemName, isTopLevel = true)
           },
           registerDragContainer( DragContainer.Kanban.ColumnArea(focusState.focusedId, columns())),
         )
@@ -108,7 +112,8 @@ object KanbanView {
 
   private def minimizedInboxColumn(
     traverseState: TraverseState,
-    updateKanbanSettings: (KanbanSettings => KanbanSettings) => Unit
+    itemName: Rx[String],
+    updateKanbanSettings: (KanbanSettings => KanbanSettings) => Unit,
   )(implicit ctx: Ctx.Owner): VNode = {
     val childrenCount = Rx {
       val graph = GlobalState.graph()
@@ -121,7 +126,9 @@ object KanbanView {
       flexDirection.column,
       alignItems.center,
       onClickDefault.foreach { updateKanbanSettings(_.copy(hideUncategorized = false)) },
-      UI.tooltip("right center") := "Show uncategorized cards",
+      Rx {
+        UI.tooltip("right center") := s"Show uncategorized ${itemName()}"
+      },
 
       div(cls := "fa-fw", freeRegular.faEye),
 
@@ -137,6 +144,7 @@ object KanbanView {
     traverseState: TraverseState,
     viewRender: ViewRenderLike,
     selectedNodeIds: Var[Set[NodeId]],
+    itemName: Rx[String],
     updateKanbanSettings: (KanbanSettings => KanbanSettings) => Unit
   )(implicit ctx: Ctx.Owner): VNode = {
     val scrollHandler = new ScrollBottomHandler(initialScrollToBottom = false)
@@ -149,7 +157,7 @@ object KanbanView {
     val collapseButton = div(
       div(cls := "fa-fw", freeRegular.faEyeSlash),
       onClickDefault.foreach { updateKanbanSettings(_.copy(hideUncategorized = true)) },
-      UI.tooltip("bottom center") := "Hide uncategorized cards"
+      Rx { UI.tooltip("bottom center") := s"Hide uncategorized ${itemName()}" },
     )
 
     div(
@@ -186,7 +194,7 @@ object KanbanView {
           )
         }
       ),
-      addCardField( focusState, focusState.focusedId, scrollHandler)
+      addCardField( focusState, focusState.focusedId, scrollHandler, itemName)
     )
   }
 
@@ -196,6 +204,7 @@ object KanbanView {
     nodeId: NodeId,
     viewRender: ViewRenderLike,
     selectedNodeIds:Var[Set[NodeId]],
+    itemName: Rx[String],
     isTopLevel: Boolean = false,
   ): VNode = div.thunk(nodeId.hashCode)(isTopLevel)(Ownable { implicit ctx =>
     val editable = Var(false)
@@ -251,7 +260,7 @@ object KanbanView {
                   val deleteChanges = GraphChanges.undelete(ChildId(nodeId), ParentId(traverseState.parentId))
                   GlobalState.submitChanges(deleteChanges)
                 } else {
-                  Elements.confirm("Delete this column? Its cards will become uncategorized.") {
+                  Elements.confirm(s"Delete this column? Its ${itemName.now} will become uncategorized.") {
                     val deleteChanges = GraphChanges.delete(ChildId(nodeId), ParentId(traverseState.parentId))
                     GlobalState.submitChanges(deleteChanges)
                     selectedNodeIds.update(_ - nodeId)
@@ -299,7 +308,7 @@ object KanbanView {
             Rx {
               VDomModifier(
                 registerDragContainer( DragContainer.Kanban.Column(nodeId, children().map(_._1), workspace = focusState.focusedId)),
-                children().map { case (id, role) => renderTaskOrStage( focusState, nextTraverseState, nodeId = id, nodeRole = role, viewRender, selectedNodeIds) },
+                children().map { case (id, role) => renderTaskOrStage( focusState, nextTraverseState, nodeId = id, nodeRole = role, viewRender, selectedNodeIds, itemName) },
               )
             },
             scrollHandler.modifier,
@@ -341,17 +350,17 @@ object KanbanView {
         cls := "kanbancolumnfooter",
         Styles.flex,
         justifyContent.spaceBetween,
-        addCardField( focusState, nodeId, scrollHandler).apply(width := "100%"),
+        addCardField( focusState, nodeId, scrollHandler, itemName).apply(width := "100%"),
         // stageCommentZoom,
       )
     )
   })
 
-  val addCardText = "Add Card"
   private def addCardField(
     focusState: FocusState,
     nodeId: NodeId,
     scrollHandler: ScrollBottomHandler,
+    itemName: Rx[String],
   )(implicit ctx: Ctx.Owner): VNode = {
     val active = Var[Boolean](false)
     active.foreach{ active =>
@@ -390,7 +399,7 @@ object KanbanView {
         else
           div(
             cls := "kanbanaddnodefieldtext",
-            s"+ $addCardText",
+            Rx{ s"+ Add ${itemName()}" },
             color := "rgba(0,0,0,0.62)",
             onClick.stopPropagation.use(true) --> active
           )
@@ -398,7 +407,6 @@ object KanbanView {
     )
   }
 
-  val addColumnText = "Add Column"
   private def newColumnArea(focusState: FocusState, traverseState: TraverseState)(implicit ctx: Ctx.Owner) = {
     val fieldActive = Var(false)
     def submitAction(sub: InputRow.Submission) = {
@@ -457,7 +465,7 @@ object KanbanView {
           cls := "kanbanaddnodefieldtext",
           paddingTop := "10px",
           color := "rgba(0,0,0,0.62)",
-          s"+ $addColumnText",
+          s"+ Add $columnText",
         )
       },
       Rx {

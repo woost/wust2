@@ -7,60 +7,62 @@ import outwatch.dom.dsl._
 import outwatch.ext.monix._
 import rx._
 import wust.css.Styles
-import wust.graph.{ Edge, Graph, GraphChanges, Node }
+import wust.graph.{Edge, Graph, GraphChanges, Node}
 import wust.ids._
 import wust.util.StringOps
-import wust.webApp.dragdrop.{ DragContainer, DragItem }
-import wust.webApp.state.{ FocusState, GlobalState, GraphChangesAutomation, Placeholder }
+import wust.webApp.dragdrop.{DragContainer, DragItem}
+import wust.webApp.state.{FocusState, GlobalState, GraphChangesAutomation, Placeholder}
 import wust.webApp.views.DragComponents.registerDragContainer
 import wust.webApp.views.SharedViewElements.onClickNewNamePrompt
-import wust.webApp.{ Icons, ItemProperties }
+import wust.webApp.{Icons, ItemProperties, views}
 import wust.webUtil.UI
 import wust.webUtil.outwatchHelpers._
 
-import scala.collection.{ breakOut, mutable }
+import scala.collection.{breakOut, mutable}
 
 object TableView {
 
+  sealed trait StaticColumns { def tpe: StaticColumns.Type }
   object StaticColumns {
     import supertagged._
     object Type extends TaggedType[String]
     type Type = Type.Type
 
     abstract class Named(implicit name: sourcecode.Name) {
-      val tpe = Type(name.value)
+      val tpe: TableView.StaticColumns.Type = Type(name.value)
     }
 
+    final case class Item(name: String) extends Named with StaticColumns
     case object Item extends Named
-    case object Tags extends Named
-    case object Stages extends Named
-    case object Assignees extends Named
+
+    case object Tags extends Named with StaticColumns
+    case object Stages extends Named with StaticColumns
+    case object Assignees extends Named with StaticColumns
   }
 
-  final case class ColumnData(title: String, condition: PropertyData.BasicInfo => Boolean, dataExtractor: PropertyData.BasicInfo => Seq[(Option[Edge.LabeledProperty], Node)])
-  val staticColumnList: List[ColumnData] =
-    ColumnData(
-      StaticColumns.Item.tpe,
-      (_: PropertyData.BasicInfo) => true,
-      (property: PropertyData.BasicInfo) => Array(None -> property.node)
-    ) ::
-    ColumnData(
-      StaticColumns.Tags.tpe,
-      (property: PropertyData.BasicInfo) => property.tags.nonEmpty,
-      (property: PropertyData.BasicInfo) => property.tags.map(None -> _)
-    ) ::
-    ColumnData(
-      StaticColumns.Stages.tpe,
-      (property: PropertyData.BasicInfo) => property.stages.nonEmpty,
-      (property: PropertyData.BasicInfo) => property.stages.map(None -> _)
-    ) ::
-    ColumnData(
-      StaticColumns.Assignees.tpe,
-      (property: PropertyData.BasicInfo) => property.assignedUsers.nonEmpty,
-      (property: PropertyData.BasicInfo) => property.assignedUsers.map(None -> _)
-    ) ::
-    Nil
-
+  final case class ColumnData(title: StaticColumns, condition: PropertyData.BasicInfo => Boolean, dataExtractor: PropertyData.BasicInfo => Seq[(Option[Edge.LabeledProperty], Node)])
+  def staticColumnList(itemName: String): List[ColumnData] =
+      ColumnData(
+        StaticColumns.Item(itemName),
+        (_: PropertyData.BasicInfo) => true,
+        (property: PropertyData.BasicInfo) => Array(None -> property.node)
+      ) ::
+        ColumnData(
+          StaticColumns.Tags,
+          (property: PropertyData.BasicInfo) => property.tags.nonEmpty,
+          (property: PropertyData.BasicInfo) => property.tags.map(None -> _)
+        ) ::
+        ColumnData(
+          StaticColumns.Stages,
+          (property: PropertyData.BasicInfo) => property.stages.nonEmpty,
+          (property: PropertyData.BasicInfo) => property.stages.map(None -> _)
+        ) ::
+        ColumnData(
+          StaticColumns.Assignees,
+          (property: PropertyData.BasicInfo) => property.assignedUsers.nonEmpty,
+          (property: PropertyData.BasicInfo) => property.assignedUsers.map(None -> _)
+        ) ::
+        Nil
 
   def apply(focusState: FocusState, roles: List[NodeRole], viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VNode = {
     val sort = Var[Option[UI.ColumnSort]](None)
@@ -83,6 +85,14 @@ object TableView {
     val node = Rx {
       val g = GlobalState.rawGraph()
       g.nodesById(focusState.focusedId)
+    }
+
+    val globalNodeSettings = node.map(_.flatMap(_.settings).fold(GlobalNodeSettings.default)(_.globalOrDefault))
+    val updateGlobalNodeSettings: (GlobalNodeSettings => GlobalNodeSettings) => Unit = f => node.now.map {
+      case node: Node.Content =>
+        val newNode = node.updateSettings(_.updateGlobal(f))
+        GlobalState.submitChanges(GraphChanges.addNode(newNode))
+      case _                  => ()
     }
 
     val tableSettings = node.map(_.flatMap(_.settings).fold(TableSettings.default)(_.tableOrDefault))
@@ -129,9 +139,40 @@ object TableView {
       minWidth := "100px"
     )
 
+    def columnStaticHeader(name: String) = {
+      val editMode = Var(false)
+
+      def miniButton = span(
+        fontSize.xSmall,
+        cursor.pointer,
+      )
+
+      span(
+        Styles.inlineFlex,
+        justifyContent.spaceBetween,
+
+        div(
+          position.relative, // for cancel and save button absolute popup
+          EditableContent.inlineEditorOrRender[String](name, editMode, _ => columnHeader(_)).editValue.foreach { newName =>
+            if (newName.nonEmpty) {
+              updateGlobalNodeSettings(s => s.copy(itemNameOpt = Some(newName)))
+            }
+          }
+        ),
+
+        editMode.map {
+          case false => miniButton(
+            paddingLeft := "5px",
+            Icons.edit,
+            onClick.stopPropagation.use(true) --> editMode
+          )
+          case true  => VDomModifier.empty
+        }
+      )
+    }
+
     def columnHeaderWithDelete(name: String, edges: Seq[Edge.LabeledProperty]) = {
       val editMode = Var(false)
-      var lastEditMode = false
       editMode.triggerLater { editMode =>
         if (editMode) globalEditMode() = Some(name -> edges)
         else if (globalEditMode.now.exists { case (key, _) => key == name }) globalEditMode() = None
@@ -231,20 +272,8 @@ object TableView {
         )
       }(breakOut)
 
-      val referrerProperty: UI.Column = UI.Column(
-        columnHeader("Referrer"),
-        propertyGroup.infos.map { nodeInfo =>
-          columnEntryOfNodes(
-            nodeInfo.node.id,
-            nodeInfo.reverseProperties.map(None -> _)(breakOut),
-          )
-        }(breakOut)
-      )
-
       val nodeColumns: Seq[UI.Column] = {
-        val columns = new mutable.ArrayBuffer[UI.Column]
-
-        columns += UI.Column(
+        val firstColumn = UI.Column(
           "#",
           propertyGroup.infos.zipWithIndex.map {
             case (property, idx) =>
@@ -267,19 +296,36 @@ object TableView {
           }(breakOut)
         )
 
-        if(showNested) columns += referrerProperty
+        val referrerProperty = UI.Column(
+          columnHeader("Referrer"),
+          propertyGroup.infos.map { nodeInfo =>
+            columnEntryOfNodes(
+              nodeInfo.node.id,
+              nodeInfo.reverseProperties.map(None -> _)(breakOut),
+            )
+          }(breakOut)
+        )
 
-        staticColumnList.map { (staticColumn: ColumnData ) =>
-          if(propertyGroup.infos.exists(staticColumn.condition))
-            columns += UI.Column(
-              columnHeader(staticColumn.title),
+        val staticColumns = staticColumnList(globalNodeSettings().itemName).map {
+          case ColumnData(StaticColumns.Item(title), _, dataExtractor) =>
+            UI.Column(
+              columnStaticHeader(title),
+              propertyGroup.infos.map { property =>
+                columnEntryOfNodes(property.node.id, dataExtractor(property))
+              }(breakOut)
+            )
+          case staticColumn =>
+            UI.Column(
+              columnHeader(staticColumn.title.tpe),
               propertyGroup.infos.map { property =>
                 columnEntryOfNodes(property.node.id, staticColumn.dataExtractor(property))
               }(breakOut)
             )
         }
 
-        columns
+        if(showNested) firstColumn :: referrerProperty :: staticColumns
+        else firstColumn :: staticColumns
+
       }
 
       val keepPropertyAsDefault = Var(false)

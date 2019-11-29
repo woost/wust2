@@ -30,6 +30,13 @@ object DashboardView {
 
   //TODO: button in each sidebar line to jump directly to view (conversation / tasks)
   def apply(focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
+    val node = Rx {
+      val g = GlobalState.rawGraph()
+      g.nodesById(focusState.focusedId)
+    }
+
+    val globalNodeSettings = node.map(_.flatMap(_.settings).fold(GlobalNodeSettings.default)(_.globalOrDefault))
+
     val segmentMod = VDomModifier(
       margin := "10px"
     )
@@ -56,7 +63,10 @@ object DashboardView {
         div(
           Styles.flex,
           alignItems.flexStart,
-          h2("Your tasks", cls := "tasklist-header", marginRight.auto, Styles.flexStatic),
+          Rx {
+            //TODO: Is there a phrasing where we can use ${globalNodeSettings().itemName} (which is singular)?
+            h2(s"Your Tasks", cls := "tasklist-header", marginRight.auto, Styles.flexStatic),
+          },
           marginBottom := "15px"
         ),
         Rx {

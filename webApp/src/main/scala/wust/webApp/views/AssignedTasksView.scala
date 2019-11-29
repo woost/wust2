@@ -5,10 +5,10 @@ import outwatch.dom.dsl._
 import outwatch.reactive._
 import rx._
 import wust.css.Styles
-import wust.graph.{ Edge, GraphChanges, Node }
-import wust.ids.{ ChildId, EpochMilli, ParentId, UserId, DurationMilli }
+import wust.graph.{Edge, GraphChanges, Node}
+import wust.ids.{ChildId, DurationMilli, EpochMilli, GlobalNodeSettings, ParentId, UserId}
 import wust.util.collection._
-import wust.webApp.state.{ FocusState, GlobalState, Placeholder, TraverseState }
+import wust.webApp.state.{FocusState, GlobalState, Placeholder, TraverseState}
 import wust.webApp.views.AssignedTasksData.AssignedTask
 import wust.webApp.views.DragComponents.registerDragContainer
 import wust.webUtil.UI
@@ -29,6 +29,12 @@ object AssignedTasksView {
   }
 
   def apply(focusState: FocusState, deepSearch: Boolean = false, selectedUserId: Var[Option[UserId]] = Var(Some(GlobalState.userId.now)))(implicit ctx: Ctx.Owner): VNode = {
+    val node = Rx {
+      val g = GlobalState.rawGraph()
+      g.nodesById(focusState.focusedId)
+    }
+    val globalNodeSettings = node.map(_.flatMap(_.settings).fold(GlobalNodeSettings.default)(_.globalOrDefault))
+
     val renderTime = EpochMilli.now
     val bucketNames = Array(
       "Overdue",
@@ -86,13 +92,15 @@ object AssignedTasksView {
         alignItems.center,
 
         chooseUser(selectableUsers, selectedUserId).apply(margin := "10px", Styles.flexStatic),
-        InputRow(
-          Some(focusState),
-          addNewTask,
-          placeholder = Placeholder("Add Task"),
-          showSubmitIcon = false,
-          submitOnEnter = true,
-        ).apply(flexGrow := 1),
+        Rx {
+          InputRow(
+            Some(focusState),
+            addNewTask,
+            placeholder = Placeholder(s"Add ${ globalNodeSettings().itemName }"),
+            showSubmitIcon = false,
+            submitOnEnter = true,
+          ).apply(flexGrow := 1)
+        },
       ),
 
       Rx {
@@ -115,7 +123,8 @@ object AssignedTasksView {
       Rx {
         val tasks = assignedTasksOther()
         VDomModifier.ifTrue(tasks.nonEmpty)(
-          h2("Assigned tasks", fontSize.large, cls := "tasklist-header", marginBottom := "15px"),
+          //TODO: Is there a phrasing where we can use ${globalNodeSettings().itemName} (which is singular)? "Your Assignments"?
+          h2(s"Assigned Tasks", fontSize.large, cls := "tasklist-header", marginBottom := "15px"),
           div(cls := "tasklist", assignedTasksOther().map(renderTask(focusState, _))),
         )
       },
