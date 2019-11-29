@@ -279,7 +279,7 @@ object NotificationView {
                             case NodeRole.Note    => div(cls := "prefix-icon fa-fw", Icons.note)
                             case _                => VDomModifier.empty
                           },
-                          nodeCard(node, maxLength = Some(150), projectWithIcon = true).apply(
+                          nodeCard(node, projectWithIcon = true).apply(
                             VDomModifier.ifTrue(deletedTime.isDefined)(cls := "node-deleted"),
                             Components.sidebarNodeFocusMod(node.id, focusState)
                           ),
