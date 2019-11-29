@@ -23,35 +23,43 @@ import scala.collection.{ breakOut, mutable }
 object TableView {
 
   object StaticColumns {
-    val entity = "Item"
-    val tags = "Tags"
-    val stages = "Stages"
-    val assignees = "Assignees"
+    import supertagged._
+    object Type extends TaggedType[String]
+    type Type = Type.Type
 
-    final case class ColumnData(title: String, condition: PropertyData.BasicInfo => Boolean , dataExtractor: PropertyData.BasicInfo => Seq[(Option[Edge.LabeledProperty], Node)])
-    val list: List[ColumnData] =
-      ColumnData(
-        StaticColumns.entity,
-        (_: PropertyData.BasicInfo) => true,
-        (property: PropertyData.BasicInfo) => Array(None -> property.node)
-      ) ::
-        ColumnData(
-          StaticColumns.tags,
-          (property: PropertyData.BasicInfo) =>  property.tags.nonEmpty,
-          (property: PropertyData.BasicInfo) =>  property.tags.map(None -> _)
-        ) ::
-        ColumnData(
-          StaticColumns.stages,
-          (property: PropertyData.BasicInfo) =>  property.stages.nonEmpty,
-          (property: PropertyData.BasicInfo) =>  property.stages.map(None -> _)
-        ) ::
-        ColumnData(
-          StaticColumns.assignees,
-          (property: PropertyData.BasicInfo) =>  property.assignedUsers.nonEmpty,
-          (property: PropertyData.BasicInfo) =>  property.assignedUsers.map(None -> _)
-        ) ::
-        Nil
+    abstract class Named(implicit name: sourcecode.Name) {
+      val tpe = Type(name.value)
+    }
+
+    case object Item extends Named
+    case object Tags extends Named
+    case object Stages extends Named
+    case object Assignees extends Named
   }
+
+  final case class ColumnData(title: String, condition: PropertyData.BasicInfo => Boolean, dataExtractor: PropertyData.BasicInfo => Seq[(Option[Edge.LabeledProperty], Node)])
+  val staticColumnList: List[ColumnData] =
+    ColumnData(
+      StaticColumns.Item.tpe,
+      (_: PropertyData.BasicInfo) => true,
+      (property: PropertyData.BasicInfo) => Array(None -> property.node)
+    ) ::
+    ColumnData(
+      StaticColumns.Tags.tpe,
+      (property: PropertyData.BasicInfo) => property.tags.nonEmpty,
+      (property: PropertyData.BasicInfo) => property.tags.map(None -> _)
+    ) ::
+    ColumnData(
+      StaticColumns.Stages.tpe,
+      (property: PropertyData.BasicInfo) => property.stages.nonEmpty,
+      (property: PropertyData.BasicInfo) => property.stages.map(None -> _)
+    ) ::
+    ColumnData(
+      StaticColumns.Assignees.tpe,
+      (property: PropertyData.BasicInfo) => property.assignedUsers.nonEmpty,
+      (property: PropertyData.BasicInfo) => property.assignedUsers.map(None -> _)
+    ) ::
+    Nil
 
 
   def apply(focusState: FocusState, roles: List[NodeRole], viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VNode = {
@@ -261,7 +269,7 @@ object TableView {
 
         if(showNested) columns += referrerProperty
 
-        StaticColumns.list.map { (staticColumn: StaticColumns.ColumnData ) =>
+        staticColumnList.map { (staticColumn: ColumnData ) =>
           if(propertyGroup.infos.exists(staticColumn.condition))
             columns += UI.Column(
               columnHeader(staticColumn.title),

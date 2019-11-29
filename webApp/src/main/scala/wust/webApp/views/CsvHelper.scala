@@ -42,11 +42,11 @@ object CsvHelper {
               topLevelNodeIds += nodeId
             } else {
               column match {
-                case TableView.StaticColumns.tags => cellSplit(cell).foreach { tag =>
+                case TableView.StaticColumns.Tags.tpe => cellSplit(cell).foreach { tag =>
                   allTags += (tag -> ChildId(nodeId))
                 }
 
-                case TableView.StaticColumns.stages => cellSplit(cell).foreach { stage =>
+                case TableView.StaticColumns.Stages.tpe => cellSplit(cell).foreach { stage =>
                   allStages += (stage -> ChildId(nodeId))
                 }
 
@@ -102,7 +102,7 @@ object CsvHelper {
     // build the column header line
     val dynamicColumns = propertyGroup.properties.map(_.key)
 
-    val header = TableView.StaticColumns.list.map(_.title) ++ dynamicColumns
+    val header = TableView.staticColumnList.map(_.title) ++ dynamicColumns
 
     val config = CsvConfiguration.rfc.withHeader(CsvConfiguration.Header.Explicit(header))
     val stringWriter = new java.io.StringWriter
