@@ -1,6 +1,7 @@
 package wust.webApp.state
 
 // import acyclic.file
+import wust.webApp.ClientStorage
 import com.github.ghik.silencer.silent
 import org.scalajs.dom.experimental.permissions.PermissionState
 import org.scalajs.dom.window
@@ -19,6 +20,7 @@ import wust.webApp.views._
 import wust.webApp.{ Client, WoostConfig }
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{ BrowserDetect, ModalConfig, Ownable }
+import wust.webUtil.Elements.defer
 import wust.facades.segment.Segment
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -178,16 +180,23 @@ object GlobalState {
   val pageExistsInGraph: Rx[Boolean] = Rx{ page().parentId.exists(rawGraph().contains) }
   val showPageNotFound = Rx { !isLoading() && !pageExistsInGraph() && viewIsContent() }
 
-  def focus(nodeId: NodeId, needsGet: Boolean = true) = {
-    val alreadyLoaded = (
+  def focus(nodeId: NodeId, view: Option[View] = GlobalState.urlConfig.now.view, needsGet: Boolean = true): Unit = focusPage(Page(nodeId), needsGet = needsGet)
+  def focusPage(page: Page, view: Option[View] = GlobalState.urlConfig.now.view, needsGet: Boolean = true): Unit = {
+    @inline def nextPage = page
+    val oldPage = GlobalState.page.now
+    val oldGraph = graph.now
+    val oldRawGraph = rawGraph.now
+    def alreadyLoaded = (
       for {
-        pageId <- page.now.parentId
-        pageIdx <- graph.now.idToIdx(pageId)
-        nodeIdx <- graph.now.idToIdx(nodeId)
-      } yield dfs.exists(_(pageIdx), dfs.withStart, graph.now.childrenIdx, isFound = { _ == nodeIdx })
+        oldPageId <- oldPage.parentId
+        oldPageIdx <- oldGraph.idToIdx(oldPageId)
+        nextPageId <- nextPage.parentId
+        nextPageIdx <- oldGraph.idToIdx(nextPageId)
+      } yield dfs.exists(_(oldPageIdx), dfs.withStart, oldGraph.childrenIdx, isFound = { _ == nextPageIdx })
     ).getOrElse(false)
 
-    urlConfig.update(_.focus(Page(nodeId), needsGet = needsGet && !alreadyLoaded))
+    defer { Client.storage.updateGraph(oldPage, oldRawGraph) }
+    urlConfig.update(_.focus(nextPage, view, needsGet = needsGet && !alreadyLoaded))
   }
 
   def focusSubPage(nodeIdOpt: Option[NodeId]) = {

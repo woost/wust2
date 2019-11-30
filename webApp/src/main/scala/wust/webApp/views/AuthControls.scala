@@ -90,7 +90,7 @@ object AuthControls {
       cls := s"tiny compact ui $buttonStyle button",
       onClick foreach {
         Client.auth.logout().foreach { _ =>
-          GlobalState.urlConfig.update(_.focus(Page.empty, View.Login))
+          GlobalState.focusPage(Page.empty, view = Some(View.Login))
         }
         FeatureState.use(Feature.ClickLogoutInAuthStatus)
         Segment.trackSignedOut()

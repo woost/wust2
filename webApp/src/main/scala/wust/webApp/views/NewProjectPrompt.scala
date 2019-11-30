@@ -52,7 +52,7 @@ object NewProjectPrompt {
       val views = if (selectedViews.now.isEmpty) None else Some(selectedViews.now.toList)
       GlobalState.submitChanges(GraphChanges.newProject(nodeId, GlobalState.user.now.id, newName, views) merge sub.changes(nodeId) merge extraChanges(nodeId))
 
-      if (focusNewProject) GlobalState.urlConfig.update(_.focus(Page(nodeId), needsGet = false))
+      if (focusNewProject) GlobalState.focus(nodeId, needsGet = false)
 
       FeatureState.use(Feature.CreateProject)
       selectedViews.now.foreach (ViewModificationMenu.trackAddViewFeature)

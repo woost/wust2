@@ -6,6 +6,8 @@ import boopickle.Default._
 import wust.facades.jsSha256.Sha256
 import wust.util.Memo
 import wust.ids._
+import wust.graph.Graph
+import wust.graph.Page
 import collection.mutable
 import cats.effect.SyncIO
 import io.circe._
@@ -19,12 +21,13 @@ import wust.api.Authentication
 import wust.api.serialize.Circe._
 import wust.graph.GraphChanges
 import wust.webUtil.outwatchHelpers._
+import wust.util.time.time
 
-import scala.util.{Failure, Success, Try}
+import scala.util.{ Failure, Success, Try }
 import wust.facades.segment.Segment
 
 class ClientStorage(implicit owner: Ctx.Owner) {
-  import org.scalajs.dom.ext.{LocalStorage => internal}
+  import org.scalajs.dom.ext.{ LocalStorage => internal }
 
   object keys {
     val auth = "wust.auth"
@@ -34,6 +37,15 @@ class ClientStorage(implicit owner: Ctx.Owner) {
     val filterlistOpen = "wust.filterlist.open"
     def pendingChanges(userId:UserId) = s"wust.pendingchanges.${userId.toUuid.toString}"
     val backendTimeDelta = "wust.backendtimedelta"
+    def pageCache(page: Page) = new {
+      val baseKey = page.parentId match {
+        case Some(parentId) => s"wust.pageCache.${parentId.toUuid.toString}"
+        case None           => s"wust.pageCache.empty"
+      }
+      val graph = s"${baseKey}.graph"
+      val time = s"${baseKey}.time"
+      val keys = List(graph, time)
+    }
   }
 
   private def toJson[T: Encoder](value: T): String = value.asJson.noSpaces
@@ -54,8 +66,30 @@ class ClientStorage(implicit owner: Ctx.Owner) {
     }
   }
 
+  def getGraph(page: Page): Option[Graph] = {
+    val storageKey = keys.pageCache(page)
+    val encodedOpt = internal(storageKey.graph)
+    encodedOpt flatMap { encoded =>
+      decode[Graph](encoded) match {
+        case Left(_) =>
+          // cannot decode cache -> prune this entry
+          storageKey.keys.foreach(internal.remove)
+          None
+        case Right(decoded) => Some(decoded)
+      }
+    }
+  }
+
+  def updateGraph(page: Page, graph: Graph): Unit = {
+    time(s"writing to cache: $page") {
+      val storageKey = keys.pageCache(page)
+      internal.update(storageKey.graph, toJson(graph))
+      internal.update(storageKey.time, EpochMilli.now.toString)
+    }
+  }
+
   val auth: Var[Option[Authentication]] = {
-    if(canAccessLs) {
+    if (canAccessLs) {
       LocalStorage
         .handlerWithoutEvents[SyncIO](keys.auth)
         .unsafeRunSync()
@@ -80,7 +114,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
     pendingChanges(userId).update(_ - key)
   }
 
-  def getDecodablePendingGraphChanges(userId: UserId):List[GraphChanges] = {
+  def getDecodablePendingGraphChanges(userId: UserId): List[GraphChanges] = {
     val all = pendingChanges(userId).now
     val invalidKeysBuilder = mutable.ListBuffer.empty[String]
     val validDecodedBuilder = mutable.ListBuffer.empty[GraphChanges]
@@ -111,7 +145,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
   //TODO: howto handle with events from other tabs?
   private def pendingChangesByUser(userId: UserId): Var[Map[String, String]] = {
     val storageKey = keys.pendingChanges(userId)
-    if(canAccessLs) {
+    if (canAccessLs) {
       LocalStorage
         .handlerWithoutEvents[SyncIO](storageKey)
         .unsafeRunSync()
@@ -121,7 +155,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
   }
 
   val sidebarOpen: Var[Option[Boolean]] = {
-    if(canAccessLs) {
+    if (canAccessLs) {
       LocalStorage
         .handlerWithoutEvents[SyncIO](keys.sidebarOpen)
         .unsafeRunSync()
@@ -131,7 +165,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
   }
 
   val sidebarWithProjects: Var[Option[Boolean]] = {
-    if(canAccessLs) {
+    if (canAccessLs) {
       LocalStorage
         .handlerWithoutEvents[SyncIO](keys.sidebarWithProjects)
         .unsafeRunSync()
@@ -141,7 +175,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
   }
 
   val taglistOpen: Var[Option[Boolean]] = {
-    if(canAccessLs) {
+    if (canAccessLs) {
       LocalStorage
         .handlerWithoutEvents[SyncIO](keys.taglistOpen)
         .unsafeRunSync()
@@ -151,7 +185,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
   }
 
   val filterlistOpen: Var[Option[Boolean]] = {
-    if(canAccessLs) {
+    if (canAccessLs) {
       LocalStorage
         .handlerWithoutEvents[SyncIO](keys.filterlistOpen)
         .unsafeRunSync()
