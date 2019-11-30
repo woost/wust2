@@ -1076,8 +1076,7 @@ object CommonStyles extends StyleSheet.Standalone
     fontSize.small,
     borderRadius(tagBorderRadius),
     padding(0 px, 3 px),
-    marginRight(tagMargin),
-    marginBottom(tagMargin),
+    margin(tagMargin),
     display.inlineBlock,
   )
 
