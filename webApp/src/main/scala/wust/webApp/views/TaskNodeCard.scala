@@ -146,15 +146,12 @@ object TaskNodeCard {
 
       node.map { node =>
         Components.nodeCardMod(
-
           node,
           maxLength = Some(maxLength),
           contentInject = VDomModifier(
+            VDomModifier.ifNot(showCheckbox)(marginLeft := "2px"),
             VDomModifier.ifTrue(isDone)(textDecoration.lineThrough),
             VDomModifier.ifTrue(inOneLine)(alignItems.flexStart, NodeDetails.tagsPropertiesAssignments(focusState, traverseState, nodeId), marginRight := "40px"), // marginRight to not interfere with button bar...
-            VDomModifier.ifNot(showCheckbox)(
-              marginLeft := "2px"
-            ),
           ),
           nodeInject = VDomModifier.ifTrue(inOneLine)(marginRight := "10px"),
         )
