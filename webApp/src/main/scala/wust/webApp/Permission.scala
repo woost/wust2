@@ -26,34 +26,34 @@ object Permission {
     inherited = Some((graph, nodeId) => resolveInherited(graph, nodeId))
   )
 
-  val public = PermissionDescription(
+  val viaLink = PermissionDescription(
     access = NodeAccess.Level(AccessLevel.ReadWrite),
     value = "Public",
-    description = "Anyone can access this page via URL",
-    icon = Icons.permissionPublic,
+    description = "Accessible via Link",
+    icon = Icons.permissionLink,
   )
 
-  val publicRead = PermissionDescription(
+  val viaLinkReadonly = PermissionDescription(
     access = NodeAccess.Level(AccessLevel.Read),
     value = "Public",
-    description = "Anyone can access this page readonly via URL",
-    icon = Icons.permissionPublic,
+    description = "Viewable via Link",
+    icon = Icons.permissionLinkReadonly,
   )
 
   val `private` = PermissionDescription(
     access = NodeAccess.Level(AccessLevel.Restricted),
     value = "Private",
-    description = "Only you and explicit members can access this page",
+    description = "Private (Only selected members can access)",
     icon = Icons.permissionPrivate
   )
 
-  val all: List[PermissionDescription] = `private` :: public :: publicRead :: inherit :: Nil
+  val all: List[PermissionDescription] = `private` :: viaLink :: viaLinkReadonly :: inherit :: Nil
 
   def resolveInherited(graph: Graph, nodeId: NodeId): PermissionDescription = {
     val level = graph.accessLevelOfNode(nodeId)
     val isPublic = level.fold(false)(n => n == AccessLevel.ReadWrite || n == AccessLevel.Read)
 
-    if(isPublic) Permission.public else Permission.`private`
+    if(isPublic) Permission.viaLink else Permission.`private`
   }
 
   def permissionIndicator(level: PermissionDescription, modifier: VDomModifier = VDomModifier.empty): BasicVNode = {

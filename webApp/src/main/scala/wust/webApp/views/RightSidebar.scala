@@ -379,7 +379,7 @@ object RightSidebar {
         justifyContent.spaceBetween,
         Rx { nodeAuthor(focusPref.nodeId)(ctx)().map(_.apply(marginLeft := "13px", marginRight.auto, paddingBottom := "0px")) },
         GlobalState.showOnlyInFullMode(zoomButton),
-        MembersModal.settingsButton(focusPref.nodeId, tooltip = "Add members to this item", tooltipPosition = "top right").apply(buttonMods),
+        MembersModal.settingsButton(focusPref.nodeId, analyticsVia = "RightSidebar", tooltip = "Share / Invite", tooltipPosition = "top right").apply(buttonMods),
         deleteButton,
       )
     )

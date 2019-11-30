@@ -101,7 +101,8 @@ object Icons {
   val userPermission: IconDefinition = freeSolid.faUserLock
   val permissionInherit: IconDefinition = freeSolid.faArrowUp
   val permissionPrivate: IconDefinition = freeSolid.faLock
-  val permissionPublic: IconDefinition = freeSolid.faLink
+  val permissionLink: IconDefinition = freeSolid.faLink
+  val permissionLinkReadonly: IconDefinition = freeSolid.faEye
 
   val templateReference: IconDefinition =  freeSolid.faAsterisk
   val automate: IconDefinition =  freeSolid.faRobot

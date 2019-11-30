@@ -8,6 +8,7 @@ import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
 import outwatch.reactive.handler._
 import rx._
+import scala.scalajs.js
 import wust.css.Styles
 import wust.graph.Node.User
 import wust.graph._
@@ -444,18 +445,19 @@ object MembersModal {
     )
   }
 
-  def settingsButton(nodeId: NodeId, tooltip:String = "Add members", tooltipPosition:String = "bottom center")(implicit ctx: Ctx.Owner):VNode = {
+  def openSharingModalOnClick(nodeId: NodeId, analyticsVia:String) = onClickDefault.foreach{
+    GlobalState.uiModalConfig.onNext(Ownable(implicit ctx => MembersModal.config(nodeId)))
+    Segment.trackEvent("Open Members Modal", js.Dynamic.literal(via = analyticsVia))
+  }
+
+  def settingsButton(nodeId: NodeId, analyticsVia:String, tooltip:String = "Add members", tooltipPosition:String = "bottom center")(implicit ctx: Ctx.Owner):VNode = {
     val permissionLevel = Rx {
       Permission.resolveInherited(GlobalState.rawGraph(), nodeId)
     }
 
-    val openSharingModalOnClick = onClickDefault.use(Ownable(implicit ctx => MembersModal.config(nodeId))) --> GlobalState.uiModalConfig
 
     div(
-      openSharingModalOnClick,
-      onClickDefault.foreach {
-        Segment.trackEvent("Open Members Modal")
-      },
+      openSharingModalOnClick(nodeId, analyticsVia),
 
       display.flex,
       alignItems.flexStart,

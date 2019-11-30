@@ -132,7 +132,7 @@ object ListWithChatView {
             marginLeft := "10px",
             onClickDefault.foreach { originalFocusState.onItemSingleClick(FocusPreference(chatFocusedId)) },
           ),
-          MembersModal.settingsButton(chatFocusedId, tooltip = "Add members to this thread", tooltipPosition = tooltipPosition).apply(buttonMods),
+          MembersModal.settingsButton(chatFocusedId, analyticsVia = "ListWithChatView.chatheader", tooltip = "Add members to this thread", tooltipPosition = tooltipPosition).apply(buttonMods),
         )
       )
     }

@@ -8,6 +8,7 @@ import wust.css.Styles
 import wust.graph._
 import wust.ids._
 import wust.webApp.Icons
+import wust.webApp.Permission
 import wust.webApp.state.{ FocusPreference, GlobalState, FocusState, TraverseState }
 import wust.webApp.dragdrop.{ DragItem, DragPayload, DragTarget }
 import wust.webUtil.UI
@@ -18,13 +19,30 @@ import wust.webUtil.Elements.onClickDefault
 object NodeDetails {
 
   def tagsPropertiesAssignments(focusState: FocusState, traverseState: TraverseState, nodeId: NodeId)(implicit ctx: Ctx.Owner) = {
+    val nodeIdx = GlobalState.graph.map(_.idToIdxOrThrow(nodeId))
+    val node = Rx {
+      GlobalState.graph().nodes(nodeIdx())
+    }
+
     val propertySingle = Rx {
       val graph = GlobalState.graph()
-      PropertyData.Single(graph, graph.idToIdxOrThrow(nodeId))
+      PropertyData.Single(graph, nodeIdx())
     }
+
+    val permissionLevel = Rx {
+      node().meta.accessLevel match {
+        case NodeAccess.Level(level) if level == AccessLevel.ReadWrite => Some(Permission.viaLink)
+        case NodeAccess.Level(level) if level == AccessLevel.Read => Some(Permission.viaLinkReadonly)
+        case NodeAccess.Level(level) if level == AccessLevel.Restricted => Some(Permission.`private`)
+        case _ => None
+      }
+    }
+
     val propertySingleEmpty = Rx {
-      propertySingle().isEmpty // optimize for empty property because properties are array and are therefore never equal
+      propertySingle().isEmpty && permissionLevel().isEmpty // optimize for empty property because properties are array and are therefore never equal
     }
+
+
 
     VDomModifier(
       Styles.flex,
@@ -33,7 +51,6 @@ object NodeDetails {
       Rx {
         if (propertySingleEmpty()) VDomModifier.empty
         else VDomModifier(
-
           propertySingle().info.tags.map { tag =>
             Components.removableNodeTag(tag, taggedNodeId = nodeId)
           },
@@ -50,7 +67,20 @@ object NodeDetails {
             marginLeft.auto,
             Styles.flex,
             justifyContent.flexEnd,
+            alignItems.center,
             flexWrap.wrap,
+
+
+            Rx {
+              val permissionDescription = permissionLevel()
+              permissionDescription.map { descr =>
+                Permission.permissionIndicator(descr).apply(
+                  color := "#c6c6c6",
+                  padding := "3px",
+                  MembersModal.openSharingModalOnClick(node().id, analyticsVia = "PermissionIndicator")
+                )
+              }
+            },
             propertySingle().info.assignedUsers.map(userNode =>
               Components.removableUserAvatar(userNode, targetNodeId = nodeId)),
           ),
@@ -107,7 +137,7 @@ object NodeDetails {
     )
   }
 
-  def cardFooter(nodeId: NodeId, taskStats: Rx[NodeDetails.ChildStats], isExpanded: Rx[Boolean], focusState: FocusState, isCompact:Boolean)(implicit ctx: Ctx.Owner) = Rx {
+  def cardFooter(nodeId: NodeId, taskStats: Rx[NodeDetails.ChildStats], isExpanded: Rx[Boolean], focusState: FocusState, isCompact: Boolean)(implicit ctx: Ctx.Owner) = Rx {
     VDomModifier.ifTrue(taskStats().nonEmpty)(
       div(
         cls := "childstats",

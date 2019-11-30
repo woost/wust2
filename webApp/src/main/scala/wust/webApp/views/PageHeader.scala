@@ -136,7 +136,7 @@ object PageHeader {
           },
 
           channelMembersList,
-          showOnlyInFullMode(div(MembersModal.settingsButton(pageNodeId).apply(
+          showOnlyInFullMode(div(MembersModal.settingsButton(pageNodeId, analyticsVia = "PageHeader").apply(
             color := "white",
           ), id := "tutorial-pageheader-sharing"), additionalModes = List(PresentationMode.ThreadTracker)),
           id := "tutorial-pageheader-title",
