@@ -241,8 +241,7 @@ object GlobalStateFactory {
     // changes, we get a new graph. except when it is just a Page.NewChannel.
     // There we want tnuro issue the new-channel change.
     {
-      //TODO: rename urlConfigAndUser
-      val userAndPage = Rx {
+      val urlConfigAndUser = Rx {
         (urlConfig(), user().toNode)
       }
 
@@ -253,26 +252,26 @@ object GlobalStateFactory {
       var prevPage: PageChange = null
       var prevUser: Node.User = null
 
-      userAndPage.toSourceStream
+      urlConfigAndUser.toSourceStream
         .filter {
-          case (viewConfig, user) =>
+          case (urlConfig, user) =>
             @inline def userWasChanged = prevUser == null || prevUser.id != user.id || prevUser.data.isImplicit != user.data.isImplicit
-            @inline def pageWasChanged = prevPage == null || prevPage != viewConfig.pageChange
-            @inline def needsGet = viewConfig.pageChange.needsGet
-            @inline def pageChangeNonEmpty = viewConfig.pageChange.page.nonEmpty
+            @inline def pageWasChanged = prevPage == null || prevPage != urlConfig.pageChange
+            @inline def needsGet = urlConfig.pageChange.needsGet
+            @inline def pageChangeNonEmpty = urlConfig.pageChange.page.nonEmpty
 
             val result = userWasChanged || (pageWasChanged && needsGet && (pageChangeNonEmpty || isFirstGraphRequest))
 
-            prevPage = viewConfig.pageChange
+            prevPage = urlConfig.pageChange
             prevUser = user
             isFirstGraphRequest = false
 
             result
         }.switchMap {
-          case (viewConfig, user) =>
+          case (urlConfig, user) =>
             val currentTransitChanges = lastTransitChanges.fold(GraphChanges.empty)(_ merge _)
             SourceStream
-              .fromFuture(getNewGraph(viewConfig.pageChange.page))
+              .fromFuture(getNewGraph(urlConfig.pageChange.page))
               .recover { case _ => Graph.empty }
               .map(g => ReplaceGraph(g.applyChanges(currentTransitChanges)))
         }
