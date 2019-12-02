@@ -110,12 +110,10 @@ function dbAuthStore(access) {
 }
 function oldDbAuthStore(access) { //TODO: remove after a while...
     return db().then(db => {
-        console.log("DB", db)
         try {
             let transaction = db.transaction(["auth"], access);
             return transaction.objectStore("auth");
         } catch(e) {
-            console.error("MEH", e)
             return null;
         }
     });
@@ -126,7 +124,6 @@ function userAuth() {
     if (!_userAuth) {
         let old = oldUserAuth().then(
             auth => {
-                console.log("GOT IT OLD", auth)
                 if (auth) { return Promise.all([
                     storeUserAuth(auth),
                     updateWebPushSubscriptionAndPersist(auth),
@@ -137,7 +134,6 @@ function userAuth() {
         )
         _userAuth = old.then(
             auth => {
-                console.log("GOT IT CHAINED", auth)
                 return dbAuthStore("readonly").then(
                     store => requestPromise(store.get(0)),
                     err => _userAuth = null // retry on error
