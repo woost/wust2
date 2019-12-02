@@ -60,7 +60,7 @@ object GlobalStateFactory {
     eventProcessor.sendingChanges.foreach { status =>
       status.result match {
         case AppliedChangeResult.Success | AppliedChangeResult.Rejected => Client.storage.deletePendingGraphChanges(GlobalState.userId.now, status.changes)
-        case AppliedChangeResult.TryLater => // keep in storage
+        case AppliedChangeResult.TryLater                               => // keep in storage
       }
     }
 
@@ -259,8 +259,10 @@ object GlobalStateFactory {
             @inline def pageWasChanged = prevPage == null || prevPage != urlConfig.pageChange
             @inline def needsGet = urlConfig.pageChange.needsGet
             @inline def pageChangeNonEmpty = urlConfig.pageChange.page.nonEmpty
+            // TODO: this is a workaround for unread-edges that are not synced and we want the right status in the acitivty/notification view...
+            @inline def refreshForActivity = (prevPage == urlConfig.pageChange) && (urlConfig.view == Some(View.Notifications) || urlConfig.view == Some(View.ActivityStream))
 
-            val result = userWasChanged || (pageWasChanged && needsGet && (pageChangeNonEmpty || isFirstGraphRequest))
+            val result = userWasChanged || refreshForActivity || (pageWasChanged && needsGet && (pageChangeNonEmpty || isFirstGraphRequest))
 
             prevPage = urlConfig.pageChange
             prevUser = user
