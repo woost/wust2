@@ -87,9 +87,10 @@ function requestPromise(request) {
 var _db;
 function db() {
     if (!_db) {
-        let openreq = indexedDB.open('woost', 1);
+        let openreq = indexedDB.open('woost', 2);
         openreq.onupgradeneeded = () => {
-            openreq.result.createObjectStore('auth');
+            //TODO: openreq.result.createObjectStore('auth'); in version 3
+            openreq.result.createObjectStore('woost-auth');
         };
         _db = requestPromise(openreq).then(
             db => {
@@ -103,20 +104,53 @@ function db() {
 }
 function dbAuthStore(access) {
     return db().then(db => {
-        let transaction = db.transaction(["auth"], access);
-        return transaction.objectStore("auth");
+        let transaction = db.transaction(["woost-auth"], access);
+        return transaction.objectStore("woost-auth");
+    });
+}
+function oldDbAuthStore(access) { //TODO: remove after a while...
+    return db().then(db => {
+        console.log("DB", db)
+        try {
+            let transaction = db.transaction(["auth"], access);
+            return transaction.objectStore("auth");
+        } catch(e) {
+            console.error("MEH", e)
+            return null;
+        }
     });
 }
 
 var _userAuth;
 function userAuth() {
     if (!_userAuth) {
-        _userAuth = dbAuthStore("readonly").then(
-            store => requestPromise(store.get(0)),
-            err => _userAuth = null // retry on error
-        );
+        let old = oldUserAuth().then(
+            auth => {
+                console.log("GOT IT OLD", auth)
+                if (auth) { return Promise.all([
+                    storeUserAuth(auth),
+                    updateWebPushSubscriptionAndPersist(auth),
+                    clearOldUserAuth()
+                ]) } else { return null };
+            },
+            err => null
+        )
+        _userAuth = old.then(
+            auth => {
+                console.log("GOT IT CHAINED", auth)
+                return dbAuthStore("readonly").then(
+                    store => requestPromise(store.get(0)),
+                    err => _userAuth = null // retry on error
+                );
+            }
+        )
     }
     return _userAuth;
+}
+function oldUserAuth() {
+    return oldDbAuthStore("readonly").then(
+        store => requestPromise(store.get(0))
+    );
 }
 function storeUserAuth(userAuth) {
     log("Storing user auth");
@@ -127,6 +161,11 @@ function clearUserAuth() {
     log("Clearing user auth");
     _userAuth = Promise.resolve(null);
     return dbAuthStore("readwrite").then(store => requestPromise(store.delete(0)));
+}
+function clearOldUserAuth() {
+    log("Clearing old user auth");
+    _userAuth = Promise.resolve(null);
+    return oldDbAuthStore("readwrite").then(store => requestPromise(store.delete(0)));
 }
 
 function getPublicKey() {
