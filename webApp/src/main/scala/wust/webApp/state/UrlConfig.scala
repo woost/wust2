@@ -38,11 +38,11 @@ final case class UrlConfig(
 
   def redirect: UrlConfig = copy(view = redirectTo, redirectTo = None)
 
-  @inline private[state] def focus(view: View): UrlConfig = focus(Some(view))
+  @inline def focus(view: View): UrlConfig = focus(Some(view))
   @inline def focus(page: Page, view: View): UrlConfig = focus(page, Some(view))
   @inline def focus(view: Option[View]): UrlConfig = copy(view = view, redirectTo = None, focusId = None)
   @inline def focus(page: Page, view: View, needsGet: Boolean): UrlConfig = focus(page, Some(view), needsGet)
-  private[state] def focus(page: Page, view: Option[View] = None, needsGet: Boolean = true): UrlConfig = copy(pageChange = PageChange(page, needsGet = needsGet), view = view, redirectTo = None, focusId = None, subPage = Page.empty)
+  @inline def focus(page: Page, view: Option[View] = None, needsGet: Boolean = true): UrlConfig = copy(pageChange = PageChange(page, needsGet = needsGet), view = view, redirectTo = None, focusId = None, subPage = Page.empty)
 
 }
 

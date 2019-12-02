@@ -1,5 +1,6 @@
 package wust.webApp
 
+import scala.scalajs.js.typedarray._
 import wust.webApp.jsdom.Base64Codec
 import wust.api.serialize.Boopickle._
 import boopickle.Default._
@@ -21,10 +22,13 @@ import wust.api.Authentication
 import wust.api.serialize.Circe._
 import wust.graph.GraphChanges
 import wust.webUtil.outwatchHelpers._
+import wust.webUtil.BinaryConvertors._
 import wust.util.time.time
 
 import scala.util.{ Failure, Success, Try }
 import wust.facades.segment.Segment
+import scala.scalajs.js.typedarray.Uint8Array
+import java.nio.ByteBuffer
 
 class ClientStorage(implicit owner: Ctx.Owner) {
   import org.scalajs.dom.ext.{ LocalStorage => internal }
@@ -35,7 +39,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
     val sidebarWithProjects = "wust.sidebar.projects"
     val taglistOpen = "wust.taglist.open"
     val filterlistOpen = "wust.filterlist.open"
-    def pendingChanges(userId:UserId) = s"wust.pendingchanges.${userId.toUuid.toString}"
+    def pendingChanges(userId: UserId) = s"wust.pendingchanges.${userId.toUuid.toString}"
     val backendTimeDelta = "wust.backendtimedelta"
     def pageCache(page: Page) = new {
       val baseKey = page.parentId match {
@@ -51,7 +55,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
   private def toJson[T: Encoder](value: T): String = value.asJson.noSpaces
   private def fromJson[T: Decoder](value: String): Option[T] = decode[T](value).right.toOption
 
-  val canAccessLs: Boolean = {
+  val canAccessStorage: Boolean = {
     Try {
       val woostStr = "wust-localstorage-write-test"
       internal.update(woostStr, woostStr)
@@ -89,7 +93,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
   }
 
   val auth: Var[Option[Authentication]] = {
-    if (canAccessLs) {
+    if (canAccessStorage) {
       LocalStorage
         .handlerWithoutEvents[SyncIO](keys.auth)
         .unsafeRunSync()
@@ -98,18 +102,29 @@ class ClientStorage(implicit owner: Ctx.Owner) {
     } else Var(None)
   }
 
-  private def graphChangeToHash(serialized:String):String = Sha256.sha224(serialized)
-  private def encodeBoopickleBase64(change: GraphChanges):String = Base64Codec.encode(Pickle.intoBytes(change))
-  private def decodeBoopickleBase64(encoded: String):Option[GraphChanges] = Try(Unpickle[GraphChanges].fromBytes(Base64Codec.decode(encoded))).toOption
 
-  def addPendingGraphChange(userId: UserId, change:GraphChanges) = {
-    val changeSerialized = encodeBoopickleBase64(change)
+  def compress(data: Uint8Array):Uint8Array = ???
+  private def encodeBoopickleBase64[T: Pickler](data: T): String = {
+    val serialized:ByteBuffer = Pickle.intoBytes(data)
+    val compressed = compress(serialized.toUint8Array)
+    Base64Codec.encode(compressed)
+  }
+  private def decodeBoopickleBase64[T: Pickler](encoded: String): Option[T] = Try(Unpickle[T].fromBytes(Base64Codec.decode(encoded))).toOption
+
+
+
+  private def graphChangeToHash(serialized: String): String = Sha256.sha224(serialized)
+  private def encodeGraphChangesBoopickleBase64(change: GraphChanges): String = Base64Codec.encode(Pickle.intoBytes(change).toUint8Array)
+  private def decodeGraphChangesBoopickleBase64(encoded: String): Option[GraphChanges] = Try(Unpickle[GraphChanges].fromBytes(Base64Codec.decode(encoded))).toOption
+
+  def addPendingGraphChange(userId: UserId, change: GraphChanges) = {
+    val changeSerialized = encodeGraphChangesBoopickleBase64(change)
     val key = graphChangeToHash(changeSerialized)
     pendingChanges(userId).update(_.updated(key, changeSerialized))
   }
 
-  def deletePendingGraphChanges(userId: UserId, changes:GraphChanges) = {
-    val changeSerialized = encodeBoopickleBase64(changes)
+  def deletePendingGraphChanges(userId: UserId, changes: GraphChanges) = {
+    val changeSerialized = encodeGraphChangesBoopickleBase64(changes)
     val key = graphChangeToHash(changeSerialized)
     pendingChanges(userId).update(_ - key)
   }
@@ -118,34 +133,34 @@ class ClientStorage(implicit owner: Ctx.Owner) {
     val all = pendingChanges(userId).now
     val invalidKeysBuilder = mutable.ListBuffer.empty[String]
     val validDecodedBuilder = mutable.ListBuffer.empty[GraphChanges]
-    all.foreach { case(key, encoded) =>
-      decodeBoopickleBase64(encoded) match {
-        case None => 
-          invalidKeysBuilder += key
-          val errorId = NodeId.fresh().toUuid.toString
-          Segment.trackError("Failed to decode pending GraphChange", s"${errorId}")
-          Client.api.log(s"Failed to decode pending GraphChange: errorId=$errorId, change=$encoded")
-        case Some(valid) => 
-          validDecodedBuilder += valid
-      }
+    all.foreach {
+      case (key, encoded) =>
+        decodeGraphChangesBoopickleBase64(encoded) match {
+          case None =>
+            invalidKeysBuilder += key
+            val errorId = NodeId.fresh().toUuid.toString
+            Segment.trackError("Failed to decode pending GraphChange", s"${errorId}")
+            Client.api.log(s"Failed to decode pending GraphChange: errorId=$errorId, change=$encoded")
+          case Some(valid) =>
+            validDecodedBuilder += valid
+        }
     }
 
     val validDecoded = validDecodedBuilder.result()
 
-    if(all.size != validDecoded.size) {
+    if (all.size != validDecoded.size) {
       pendingChanges(userId).update(_ -- invalidKeysBuilder.result())
     }
 
     validDecoded
   }
 
-
   val pendingChanges = Memo.mutableHashMapMemo[UserId, Var[Map[String, String]]](pendingChangesByUser)
 
   //TODO: howto handle with events from other tabs?
   private def pendingChangesByUser(userId: UserId): Var[Map[String, String]] = {
     val storageKey = keys.pendingChanges(userId)
-    if (canAccessLs) {
+    if (canAccessStorage) {
       LocalStorage
         .handlerWithoutEvents[SyncIO](storageKey)
         .unsafeRunSync()
@@ -155,7 +170,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
   }
 
   val sidebarOpen: Var[Option[Boolean]] = {
-    if (canAccessLs) {
+    if (canAccessStorage) {
       LocalStorage
         .handlerWithoutEvents[SyncIO](keys.sidebarOpen)
         .unsafeRunSync()
@@ -165,7 +180,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
   }
 
   val sidebarWithProjects: Var[Option[Boolean]] = {
-    if (canAccessLs) {
+    if (canAccessStorage) {
       LocalStorage
         .handlerWithoutEvents[SyncIO](keys.sidebarWithProjects)
         .unsafeRunSync()
@@ -175,7 +190,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
   }
 
   val taglistOpen: Var[Option[Boolean]] = {
-    if (canAccessLs) {
+    if (canAccessStorage) {
       LocalStorage
         .handlerWithoutEvents[SyncIO](keys.taglistOpen)
         .unsafeRunSync()
@@ -185,7 +200,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
   }
 
   val filterlistOpen: Var[Option[Boolean]] = {
-    if (canAccessLs) {
+    if (canAccessStorage) {
       LocalStorage
         .handlerWithoutEvents[SyncIO](keys.filterlistOpen)
         .unsafeRunSync()
@@ -195,7 +210,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
   }
 
   val backendTimeDelta: Var[DurationMilli] = {
-    if(canAccessLs) {
+    if (canAccessStorage) {
       LocalStorage
         .handlerWithoutEvents[SyncIO](keys.backendTimeDelta)
         .unsafeRunSync()
