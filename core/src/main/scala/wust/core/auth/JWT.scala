@@ -71,7 +71,7 @@ class JWT(secret: String, authTokenLifeTime: Duration) {
     }
   }
 
-  def generateEmailActivationToken(userId: UserId, email: String): Authentication.Token = {
+  def generateEmailActivationToken(userId: UserId, email: EmailAddress): Authentication.Token = {
     val (token, _) = generateTokenWithExpiration(CustomClaim.EmailVerify(userId, email), LifeTimeSeconds.emailActivation)
     token
   }
@@ -141,7 +141,7 @@ object JWT {
     final case class PasswordReset(user: AuthUser.Persisted) extends CustomClaim {
       def userId = user.id
     }
-    final case class EmailVerify(userId: UserId, email: String) extends CustomClaim
+    final case class EmailVerify(userId: UserId, email: EmailAddress) extends CustomClaim
     final case class OAuthClient(userId: UserId, serviceIdentifier: OAuthClientService) extends CustomClaim
 
     import io.circe._
@@ -152,5 +152,5 @@ object JWT {
   }
 }
 
-final case class VerifiedEmailActivationToken(userId: UserId, email: String)
+final case class VerifiedEmailActivationToken(userId: UserId, email: EmailAddress)
 final case class VerifiedOAuthClientToken(userId: UserId, service: OAuthClientService)

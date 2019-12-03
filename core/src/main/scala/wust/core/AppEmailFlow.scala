@@ -7,7 +7,7 @@ import wust.core.auth.JWT
 import wust.core.config.ServerConfig
 import wust.core.mail.{MailMessage, MailRecipient, MailService}
 import wust.graph.Node
-import wust.ids.{NodeId, UserId, View}
+import wust.ids.{NodeId, UserId, View, EmailAddress}
 import wust.util.StringOps
 
 import scala.concurrent.ExecutionContext
@@ -26,7 +26,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
     s"https://${serverConfig.host}/#view=login"
   }
 
-  private def generateMailVerificationLink(userId: UserId, email: String): String = {
+  private def generateMailVerificationLink(userId: UserId, email: EmailAddress): String = {
     val token = jwt.generateEmailActivationToken(userId, email)
     s"https://core.${serverConfig.host}/${ServerPaths.emailVerify}?token=${token.string}"
   }
@@ -64,8 +64,8 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
       |52070 Aachen<br/>
     """.stripMargin
 
-  private def passwordResetMailMessage(email: String, resetJwt: Authentication.Token): MailMessage = {
-    val recipient = MailRecipient(to = email :: Nil)
+  private def passwordResetMailMessage(email: EmailAddress, resetJwt: Authentication.Token): MailMessage = {
+    val recipient = MailRecipient(to = email.value :: Nil)
     val subject = "Woost - Password Reset"
     val secretLink = passwordResetLink(resetJwt)
 
@@ -111,8 +111,8 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
     MailMessage(recipient, subject = subject, fromPersonal = "Woost", body = body, bodyHtml = Some(bodyHtml))
   }
 
-  private def verificationMailMessage(userId: UserId, email: String): MailMessage = {
-    val recipient = MailRecipient(to = email :: Nil)
+  private def verificationMailMessage(userId: UserId, email: EmailAddress): MailMessage = {
+    val recipient = MailRecipient(to = email.value :: Nil)
     val subject = "Woost - Please verify your email address"
     val secretLink = generateMailVerificationLink(userId, email)
 
@@ -150,7 +150,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
     MailMessage(recipient, subject = subject, fromPersonal = "Woost", body = body, bodyHtml = Some(bodyHtml))
   }
 
-  private def feedbackMailMessage(userId: UserId, userName: String, userEmail: Option[String], clientInfo: ClientInfo, msg: String): MailMessage = {
+  private def feedbackMailMessage(userId: UserId, userName: String, userEmail: Option[EmailAddress], clientInfo: ClientInfo, msg: String): MailMessage = {
     val recipient = MailRecipient(to = teamEmailAddress :: Nil)
     val subject = s"Feedback on ${serverConfig.host}"
     val body =
@@ -158,7 +158,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
         |Feedback:
         |  UserId: ${userId.toCuidString}
         |  UserName: ${userName}
-        |  Email: ${userEmail.getOrElse("-")}
+        |  Email: ${userEmail.fold("-")(_.value)}
         |  UserAgent: ${clientInfo.userAgent}
         |  Instance: ${serverConfig.host}
         |
@@ -168,10 +168,10 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
     MailMessage(recipient, subject = subject, fromPersonal = "Woost", body = body)
   }
 
-  private def inviteMailMessage(email:String, invitedJwt: Authentication.Token, inviterName:String, inviterEmail:String, node: Node.Content): MailMessage = {
+  private def inviteMailMessage(email: EmailAddress, invitedJwt: Authentication.Token, inviterName:String, inviterEmail: EmailAddress, node: Node.Content): MailMessage = {
     //TODO: description of what woost is
-    val recipient = MailRecipient(to = email :: Nil)
-    val subject = s"$inviterEmail invited you to '${StringOps.trimToMaxLength(node.str, 50)}'"
+    val recipient = MailRecipient(to = email.value :: Nil)
+    val subject = s"$inviterEmail.value invited you to '${StringOps.trimToMaxLength(node.str, 50)}'"
     val secretLink = inviteWorkspaceLink(node.id, invitedJwt)
 
     val escapedContent = com.google.common.html.HtmlEscapers.htmlEscaper().escape(StringOps.trimToMaxLength(node.str, 250))
@@ -206,9 +206,9 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
     MailMessage(recipient, subject = subject, fromPersonal = s"$inviterName via Woost", body = body, bodyHtml = Some(bodyHtml))
   }
 
-  private def mentionMailMessage(email:String, mentionedIn: Seq[NodeId], authorName:String, authorEmail:String, node: Node.Content): MailMessage = {
+  private def mentionMailMessage(email: EmailAddress, mentionedIn: Seq[NodeId], authorName:String, authorEmail: EmailAddress, node: Node.Content): MailMessage = {
     //TODO: description of what woost is
-    val recipient = MailRecipient(to = email :: Nil)
+    val recipient = MailRecipient(to = email.value :: Nil)
     val subject = s"$authorName mentioned you in '${StringOps.trimToMaxLength(node.str, 50)}'"
 
     val escapedContent = com.google.common.html.HtmlEscapers.htmlEscaper().escape(StringOps.trimToMaxLength(node.str, 250))
@@ -245,11 +245,11 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
         |<p>$signatureHTML</p>
       """.stripMargin
 
-    MailMessage(recipient, subject = subject, fromPersonal = s"$authorName via Woost", body = body, bodyHtml = Some(bodyHtml), replyTo = Some(authorEmail))
+    MailMessage(recipient, subject = subject, fromPersonal = s"$authorName via Woost", body = body, bodyHtml = Some(bodyHtml), replyTo = Some(authorEmail.value))
   }
 
-  private def reminderMailMessage(email:String, node: Node.Content): MailMessage = {
-    val recipient = MailRecipient(to = email :: Nil)
+  private def reminderMailMessage(email: EmailAddress, node: Node.Content): MailMessage = {
+    val recipient = MailRecipient(to = email.value :: Nil)
     val subject = s"Reminder: '${StringOps.trimToMaxLength(node.str, 50)}'"
 
     val escapedContent = com.google.common.html.HtmlEscapers.htmlEscaper().escape(StringOps.trimToMaxLength(node.str, 250))
@@ -287,32 +287,32 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
     MailMessage(recipient, subject = subject, fromPersonal = "Woost", body = body, bodyHtml = Some(bodyHtml))
   }
 
-  def sendEmailVerification(userId: UserId, email: String)(implicit ec: ExecutionContext): Unit = {
+  def sendEmailVerification(userId: UserId, email: EmailAddress)(implicit ec: ExecutionContext): Unit = {
     val message = verificationMailMessage(userId, email)
     emailSubject.onNext(message)
   }
 
-  def sendEmailFeedback(userId: UserId, userName: String, userEmail: Option[String], clientInfo: ClientInfo, msg: String)(implicit ec: ExecutionContext): Unit = {
+  def sendEmailFeedback(userId: UserId, userName: String, userEmail: Option[EmailAddress], clientInfo: ClientInfo, msg: String)(implicit ec: ExecutionContext): Unit = {
     val message = feedbackMailMessage(userId, userName = userName, userEmail = userEmail, clientInfo, msg = msg)
     emailSubject.onNext(message)
   }
 
-  def sendEmailInvitation(email: String, invitedJwt: Authentication.Token, inviterName:String, inviterEmail:String, node: Node.Content)(implicit ec: ExecutionContext): Unit = {
+  def sendEmailInvitation(email: EmailAddress, invitedJwt: Authentication.Token, inviterName:String, inviterEmail: EmailAddress, node: Node.Content)(implicit ec: ExecutionContext): Unit = {
     val message = inviteMailMessage(email = email, invitedJwt = invitedJwt, inviterName = inviterName, inviterEmail = inviterEmail, node = node)
     emailSubject.onNext(message)
   }
 
-  def sendMentionNotification(email: String, authorName:String, authorEmail:String, mentionedIn: Seq[NodeId], node: Node.Content)(implicit ec: ExecutionContext): Unit = {
+  def sendMentionNotification(email: EmailAddress, authorName:String, authorEmail: EmailAddress, mentionedIn: Seq[NodeId], node: Node.Content)(implicit ec: ExecutionContext): Unit = {
     val message = mentionMailMessage(email = email, mentionedIn = mentionedIn, authorName = authorName, authorEmail = authorEmail, node = node)
     emailSubject.onNext(message)
   }
 
-  def sendPasswordReset(email: String, resetJwt: Authentication.Token)(implicit ec: ExecutionContext): Unit = {
+  def sendPasswordReset(email: EmailAddress, resetJwt: Authentication.Token)(implicit ec: ExecutionContext): Unit = {
     val message = passwordResetMailMessage(email = email, resetJwt = resetJwt)
     emailSubject.onNext(message)
   }
 
-  def sendReminder(email: String, node: Node.Content)(implicit ec: ExecutionContext): Unit = {
+  def sendReminder(email: EmailAddress, node: Node.Content)(implicit ec: ExecutionContext): Unit = {
     val message = reminderMailMessage(email = email, node = node)
     emailSubject.onNext(message)
   }

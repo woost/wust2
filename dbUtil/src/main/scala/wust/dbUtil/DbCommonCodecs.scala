@@ -25,6 +25,9 @@ abstract class DbCommonCodecs(val ctx: PostgresAsyncContext[LowerCase]) {
   implicit val encodingTemplateName: MappedEncoding[TemplateName, String] = MappedEncoding(x => x)
   implicit val decodingTemplateName: MappedEncoding[String, TemplateName] = MappedEncoding(str => TemplateName(str))
 
+  implicit val encodingEmailAddress: MappedEncoding[EmailAddress, String] = MappedEncoding(x => x.value)
+  implicit val decodingEmailAddress: MappedEncoding[String, EmailAddress] = MappedEncoding(str => EmailAddress(str))
+
   private def encodeJson[T: io.circe.Encoder](json: T): String = json.asJson.noSpaces
   private def decodeJson[T: io.circe.Decoder](json: String): T = decode[T](json) match {
     case Right(v) => v

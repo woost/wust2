@@ -8,7 +8,7 @@ import rx._
 import wust.api.{AuthResult, AuthUser, Password}
 import wust.css.Styles
 import wust.graph.Page
-import wust.ids.{Feature, View}
+import wust.ids._
 import wust.util._
 import wust.webApp._
 import wust.webApp.jsdom.FormValidator
@@ -134,7 +134,7 @@ object AuthView {
                 cursor.pointer,
                 onClick.stopPropagation.foreach {
                   if (FormValidator.reportValidity(element)) {
-                    Client.auth.resetPassword(userValue.now.email).foreach {
+                    Client.auth.resetPassword(EmailAddress(userValue.now.email)).foreach {
                       case true =>
                         errorMessageHandler.onNext(StatusMessage.Success("Password Reset Mail sent", "Check your email for a link to reset your password"))
                         forgotPasswordMode() = false
@@ -252,7 +252,7 @@ object AuthView {
       submitText = "Login",
       needUserName = false,
       submitAction = {userValue =>
-        Client.auth.login(userValue.email, Password(userValue.password)).map {
+        Client.auth.login(EmailAddress(userValue.email), Password(userValue.password)).map {
           case AuthResult.BadPassword  => Some("Wrong password.")
           case AuthResult.BadEmail     => Some("No account with this email address exists. Please check spelling and capitalization.")
           case AuthResult.InvalidEmail => Some("Email address is invalid")
@@ -276,7 +276,7 @@ object AuthView {
       submitText = "Signup",
       needUserName = true,
       submitAction = {userValue =>
-        Client.auth.register(name = userValue.username, email = userValue.email, password = Password(userValue.password)).map {
+        Client.auth.register(name = userValue.username, email = EmailAddress(userValue.email), password = Password(userValue.password)).map {
           case AuthResult.BadPassword  => Some("Insufficient password")
           case AuthResult.BadEmail     => Some("Email address already taken")
           case AuthResult.InvalidEmail => Some("Email address is invalid")

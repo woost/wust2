@@ -233,9 +233,9 @@ object UserSettingsView {
     var element: dom.html.Form = null
     val email = Handler.unsafe[String]
     val errorHandler = Handler.unsafe[Option[String]](None)
-    val actionSink = { email: String =>
+    val actionSink = { email: EmailAddress =>
       userDetail.now match {
-        case Some(detail) if email.nonEmpty && detail.email.fold(true)(_ != email) => Client.auth.updateUserEmail(detail.userId, email).onComplete {
+        case Some(detail) if email.value.nonEmpty && detail.email.fold(true)(_ != email) => Client.auth.updateUserEmail(detail.userId, email).onComplete {
           case Success(success) =>
             if (success) {
               userDetail() = Some(detail.copy(email = Some(email), verified = false))
@@ -260,11 +260,11 @@ object UserSettingsView {
           placeholder := "Email address",
           tpe := "email",
           disabled <-- detailsUnavailable,
-          value <-- userDetail.map(_.fold("")(_.email.getOrElse(""))),
+          value <-- userDetail.map(_.fold("")(_.email.fold("")(_.value))),
           onChange.value --> email,
           onEnter.value foreach { email =>
             if (FormValidator.reportValidity(element)) {
-              actionSink(email)
+              actionSink(EmailAddress(email))
             }
           }
         )
@@ -306,7 +306,7 @@ object UserSettingsView {
 
         onClick(email).foreach { email =>
           if (FormValidator.reportValidity(element)) {
-            actionSink(email)
+            actionSink(EmailAddress(email))
           }
         }
       )

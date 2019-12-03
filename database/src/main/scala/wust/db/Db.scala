@@ -337,7 +337,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     }.map(_.map(_.toNode))
 
     // TODO share code with createimplicit?
-    def create(userId: UserId, name: String, email: String, passwordDigest: Array[Byte])(implicit ec: TransactionalExecutionContext): Future[User] = {
+    def create(userId: UserId, name: String, email: EmailAddress, passwordDigest: Array[Byte])(implicit ec: TransactionalExecutionContext): Future[User] = {
       val userData = NodeData.User(name = name, isImplicit = false, revision = 0, imageFile = None)
       val user = User(userId, userData, NodeAccess.Level(AccessLevel.Restricted))
       val membership: EdgeData = EdgeData.Member(AccessLevel.ReadWrite)
@@ -376,7 +376,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     }
 
     //TODO one query
-    def activateImplicitUser(userId: UserId, name: String, email: String, passwordDigest: Array[Byte])(implicit ec: TransactionalExecutionContext ): Future[Option[User]] = {
+    def activateImplicitUser(userId: UserId, name: String, email: EmailAddress, passwordDigest: Array[Byte])(implicit ec: TransactionalExecutionContext ): Future[Option[User]] = {
       ctx.run(queryUser.filter(u => u.id == lift(userId) && u.data ->> "isImplicit" == "true")) //TODO: type safe
         .flatMap(_.headOption.fold(Future.successful(Option.empty[User])) { user =>
           val userData = user.data
@@ -425,7 +425,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       ).map(_.headOption)
     }
 
-    def verifyEmailAddress(userId: UserId, email: String)(implicit ec: ExecutionContext): Future[Boolean] = {
+    def verifyEmailAddress(userId: UserId, email: EmailAddress)(implicit ec: ExecutionContext): Future[Boolean] = {
       val q = quote {
         query[UserDetail]
           .filter(detail => detail.userId == lift(userId) && detail.email.exists(_ == lift(email)) && !detail.verified)
@@ -434,7 +434,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
 
       ctx.run(q).map(_ == 1)
     }
-    def existsEmail(email: String)(implicit ec: ExecutionContext): Future[Boolean] = {
+    def existsEmail(email: EmailAddress)(implicit ec: ExecutionContext): Future[Boolean] = {
       val q = quote {
         query[UserDetail]
           .filter(_.email.exists(_ == lift(email)))
@@ -455,7 +455,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     }
 
     //TODO: we should bump the revision of the user to invalidate tokens after email changes.
-    def updateUserEmail(userId: UserId, email: String)(implicit ec: ExecutionContext): Future[Boolean] = {
+    def updateUserEmail(userId: UserId, email: EmailAddress)(implicit ec: ExecutionContext): Future[Boolean] = {
       val q = quote {
         query[UserDetail]
           .filter(_.userId == lift(userId))
@@ -483,7 +483,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       ).map(_.headOption)
     }
 
-    def getUserByMail(email: String)(implicit ec: ExecutionContext): Future[Option[User]] = {
+    def getUserByMail(email: EmailAddress)(implicit ec: ExecutionContext): Future[Option[User]] = {
       ctx.run(
         (for{
          userDetail <- query[UserDetail].filter(p => p.email.contains(lift(email)))
@@ -492,7 +492,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       ).map(_.headOption)
     }
 
-    def getUserByVerifiedMail(email: String)(implicit ec: ExecutionContext): Future[Option[User]] = {
+    def getUserByVerifiedMail(email: EmailAddress)(implicit ec: ExecutionContext): Future[Option[User]] = {
       ctx.run(
         (for{
          userDetail <- query[UserDetail].filter(p => p.email.contains(lift(email)) && p.verified)
@@ -501,7 +501,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       ).map(_.headOption)
     }
 
-    def getUserAndDigestByEmail(email: String)(implicit ec: ExecutionContext): Future[Option[(User, Array[Byte])]] = {
+    def getUserAndDigestByEmail(email: EmailAddress)(implicit ec: ExecutionContext): Future[Option[(User, Array[Byte])]] = {
       ctx.run {
         (for{
          userDetail <- query[UserDetail].filter(p => p.email.contains(lift(email)))

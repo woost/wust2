@@ -78,7 +78,7 @@ object MembersModal {
       clear.onNext(())
     }
 
-    def handleAddMember(email: String, accesslevel: AccessLevel)(implicit ctx: Ctx.Owner): Unit = node.now.foreach { node =>
+    def handleAddMember(email: EmailAddress, accesslevel: AccessLevel)(implicit ctx: Ctx.Owner): Unit = node.now.foreach { node =>
       val graphUser = Client.api.getUserByEMail(email)
       graphUser.onComplete {
         case Success(Some(u)) if GlobalState.graph.now.members(node.id).exists(_.id == u.id) => // user exists and is already member
@@ -169,7 +169,7 @@ object MembersModal {
       def addUserEmailFromInput(): Unit = {
         val str = inputElement.value
         if (str.nonEmpty && FormValidator.reportValidity(formElement)) {
-          addUserAccessLevel.now.foreach(handleAddMember(str, _))
+          addUserAccessLevel.now.foreach(handleAddMember(EmailAddress(str), _))
         }
       }
 

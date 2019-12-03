@@ -34,6 +34,9 @@ trait Circe {
       implicit f: Decoder[T#Type]
   ): Decoder[T#Type @@ U] = f.asInstanceOf[Decoder[T#Type @@ U]]
 
+  implicit val EmailAddressDecoder: Decoder[EmailAddress] = Decoder.decodeString.emap(str => Right(EmailAddress(str)))
+  implicit val EmailAddressEncoder: Encoder[EmailAddress] = email => Json.fromString(email.value)
+
   // decode accesslevel as string instead of
   implicit val AccessLevelDecoder: Decoder[AccessLevel] =
     Decoder.decodeString.emap(

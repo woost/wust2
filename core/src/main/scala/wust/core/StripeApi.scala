@@ -39,12 +39,12 @@ class StripeApi(config: StripeConfig, serverConfig: ServerConfig) {
 
   def publicKey = config.publicKey // public api key
 
-  def createCustomer(customerEmail: String): Task[Customer] = {
+  def createCustomer(customerEmail: EmailAddress): Task[Customer] = {
 
     scribe.info(s"Creating Customer for User: $customerEmail")
 
     val params = new HashMap[String, AnyRef]
-    params.put("email", customerEmail)
+    params.put("email", customerEmail.value)
 
     Task(Customer.create(params))
   }

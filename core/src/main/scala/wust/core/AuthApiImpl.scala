@@ -18,9 +18,9 @@ import scala.util.control.NonFatal
 class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow, oAuthClientServiceLookup: OAuthClientServiceLookup)(implicit ec: ExecutionContext) extends AuthApi[ApiFunction] {
   import dsl._
 
-  private def isValidEmail(email: String) = email.contains("@")
+  private def isValidEmail(email: EmailAddress) = email.value.contains("@")
 
-  def resetPassword(email: String): ApiFunction[Boolean] = Action { state =>
+  def resetPassword(email: EmailAddress): ApiFunction[Boolean] = Action { state =>
     db.user.getUserByMail(email).map {
       case Some(user) =>
         val resetToken = jwt.generatePasswordResetToken(user)
@@ -39,7 +39,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow, oAut
   }
 
   //TODO: some email or name or password checks?
-  def register(name: String, email: String, password: Password): ApiFunction[AuthResult] = Effect { state =>
+  def register(name: String, email: EmailAddress, password: Password): ApiFunction[AuthResult] = Effect { state =>
     if (isValidEmail(email)) {
       val digest = passwordDigest(password)
       state.auth.map(_.user) match {
@@ -62,7 +62,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow, oAut
     } else Future.successful(Returns(AuthResult.InvalidEmail))
   }
 
-  def login(email: String, password: Password): ApiFunction[AuthResult] = Effect { state =>
+  def login(email: EmailAddress, password: Password): ApiFunction[AuthResult] = Effect { state =>
     val digest = passwordDigest(password)
     db.user.getUserAndDigestByEmail(email).flatMap {
       case Some((user, userDigest)) if (digest.hash = userDigest) =>
@@ -89,7 +89,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow, oAut
     }
   }
 
-  def loginReturnToken(email: String, password: Password): ApiFunction[Option[Authentication.Verified]] = Effect { state =>
+  def loginReturnToken(email: EmailAddress, password: Password): ApiFunction[Option[Authentication.Verified]] = Effect { state =>
     val digest = passwordDigest(password)
     db.user.getUserAndDigestByEmail(email).flatMap {
       case Some((user, userDigest)) if (digest.hash = userDigest) =>
@@ -156,7 +156,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow, oAut
     }
   }
 
-  override def updateUserEmail(userId: UserId, newEmail: String): ApiFunction[Boolean] = Action.requireRealUser { (_, user) =>
+  override def updateUserEmail(userId: UserId, newEmail: EmailAddress): ApiFunction[Boolean] = Action.requireRealUser { (_, user) =>
     if (userId == user.id) { // currently only allow to change own user details
       if (isValidEmail(newEmail)) {
         val result = db.user.updateUserEmail(user.id, newEmail)
@@ -179,7 +179,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow, oAut
   }
 
   // TODO: we just assume, this inviteTargetMail user does not exist. Actually we should check, whether we have a user with this email already in our db. We don't want to send invite mail to existing user. We should add them as member and set invite edge. Currently the frontend does this distinction and we just trust it.
-  override def invitePerMail(inviteTargetMail: String, nodeId: NodeId, accesslevel: AccessLevel): ApiFunction[Unit] = Effect.requireRealUser { (state, dbUser) =>
+  override def invitePerMail(inviteTargetMail: EmailAddress, nodeId: NodeId, accesslevel: AccessLevel): ApiFunction[Unit] = Effect.requireRealUser { (state, dbUser) =>
     db.user.getUserDetail(dbUser.id).flatMap{
       case Some(Data.UserDetail(userId, Some(inviterEmail), true, _)) => // only allow verified user with an email to send out invitations
         db.node.get(dbUser.id, nodeId).flatMap{
@@ -188,7 +188,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow, oAut
               // create an implicit user for the invite target
               // make him a member of this node and create an invite edge
               val invitedUserId = UserId.fresh
-              val invitedName = inviteTargetMail.split("@").head
+              val invitedName = inviteTargetMail.value.split("@").head
               val invitedEdges = Array[Edge](Edge.Member(nodeId = node.id, EdgeData.Member(accesslevel), userId = invitedUserId), Edge.Invite(nodeId = node.id, userId = invitedUserId))
               db.ctx.transaction { implicit ec =>
                 for {
@@ -247,7 +247,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow, oAut
     case None       => Returns(false)
   }
 
-  private def resultOnVerifiedAuthAfterRegister(res: Future[Option[Data.User]], email: String, replaces: Option[UserId] = None): Future[ApiData.Effect[AuthResult]] = res.map {
+  private def resultOnVerifiedAuthAfterRegister(res: Future[Option[Data.User]], email: EmailAddress, replaces: Option[UserId] = None): Future[ApiData.Effect[AuthResult]] = res.map {
     case Some(u) =>
       emailFlow.sendEmailVerification(u.id, email)
 

@@ -57,7 +57,7 @@ object Data {
 
   final case class UserDetail(
       userId: UserId,
-      email: Option[String],
+      email: Option[EmailAddress],
       verified: Boolean,
       plan: PaymentPlan,
   )
@@ -91,7 +91,7 @@ object Data {
 
   final case class Reminder(
     userId: UserId,
-    email: String,
+    email: EmailAddress,
     node: Node
   )
 

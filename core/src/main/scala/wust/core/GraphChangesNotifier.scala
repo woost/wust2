@@ -3,7 +3,7 @@ package wust.core
 import wust.api.{AuthUser, UserDetail}
 import wust.db.Db
 import wust.graph._
-import wust.ids.{NodeId, UserId}
+import wust.ids.{NodeId, UserId, EmailAddress}
 import wust.util.collection._
 import DbConversions._
 
@@ -40,7 +40,7 @@ class GraphChangesNotifier(db: Db, emailFlow: AppEmailFlow) {
     }
   }
 
-  private def notifyMentions(author: AuthUser, authorEmail: String, groupedMentions: Seq[MentionsWithNode])(implicit ec:ExecutionContext): Unit = {
+  private def notifyMentions(author: AuthUser, authorEmail: EmailAddress, groupedMentions: Seq[MentionsWithNode])(implicit ec:ExecutionContext): Unit = {
     groupedMentions.foreach { groupedMention =>
       val mentionedIds: List[NodeId] = groupedMention.mentions.map(_.mentionedId)(breakOut)
       val mentionsAuthorDirectly = mentionedIds.contains(author.id)

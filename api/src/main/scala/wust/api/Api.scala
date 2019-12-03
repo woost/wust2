@@ -27,7 +27,7 @@ trait Api[Result[_]] {
   def getNode(nodeId: NodeId): Result[Option[Node]]
   @PathName("getNodeOnBehalf")
   def getNode(nodeId: NodeId, onBehalf: Authentication.Token): Result[Option[Node]]
-  def getUserByEMail(email: String): Result[Option[Node.User]]
+  def getUserByEMail(email: EmailAddress): Result[Option[Node.User]]
 
   def setTemplate(template: NodeTemplate): Result[Boolean]
   def getTemplates(): Result[Seq[NodeTemplate]]
@@ -60,12 +60,12 @@ trait PushApi[Result[_]] {
 
 @PathName("Auth")
 trait AuthApi[Result[_]] {
-  def resetPassword(email: String): Result[Boolean]
+  def resetPassword(email: EmailAddress): Result[Boolean]
   def changePassword(password: Password): Result[Boolean]
   def assumeLogin(user: AuthUser.Assumed): Result[Boolean]
-  def register(name: String, email: String, password: Password): Result[AuthResult]
-  def login(email: String, password: Password): Result[AuthResult]
-  def loginReturnToken(email: String, password: Password): Result[Option[Authentication.Verified]] //TODO: provide separate public api (json) instead
+  def register(name: String, email: EmailAddress, password: Password): Result[AuthResult]
+  def login(email: EmailAddress, password: Password): Result[AuthResult]
+  def loginReturnToken(email: EmailAddress, password: Password): Result[Option[Authentication.Verified]] //TODO: provide separate public api (json) instead
   def loginToken(token: Authentication.Token): Result[Boolean]
   def logout(): Result[Boolean]
   def verifyToken(token: Authentication.Token): Result[Option[Authentication.Verified]]
@@ -74,9 +74,9 @@ trait AuthApi[Result[_]] {
   def acceptInvitation(token: Authentication.Token): Result[Unit]
 
   def getUserDetail(id: UserId): Result[Option[UserDetail]]
-  def updateUserEmail(id: UserId, newEmail: String): Result[Boolean]
+  def updateUserEmail(id: UserId, newEmail: EmailAddress): Result[Boolean]
   def resendEmailVerification(id: UserId): Result[Unit]
-  def invitePerMail(address: String, nodeId:NodeId, accesslevel: AccessLevel): Result[Unit]
+  def invitePerMail(address: EmailAddress, nodeId:NodeId, accesslevel: AccessLevel): Result[Unit]
 
   def getOAuthConnectUrl(service: OAuthClientService): Result[Option[String]]
   def getOAuthClients(): Result[Seq[OAuthClientService]]
@@ -107,7 +107,7 @@ final case class NodeTemplate(
 
 final case class UserDetail(
   userId: UserId,
-  email: Option[String],
+  email: Option[EmailAddress],
   verified: Boolean,
   plan: PaymentPlan
 )

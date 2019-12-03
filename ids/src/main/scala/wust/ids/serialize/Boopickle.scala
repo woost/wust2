@@ -14,6 +14,8 @@ trait Boopickle {
       implicit f: Pickler[T#Type]
   ): Pickler[T#Type @@ U] = f.asInstanceOf[Pickler[T#Type @@ U]]
 
+  implicit val EmailAddressPickler: Pickler[EmailAddress] = stringPickler.xmap(EmailAddress(_))(_.value)
+
   implicit val accessLevelPickler: Pickler[AccessLevel] = generatePickler[AccessLevel]
 
   implicit val NodeTypeSelectionPickler: Pickler[NodeTypeSelection] = generatePickler[NodeTypeSelection]

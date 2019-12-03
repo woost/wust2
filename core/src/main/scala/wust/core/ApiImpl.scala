@@ -91,7 +91,7 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], serve
   private def getNodeInternal(user: AuthUser, nodeId: NodeId): Future[Option[Node]] = db.node.get(user.id, nodeId).map(_.map(forClient))
 
 
-  override def getUserByEMail(email: String): ApiFunction[Option[Node.User]] = Action {
+  override def getUserByEMail(email: EmailAddress): ApiFunction[Option[Node.User]] = Action {
     db.user.getUserByMail(email).map(_.map(forClient))
   }
 
@@ -104,7 +104,7 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], serve
   }
 
   def setTemplate(template: NodeTemplate): ApiFunction[Boolean] = Action.requireEmail { (_, _, email) =>
-    if (email.endsWith("@woost.space")) db.template.create(template)
+    if (email.value.endsWith("@woost.space")) db.template.create(template)
     else Future.successful(Returns.error(ApiError.Forbidden))
   }
   def getTemplates(): ApiFunction[Seq[NodeTemplate]] = Action.requireUser { (state, user) =>

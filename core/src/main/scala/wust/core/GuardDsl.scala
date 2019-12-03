@@ -42,7 +42,7 @@ class GuardDsl(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
       requireUserT[T, AuthUser.Real](f) { case u: AuthUser.Real => u }
     def requireDbUser[T](f: (State, AuthUser.Persisted) => Future[F[T]]): ApiFunction[T] =
       requireUserT[T, AuthUser.Persisted](f) { case u: AuthUser.Persisted => u }
-    def requireEmail[T](f: (State, AuthUser.Persisted, String) => Future[F[T]]): ApiFunction[T] =
+    def requireEmail[T](f: (State, AuthUser.Persisted, EmailAddress) => Future[F[T]]): ApiFunction[T] =
       requireDbUser { (state, user) =>
         db.user.getUserDetail(user.id).flatMap {
           case Some(Data.UserDetail(_, Some(email), true, _)) => f(state, user, email)
