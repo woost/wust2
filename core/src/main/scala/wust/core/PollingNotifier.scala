@@ -26,14 +26,14 @@ class PollingNotifier(db: Db, emailFlow: AppEmailFlow) {
     scribe.info("Checking for reminders")
 
     val currentTime = EpochMilli.now
+    val lookBackwardsMillis = interval.toMillis * 2
 
     // TODO: get actual reminders
     val reminders: Future[Seq[ReminderInfo.DateTime]] = ???
 
     reminders.flatMap { reminders =>
       val reminderToSend = reminders.filter { reminder =>
-        //TOOD what should the jitter be? polling is imperfect in the end...
-        reminder.timestamp > currentTime - interval.toMillis * 2 && reminder.timestamp <= currentTime
+        reminder.timestamp > currentTime - lookBackwardsMillis && reminder.timestamp <= currentTime
       }
 
       // TODO: get actual reminders
