@@ -12,7 +12,7 @@ import wust.webApp.dragdrop.DragItem
 import wust.webApp.state._
 import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.registerDragContainer
-import wust.webApp.{Icons, Permission}
+import wust.webApp.{Icons, Permission, DevOnly}
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{BrowserDetect, UI}
 
@@ -56,9 +56,14 @@ object DashboardView {
         width := "100%",
         div(
           Styles.flex,
-          flexDirection.rowReverse,
-          VDomModifier.ifNot(BrowserDetect.isPhone)( UI.segmentWithoutHeader(ChartData.renderAssignedChart(traverseState).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod, width := "400px") ),
+          flexDirection.row,
+          justifyContent.flexStart,
+          flexWrap.wrap,
           VDomModifier.ifNot(BrowserDetect.isPhone)( UI.segmentWithoutHeader(ChartData.renderStagesChart(traverseState).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod, width := "400px") ),
+          VDomModifier.ifNot(BrowserDetect.isPhone)( UI.segmentWithoutHeader(ChartData.renderAssignedChart(traverseState).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod, width := "400px") ),
+          DevOnly {
+            VDomModifier.ifNot(BrowserDetect.isPhone)( UI.segmentWithoutHeader(ChartData.renderDeadlineChart(traverseState, showTasksOfSubprojects).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod, width := "400px") ),
+          }
         ),
         div(
           Styles.flex,

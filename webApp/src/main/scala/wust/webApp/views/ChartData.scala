@@ -113,30 +113,28 @@ object ChartData {
     ChartRenderData(rawCanvasData).render
   }
 
-  def renderDeadlineChart(traverseState: TraverseState)(implicit ctx: Ctx.Owner): HtmlVNode = {
+  def renderDeadlineChart(traverseState: TraverseState, deepSearch: Var[Boolean])(implicit ctx: Ctx.Owner): HtmlVNode = {
     val rawCanvasData = Rx {
       val graph = GlobalState.graph()
 
-      val uncategorizedColumn = ChartDataContainer(
-        label = "Uncategorized",
-        labelColor = BaseColors.kanbanColumnBg.rgb,
-        dataValue = KanbanData.inboxNodesCount(graph, traverseState)
+      val baseColors = Array(
+        RGB(255, 99, 132),  // Red
+        RGB(255, 159, 64),  // Orange
+        RGB(255, 206, 86),  // Yellow
+        RGB(54, 162, 235),  // Blue
+        RGB(75, 192, 192),  // Green
       )
 
-      //TODO: check whether a column hast nested stages
-      uncategorizedColumn +: KanbanData.columnNodes(graph, traverseState).collect {
-        case n if n._2 == NodeRole.Stage && !graph.isDoneStage(n._1) =>
-          val node = graph.nodesByIdOrThrow(n._1 )
-          val (stageName, stageChildren) = (node.str, graph.notDeletedChildrenIdx(graph.idToIdxOrThrow(node.id)).length: Double)
-
+      val buckets = AssignedTasksData.TimeBucket.defaultBuckets
+      AssignedTasksData.assignedTasks(graph, traverseState.parentId, None, buckets, deepSearch()).dueTasks.zipWithIndex.map {
+        case (dueDates, dueTaskBucketsIdx) =>
           ChartDataContainer(
-            label = stageName,
-            labelColor = BaseColors.kanbanColumnBg.copy(h = NodeColor.hue(node.id)).rgb,
-            dataValue = stageChildren
+            label = buckets(dueTaskBucketsIdx).name,
+            labelColor = baseColors(dueTaskBucketsIdx),
+            dataValue = dueDates.size
           )
       }
     }
-
     ChartRenderData(rawCanvasData).render
   }
 }

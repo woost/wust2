@@ -6,7 +6,7 @@ import outwatch.reactive._
 import rx._
 import wust.css.Styles
 import wust.graph.{Edge, GraphChanges, Node}
-import wust.ids.{ChildId, DurationMilli, EpochMilli, GlobalNodeSettings, ParentId, UserId}
+import wust.ids.{ChildId, GlobalNodeSettings, ParentId, UserId}
 import wust.util.collection._
 import wust.webApp.state.{FocusState, GlobalState, Placeholder, TraverseState}
 import wust.webApp.views.AssignedTasksData.AssignedTask
@@ -15,18 +15,7 @@ import wust.webUtil.UI
 import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
 
-import scala.scalajs.js
-
 object AssignedTasksView {
-
-  private def datePlusDays(now: EpochMilli, days: Int): EpochMilli = {
-    val date = new js.Date(now)
-    date.setHours(0)
-    date.setMinutes(0)
-    date.setSeconds(0)
-    date.setMilliseconds(0)
-    EpochMilli(date.getTime.toLong) plus (DurationMilli.day times days)
-  }
 
   def apply(focusState: FocusState, deepSearch: Boolean = false, selectedUserId: Var[Option[UserId]] = Var(Some(GlobalState.userId.now)))(implicit ctx: Ctx.Owner): VNode = {
     val node = Rx {
@@ -35,26 +24,13 @@ object AssignedTasksView {
     }
     val globalNodeSettings = node.map(_.flatMap(_.settings).fold(GlobalNodeSettings.default)(_.globalOrDefault))
 
-    val renderTime = EpochMilli.now
-    val bucketNames = Array(
-      "Overdue",
-      "Today",
-      "Tomorrow",
-      "Within a Week",
-      "Within a Month",
-    )
-    val buckets = Array[EpochMilli](
-      renderTime,
-      datePlusDays(renderTime, 1),
-      datePlusDays(renderTime, 2),
-      datePlusDays(renderTime, 7),
-      datePlusDays(renderTime, 30)
-    )
 
     val selectableUsers = Rx {
       val graph = GlobalState.graph()
       graph.members(focusState.focusedId)
     }
+
+    val buckets = AssignedTasksData.TimeBucket.defaultBuckets
 
     val assignedTasks = Rx {
       AssignedTasksData.assignedTasks(GlobalState.graph(), focusState.focusedId, selectedUserId(), buckets, deepSearch)
@@ -107,7 +83,7 @@ object AssignedTasksView {
         var foundSomething = false
         val rendering = assignedTasksDue().mapWithIndex { (idx, dueTasks) =>
           VDomModifier.ifTrue(dueTasks.nonEmpty) {
-            val bucketName = bucketNames(idx)
+            val bucketName = buckets(idx).name
             val coloringHeader = if (idx == 0) VDomModifier(cls := "red", color.red) else cls := "grey"
             foundSomething = true
             VDomModifier(
