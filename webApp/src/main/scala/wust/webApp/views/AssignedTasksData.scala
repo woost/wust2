@@ -1,12 +1,38 @@
 package wust.webApp.views
 
 import wust.graph.{Edge, Graph, Node}
+
+import scala.scalajs.js
 import wust.ids._
 import wust.util.macros.InlineList
 
 import scala.collection.mutable
 
 object AssignedTasksData {
+
+  case class TimeBucket(name: String, time: EpochMilli)
+  object TimeBucket {
+    private def datePlusDays(now: EpochMilli, days: Int): EpochMilli = {
+      val date = new js.Date(now)
+      date.setHours(0)
+      date.setMinutes(0)
+      date.setSeconds(0)
+      date.setMilliseconds(0)
+      EpochMilli(date.getTime.toLong) plus (DurationMilli.day times days)
+    }
+
+    def apply(name: String): TimeBucket = TimeBucket(name, EpochMilli.now)
+    def defaultBuckets: Array[TimeBucket] = {
+      val renderTime = EpochMilli.now
+      Array[TimeBucket](
+        TimeBucket("Overdue", renderTime),
+        TimeBucket("Today", datePlusDays(renderTime, 1)),
+        TimeBucket("Tomorrow", datePlusDays(renderTime, 2)),
+        TimeBucket("Within a Week", datePlusDays(renderTime, 7)),
+        TimeBucket("Within a Month", datePlusDays(renderTime, 30)),
+      )
+    }
+  }
 
   final case class AssignedTasksStat(user: Node.User, numTasks: Int)
 
@@ -37,7 +63,7 @@ object AssignedTasksData {
 
   // bucket.size == result.size -1
   // result contains
-  def assignedTasks(graph: Graph, focusedId: NodeId, userId: Option[UserId], buckets: IndexedSeq[EpochMilli], deepSearch: Boolean): AssignedTasks = {
+  def assignedTasks(graph: Graph, focusedId: NodeId, userId: Option[UserId], buckets: IndexedSeq[TimeBucket], deepSearch: Boolean): AssignedTasks = {
     val focusedIdx = graph.idToIdxOrThrow(focusedId)
     val userIdx = userId.map(graph.idToIdxOrThrow(_))
     val dueTasks = Array.fill(buckets.size)(new mutable.ArrayBuffer[AssignedTask.Due])
@@ -80,7 +106,7 @@ object AssignedTasksData {
             dueDate match {
               case Some(dueDate) =>
                 val dueTask = AssignedTask.Due(node.id, parentNode.id, dueDate)
-                val dueIndex = buckets.indexWhere(dueDate < _)
+                val dueIndex = buckets.indexWhere(dueDate < _.time)
                 if(dueIndex == -1)  {
                   tasks += dueTask
                   true
