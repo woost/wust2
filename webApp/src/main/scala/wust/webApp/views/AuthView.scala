@@ -136,7 +136,7 @@ object AuthView {
                   if (FormValidator.reportValidity(element)) {
                     Client.auth.resetPassword(EmailAddress(userValue.now.email)).foreach {
                       case true =>
-                        errorMessageHandler.onNext(StatusMessage.Success("Password Reset Mail sent", "Check your email for a link to reset your password"))
+                        errorMessageHandler.onNext(StatusMessage.Success("Password Reset Mail was sent out", "Check your email for a link to reset your password"))
                         forgotPasswordMode() = false
                       case false =>
                         errorMessageHandler.onNext(StatusMessage.Error("Password Reset Mail failed", "Sorry, we cannot find this email address."))
