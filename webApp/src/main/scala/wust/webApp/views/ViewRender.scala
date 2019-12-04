@@ -35,6 +35,7 @@ object ViewRender extends ViewRenderLike {
       case View.Files                     => FilesView(focusState)
       case View.Content                   => NotesView(focusState)
       case View.Gantt                     => GanttView(focusState)
+      case View.Calendar                     => CalendarView(focusState)
       case View.Topological               => TopologicalView(focusState)
       case View.Notifications             => NotificationView(focusState)
       case View.ActivityStream            => ActivityStream(focusState)

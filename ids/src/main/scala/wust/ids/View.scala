@@ -87,6 +87,11 @@ object View {
     def viewKey = "gantt"
     override def isContent = true
   }
+  case object Calendar extends Visible {
+    override def toString = "Calendar"
+    def viewKey = "calendar"
+    override def isContent = true
+  }
   case object Topological extends Visible {
     override def toString = "Topological Sort"
     def viewKey = "topological"

@@ -1,7 +1,6 @@
 package wust.facades.dateFns
 
 import scala.scalajs.js
-import scala.scalajs.js.Date
 import scala.scalajs.js.annotation._
 
 @js.native
@@ -12,5 +11,14 @@ object DateFns extends js.Object {
   def format(date: js.Date, format: String): String = js.native
   def formatDistance(date: js.Date, baseDate: js.Date): String = js.native
   def addWeeks(date: js.Date, amount: Int): js.Date = js.native
-  def differenceInCalendarDays(date: Date, createdDate: Date):Int = js.native
+  def differenceInCalendarDays(date: js.Date, createdDate: js.Date): Int = js.native
+  def getDay(date: js.Date): Int = js.native
+  def getMonth(date: js.Date): Int = js.native
+  def getYear(date: js.Date): Int = js.native
+  def getWeeksInMonth(date: js.Date): Int = js.native
+  def getDaysInMonth(date: js.Date): Int = js.native
+  def addMonths(date: js.Date, amount: Int): js.Date = js.native
+  def subMonths(date: js.Date, amount: Int): js.Date = js.native
+  def setDate(date: js.Date, dayOfMonth: Int): js.Date = js.native
+  def isSameDay(dateLeft: js.Date, dateRight: js.Date): Boolean = js.native
 }
