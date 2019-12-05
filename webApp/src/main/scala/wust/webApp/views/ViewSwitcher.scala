@@ -56,7 +56,6 @@ object ViewSwitcher {
     val closeDropdown = SinkSourceHandler.publish[Unit]
 
     def addNewViewTab = div(
-      cls := "hover-full-opacity opacity-75",
       div(
         padding := "7px 10px",
         div(addViewIcon, fontSize := "16px", color := "white", paddingLeft := "2px", paddingRight := "2px", UI.tooltip("bottom left") := "Add or remove views"),
