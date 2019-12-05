@@ -6,6 +6,7 @@ import rx._
 import wust.graph.{GraphChanges, Edge}
 import wust.ids._
 import wust.webApp.state.{FeatureState, GlobalState, ScreenSize}
+import wust.util.collection._
 import wust.webUtil.outwatchHelpers._
 import collection.mutable
 
@@ -77,7 +78,10 @@ object ViewFilter {
         input(
           `type` := "text",
           placeholder := "Filter",
-          value <-- GlobalState.page.map(_ => ""),
+          value <-- GlobalState.graphTransformations.map(_.findMap {
+            case GraphOperation.ContentContains(needle) => Some(needle)
+            case _ => None
+          }.getOrElse("")),
           onFocus.use(true) --> focused,
           onBlur.use(false) --> focused,
           onInput.value.debounce(500 milliseconds).map{ needle =>
