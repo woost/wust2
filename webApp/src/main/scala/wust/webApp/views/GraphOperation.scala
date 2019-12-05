@@ -122,7 +122,8 @@ object GraphOperation {
       val foundChildrenEval = Eval.later{
         val foundChildren = ArraySet.create(graph.nodes.length)
         flatland.loop(graph.nodes.length) { nodeIdx =>
-          if (graph.parentsIdx.sliceNonEmpty(nodeIdx) && Search.singleByString(needle, graph.nodes(nodeIdx), 0.75).isDefined) {
+          val node = graph.nodes(nodeIdx)
+          if (InlineList.contains(NodeRole.Tag, NodeRole.Stage)(node.role) || (graph.parentsIdx.sliceNonEmpty(nodeIdx) && Search.singleByString(needle, graph.nodes(nodeIdx), 0.75).isDefined)) {
             foundChildren += nodeIdx
           }
         }
