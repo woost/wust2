@@ -517,6 +517,7 @@ lazy val webUtil = project
       Deps.kantanRegex.generic.value ::
       Deps.fontawesome.value ::
       ScalablyTyped.C.chart_dot_js ::
+      ScalablyTyped.B.`base64-js` ::
       Nil
   )
 
@@ -569,6 +570,7 @@ lazy val webApp = project
       Deps.npm.wdtEmojiBundle ::
       Deps.npm.tribute ::
       Deps.npm.chartJs ::
+      Deps.npm.base64Js ::
       Deps.npm.hopscotch ::
       Deps.npm.canvasImageUploader ::
       Deps.npm.exifJS ::

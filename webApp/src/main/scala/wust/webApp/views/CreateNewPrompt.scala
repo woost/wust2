@@ -72,7 +72,7 @@ object CreateNewPrompt {
       if (addToChannels.now) {
         val channelChanges = GraphChanges.connect(Edge.Pinned)(newNode.id, GlobalState.user.now.id)
         GlobalState.submitChanges(changes merge channelChanges)
-        GlobalState.urlConfig.update(_.focus(Page(newNode.id), needsGet = false))
+        GlobalState.focus(newNode.id, needsGet = false)
       } else {
         GlobalState.submitChanges(changes).foreach { _ =>
           if(childNodes.now.nonEmpty)

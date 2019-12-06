@@ -270,7 +270,7 @@ object DoodleView extends AppDefinition {
     )).foreach {
       val nodeId = NodeId.fresh
       GlobalState.submitChanges(createNode(nodeId))
-      GlobalState.urlConfig.update(_.focus(Page(nodeId), needsGet = false))
+      GlobalState.focus(nodeId, needsGet = false)
       ()
     }
 

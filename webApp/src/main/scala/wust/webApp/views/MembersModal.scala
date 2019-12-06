@@ -121,7 +121,7 @@ object MembersModal {
       if (membership.userId == GlobalState.user.now.id) {
         needAction() = Some(NeedAction(
           { () =>
-            GlobalState.urlConfig.update(_.focus(Page.empty))
+            GlobalState.focusPage(Page.empty)
             GlobalState.uiModalClose.onNext(())
             action()
           },

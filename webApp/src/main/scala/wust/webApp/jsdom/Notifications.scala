@@ -4,6 +4,7 @@ import org.scalajs.dom.experimental
 import org.scalajs.dom.experimental.NotificationOptions
 import org.scalajs.dom.experimental.permissions._
 import org.scalajs.dom.experimental.push._
+import wust.webUtil.BinaryConvertors._
 import rx._
 import wust.api._
 import wust.webApp.Client
@@ -140,9 +141,9 @@ object Notifications {
                 val webpush = WebPushSubscription(
                   endpointUrl = sub.endpoint,
                   p256dh = Base64Codec.encode(
-                    TypedArrayBuffer.wrap(sub.getKey(PushEncryptionKeyName.p256dh))),
+                    TypedArrayBuffer.wrap(sub.getKey(PushEncryptionKeyName.p256dh).toUint8Array)),
                   auth = Base64Codec.encode(
-                    TypedArrayBuffer.wrap(sub.getKey(PushEncryptionKeyName.auth))))
+                    TypedArrayBuffer.wrap(sub.getKey(PushEncryptionKeyName.auth).toUint8Array)))
                 scribe.info(s"WebPush subscription: $webpush")
                 sendSubscription(webpush)
               case err =>
