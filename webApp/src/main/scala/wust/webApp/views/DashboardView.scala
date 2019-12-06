@@ -44,6 +44,11 @@ object DashboardView {
     val showTasksOfSubprojects = Var(false)
     val selectedUserId: Var[Option[UserId]] = Var(Some(GlobalState.userId.now))
 
+    val taskBuckets = AssignedTasksData.TimeBucket.defaultBuckets
+    val assignedTasks = Rx {
+      AssignedTasksData.assignedTasks(GlobalState.graph(), focusState.focusedId, selectedUserId(), taskBuckets, showTasksOfSubprojects())
+    }
+
     val traverseState = TraverseState(focusState.focusedId)
 
     val detailWidgets = VDomModifier(
@@ -57,13 +62,11 @@ object DashboardView {
         div(
           Styles.flex,
           flexDirection.row,
-          justifyContent.flexStart,
+          justifyContent.center,
           flexWrap.wrap,
-          VDomModifier.ifNot(BrowserDetect.isPhone)( UI.segmentWithoutHeader(ChartData.renderStagesChart(traverseState).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod, width := "400px") ),
-          VDomModifier.ifNot(BrowserDetect.isPhone)( UI.segmentWithoutHeader(ChartData.renderAssignedChart(traverseState).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod, width := "400px") ),
-          DevOnly {
-            VDomModifier.ifNot(BrowserDetect.isPhone)( UI.segmentWithoutHeader(ChartData.renderDeadlineChart(traverseState, showTasksOfSubprojects).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod, width := "400px") ),
-          }
+          VDomModifier.ifNot(BrowserDetect.isPhone)( UI.segmentWithoutHeader(ChartData.renderStagesChart(traverseState).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod) ),
+          VDomModifier.ifNot(BrowserDetect.isPhone)( UI.segmentWithoutHeader(ChartData.renderAssignedChart(traverseState).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod) ),
+          VDomModifier.ifNot(BrowserDetect.isPhone)( UI.segmentWithoutHeader(ChartData.renderDeadlineChart(traverseState, showTasksOfSubprojects).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod) ),
         ),
         div(
           Styles.flex,
@@ -74,9 +77,7 @@ object DashboardView {
           },
           marginBottom := "15px"
         ),
-        Rx {
-          AssignedTasksView(focusState, deepSearch = showTasksOfSubprojects(), selectedUserId).apply(padding := "0px")
-        },
+        AssignedTasksView(assignedTasks, focusState, selectedUserId, taskBuckets).apply(padding := "0px")
       ),
       div(
         UI.segment("Sub-projects", VDomModifier(renderSubprojects(focusState), overflowX.auto)).apply(Styles.flexStatic, segmentMod),

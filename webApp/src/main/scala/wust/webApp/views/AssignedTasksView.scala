@@ -17,24 +17,18 @@ import wust.webUtil.outwatchHelpers._
 
 object AssignedTasksView {
 
-  def apply(focusState: FocusState, deepSearch: Boolean = false, selectedUserId: Var[Option[UserId]] = Var(Some(GlobalState.userId.now)))(implicit ctx: Ctx.Owner): VNode = {
+  def apply(assignedTasks: Rx.Dynamic[AssignedTasksData.AssignedTasks], focusState: FocusState, selectedUserId: Var[Option[UserId]], buckets: IndexedSeq[AssignedTasksData.TimeBucket])(implicit ctx: Ctx.Owner): HtmlVNode = {
     val node = Rx {
       val g = GlobalState.rawGraph()
       g.nodesById(focusState.focusedId)
     }
     val globalNodeSettings = node.map(_.flatMap(_.settings).fold(GlobalNodeSettings.default)(_.globalOrDefault))
 
-
     val selectableUsers = Rx {
       val graph = GlobalState.graph()
       graph.members(focusState.focusedId)
     }
 
-    val buckets = AssignedTasksData.TimeBucket.defaultBuckets
-
-    val assignedTasks = Rx {
-      AssignedTasksData.assignedTasks(GlobalState.graph(), focusState.focusedId, selectedUserId(), buckets, deepSearch)
-    }
     val assignedTasksDue = Rx { assignedTasks().dueTasks }
     val assignedTasksOther = Rx { assignedTasks().tasks }
 
@@ -47,10 +41,10 @@ object AssignedTasksView {
             Edge.Child(ParentId(focusState.focusedId), ChildId(newTask.id))
           )
         ) (uid =>
-            Array[Edge](
-              Edge.Child(ParentId(focusState.focusedId), ChildId(newTask.id)),
-              Edge.Assigned(newTask.id, uid)
-            )),
+          Array[Edge](
+            Edge.Child(ParentId(focusState.focusedId), ChildId(newTask.id)),
+            Edge.Assigned(newTask.id, uid)
+          )),
       )
 
       GlobalState.submitChanges(changes merge sub.changes(newTask.id))
@@ -107,6 +101,14 @@ object AssignedTasksView {
 
       div(height := "20px") // padding bottom workaround in flexbox
     )
+  }
+
+  def apply(focusState: FocusState, deepSearch: Boolean = false, selectedUserId: Var[Option[UserId]] = Var(Some(GlobalState.userId.now)), buckets: IndexedSeq[AssignedTasksData.TimeBucket] = AssignedTasksData.TimeBucket.defaultBuckets)(implicit ctx: Ctx.Owner): VNode = {
+    val assignedTasks = Rx {
+      AssignedTasksData.assignedTasks(GlobalState.graph(), focusState.focusedId, selectedUserId(), buckets, deepSearch)
+    }
+
+    apply(assignedTasks, focusState, selectedUserId, buckets)
   }
 
   private def renderTask(focusState: FocusState, task: AssignedTask) = TaskNodeCard.renderThunk(

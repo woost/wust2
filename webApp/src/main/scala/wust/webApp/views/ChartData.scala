@@ -113,7 +113,7 @@ object ChartData {
     ChartRenderData(rawCanvasData).render
   }
 
-  def renderDeadlineChart(traverseState: TraverseState, deepSearch: Var[Boolean])(implicit ctx: Ctx.Owner): HtmlVNode = {
+  def renderDeadlineChart(assignedTasks: AssignedTasksData.AssignedTasks, buckets: IndexedSeq[AssignedTasksData.TimeBucket])(implicit ctx: Ctx.Owner): HtmlVNode = {
     val rawCanvasData = Rx {
       val graph = GlobalState.graph()
 
@@ -125,8 +125,7 @@ object ChartData {
         RGB(75, 192, 192),  // Green
       )
 
-      val buckets = AssignedTasksData.TimeBucket.defaultBuckets
-      AssignedTasksData.assignedTasks(graph, traverseState.parentId, None, buckets, deepSearch()).dueTasks.zipWithIndex.map {
+      assignedTasks.dueTasks.zipWithIndex.map {
         case (dueDates, dueTaskBucketsIdx) =>
           ChartDataContainer(
             label = buckets(dueTaskBucketsIdx).name,
