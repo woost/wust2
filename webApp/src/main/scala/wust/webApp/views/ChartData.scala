@@ -12,7 +12,7 @@ import wust.webUtil.outwatchHelpers._
 
 object ChartData {
 
-  case class ChartDataContainer(label: String, labelColor: RGB, dataValue: Double)
+  case class ChartDataContainer(label: String, dataValue: Double, labelColor: RGB)
   case class ChartRenderData(rawChartData: Rx.Dynamic[Seq[ChartDataContainer]], steps: Option[Double] = None, chartLabel: String = "# Tasks", chartType: String = "bar") {
 
     def render(implicit ctx: Ctx.Owner): HtmlVNode = {
@@ -75,8 +75,8 @@ object ChartData {
         if(stats.numTasks > 0)
           Some(ChartDataContainer(
             label = stats.user.str,
-            BaseColors.kanbanColumnBg.copy(h = NodeColor.hue(stats.user.id)).rgb,
-            dataValue = stats.numTasks
+            dataValue = stats.numTasks,
+            labelColor = BaseColors.kanbanColumnBg.copy(h = NodeColor.hue(stats.user.id)).rgb,
           ))
         else
           None
@@ -92,8 +92,8 @@ object ChartData {
 
       val uncategorizedColumn = ChartDataContainer(
         label = "Uncategorized",
+        dataValue = KanbanData.inboxNodesCount(graph, traverseState),
         labelColor = BaseColors.kanbanColumnBg.rgb,
-        dataValue = KanbanData.inboxNodesCount(graph, traverseState)
       )
 
       //TODO: check whether a column hast nested stages
@@ -104,8 +104,8 @@ object ChartData {
 
           ChartDataContainer(
             label = stageName,
+            dataValue = stageChildren,
             labelColor = BaseColors.kanbanColumnBg.copy(h = NodeColor.hue(node.id)).rgb,
-            dataValue = stageChildren
           )
       }
     }
@@ -113,24 +113,15 @@ object ChartData {
     ChartRenderData(rawCanvasData).render
   }
 
-  def renderDeadlineChart(assignedTasks: AssignedTasksData.AssignedTasks, buckets: IndexedSeq[AssignedTasksData.TimeBucket])(implicit ctx: Ctx.Owner): HtmlVNode = {
-    val rawCanvasData = Rx {
-      val graph = GlobalState.graph()
-
-      val baseColors = Array(
-        RGB(255, 99, 132),  // Red
-        RGB(255, 159, 64),  // Orange
-        RGB(255, 206, 86),  // Yellow
-        RGB(54, 162, 235),  // Blue
-        RGB(75, 192, 192),  // Green
-      )
-
-      assignedTasks.dueTasks.zipWithIndex.map {
+  def renderDeadlineChart(assignedTasks: Rx[AssignedTasksData.AssignedTasks])(implicit ctx: Ctx.Owner): HtmlVNode = {
+    val rawCanvasData = assignedTasks.map { allTasks =>
+      val buckets = DueDate.DueBucket.values
+      allTasks.dueTasks.zipWithIndex.map {
         case (dueDates, dueTaskBucketsIdx) =>
           ChartDataContainer(
             label = buckets(dueTaskBucketsIdx).name,
-            labelColor = baseColors(dueTaskBucketsIdx),
-            dataValue = dueDates.size
+            dataValue = dueDates.size,
+            labelColor = buckets(dueTaskBucketsIdx).bgColor,
           )
       }
     }

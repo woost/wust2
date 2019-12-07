@@ -17,7 +17,7 @@ import wust.webUtil.outwatchHelpers._
 
 object AssignedTasksView {
 
-  def apply(assignedTasks: Rx.Dynamic[AssignedTasksData.AssignedTasks], focusState: FocusState, selectedUserId: Var[Option[UserId]], buckets: IndexedSeq[AssignedTasksData.TimeBucket])(implicit ctx: Ctx.Owner): HtmlVNode = {
+  def apply(assignedTasks: Rx.Dynamic[AssignedTasksData.AssignedTasks], focusState: FocusState, selectedUserId: Var[Option[UserId]])(implicit ctx: Ctx.Owner): HtmlVNode = {
     val node = Rx {
       val g = GlobalState.rawGraph()
       g.nodesById(focusState.focusedId)
@@ -29,6 +29,7 @@ object AssignedTasksView {
       graph.members(focusState.focusedId)
     }
 
+    val buckets = DueDate.DueBucket.values
     val assignedTasksDue = Rx { assignedTasks().dueTasks }
     val assignedTasksOther = Rx { assignedTasks().tasks }
 
@@ -103,12 +104,12 @@ object AssignedTasksView {
     )
   }
 
-  def apply(focusState: FocusState, deepSearch: Boolean = false, selectedUserId: Var[Option[UserId]] = Var(Some(GlobalState.userId.now)), buckets: IndexedSeq[AssignedTasksData.TimeBucket] = AssignedTasksData.TimeBucket.defaultBuckets)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(focusState: FocusState, deepSearch: Boolean = false, selectedUserId: Var[Option[UserId]] = Var(Some(GlobalState.userId.now)))(implicit ctx: Ctx.Owner): VNode = {
     val assignedTasks = Rx {
-      AssignedTasksData.assignedTasks(GlobalState.graph(), focusState.focusedId, selectedUserId(), buckets, deepSearch)
+      AssignedTasksData.assignedTasks(GlobalState.graph(), focusState.focusedId, selectedUserId(), deepSearch)
     }
 
-    apply(assignedTasks, focusState, selectedUserId, buckets)
+    apply(assignedTasks, focusState, selectedUserId)
   }
 
   private def renderTask(focusState: FocusState, task: AssignedTask) = TaskNodeCard.renderThunk(

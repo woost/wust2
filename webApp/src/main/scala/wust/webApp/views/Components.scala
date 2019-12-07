@@ -20,7 +20,7 @@ import wust.sdk.NodeColor._
 import wust.sdk.{BaseColors, NodeColor}
 import wust.util.StringOps._
 import wust.util._
-import wust.util.macros.InlineList
+import wust.util.macros.{InlineList, SubObjects}
 import wust.webApp._
 import wust.webApp.dragdrop._
 import wust.webApp.state._
@@ -293,7 +293,6 @@ object Components {
     )
   }
 
-
   def nodeCardProperty(
     focusState: FocusState,
     traverseState: TraverseState,
@@ -327,30 +326,17 @@ object Components {
       val isDueDate = (key.data.key == EdgeData.LabeledProperty.dueDate.key)
       if(isDueDate) {
         property.data match {
-          case NodeData.DateTime(dueDate) if dueDate isBefore (EpochMilli.now minus DurationMilli.day) => 
-            VDomModifier(
-              // less red
-              color := "#75000e",
-              backgroundColor := "rgb(254, 221, 224)",
-              boxShadow := "rgba(254, 221, 224, 0.75) 0px 0px 6px 0px",
-              UI.tooltip("top center") := "Past due",
-            )
-          case NodeData.DateTime(dueDate) if dueDate isBefore EpochMilli.now => 
-            VDomModifier(
-              // red
-              color := "#751f00",
-              backgroundColor := "rgb(255, 186, 179)",
-              boxShadow := "rgba(255, 186, 179, 0.75) 0px 0px 6px 0px",
-              UI.tooltip("top center") := "Recently overdue",
-            )
-          case NodeData.DateTime(dueDate) if dueDate isBefore (EpochMilli.now plus DurationMilli.day) => 
-            VDomModifier(
-              // yellow
-              color := "#664400",
-              backgroundColor := "rgb(255, 247, 179)",
-              boxShadow := "rgba(255, 247, 179, 0.5) 0px 0px 6px 0px",
-              UI.tooltip("top center") := "Due in less than 24 hours",
-            )
+          case NodeData.DateTime(dueDate) =>
+            DueDate.bucketOf(EpochMilli.now, dueDate).map {
+              case bucket: DueDate.NearFuture =>
+                VDomModifier(
+                  color := bucket.color.toCSS,
+                  backgroundColor := bucket.bgColor.toCSS,
+                  boxShadow := s"rgba(${ bucket.color.ri }, ${ bucket.color.gi }, ${ bucket.color.bi }, 0.2) 0px 0px 6px 0px",
+                  UI.tooltip("top center") := bucket.name,
+                )
+              case _ => VDomModifier.empty
+            }.getOrElse(VDomModifier.empty)
 
           case _ => VDomModifier.empty
         }
@@ -1076,4 +1062,40 @@ object Components {
   def experimentalSign(color: String) = maturityLabel("experimental", fgColor = color, borderColor = color)
 
   def reloadButton = button(cls := "ui button compact mini", freeSolid.faRedo, " Reload", cursor.pointer, onClick.stopPropagation.foreach { dom.window.location.reload(flag = true) }) // true - reload without cache
+}
+
+object DueDate {
+  import colorado.RGB
+
+  private def clampDate(now: EpochMilli): EpochMilli = {
+    val date = new js.Date(now)
+    date.setHours(0)
+    date.setMinutes(0)
+    date.setSeconds(0)
+    date.setMilliseconds(0)
+    EpochMilli(date.getTime.toLong)
+  }
+
+  sealed trait DueBucket {
+    def days: Int
+    def name: String
+    def color: RGB
+    def bgColor: RGB
+    def inBucket(now: EpochMilli, time: EpochMilli): Boolean = time isBefore (clampDate(now) plus daysMilli)
+    def daysMilli: DurationMilli = DurationMilli.day times days
+  }
+
+  sealed abstract class NearFuture(val days: Int, val name: String, val color: RGB, val bgColor: RGB) extends DueBucket
+  sealed abstract class FarFuture(val days: Int, val name: String, val color: RGB, val bgColor: RGB) extends DueBucket
+  object DueBucket {
+    val values: Array[DueBucket] = SubObjects.all[DueBucket].sortBy(_.days)
+    case object Overdue extends NearFuture(days = 0, "Overdue", RGB(117, 0, 14), RGB(254, 221, 224))
+    case object Today extends NearFuture(days = 1, "Today", RGB(117, 31, 0), RGB(255, 186, 179))
+    case object Tomorrow extends NearFuture(days = 2, "Tomorrow", RGB(102, 68, 0), RGB(255, 247, 179))
+    case object WithinWeek extends FarFuture(days = 7, "Within a Week", RGB(34, 156, 156), RGB(75, 192, 192))
+    case object WithinMonth extends FarFuture(days = 30, "Within a Month", RGB(29, 116, 143), RGB(54, 162, 235))
+  }
+
+  def bucketOf(now: EpochMilli, time: EpochMilli): Option[DueBucket] = DueBucket.values.find(_.inBucket(now, time))
+
 }
