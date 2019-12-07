@@ -67,7 +67,9 @@ object DashboardView {
           flexWrap.wrap,
           VDomModifier.ifNot(BrowserDetect.isPhone)( UI.segmentWithoutHeader(ChartData.renderStagesChart(traverseState).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod) ),
           VDomModifier.ifNot(BrowserDetect.isPhone)( UI.segmentWithoutHeader(ChartData.renderAssignedChart(traverseState).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod) ),
-          VDomModifier.ifNot(BrowserDetect.isPhone)( UI.segmentWithoutHeader(ChartData.renderDeadlineChart(assignedTasks).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod) ),
+          DevOnly {
+            VDomModifier.ifNot(BrowserDetect.isPhone)(UI.segmentWithoutHeader(ChartData.renderDeadlineChart(assignedTasks).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod))
+          }
         ),
         div(
           Styles.flex,
