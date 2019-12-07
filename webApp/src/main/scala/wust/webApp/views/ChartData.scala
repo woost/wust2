@@ -12,7 +12,8 @@ import wust.webUtil.outwatchHelpers._
 
 object ChartData {
 
-  case class ChartDataContainer(label: String, dataValue: Double, labelColor: RGB)
+  case class LabelColor(front: RGB, background: Option[RGB] = None)
+  case class ChartDataContainer(label: String, dataValue: Double, color: LabelColor)
   case class ChartRenderData(rawChartData: Rx.Dynamic[Seq[ChartDataContainer]], steps: Option[Double] = None, chartLabel: String = "# Tasks", chartType: String = "bar") {
 
     def render(implicit ctx: Ctx.Owner): HtmlVNode = {
@@ -27,7 +28,7 @@ object ChartData {
             val data = rawDataContainer.unzip3 { rawData =>
               val labels: String | js.Array[String] = (rawData.label: String | js.Array[String])
               val points: js.UndefOr[ChartPoint | Double | Null] = js.defined[ChartPoint | Double | Null](rawData.dataValue)
-              (labels, points, rawData.labelColor)
+              (labels, points, rawData.color)
             }
             (data._1.toJSArray, data._2.toJSArray, data._3.toJSArray)
           }
@@ -42,8 +43,13 @@ object ChartData {
                 datasets = js.Array(new ChartDataSets {
                   label = chartLabel
                   data = chartPoints
-                  backgroundColor = chartColors.map(c => s"rgba(${ c.ri }, ${ c.gi }, ${ c.bi }, 0.2)")
-                  borderColor = chartColors.map(_.toCSS)
+                  backgroundColor = chartColors.map {
+                    case c if c.background.isEmpty => s"rgba(${ c.front.ri }, ${ c.front.gi }, ${ c.front.bi }, 0.2)"
+                    case c =>
+                      val bg = c.background.get
+                      s"rgb(${ bg.ri }, ${ bg.gi }, ${ bg.bi }, 0.2)"
+                  }
+                  borderColor = chartColors.map(_.front.toCSS)
                   borderWidth = 1.0
                 })
               },
@@ -76,7 +82,7 @@ object ChartData {
           Some(ChartDataContainer(
             label = stats.user.str,
             dataValue = stats.numTasks,
-            labelColor = BaseColors.kanbanColumnBg.copy(h = NodeColor.hue(stats.user.id)).rgb,
+            color = LabelColor(BaseColors.kanbanColumnBg.copy(h = NodeColor.hue(stats.user.id)).rgb)
           ))
         else
           None
@@ -93,7 +99,7 @@ object ChartData {
       val uncategorizedColumn = ChartDataContainer(
         label = "Uncategorized",
         dataValue = KanbanData.inboxNodesCount(graph, traverseState),
-        labelColor = BaseColors.kanbanColumnBg.rgb,
+        color = LabelColor(BaseColors.kanbanColumnBg.rgb),
       )
 
       //TODO: check whether a column hast nested stages
@@ -105,7 +111,7 @@ object ChartData {
           ChartDataContainer(
             label = stageName,
             dataValue = stageChildren,
-            labelColor = BaseColors.kanbanColumnBg.copy(h = NodeColor.hue(node.id)).rgb,
+            color = LabelColor(BaseColors.kanbanColumnBg.copy(h = NodeColor.hue(node.id)).rgb),
           )
       }
     }
@@ -121,7 +127,7 @@ object ChartData {
           ChartDataContainer(
             label = buckets(dueTaskBucketsIdx).name,
             dataValue = dueDates.size,
-            labelColor = buckets(dueTaskBucketsIdx).bgColor,
+            color = LabelColor(buckets(dueTaskBucketsIdx).bgColor)
           )
       }
     }
