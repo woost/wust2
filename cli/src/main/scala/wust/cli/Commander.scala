@@ -6,6 +6,7 @@ import wust.api.{AuthUser, Password}
 import wust.graph._
 import wust.ids._
 
+import scala.collection.breakOut
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
@@ -21,9 +22,8 @@ object Commander {
       val node = Node.Content(NodeData.Markdown(cmd.message), cmd.nodeConfig.nodeRole)
       client.api.changeGraph(
         GraphChanges(
-          addNodes = Set(node),
-          addEdges = Set[Edge]()
-            ++ (if (cmd.pin) Set(Edge.Pinned(node.id, user.id)) else Set.empty)
+          addNodes = Array(node),
+          addEdges = (if (cmd.pin) Array(Edge.Pinned(node.id, user.id)) else Array.empty)
             ++ cmd.nodeConfig.parentId.map(parentId => Edge.Child(ParentId(parentId), ChildId(node.id)))
 
         ).withAuthor(user.id)
@@ -63,7 +63,7 @@ object Commander {
     var headers: List[(String, String)] = Nil //TODO: better
     val client = WustHttpClient(config.url, headers)
 
-    client.auth.loginReturnToken(config.username, Password(config.password)).onComplete {
+    client.auth.loginReturnToken(EmailAddress(config.username), Password(config.password)).onComplete {
       case Success(Some(auth)) =>
         headers = ("Authorization", auth.token.string) :: Nil
         f(client, auth.user)(system.dispatcher).onComplete {

@@ -3,9 +3,17 @@ package wust.cli
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import caseapp._
+import caseapp.core.help._
 import covenant.core.DefaultLogHandler
 import sloth.{Client, ClientException}
 import wust.api.{Api, AuthApi}
+import io.circe.parser._
+import io.circe.syntax._
+import io.circe.generic.auto._
+import wust.api.serialize.Circe._
+import chameleon.ext.circe._
+
+import CustomParsers._
 
 import scala.concurrent.Future
 
