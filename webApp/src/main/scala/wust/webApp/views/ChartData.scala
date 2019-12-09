@@ -14,7 +14,7 @@ object ChartData {
 
   case class LabelColor(front: RGB, background: Option[RGB] = None)
   case class ChartDataContainer(label: String, dataValue: Double, color: LabelColor)
-  case class ChartRenderData(rawChartData: Rx.Dynamic[Seq[ChartDataContainer]], steps: Option[Double] = None, chartLabel: String = "# Tasks", chartType: String = "bar") {
+  case class ChartRenderData(rawChartData: Rx[Seq[ChartDataContainer]], steps: Option[Double] = None, chartLabel: String = "# Tasks", chartType: String = "bar") {
 
     def render(implicit ctx: Ctx.Owner): HtmlVNode = {
       import typings.chartDotJs.chartDotJsMod._
@@ -121,7 +121,7 @@ object ChartData {
 
   def renderDeadlineChart(assignedTasks: Rx[AssignedTasksData.AssignedTasks])(implicit ctx: Ctx.Owner): HtmlVNode = {
     val rawCanvasData = assignedTasks.map { allTasks =>
-      val buckets = DueDate.DueBucket.values
+      val buckets = DueDate.Bucket.values
       allTasks.dueTasks.zipWithIndex.map {
         case (dueDates, dueTaskBucketsIdx) =>
           ChartDataContainer(

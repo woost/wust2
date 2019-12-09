@@ -11,7 +11,7 @@ import wust.webUtil.outwatchHelpers._
 
 object FilesView {
   def apply(focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
-    val files: Rx.Dynamic[Seq[(NodeId, NodeData.File, EpochMilli)]] = Rx {
+    val files: Rx[Seq[(NodeId, NodeData.File, EpochMilli)]] = Rx {
       val graph = GlobalState.graph()
       val focusedIdx = graph.idToIdxOrThrow(focusState.focusedId)
 

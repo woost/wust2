@@ -17,7 +17,7 @@ import wust.webUtil.outwatchHelpers._
 
 object AssignedTasksView {
 
-  def apply(assignedTasks: Rx.Dynamic[AssignedTasksData.AssignedTasks], focusState: FocusState, selectedUserId: Var[Option[UserId]])(implicit ctx: Ctx.Owner): HtmlVNode = {
+  def apply(assignedTasks: Rx[AssignedTasksData.AssignedTasks], focusState: FocusState, selectedUserId: Var[Option[UserId]])(implicit ctx: Ctx.Owner): HtmlVNode = {
     val node = Rx {
       val g = GlobalState.rawGraph()
       g.nodesById(focusState.focusedId)
@@ -29,7 +29,7 @@ object AssignedTasksView {
       graph.members(focusState.focusedId)
     }
 
-    val buckets = DueDate.DueBucket.values
+    val buckets = DueDate.Bucket.values
     val assignedTasksDue = Rx { assignedTasks().dueTasks }
     val assignedTasksOther = Rx { assignedTasks().tasks }
 

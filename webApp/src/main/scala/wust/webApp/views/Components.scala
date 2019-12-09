@@ -322,26 +322,22 @@ object Components {
         )
     }
 
-    val dueModifier = {
-      val isDueDate = (key.data.key == EdgeData.LabeledProperty.dueDate.key)
-      if(isDueDate) {
-        property.data match {
-          case NodeData.DateTime(dueDate) =>
-            DueDate.bucketOf(EpochMilli.now, dueDate).map {
-              case bucket: DueDate.NearFuture =>
-                VDomModifier(
-                  color := bucket.color.toCSS,
-                  backgroundColor := bucket.bgColor.toCSS,
-                  boxShadow := s"rgba(${ bucket.color.ri }, ${ bucket.color.gi }, ${ bucket.color.bi }, 0.2) 0px 0px 6px 0px",
-                  UI.tooltip("top center") := bucket.name,
-                )
-              case _ => VDomModifier.empty
-            }.getOrElse(VDomModifier.empty)
+    val dueModifier = VDomModifier.ifTrue(key.data.key == EdgeData.LabeledProperty.dueDate.key) {
+      property.data match {
+        case NodeData.DateTime(dueDate) =>
+          DueDate.bucketOf(EpochMilli.now, dueDate).fold(VDomModifier.empty) { bucket =>
+            VDomModifier.ifNot(bucket.isFarFuture) {
+              VDomModifier(
+                color := bucket.color.toCSS,
+                backgroundColor := bucket.bgColor.toCSS,
+                boxShadow := s"rgba(${ bucket.color.ri }, ${ bucket.color.gi }, ${ bucket.color.bi }, 0.2) 0px 0px 6px 0px",
+                UI.tooltip("top center") := bucket.name,
+              )
+            }
+          }
 
-          case _ => VDomModifier.empty
-        }
+        case _ => VDomModifier.empty
       }
-      else VDomModifier.empty
     }
 
     span(
@@ -1062,40 +1058,4 @@ object Components {
   def experimentalSign(color: String) = maturityLabel("experimental", fgColor = color, borderColor = color)
 
   def reloadButton = button(cls := "ui button compact mini", freeSolid.faRedo, " Reload", cursor.pointer, onClick.stopPropagation.foreach { dom.window.location.reload(flag = true) }) // true - reload without cache
-}
-
-object DueDate {
-  import colorado.RGB
-
-  private def clampDate(now: EpochMilli): EpochMilli = {
-    val date = new js.Date(now)
-    date.setHours(0)
-    date.setMinutes(0)
-    date.setSeconds(0)
-    date.setMilliseconds(0)
-    EpochMilli(date.getTime.toLong)
-  }
-
-  sealed trait DueBucket {
-    def days: Int
-    def name: String
-    def color: RGB
-    def bgColor: RGB
-    def inBucket(now: EpochMilli, time: EpochMilli): Boolean = time isBefore (clampDate(now) plus daysMilli)
-    def daysMilli: DurationMilli = DurationMilli.day times days
-  }
-
-  sealed abstract class NearFuture(val days: Int, val name: String, val color: RGB, val bgColor: RGB) extends DueBucket
-  sealed abstract class FarFuture(val days: Int, val name: String, val color: RGB, val bgColor: RGB) extends DueBucket
-  object DueBucket {
-    val values: Array[DueBucket] = SubObjects.all[DueBucket].sortBy(_.days)
-    case object Overdue extends NearFuture(days = 0, "Overdue", RGB(117, 0, 14), RGB(254, 221, 224))
-    case object Today extends NearFuture(days = 1, "Today", RGB(117, 31, 0), RGB(255, 186, 179))
-    case object Tomorrow extends NearFuture(days = 2, "Tomorrow", RGB(102, 68, 0), RGB(255, 247, 179))
-    case object WithinWeek extends FarFuture(days = 7, "Within a Week", RGB(34, 156, 156), RGB(75, 192, 192))
-    case object WithinMonth extends FarFuture(days = 30, "Within a Month", RGB(29, 116, 143), RGB(54, 162, 235))
-  }
-
-  def bucketOf(now: EpochMilli, time: EpochMilli): Option[DueBucket] = DueBucket.values.find(_.inBucket(now, time))
-
 }

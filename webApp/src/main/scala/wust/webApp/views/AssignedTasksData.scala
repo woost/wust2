@@ -44,7 +44,7 @@ object AssignedTasksData {
     val userIdx = userId.map(graph.idToIdxOrThrow(_))
 
     val now = EpochMilli.now
-    val buckets = DueDate.DueBucket.values
+    val buckets = DueDate.Bucket.values
 
     val dueTasks = Array.fill(buckets.size)(new mutable.ArrayBuffer[AssignedTask.Due])
     val tasks = new mutable.ArrayBuffer[AssignedTask]
