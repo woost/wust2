@@ -154,6 +154,8 @@ object KanbanView {
       KanbanData.inboxNodes(graph, traverseState)
     }
 
+    val childCount = children.map(_.size)
+
     val collapseButton = div(
       div(cls := "fa-fw", freeRegular.faEyeSlash),
       onClickDefault.foreach { updateKanbanSettings(_.copy(hideUncategorized = true)) },
@@ -168,8 +170,16 @@ object KanbanView {
       div(
         cls := "kanbancolumnheader",
         div(
+          Styles.flex,
+          alignItems.flexStart,
+
           cls := "kanbancolumntitle kanban-uncategorized-title",
           div(cls := "markdown", p("Uncategorized")), // to be consistent with other column headers
+
+          childCount.map {
+            case 0 => VDomModifier.empty
+            case count => columnCount(count)
+          }
         ),
         position.relative, // for buttonbar
         div(
@@ -198,6 +208,13 @@ object KanbanView {
     )
   }
 
+  private def columnCount(count: Int) = div(
+    marginLeft := "5px",
+    color := "lightgray",
+    fontSize.xSmall,
+    "(" + count + ")"
+  )
+
   private def renderColumn(
     focusState: FocusState,
     traverseState: TraverseState,
@@ -224,9 +241,22 @@ object KanbanView {
       val graph = GlobalState.graph()
       KanbanData.columnNodes(graph, nextTraverseState)
     }
+
+    val childCount = children.map(_.size)
+
     val titleEditConfig = EditableContent.Config.cancelOnError.copy(saveDialogPosition = EditableContent.Position.Bottom)
     val columnTitle = Rx {
-      editableNode( node(), editable, config = titleEditConfig, maxLength = Some(TaskNodeCard.maxLength))(ctx)(cls := "kanbancolumntitle")
+      div(
+        Styles.flex,
+        alignItems.flexStart,
+
+        editableNode( node(), editable, config = titleEditConfig, maxLength = Some(TaskNodeCard.maxLength))(ctx)(cls := "kanbancolumntitle"),
+
+        childCount.map {
+          case 0 => VDomModifier.empty
+          case count => columnCount(count)
+        }
+      )
     }
 
     val canWrite = NodePermission.canWrite( nodeId)
