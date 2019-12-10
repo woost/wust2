@@ -397,21 +397,27 @@ object Components {
     def nodeTag(
       tag: Node,
       dragOptions: NodeId => VDomModifier = nodeId => DragComponents.drag(DragItem.Tag(nodeId), target = DragItem.DisableDrag),
+      maximized: Boolean = true
     ): VNode = {
-      val contentString = renderAsOneLineText( tag)
-      renderNodeTag( tag, VDomModifier(contentString, dragOptions(tag.id)))
+      val content = maximized match {
+        case true => VDomModifier(renderAsOneLineText( tag))
+        case false => VDomModifier(minHeight := "5px", minWidth := "20px")
+      }
+
+      renderNodeTag( tag, VDomModifier(content, dragOptions(tag.id)))
     }
 
-    def removableNodeTagCustom(tag: Node, action: () => Unit): VNode = {
-      nodeTag( tag)(removableTagMod(action))
+    def removableNodeTagCustom(tag: Node, action: () => Unit, maximized: Boolean = true): VNode = {
+      //TODO: should not be called if removable can be disabled with maximized param
+      nodeTag(tag, maximized = maximized)(VDomModifier.ifTrue(maximized)(removableTagMod(action)))
     }
 
-    def removableNodeTag(tag: Node, taggedNodeId: NodeId): VNode = {
+    def removableNodeTag(tag: Node, taggedNodeId: NodeId, maximized: Boolean = true): VNode = {
       removableNodeTagCustom(tag, () => {
         GlobalState.submitChanges(
           GraphChanges.disconnect(Edge.Child)(Array(ParentId(tag.id)), ChildId(taggedNodeId))
         )
-      })
+      }, maximized = maximized)
     }
 
     def renderProject(node: Node, renderNode: Node => VDomModifier, withIcon: Boolean = false, openFolder: Boolean = false) = {

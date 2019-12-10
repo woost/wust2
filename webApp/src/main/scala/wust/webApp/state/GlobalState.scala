@@ -59,6 +59,8 @@ object GlobalState {
     eventProcessor.changes.onNext(changes)
   }
 
+  val maximizedTags = Client.storage.maximizedTags.imap(_.getOrElse(false))(Some(_))
+
   val leftSidebarOpen: Var[Boolean] = //TODO: replace with ADT Open/Closed
     Client.storage.sidebarOpen.imap(_ getOrElse !BrowserDetect.isMobile)(Some(_)) // expanded sidebar per default for desktop
 

@@ -34,6 +34,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
     val filterlistOpen = "wust.filterlist.open"
     def pendingChanges(userId:UserId) = s"wust.pendingchanges.${userId.toUuid.toString}"
     val backendTimeDelta = "wust.backendtimedelta"
+    val maximizedTags = "wust.visibleTags"
   }
 
   private def toJson[T: Encoder](value: T): String = value.asJson.noSpaces
@@ -127,6 +128,16 @@ class ClientStorage(implicit owner: Ctx.Owner) {
         .unsafeRunSync()
         .mapHandler[Option[Boolean]](open => Option(toJson(open)))(_.flatMap(fromJson[Boolean]))
         .unsafeToVar(internal(keys.sidebarOpen).flatMap(fromJson[Boolean]))
+    } else Var(None)
+  }
+
+  val maximizedTags: Var[Option[Boolean]] = {
+    if(canAccessLs) {
+      LocalStorage
+        .handlerWithoutEvents[SyncIO](keys.maximizedTags)
+        .unsafeRunSync()
+        .mapHandler[Option[Boolean]](open => Option(toJson(open)))(_.flatMap(fromJson[Boolean]))
+        .unsafeToVar(internal(keys.maximizedTags).flatMap(fromJson[Boolean]))
     } else Var(None)
   }
 

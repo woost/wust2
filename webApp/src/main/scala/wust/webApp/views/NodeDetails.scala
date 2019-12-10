@@ -7,8 +7,7 @@ import rx._
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
-import wust.webApp.Icons
-import wust.webApp.Permission
+import wust.webApp.{Client, Icons, Permission}
 import wust.webApp.state.{ FocusPreference, GlobalState, FocusState, TraverseState }
 import wust.webApp.dragdrop.{ DragItem, DragPayload, DragTarget }
 import wust.webUtil.UI
@@ -52,7 +51,7 @@ object NodeDetails {
         if (propertySingleEmpty()) VDomModifier.empty
         else VDomModifier(
           propertySingle().info.tags.map { tag =>
-            Components.removableNodeTag(tag, taggedNodeId = nodeId)
+            Components.removableNodeTag(tag, taggedNodeId = nodeId, maximized = GlobalState.maximizedTags())
           },
 
           propertySingle().properties.map { property =>

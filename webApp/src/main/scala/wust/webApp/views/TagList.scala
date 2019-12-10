@@ -13,7 +13,7 @@ import wust.webApp.dragdrop.DragItem
 import wust.webApp.state._
 import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.{drag, registerDragContainer}
-import wust.webUtil.Ownable
+import wust.webUtil.{Ownable, UI}
 import wust.webUtil.outwatchHelpers._
 
 object TagList {
@@ -114,6 +114,8 @@ object TagList {
 
     div(
       Rx { renderTagTree(workspaceId, tags()) },
+
+      UI.toggle("Show Text of Tags", GlobalState.maximizedTags).apply(cls := "compact mini", marginTop := "10px"),
 
       addTagField(parentId = workspaceId, workspaceId = workspaceId, newTagFieldActive = newTagFieldActive).apply(marginTop := "10px")
     )
