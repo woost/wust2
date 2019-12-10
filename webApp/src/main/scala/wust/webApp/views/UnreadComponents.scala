@@ -90,10 +90,11 @@ object UnreadComponents {
   }
 
   // returns lastreadtime
-  def activitiesOfNode(graph:Graph, userId:UserId, nodeIdx:Int)(collect: Activity => Unit): Option[EpochMilli] = {
+  def activitiesOfNode(graph:Graph, userId:UserId, nodeIdx:Int, showAllRevisions: Boolean)(collect: Activity => Unit): Option[EpochMilli] = {
     val lastReadTime = findLastReadTime(graph, userId, nodeIdx)
     var isFirst = true
     var lastAuthorship: Authorship = null
+    var lastActivity: Activity = null
     graph.sortedAuthorshipEdgeIdx.foreachElement(nodeIdx) { edgeIdx =>
       val edge = graph.edges(edgeIdx).as[Edge.Author]
       val author = graph.nodes(graph.edgesIdx.b(edgeIdx)).as[Node.User]
@@ -104,12 +105,15 @@ object UnreadComponents {
       if (lastAuthorship == null || (authorship.author.id != lastAuthorship.author.id || authorship.timestamp.isAfterOrEqual(EpochMilli(lastAuthorship.timestamp + 1000L)))) {
         val isSeen = lastReadTime.exists(_ isAfterOrEqual authorship.timestamp)
         val activity = Activity(authorship, isSeen = isSeen)
-        collect(activity)
+        if (showAllRevisions) collect(activity)
+        else lastActivity = activity
       }
 
       isFirst = false
       lastAuthorship = authorship
     }
+
+    if (lastActivity != null) collect(lastActivity)
 
     lastReadTime
   }

@@ -43,11 +43,14 @@ object ActivityStream {
     val graph = GlobalState.rawGraph
     val userId = GlobalState.userId
 
+    val showAllRevisions = Var(false)
+
     val activityNodes = Rx {
-      calculateActivityList(graph(), focusState.focusedId, userId()).take(100) // max 100 items
+      calculateActivityList(graph(), focusState.focusedId, userId(), showAllRevisions()).take(100) // max 100 items
     }
 
     val markAllReadButton = markAllAsReadButton("Mark all as read", activityNodes, userId)
+    val showSeenButton = showAllRevisionsButton(showAllRevisions)
 
     div(
       keyed,
@@ -64,7 +67,13 @@ object ActivityStream {
         div(
           Styles.flex,
           h3("Activity Stream"),
-          markAllReadButton
+
+          div(
+            Styles.flex,
+            marginLeft := "auto",
+            showSeenButton,
+            markAllReadButton,
+          )
         ),
 
         div(
@@ -101,18 +110,20 @@ object ActivityStream {
     )
   }
 
-  private def calculateActivityList(graph: Graph, nodeId: NodeId, userId: UserId): scala.collection.Seq[ActivityNode] = graph.idToIdxFold(nodeId)(Seq.empty[ActivityNode]) { nodeIdx =>
+  private def calculateActivityList(graph: Graph, nodeId: NodeId, userId: UserId, showAllRevisions: Boolean): scala.collection.Seq[ActivityNode] = graph.idToIdxFold(nodeId)(Seq.empty[ActivityNode]) { nodeIdx =>
 
     val buffer = mutable.ArrayBuffer[ActivityNode]()
 
     dfs.foreach(_(nodeIdx), dfs.withStart, graph.childrenIdx, { nodeIdx =>
       if (UnreadComponents.nodeIsActivity(graph, nodeIdx)) {
         val node = graph.nodes(nodeIdx)
-        val lastReadTime = UnreadComponents.activitiesOfNode(graph, userId, nodeIdx) { activity =>
-          val revision =
-            if (activity.authorship.isCreation) Revision.Create(activity.authorship.author, activity.authorship.timestamp, seen = activity.isSeen)
-            else Revision.Edit(activity.authorship.author, activity.authorship.timestamp, seen = activity.isSeen)
-          buffer += ActivityNode(node, revision)
+        val lastReadTime = UnreadComponents.activitiesOfNode(graph, userId, nodeIdx, showAllRevisions = showAllRevisions) { activity =>
+          if (showAllRevisions || !activity.isSeen) {
+            val revision =
+              if (activity.authorship.isCreation) Revision.Create(activity.authorship.author, activity.authorship.timestamp, seen = activity.isSeen)
+              else Revision.Edit(activity.authorship.author, activity.authorship.timestamp, seen = activity.isSeen)
+            buffer += ActivityNode(node, revision)
+          }
         }
 
         graph.parentEdgeIdx.whileElement(nodeIdx) { idx =>
@@ -265,14 +276,27 @@ object ActivityStream {
     )
   })
 
+  def showAllRevisionsButton(showAllRevisions: Var[Boolean])(implicit ctx: Ctx.Owner) = {
+    button(
+      cls := "ui tiny compact basic button",
+      showAllRevisions.map {
+        case true => "Only show latest Activity"
+        case false => "Show full Activity"
+      },
+      margin := "3px",
+      Styles.flexStatic,
+
+      onClickDefault.foreach {
+        showAllRevisions.update(!_)
+      }
+    )
+  }
+
   def markAllAsReadButton(text: String, activityNodes: Rx[Seq[ActivityNode]], userId: Rx[UserId]) = {
     button(
       cls := "ui tiny compact button",
       text,
-      marginLeft := "auto",
-      marginRight := "0px", // remove semantic ui button margin
-      marginTop := "3px",
-      marginBottom := "3px",
+      margin := "3px 0px 3px 3px", // remove semantic ui button margin
       Styles.flexStatic,
 
       onClickDefault.foreach {
