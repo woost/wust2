@@ -178,7 +178,7 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
               assignmentsByNode.result.get(nodeId).collect { case users if users.contains(n.userId) => NotifiedKind.NewAssigned } orElse
                 mentionsByNode.result.get(nodeId).collect { case users if users.contains(n.userId) => NotifiedKind.NewMention } orElse
                 invitesByNode.result.get(nodeId).collect { case users if users.contains(n.userId) => NotifiedKind.NewInvite } orElse
-                (if (interestingNewNodes.contains(nodeId) && newChildIds.contains(nodeId)) Some(NotifiedKind.NewNode) else None) foreach { kind =>
+                (if (node.role == NodeRole.Message && interestingNewNodes.contains(nodeId) && newChildIds.contains(nodeId)) Some(NotifiedKind.NewNode) else None) foreach { kind =>
                   notifiedNodes += NotifiedNode(node, kind)
                 }
             }
