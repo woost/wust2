@@ -139,7 +139,11 @@ object TaskNodeCard {
     VDomModifier(
       Components.sidebarNodeFocusMod(nodeId, focusState),
       Components.showHoveredNode( nodeId),
-      UnreadComponents.readObserver( nodeId, marginTop := "7px"),
+      UnreadComponents.readObserver( nodeId, VDomModifier(
+        marginTop := "7px",
+        marginLeft := "5px",
+        marginRight := (if (BrowserDetect.isMobile) "35px" else "5px"), //TODO: better? leave room for buttonbar to not overlay
+      )),
       VDomModifier.ifTrue(showCheckbox)(
         node.map(Components.taskCheckbox( _, traverseState.parentId :: Nil).apply(float.left, marginRight := "5px"))
       ),
@@ -189,7 +193,7 @@ object TaskNodeCard {
       ),
 
       position.relative, // for buttonbar
-      buttonBar(position.absolute, top := "3px", right := "3px"), // distance to not interefere with sidebar-focus box-shadow around node
+      buttonBar(position.absolute, top := "0px", right := "0px"), // distance to not interefere with sidebar-focus box-shadow around node
     )
   })
 

@@ -926,8 +926,6 @@ object CommonStyles extends StyleSheet.Standalone
   ".unread-label" - (
     // important to overwrite "ui label"
     float.right,
-    marginLeft(5 px).important,
-    marginRight(5 px).important,
 
     color.white.important,
     (fontSize := "x-small").important, //TODO: fix in scalaCSS
