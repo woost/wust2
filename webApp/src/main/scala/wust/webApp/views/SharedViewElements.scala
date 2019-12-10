@@ -500,8 +500,10 @@ object SharedViewElements {
       registerDragContainer,
       Rx {
         val graph = GlobalState.graph()
+        val userId = GlobalState.userId()
         val nodeIdx = graph.idToIdxOrThrow(channelId)
-        val members = graph.membersByIndex(nodeIdx)
+        val (selfMembers, otherMembers) = graph.membersByIndex(nodeIdx).partition(_.id == userId)
+        val members = selfMembers ++ otherMembers
 
         members.map(user => div(
           Avatar.user(user, size = s"${sizePx}px", enableClickFilter = enableClickFilter)(
