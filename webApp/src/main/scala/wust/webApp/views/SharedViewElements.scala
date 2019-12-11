@@ -488,33 +488,40 @@ object SharedViewElements {
     )
   }
 
-  def channelMembers(channelId: NodeId, enableClickFilter: Boolean = false)(implicit ctx: Ctx.Owner) = {
-    val marginLeftPx = 2
+  def channelMembers(channelId: NodeId, enableClickFilter: Boolean = false, separateMembers: Boolean = false)(implicit ctx: Ctx.Owner) = {
+    val marginSidePx = 1
     val sizePx = 22
     div(
       Styles.flex,
-      minWidth := s"${(marginLeftPx+sizePx)}px", // show at least 1 avatar
-      cls := "tiny-scrollbar",
-      overflowX.auto, // make scrollable for long member lists
-      overflowY.hidden, // wtf firefox and chrome...
+      alignItems.center,
+      minWidth := s"${(2*marginSidePx+sizePx)}px", // show at least 1 avatar
       registerDragContainer,
       Rx {
         val graph = GlobalState.graph()
         val userId = GlobalState.userId()
         val nodeIdx = graph.idToIdxOrThrow(channelId)
         val (selfMembers, otherMembers) = graph.membersByIndex(nodeIdx).partition(_.id == userId)
-        val members = selfMembers ++ otherMembers
 
-        members.map(user => div(
+        def memberVNode(user: Node.User, isSelf: Boolean) = div(
           Avatar.user(user, size = s"${sizePx}px", enableClickFilter = enableClickFilter)(
-            marginLeft := s"${marginLeftPx}px",
-            marginTop := "1px",
-            marginBottom := "1px",
-          ),
+            margin := "1px",
+            VDomModifier.ifTrue(isSelf && separateMembers)(marginRight := s"${sizePx/2}px"),
+            ),
           Styles.flexStatic,
           cursor.grab,
           UI.popup("bottom center") := Components.displayUserName(user.data)
-        ))(breakOut): js.Array[VNode]
+        )
+
+        if(otherMembers.isEmpty)
+          selfMembers.map(memberVNode(_, true))(breakOut): js.Array[VNode]
+        else
+          (selfMembers.map(memberVNode(_, true)) :+ div(
+            Styles.flex,
+            cls := "tiny-scrollbar",
+            overflowX.auto, // make scrollable for long member lists
+            overflowY.hidden, // wtf firefox and chrome...
+            otherMembers.map(memberVNode(_, false))(breakOut): js.Array[VNode]
+          ))(breakOut): js.Array[VNode]
       }
     )
   }
