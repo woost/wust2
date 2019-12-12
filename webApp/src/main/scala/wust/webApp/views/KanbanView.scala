@@ -130,7 +130,7 @@ object KanbanView {
         UI.tooltip("right center") := s"Show uncategorized ${itemName()}"
       },
 
-      div(cls := "fa-fw", freeRegular.faEye),
+      div(opacity := 0.3, cls := "fa-fw", freeRegular.faEye),
 
       childrenCount.map {
         case 0 => VDomModifier.empty
