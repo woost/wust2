@@ -6,11 +6,13 @@ import rx._
 import wust.css.Styles
 import wust.graph.Node
 import wust.ids.Feature
+import wust.graph.Page
 import wust.util._
 import wust.webApp.state.{FeatureState, GlobalState, ScreenSize, PresentationMode}
 import wust.webApp.views.Components._
 import wust.webApp.StagingOnly
 import wust.webUtil.outwatchHelpers._
+import wust.webUtil.Elements._
 
 object WelcomeView {
   def apply(implicit ctx: Ctx.Owner): VNode = {
@@ -36,16 +38,22 @@ object WelcomeView {
         flexDirection.column,
         alignItems.center,
         Rx{ welcomeTitle(GlobalState.user().toNode).append(Styles.flexStatic) },
+
+        bookmarkList,
+
         Rx {
           (GlobalState.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](
             welcomeMessage(Styles.flexStatic, marginBottom := "50px"),
           )
         },
+
         StagingOnly {
           TemplateView.render.apply(margin := "10px")
         },
+
         newProjectButton(Styles.flexStatic),
-        div (width := "1px", height := "1px", Styles.flexStatic), // margin bottom hack for flexbox
+
+        div(width := "1px", height := "1px", Styles.flexStatic), // margin bottom hack for flexbox
       )
     ),
 
@@ -60,6 +68,43 @@ object WelcomeView {
       )
     }
   )
+
+  def bookmarkList(implicit ctx: Ctx.Owner) = {
+    val bookmarks = Rx {
+      ChannelTreeData.allChannels(GlobalState.graph(), GlobalState.userId())
+    }
+
+    bookmarks.map { bookmarks =>
+      VDomModifier.ifNot(bookmarks.isEmpty)(div(
+        cls := "ui segment",
+        margin := "10px",
+        maxHeight := "150px",
+        overflowY.auto,
+        Styles.flexStatic,
+
+        b("Your Bookmarks"),
+
+        div(
+          marginTop := "5px",
+          Styles.flex,
+          alignItems.flexStart,
+          flexWrap.wrap,
+          bookmarks.map { node =>
+            val clickMod = VDomModifier(
+              onClickDefault.foreach {
+                GlobalState.urlConfig.update(_.focus(Page(node.id)))
+              }
+            )
+            Components.nodeCard(node, contentInject = clickMod, maxLength = Some(50)).apply(
+              margin := "4px",
+              borderRadius := "2px",
+              border := "1px solid lightgray",
+            )
+          }
+        )
+      ))
+    }
+  }
 
   def newProjectButton = NewProjectPrompt.newProjectButton().apply(
     cls := "primary",

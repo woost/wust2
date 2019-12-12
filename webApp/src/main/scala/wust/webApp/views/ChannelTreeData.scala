@@ -11,6 +11,17 @@ import scala.collection.{breakOut, mutable}
 
 object ChannelTreeData {
 
+  def allChannels(graph: Graph, userId: UserId): Seq[Node] = {
+    val userIdx = graph.idToIdxOrThrow(userId)
+    val channels = new mutable.ArrayBuffer[Node]
+    graph.pinnedNodeIdx.foreachElement(userIdx) { idx =>
+      val node = graph.nodes(idx)
+      if (node.role == NodeRole.Project) channels += node
+    }
+
+    channels.sortWith((a,b) => b.id < a.id)
+  }
+
   def invites(graph: Graph, userId: UserId): Seq[NodeId] = {
     val userIdx = graph.idToIdxOrThrow(userId)
     graph.inviteNodeIdx(userIdx).collect { case idx if !graph.pinnedNodeIdx.contains(userIdx)(idx) => graph.nodeIds(idx) }(breakOut)
