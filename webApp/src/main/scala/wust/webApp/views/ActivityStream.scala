@@ -126,16 +126,18 @@ object ActivityStream {
           }
         }
 
-        graph.parentEdgeIdx.whileElement(nodeIdx) { idx =>
-          val edge = graph.edges(idx).as[Edge.Child]
-          if (edge.parentId == nodeId) {
-            edge.data.deletedAt.foreach { ts =>
-              // val isSeen = lastReadTime.exists(_ isAfterOrEqual ts)
-              val revision = Revision.Delete(ts, seen = true) // looks better?
-              buffer += ActivityNode(node, revision)
-            }
-            false
-          } else true
+        if (showAllRevisions) {
+          graph.parentEdgeIdx.whileElement(nodeIdx) { idx =>
+            val edge = graph.edges(idx).as[Edge.Child]
+            if (edge.parentId == nodeId) {
+              edge.data.deletedAt.foreach { ts =>
+                // val isSeen = lastReadTime.exists(_ isAfterOrEqual ts)
+                val revision = Revision.Delete(ts, seen = true) // looks better?
+                buffer += ActivityNode(node, revision)
+              }
+              false
+            } else true
+          }
         }
       }
     })
