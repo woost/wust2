@@ -822,7 +822,7 @@ object GraphChangesAutomation {
     }
 
     var changes = GraphChanges.empty
-    graph.childrenIdx.foreachElement(nodeIdx) { childIdx =>
+    graph.notDeletedChildrenIdx.foreachElement(nodeIdx) { childIdx =>
       if (!templateNodeIdxs.contains(childIdx)) { // not for templates...
         val newNode = graph.nodes(childIdx)
         changes = changes merge copySubGraphOfNode(userId, graph, newNode = newNode, templateNodeIdxs = templateNodeIdxs, overwriteNeutrals = false)
