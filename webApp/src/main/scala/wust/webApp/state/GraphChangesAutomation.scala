@@ -309,11 +309,11 @@ object GraphChangesAutomation {
 
   // copy the whole subgraph of the templateNode and append it to newNode.
   // templateNode is a placeholder and we want make changes such newNode looks like a copy of templateNode.
-  def copySubGraphOfNode(userId: UserId, graph: Graph, newNode: Node, templateNodeIdxs: Array[Int], ignoreParents: mutable.HashSet[NodeId] = mutable.HashSet.empty, newId: NodeId => NodeId = _ => NodeId.fresh, copyTime: EpochMilli = EpochMilli.now, toastEnabled: Boolean = true, isFullCopy: Boolean = false): GraphChanges = {
-    copySubGraphOfNodeWithIsTouched(userId, graph, newNode, templateNodeIdxs, ignoreParents, newId, copyTime, toastEnabled, isFullCopy)._2
+  def copySubGraphOfNode(userId: UserId, graph: Graph, newNode: Node, templateNodeIdxs: Array[Int], ignoreParents: mutable.HashSet[NodeId] = mutable.HashSet.empty, newId: NodeId => NodeId = _ => NodeId.fresh, copyTime: EpochMilli = EpochMilli.now, toastEnabled: Boolean = true, isFullCopy: Boolean = false, overwriteNeutrals: Boolean = true): GraphChanges = {
+    copySubGraphOfNodeWithIsTouched(userId, graph, newNode, templateNodeIdxs, ignoreParents, newId, copyTime, toastEnabled, isFullCopy, overwriteNeutrals)._2
   }
 
-  def copySubGraphOfNodeWithIsTouched(userId: UserId, graph: Graph, newNode: Node, templateNodeIdxs: Array[Int], ignoreParents: mutable.HashSet[NodeId] = mutable.HashSet.empty, newId: NodeId => NodeId = _ => NodeId.fresh, copyTime: EpochMilli = EpochMilli.now, toastEnabled: Boolean = true, isFullCopy: Boolean = false): (Boolean, GraphChanges) = if (templateNodeIdxs.isEmpty) (false, GraphChanges.empty) else {
+  def copySubGraphOfNodeWithIsTouched(userId: UserId, graph: Graph, newNode: Node, templateNodeIdxs: Array[Int], ignoreParents: mutable.HashSet[NodeId] = mutable.HashSet.empty, newId: NodeId => NodeId = _ => NodeId.fresh, copyTime: EpochMilli = EpochMilli.now, toastEnabled: Boolean = true, isFullCopy: Boolean = false, overwriteNeutrals: Boolean = true): (Boolean, GraphChanges) = if (templateNodeIdxs.isEmpty) (false, GraphChanges.empty) else {
     scribe.info(s"Copying sub graph of node $newNode")
 
     val newNodeIdx = graph.idToIdx(newNode.id)
@@ -339,7 +339,11 @@ object GraphChangesAutomation {
         case NodeRole.Neutral => graph.propertiesEdgeReverseIdx.foreachElement(nodeIdx) { edgeIdx =>
           val edge = graph.edges(edgeIdx).as[Edge.LabeledProperty]
           val nodeWithFieldIdx = graph.edgesIdx.a(edgeIdx)
-          alreadyExistingNeutrals += (graph.nodeIds(nodeWithFieldIdx), edge.data.key) -> node
+          val nodeId = graph.nodeIds(nodeWithFieldIdx)
+          if (overwriteNeutrals)
+            alreadyExistingNeutrals += (nodeId, edge.data.key) -> node
+          else
+            alreadyExistingNodes += nodeId -> node
         }
         case _ => ()
       }
@@ -359,14 +363,14 @@ object GraphChangesAutomation {
             }
           })
         }
-        case NodeRole.Neutral => graph.propertiesEdgeReverseIdx.foreachElement(nodeIdx) { edgeIdx =>
+        case NodeRole.Neutral if overwriteNeutrals => graph.propertiesEdgeReverseIdx.foreachElement(nodeIdx) { edgeIdx =>
           val edge = graph.edges(edgeIdx).as[Edge.LabeledProperty]
           val nodeWithFieldIdx = graph.edgesIdx.a(edgeIdx)
           alreadyExistingNodes.result.get(graph.nodeIds(nodeWithFieldIdx)).foreach(_.foreach { existingNodeWithField =>
-            alreadyExistingNeutrals.get(existingNodeWithField.id -> edge.data.key) match {
-              case Some(result) => return Some(Seq(result))
-              case None => ()
-            }
+              alreadyExistingNeutrals.get(existingNodeWithField.id -> edge.data.key) match {
+                case Some(result) => return Some(Seq(result))
+                case None => ()
+              }
           })
         }
         case _ => ()
@@ -492,9 +496,9 @@ object GraphChangesAutomation {
           } else getAlreadyExistingNodes(descendantIdx) match { // this is not a template node, search for already existing node.
             case Some(implementationNodes) => implementationNodes.forall { implementationNode =>
               if (implementationNode.id != descendant.id) {
-                if (!isFullCopy) addEdges += Edge.DerivedFromTemplate(nodeId = implementationNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
+                if (!isFullCopy || !overwriteNeutrals) addEdges += Edge.DerivedFromTemplate(nodeId = implementationNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
                 replacedNodes += descendant.id -> implementationNode
-                val useTemplateData = descendant.role == NodeRole.Neutral // only edit already existing properties with template string (neutral)
+                val useTemplateData = overwriteNeutrals && descendant.role == NodeRole.Neutral // only edit already existing properties with template string (neutral)
                 applyTemplateToNode(newNode = implementationNode, templateNode = descendant, useTemplateData = useTemplateData)
                 true
               } else false
@@ -813,10 +817,18 @@ object GraphChangesAutomation {
   }
 
   def resyncWithTemplates(userId: UserId, graph: Graph, nodeId: NodeId): GraphChanges = graph.idToIdxFold(nodeId)(GraphChanges.empty) { nodeIdx =>
-    val node = graph.nodes(nodeIdx).as[Node.Content]
-    val templateNodeIdxs = graph.derivedFromTemplateEdgeIdx.map(nodeIdx) { (edgeIdx) =>
+    val templateNodeIdxs = graph.automatedEdgeIdx.map(nodeIdx) { (edgeIdx) =>
       graph.edgesIdx.b(edgeIdx)
     }
-    copySubGraphOfNode(userId, graph, newNode = node, templateNodeIdxs = templateNodeIdxs)
+
+    var changes = GraphChanges.empty
+    graph.childrenIdx.foreachElement(nodeIdx) { childIdx =>
+      if (!templateNodeIdxs.contains(childIdx)) { // not for templates...
+        val newNode = graph.nodes(childIdx)
+        changes = changes merge copySubGraphOfNode(userId, graph, newNode = newNode, templateNodeIdxs = templateNodeIdxs, overwriteNeutrals = false)
+      }
+    }
+
+    changes
   }
 }

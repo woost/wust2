@@ -110,9 +110,22 @@ object GraphChangesAutomationUI {
                 Styles.flex,
                 alignItems.center,
                 flexWrap.wrap,
+
+                button(
+                  cls := "ui compact basic button",
+                  Elements.icon(Icons.resync),
+                  "Resync Automations",
+                  onClick.stopPropagation.foreach {
+                    val changes = GraphChangesAutomation.resyncWithTemplates(GlobalState.userId.now, GlobalState.rawGraph.now, focusedId)
+                    GlobalState.submitChanges(changes)
+                    ()
+                  }
+                ),
+
                 button("Documentation", cls := "ui blue basic compact button", onClickDefault.foreach{ showHelp.update(!_)}, margin := "5px"),
+
                 FeedbackForm.supportChatButton.apply(cls := "compact basic", margin := "5px"),
-              )
+              ),
             ),
 
             div(
@@ -365,21 +378,6 @@ object GraphChangesAutomationUI {
             case _ => ()
           }
         }
-      }
-    )
-  }
-
-  // a settings item for automation to resync with existing templates
-  def resyncWithTemplatesItem(nodeId: NodeId)(implicit ctx: Ctx.Owner): EmitterBuilder[GraphChanges, VDomModifier] = EmitterBuilder.ofModifier { sink =>
-    a(
-      cls := "item",
-      Elements.icon(Icons.resync),
-      span("Re-Sync with templates"),
-      cursor.pointer,
-      onClick.foreach {
-        val changes = GraphChangesAutomation.resyncWithTemplates(GlobalState.userId.now, GlobalState.rawGraph.now, nodeId)
-        sink.onNext(changes)
-        ()
       }
     )
   }
