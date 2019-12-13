@@ -165,6 +165,7 @@ object GraphChangesAutomationUI {
                 p("On the left hand side, you can see all automation templates that will be triggered when something new is added into the currently focused node."),
                 p("When the automation is triggered by the new child, each of theses templates is evaluated and the automation will make sure that the new child will look like the templates and have all of their properties. You can add new tasks to your cards, add custom fields, create new projects or kanban boards and much more."),
                 p("By default, a template will refer to every newly added child if it has the same role (message, task, project or note). To make the template refer to an existing node within the child node, you can add a template reference. This reference points to another automation template. A template with a template reference will match any node within the new child node, that was derived by the referenced template."),
+                p("If your automation templates have changed over time, you can resync the automations with all existing node, so they are up to date. For this, you can click the button 'Resync Automations'."),
 
                 b("Variables:"),
                 p("You may use variables ${woost...} within your templates in order to build dynamic content:"),
