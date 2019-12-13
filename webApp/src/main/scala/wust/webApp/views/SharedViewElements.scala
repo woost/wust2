@@ -513,15 +513,18 @@ object SharedViewElements {
         )
 
         if(otherMembers.isEmpty)
-          selfMembers.map(memberVNode(_, true))(breakOut): js.Array[VNode]
+          VDomModifier(selfMembers.map(memberVNode(_, true)))
         else
-          (selfMembers.map(memberVNode(_, true)) :+ div(
-            Styles.flex,
-            cls := "tiny-scrollbar",
-            overflowX.auto, // make scrollable for long member lists
-            overflowY.hidden, // wtf firefox and chrome...
-            otherMembers.map(memberVNode(_, false))(breakOut): js.Array[VNode]
-          ))(breakOut): js.Array[VNode]
+          VDomModifier(
+            selfMembers.map(memberVNode(_, true)),
+            div(
+              Styles.flex,
+              cls := "tiny-scrollbar",
+              overflowX.auto, // make scrollable for long member lists
+              overflowY.hidden, // wtf firefox and chrome...
+              otherMembers.map(memberVNode(_, false))(breakOut): js.Array[VNode]
+            )
+          )
       }
     )
   }
