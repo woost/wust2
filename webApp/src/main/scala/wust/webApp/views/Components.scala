@@ -401,7 +401,7 @@ object Components {
     ): VNode = {
       val content = maximized match {
         case true => VDomModifier(renderAsOneLineText( tag))
-        case false => VDomModifier(minHeight := "5px", minWidth := "20px")
+        case false => VDomModifier(minHeight := "8px", borderRadius := "4px", minWidth := "25px", UI.tooltip("top center") := tag.str)
       }
 
       renderNodeTag( tag, VDomModifier(content, dragOptions(tag.id)))
