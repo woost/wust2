@@ -326,7 +326,7 @@ self.addEventListener('push', e => {
 
                 // 86400000 == 1 day (1000*60*60*24)
                 // 43200000 == 12h   (1000*60*60*12)
-                if (outdated || !data.content || focusedClient(windowClients, subscribedId, subscribedId, nodeId)) {
+                if (outdated || !data.content || focusedClient(windowClients, subscribedId, nodeId)) {
                     log("Focused client or outdated push notification => ignoring push.");
                     return;
                 } else if (data.version != 1) {
