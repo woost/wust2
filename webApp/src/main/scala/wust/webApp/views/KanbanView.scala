@@ -171,14 +171,14 @@ object KanbanView {
         cls := "kanbancolumnheader",
         div(
           Styles.flex,
-          alignItems.flexStart,
+          alignItems.center,
 
           cls := "kanbancolumntitle kanban-uncategorized-title",
           div(cls := "markdown", p("Uncategorized")), // to be consistent with other column headers
 
           childCount.map {
             case 0 => VDomModifier.empty
-            case count => columnCount(count)
+            case count => columnCount(count)(backgroundColor := "rgba(0, 0, 0, 0.06)")
           }
         ),
         position.relative, // for buttonbar
@@ -209,10 +209,11 @@ object KanbanView {
   }
 
   private def columnCount(count: Int) = div(
-    marginLeft := "5px",
-    color := "lightgray",
-    fontSize.xSmall,
-    "(" + count + ")"
+    count,
+    marginLeft := "0.5em",
+    fontSize := "14px",
+    padding := "2px 5px",
+    borderRadius := "5px",
   )
 
   private def renderColumn(
@@ -248,13 +249,13 @@ object KanbanView {
     val columnTitle = Rx {
       div(
         Styles.flex,
-        alignItems.flexStart,
+        alignItems.center,
 
         editableNode( node(), editable, config = titleEditConfig, maxLength = Some(TaskNodeCard.maxLength))(ctx)(cls := "kanbancolumntitle"),
 
         childCount.map {
           case 0 => VDomModifier.empty
-          case count => columnCount(count)
+          case count => columnCount(count)(backgroundColor := "rgba(255, 255, 255, 0.2)")
         }
       )
     }
