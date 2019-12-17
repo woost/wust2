@@ -282,13 +282,13 @@ object CommonStyles extends StyleSheet.Standalone
 
   ".components-menu-item:hover" - (
     fontWeight.bold,
-    opacity := "0.8 !important"
+    opacity(0.8).important
   )
   ".components-menu-item.active" - (
     fontWeight.bold
   )
   ".components-menu-item.inactive" - (
-    opacity := 0.4
+    opacity(0.4)
   )
 
   ".ui.button.inverted" - (
@@ -578,7 +578,7 @@ object CommonStyles extends StyleSheet.Standalone
     ),
   )
   ".viewgridAuto > *" - (
-    border := "1px solid white",
+    border(1 px, solid, white),
   )
 
   ".viewgridRow" - (
@@ -587,7 +587,7 @@ object CommonStyles extends StyleSheet.Standalone
     padding(0 px),
   )
   ".viewgridRow > *" - (
-    border := "1px solid white",
+    border(1 px, solid, white),
   )
 
   /* TODO: too many columns overlaps the content because it autofits the screen height */
@@ -597,7 +597,7 @@ object CommonStyles extends StyleSheet.Standalone
     padding(0 px),
   )
   ".viewgridColumn > *" - (
-    border := "1px solid white",
+    border(1 px, solid, white),
   )
 
   ".graphnode," +
