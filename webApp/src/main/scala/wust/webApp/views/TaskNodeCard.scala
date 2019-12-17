@@ -182,7 +182,7 @@ object TaskNodeCard {
         NodeDetails.tagsPropertiesAssignments(focusState, traverseState, nodeId),
       )),
       NodeDetails.cardFooter(nodeId, childStats, isExpanded, focusState, isCompact = isCompact),
-      NodeDetails.nestedTaskList(
+      NodeDetails.nestedItemsList(
         nodeId = nodeId,
         isExpanded = isExpanded,
         focusState = focusState,
