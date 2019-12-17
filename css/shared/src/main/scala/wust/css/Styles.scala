@@ -938,7 +938,7 @@ object CommonStyles extends StyleSheet.Standalone
     marginRight(5 px),
 
     color(Color(Colors.unread)),
-    transition := "color 10s",
+    transition := "opacity 10s",
     transitionDelay(5 seconds),
   )
 

@@ -173,7 +173,7 @@ object UnreadComponents {
       isUnread() match {
         case true => VDomModifier(
           unreadChildren() match {
-            case 0 => unreadDot(Rx{VDomModifier.ifTrue(observed())(color := Colors.nodecardBg)})
+            case 0 => unreadDot(Rx{VDomModifier.ifTrue(observed())(opacity := 0.0)})
             case count => unreadLabel(count)
           },
 
