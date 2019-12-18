@@ -112,7 +112,7 @@ object NotesView {
           NodeDetails.tagsPropertiesAssignments(focusState, traverseState, node.id)
         ),
         NodeDetails.cardFooter(node.id, childStats, isExpanded, focusState, isCompact = true),
-        NodeDetails.nestedItemsList(
+        NodeDetails.nestedTaskList(
           nodeId = node.id,
           isExpanded = isExpanded,
           focusState = focusState,

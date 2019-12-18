@@ -1,6 +1,5 @@
 package wust.webApp.views
 
-import fontAwesome.IconDefinition
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.ext.monix._
@@ -9,8 +8,8 @@ import wust.css.Styles
 import wust.graph._
 import wust.ids._
 import wust.webApp.{Client, Icons, Permission}
-import wust.webApp.state.{FocusPreference, FocusState, GlobalState, TraverseState}
-import wust.webApp.dragdrop.{DragItem, DragPayload, DragTarget}
+import wust.webApp.state.{ FocusPreference, GlobalState, FocusState, TraverseState }
+import wust.webApp.dragdrop.{ DragItem, DragPayload, DragTarget }
 import wust.webUtil.UI
 import wust.webUtil.outwatchHelpers._
 import wust.webApp.state.FeatureState
@@ -145,29 +144,49 @@ object NodeDetails {
         alignItems.center,
         justifyContent.flexEnd,
         VDomModifier.ifTrue(taskStats().taskChildrenCount > 0)(
-          renderTaskCount(
-            s"${taskStats().taskDoneCount}/${taskStats().taskChildrenCount}",
+          div(
+            VDomModifier.ifNot(isCompact)(marginLeft := "5px"),
+            flexGrow := 1,
+
+            Styles.flex,
+            renderTaskCount(
+              s"${taskStats().taskDoneCount}/${taskStats().taskChildrenCount}",
+            ),
             NodeDetails.renderTaskProgress(taskStats()).apply(alignSelf.center),
-            UI.tooltip("left center") := "Show Tasks",
-            onClickDefault.foreach { focusState.onItemSingleClick(FocusPreference(nodeId, Some(View.List))) },
-          ),
+
+            onClick.stopPropagation.useLazy {
+              val edge = Edge.Expanded(nodeId, EdgeData.Expanded(!isExpanded()), GlobalState.user.now.id)
+              GraphChanges(addEdges = Array(edge))
+            } --> GlobalState.eventProcessor.changes,
+            onClick.stopPropagation.foreach {
+              if (isExpanded.now) {
+                focusState.view match {
+                  case View.List   => FeatureState.use(Feature.ExpandTaskInChecklist)
+                  case View.Kanban => FeatureState.use(Feature.ExpandTaskInKanban)
+                  case _           =>
+                }
+              }
+            },
+            cursor.pointer,
+          )
         ),
+
         VDomModifier.ifTrue(taskStats().noteChildrenCount > 0)(
-          renderItemsCount(Icons.notes)(
+          renderNotesCount(
             taskStats().noteChildrenCount,
             UI.tooltip("left center") := "Show notes",
             onClickDefault.foreach { focusState.onItemSingleClick(FocusPreference(nodeId, Some(View.Content))) },
           ),
         ),
         VDomModifier.ifTrue(taskStats().messageChildrenCount > 0)(
-          renderItemsCount(Icons.conversation)(
+          renderMessageCount(
             taskStats().messageChildrenCount,
             UI.tooltip("left center") := "Show comments",
             onClickDefault.foreach { focusState.onItemSingleClick(FocusPreference(nodeId, Some(View.Chat))) },
           ),
         ),
         VDomModifier.ifTrue(taskStats().projectChildrenCount > 0)(
-          renderItemsCount(Icons.projects)(
+          renderProjectsCount(
             taskStats().projectChildrenCount,
             UI.tooltip("left center") := "Show Projects",
             onClickDefault.foreach { focusState.onItemSingleClick(FocusPreference(nodeId, Some(View.Dashboard))) },
@@ -177,7 +196,7 @@ object NodeDetails {
     )
   }
 
-  def nestedItemsList(
+  def nestedTaskList(
     nodeId: NodeId,
     isExpanded: Rx[Boolean],
     focusState: FocusState,
@@ -198,13 +217,33 @@ object NodeDetails {
     )
   }
 
-  private val renderItemsCount = { (icon: IconDefinition) =>
+  private val renderMessageCount = {
     div(
       cls := "childstat",
       Styles.flex,
       Styles.flexStatic,
       margin := "5px 5px 5px 0px",
-      div(icon, marginLeft := "5px", marginRight := "5px"),
+      div(Icons.conversation, marginLeft := "5px", marginRight := "5px"),
+    )
+  }
+
+  private val renderProjectsCount = {
+    div(
+      cls := "childstat",
+      Styles.flex,
+      Styles.flexStatic,
+      margin := "5px 5px 5px 0px",
+      div(Icons.projects, marginLeft := "5px", marginRight := "5px"),
+    )
+  }
+
+  private val renderNotesCount = {
+    div(
+      cls := "childstat",
+      Styles.flex,
+      Styles.flexStatic,
+      margin := "5px 5px 5px 0px",
+      div(Icons.notes, marginLeft := "5px", marginRight := "5px"),
     )
   }
 
@@ -212,7 +251,7 @@ object NodeDetails {
     div(
       cls := "childstat",
       Styles.flex,
-      flexGrow := 1,
+      Styles.flexStatic,
       margin := "5px",
       div(Icons.tasks, marginRight := "5px"),
     )
