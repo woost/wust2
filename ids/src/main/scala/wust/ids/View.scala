@@ -141,6 +141,7 @@ object View {
     View.Dashboard,
     View.Files,
     View.Form,
+    View.Calendar,
   // View.Gantt,
   // View.Topological,
   )
@@ -157,6 +158,7 @@ object View {
     // View.Thread,
     // View.Files,
     // View.Form,
+    View.Calendar,
   // View.Gantt,
   // View.Topological,
   )

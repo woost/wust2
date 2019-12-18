@@ -16,7 +16,7 @@ object PropertyData {
     def isEmpty = tags.isEmpty && assignedUsers.isEmpty && propertyMap.isEmpty
   }
 
-  def getProperties(graph: Graph, nodeIdx: Int) = {
+  def getProperties(graph: Graph, nodeIdx: Int):BasicMap[String,List[PropertyValue]] = {
     val properties = BasicMap.ofString[List[PropertyValue]]()
     graph.propertiesEdgeIdx.foreachElement(nodeIdx) { idx =>
       val edge = graph.edges(idx).as[Edge.LabeledProperty]
