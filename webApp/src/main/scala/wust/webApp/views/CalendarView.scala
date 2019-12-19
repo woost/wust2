@@ -19,6 +19,7 @@ import wust.webApp.state.{ FocusState, GlobalState, Placeholder }
 import wust.webApp.views.Components._
 import wust.webUtil.outwatchHelpers._
 import collection.mutable
+import collection.immutable
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
@@ -26,14 +27,22 @@ import fontAwesome.freeSolid
 
 object CalendarView {
   val weekDays = Array("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat") //TODO: localized
-  case class EventChunk(weekDay: Int, width: Int, level: Int, node: Node, start: Boolean = true, end: Boolean = true)
+  case class EventChunk(startDate: js.Date, weekDay: Int, width: Int, level: Int, node: Node, start: Boolean = true, end: Boolean = true)
   val gridSpacing = 3
   val eventLineHeight = 30
 
   case class Event(startDate: js.Date, endDate: js.Date, node: Node)
   private def weekKey(date: js.Date) = DateFns.format(date, "YYYYww", js.Dynamic.literal(useAdditionalWeekYearTokens = true))
-  private def eventsToChunks(events: Seq[Event]):collection.Map[String,Vector[EventChunk]] = {
-    val weeks = mutable.HashMap.empty[String,Vector[EventChunk]].withDefaultValue(Vector())
+  private def dayKey(date: js.Date) = DateFns.format(date, "yyyyMMdd")
+  private def eventsToChunks(unsortedEvents: Seq[Event]):(collection.Map[String,Vector[EventChunk]], collection.Map[String,Int], collection.Map[String, immutable.BitSet]) = {
+    // There are two main Problems to be solved:
+    // 1) break up events into chunks which can be 
+    val events = unsortedEvents.sortBy(event => event.startDate.getUTCMilliseconds())
+    val weeks = mutable.HashMap.empty[String,Vector[EventChunk]].withDefaultValue(Vector.empty)
+
+    // vertically displace overlapping events
+    val weekMaxLevels = mutable.HashMap.empty[String,Int].withDefaultValue(1)
+    val dayFill = mutable.HashMap.empty[String,immutable.BitSet].withDefault(_ => immutable.BitSet.empty)
 
     events.foreach { case Event(startDate, endDate, node) =>
       val weekStarts = DateFns.eachWeekOfInterval(new dateFns.Interval{ var start = startDate; var end = endDate})
@@ -46,12 +55,29 @@ object CalendarView {
         val containsEnd = i == (weekStarts.length-1)
         val fromWeekDay = if(containsStart) startWeekDay else 0
         val toWeekDay = if(containsEnd) (endWeekDay+1) else 7 // exclusive
+        val startDate = DateFns.addDays(week, fromWeekDay)
 
-        weeks(weekKey(week)) :+= EventChunk(weekDay = fromWeekDay,width = toWeekDay - fromWeekDay, level = 0, start = containsStart, end = containsEnd, node = node)
+        val dKey = dayKey(startDate)
+        val chunkLevel = {
+          // find lowest free level
+          var i = 0
+          val fill = dayFill(dKey)
+          while( fill(i) ) i += 1 
+          i
+        }
+
+        val wKey = weekKey(week)
+        weekMaxLevels(wKey) = weekMaxLevels(wKey) max (chunkLevel+1)
+
+        for(eventDay <- fromWeekDay until toWeekDay) {
+          dayFill(dayKey(DateFns.addDays(week, eventDay))) += chunkLevel
+        }
+
+        weeks(weekKey(week)) :+= EventChunk(startDate = startDate, weekDay = fromWeekDay,width = toWeekDay - fromWeekDay, level = chunkLevel, start = containsStart, end = containsEnd, node = node)
       }
     }
 
-    weeks
+    (weeks, weekMaxLevels, dayFill)
   }
 
 
@@ -67,16 +93,19 @@ object CalendarView {
 
 
 
-    val weekLevels = Array(1, 1, 2, 1, 0, 0, 0)
-    val eventChunks = eventsToChunks(List(
-      Event(startDate = new js.Date(2019, 11, 2), endDate = new js.Date(2019, 11, 4), Node.MarkdownTask("Bloo")),
-      Event(startDate = new js.Date(2019, 11, 6), endDate = new js.Date(2019, 11, 10), Node.MarkdownTask("Bloo")),
-      Event(startDate = new js.Date(2019, 11, 13), endDate = new js.Date(2019, 11, 14), Node.MarkdownTask("Bloo")),
-      Event(startDate = new js.Date(2019, 11, 17), endDate = new js.Date(2019, 11, 18), Node.MarkdownTask("Bloo")),
-      Event(startDate = new js.Date(2019, 11, 18), endDate = new js.Date(2019, 11, 19), Node.MarkdownTask("Bloo")),
-      Event(startDate = new js.Date(2019, 11, 19), endDate = new js.Date(2019, 11, 20), Node.MarkdownTask("Bloo")),
+      val (eventChunks,weekMaxLevels, dayFill) = eventsToChunks(List(
+        Event(startDate = new js.Date(2019, 10, 27), endDate = new js.Date(2019, 10, 28), Node.MarkdownTask("Bloo")),
+        Event(startDate = new js.Date(2019, 10, 28), endDate = new js.Date(2019, 11, 1), Node.MarkdownTask("Bloo")),
+        Event(startDate = new js.Date(2019, 11, 2), endDate = new js.Date(2019, 11, 4), Node.MarkdownTask("Bloo")),
+        Event(startDate = new js.Date(2019, 11, 6), endDate = new js.Date(2019, 11, 10), Node.MarkdownTask("Bloo")),
+        Event(startDate = new js.Date(2019, 11, 13), endDate = new js.Date(2019, 11, 14), Node.MarkdownTask("Bloo")),
+        Event(startDate = new js.Date(2019, 11, 17), endDate = new js.Date(2019, 11, 18), Node.MarkdownTask("Bloo")),
+        Event(startDate = new js.Date(2019, 11, 18), endDate = new js.Date(2019, 11, 19), Node.MarkdownTask("Bloo")),
+        Event(startDate = new js.Date(2019, 11, 19), endDate = new js.Date(2019, 11, 20), Node.MarkdownTask("Bloo")),
+        Event(startDate = new js.Date(2019, 11, 20), endDate = new js.Date(2019, 11, 20), Node.MarkdownTask("Bloo")),
+        Event(startDate = new js.Date(2019, 11, 31), endDate = new js.Date(2020, 0, 2), Node.MarkdownTask("Bloo")),
+        Event(startDate = new js.Date(2020, 0, 4), endDate = new js.Date(2020, 0, 5), Node.MarkdownTask("Bloo")),
       ))
-    // println(eventChunks.mkString("\n"))
 
     div(
       padding := "20px",
@@ -99,7 +128,7 @@ object CalendarView {
       div(
         Styles.flexStatic,
         Styles.flex,
-        opacity := 0.5,
+        opacity := 0.4,
         fontWeight.bold,
         List.tabulate(7)(i => div(flex := "1", marginLeft := s"${gridSpacing}px", padding := "5px", weekDays(i))),
       ),
@@ -112,20 +141,22 @@ object CalendarView {
           List.tabulate(weeksInMonth()){weekOfMonth =>
             val firstWeekDayOfMonth = (weekOfMonth * 7) - weekDayOfFirstDayInMonth() + 1
             val week = DateFns.setDate(selectedDate(), firstWeekDayOfMonth)
+            val wKey = weekKey(week)
             div(
-              height := s"${(1+weekLevels(weekOfMonth)) * eventLineHeight + gridSpacing}px",
+              height := s"${(1+weekMaxLevels(wKey)) * eventLineHeight + gridSpacing}px",
               Styles.flexStatic,
               Styles.flex,
               List.tabulate(7){ weekDay =>
                 val relativeDayOfMonth = firstWeekDayOfMonth + weekDay
                 val dateOfCell = DateFns.setDate(selectedDate(), relativeDayOfMonth)
+                val fill = dayFill(dayKey(dateOfCell))
                 val dayOfMonth = DateFns.getDate(dateOfCell)
                 val monthOfCell = DateFns.getMonth(dateOfCell)
                 val isToday = DateFns.isSameDay(dateOfCell, new js.Date())
                 div(
                   flex := "1",
                   VDomModifier.ifTrue(monthOfCell == selectedMonth())(
-                    backgroundColor := "gray"//Colors.contentBgShade
+                    backgroundColor := Colors.contentBgShade
                   ),
                 marginBottom := s"${gridSpacing}px",
                 marginRight := s"${gridSpacing}px",
@@ -141,7 +172,8 @@ object CalendarView {
                       opacity := 0.7,
                       ),
                     margin := "5px 10px",
-                    ),
+                    // s" (${fill.mkString(",")})"
+                  ),
 
                   VDomModifier.ifTrue(isToday)(boxShadow := "0 0 0px 2px rgb(242, 107, 77)"),
                   borderRadius := "2px",
@@ -149,7 +181,7 @@ object CalendarView {
               },
 
               position.relative,
-              eventChunks(weekKey(week)).map { chunk =>
+              eventChunks(wKey).map { chunk =>
                 event(chunk)
               }
           )}
@@ -164,10 +196,11 @@ object CalendarView {
     ),
   }
 
+  val eventBorderRadius = "5px"
   def event(chunk: EventChunk) = div(
     //TODO: overflow ellipsis
     chunk.node.str,
-    s" (${chunk.weekDay}:${chunk.width})",
+    // s" (${DateFns.format(chunk.startDate, "MM-dd")} ${chunk.weekDay}:${chunk.width})",
     position.absolute,
     left := s"${(100.0 / 7) * chunk.weekDay}%",
     top := s"${(chunk.level+1)*eventLineHeight}px",
@@ -175,9 +208,9 @@ object CalendarView {
     backgroundColor := "#00aefd",
     color := "white",
     fontWeight.bold,
-    VDomModifier.ifTrue(chunk.start)(borderTopLeftRadius := "3px", borderBottomLeftRadius := "3px"),
-    VDomModifier.ifTrue(chunk.end)(borderTopRightRadius := "3px", borderBottomRightRadius := "3px"),
-    padding := "5px",
+    VDomModifier.ifTrue(chunk.start)(borderTopLeftRadius := eventBorderRadius, borderBottomLeftRadius := eventBorderRadius),
+    VDomModifier.ifTrue(chunk.end)(borderTopRightRadius := eventBorderRadius, borderBottomRightRadius := eventBorderRadius),
+    padding := "4px 8px",
   )
 
 }

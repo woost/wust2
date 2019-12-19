@@ -19,6 +19,7 @@ object DateFns extends js.Object {
   def getWeeksInMonth(date: js.Date): Int = js.native
   def getDaysInMonth(date: js.Date): Int = js.native
   def addMonths(date: js.Date, amount: Int): js.Date = js.native
+  def addDays(date: js.Date, amount: Int): js.Date = js.native
   def subMonths(date: js.Date, amount: Int): js.Date = js.native
   def getDate(date: js.Date): Int = js.native
   def setDate(date: js.Date, dayOfMonth: Int): js.Date = js.native
