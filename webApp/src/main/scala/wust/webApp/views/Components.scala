@@ -330,7 +330,7 @@ object Components {
               VDomModifier(
                 color := bucket.color.toCSS,
                 backgroundColor := bucket.bgColor.toCSS,
-                boxShadow := s"rgba(${ bucket.color.ri }, ${ bucket.color.gi }, ${ bucket.color.bi }, 0.2) 0px 0px 6px 0px",
+                boxShadow := s"rgba(${ bucket.bgColor.ri }, ${ bucket.bgColor.gi }, ${ bucket.bgColor.bi }, 0.75) 0px 0px 6px 0px",
                 UI.tooltip("top center") := bucket.name,
               )
             }
