@@ -45,7 +45,7 @@ object CalendarView {
         val containsStart = i == 0
         val containsEnd = i == (weekStarts.length-1)
         val fromWeekDay = if(containsStart) startWeekDay else 0
-        val toWeekDay = if(containsEnd) endWeekDay else 6
+        val toWeekDay = if(containsEnd) (endWeekDay+1) else 7 // exclusive
 
         weeks(weekKey(week)) :+= EventChunk(weekDay = fromWeekDay,width = toWeekDay - fromWeekDay, level = 0, start = containsStart, end = containsEnd, node = node)
       }
@@ -69,7 +69,12 @@ object CalendarView {
 
     val weekLevels = Array(1, 1, 2, 1, 0, 0, 0)
     val eventChunks = eventsToChunks(List(
-      Event(startDate = new js.Date(2019, 11, 2), endDate = new js.Date(2019, 11, 4), Node.MarkdownTask("Bloo"))
+      Event(startDate = new js.Date(2019, 11, 2), endDate = new js.Date(2019, 11, 4), Node.MarkdownTask("Bloo")),
+      Event(startDate = new js.Date(2019, 11, 6), endDate = new js.Date(2019, 11, 10), Node.MarkdownTask("Bloo")),
+      Event(startDate = new js.Date(2019, 11, 13), endDate = new js.Date(2019, 11, 14), Node.MarkdownTask("Bloo")),
+      Event(startDate = new js.Date(2019, 11, 17), endDate = new js.Date(2019, 11, 18), Node.MarkdownTask("Bloo")),
+      Event(startDate = new js.Date(2019, 11, 18), endDate = new js.Date(2019, 11, 19), Node.MarkdownTask("Bloo")),
+      Event(startDate = new js.Date(2019, 11, 19), endDate = new js.Date(2019, 11, 20), Node.MarkdownTask("Bloo")),
       ))
     // println(eventChunks.mkString("\n"))
 
@@ -139,8 +144,8 @@ object CalendarView {
                     ),
 
                   VDomModifier.ifTrue(isToday)(boxShadow := "0 0 0px 2px rgb(242, 107, 77)"),
-                  borderRadius := "3px",
-                  )
+                  borderRadius := "2px",
+                )
               },
 
               position.relative,
@@ -162,8 +167,9 @@ object CalendarView {
   def event(chunk: EventChunk) = div(
     //TODO: overflow ellipsis
     chunk.node.str,
+    s" (${chunk.weekDay}:${chunk.width})",
     position.absolute,
-    left := s"calc(${(100.0 / 7) * chunk.weekDay}% + ${(chunk.weekDay-1)*gridSpacing}px)",
+    left := s"${(100.0 / 7) * chunk.weekDay}%",
     top := s"${(chunk.level+1)*eventLineHeight}px",
     width := s"calc(${(100.0 / 7) * chunk.width}% - ${gridSpacing}px)",
     backgroundColor := "#00aefd",
