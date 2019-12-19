@@ -88,6 +88,7 @@ object Icons {
   val dashboard: IconDefinition = freeSolid.faChartLine
   val topological: IconDefinition = freeSolid.faSortNumericDown
   val form: IconDefinition = freeBrands.faWpforms
+  val calendar: IconDefinition = freeRegular.faCalendarAlt
   val notifications: IconDefinition = freeRegular.faBell
   val activityStream: IconDefinition = freeRegular.faClock
   val addViewIcon = freeSolid.faPlus
