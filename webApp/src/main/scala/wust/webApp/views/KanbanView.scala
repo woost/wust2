@@ -127,7 +127,7 @@ object KanbanView {
       alignItems.center,
       onClickDefault.foreach { updateKanbanSettings(_.copy(hideUncategorized = false)) },
       Rx {
-        UI.tooltip("right center") := s"Show uncategorized ${itemName()}"
+        UI.tooltip := s"Show uncategorized ${itemName()}"
       },
 
       div(opacity := 0.3, cls := "fa-fw", freeRegular.faEye),
@@ -159,7 +159,7 @@ object KanbanView {
     val collapseButton = div(
       div(cls := "fa-fw", freeRegular.faEyeSlash),
       onClickDefault.foreach { updateKanbanSettings(_.copy(hideUncategorized = true)) },
-      Rx { UI.tooltip("bottom center") := s"Hide uncategorized ${itemName()}" },
+      Rx { UI.tooltip := s"Hide uncategorized ${itemName()}" },
     )
 
     div(
@@ -280,10 +280,10 @@ object KanbanView {
             ),
             onClick.stopPropagation.useLazy(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(!isExpanded.now), GlobalState.userId.now)) --> GlobalState.eventProcessor.changes,
             cursor.pointer,
-            UI.tooltip("bottom center") := (if (isExpanded()) "Hide contents" else "Show contents")
+            UI.tooltip := (if (isExpanded()) "Hide contents" else "Show contents")
           ),
           VDomModifier.ifTrue(canWrite())(
-            div(div(cls := "fa-fw", Icons.edit), onClick.stopPropagation.use(true) --> editable, cursor.pointer, UI.tooltip("bottom center") := "Edit"),
+            div(div(cls := "fa-fw", Icons.edit), onClick.stopPropagation.use(true) --> editable, cursor.pointer, UI.tooltip := "Edit"),
             div(
               div(cls := "fa-fw", if (isDeletedNow()) Icons.undelete else Icons.delete),
               onClick.stopPropagation foreach {
@@ -301,10 +301,10 @@ object KanbanView {
                 ()
               },
               cursor.pointer,
-              UI.tooltip("bottom center") := (if (isDeletedNow()) "Recover" else "Archive")
+              UI.tooltip := (if (isDeletedNow()) "Recover" else "Archive")
             )
           ),
-          //          div(div(cls := "fa-fw", Icons.zoom), onClick.stopPropagation.use(Page(nodeId)) --> GlobalState.page, cursor.pointer, UI.tooltip("bottom center") := "Zoom in"),
+          //          div(div(cls := "fa-fw", Icons.zoom), onClick.stopPropagation.use(Page(nodeId)) --> GlobalState.page, cursor.pointer, UI.tooltip := "Zoom in"),
         )
       },
 

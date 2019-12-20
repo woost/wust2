@@ -60,7 +60,7 @@ object TaskNodeCard {
           span(cls := "icon", icon),
           modifier,
           cursor.pointer,
-          UI.tooltip("left center") := longDesc
+          UI.tooltip := longDesc
         )
       }
 

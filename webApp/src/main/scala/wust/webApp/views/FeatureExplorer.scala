@@ -55,7 +55,7 @@ object FeatureExplorer {
       freeSolid.faQuestionCircle,
       cursor.pointer,
       color := "#60758a",
-      UI.popup("bottom right") := ("Is this feature unclear?"),
+      UI.tooltip("right", boundary = "window") := ("Is this feature unclear?"),
       onClick.stopPropagation.foreach { _ =>
         Segment.trackEvent("Unclear Feature Description", js.Dynamic.literal(feature = feature.toString))
         FeedbackForm.openCrispChat()

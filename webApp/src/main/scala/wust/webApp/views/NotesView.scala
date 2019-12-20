@@ -193,6 +193,6 @@ object NotesView {
     DragComponents.dragHandleModifier,
     freeSolid.faGripVertical,
     cursor.move,
-    UI.popup("bottom center") := "Grab here to drag the note"
+    UI.tooltip := "Grab here to drag the note"
   )
 }

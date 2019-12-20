@@ -331,7 +331,7 @@ object Components {
                 color := bucket.color.toCSS,
                 backgroundColor := bucket.bgColor.toCSS,
                 boxShadow := s"rgba(${ bucket.bgColor.ri }, ${ bucket.bgColor.gi }, ${ bucket.bgColor.bi }, 0.75) 0px 0px 6px 0px",
-                UI.tooltip("top center") := bucket.name,
+                UI.tooltip := bucket.name,
               )
             }
           }
@@ -368,7 +368,7 @@ object Components {
         marginRight := "2px",
       ),
       keyed(userNode.id),
-      UI.tooltip("left center") := s"${displayUserName(userNode.data)} (click to unassign)",
+      UI.tooltip := s"${displayUserName(userNode.data)} (click to unassign)",
       cursor.pointer,
       onClick.stopPropagation.useLazy(GraphChanges.disconnect(Edge.Assigned)(targetNodeId, userNode.id)) --> GlobalState.eventProcessor.changes,
     )
@@ -401,7 +401,7 @@ object Components {
     ): VNode = {
       val content = maximized match {
         case true => VDomModifier(renderAsOneLineText( tag))
-        case false => VDomModifier(minHeight := "8px", borderRadius := "4px", minWidth := "25px", UI.tooltip("top center") := tag.str)
+        case false => VDomModifier(minHeight := "8px", borderRadius := "4px", minWidth := "25px", UI.tooltip := tag.str)
       }
 
       renderNodeTag( tag, VDomModifier(content, dragOptions(tag.id)))
@@ -876,14 +876,14 @@ object Components {
         case Left(true) => div(
           marginLeft := "2px",
           Icons.automate,
-          UI.popup("bottom center") := s"This item is part of an automation template",
+          UI.tooltip := s"This item is part of an automation template",
         )
         case Right(automatedNodes) if automatedNodes.nonEmpty => VDomModifier(
           automatedNodes.map { case (node, workspace) =>
             div(
               marginLeft := "2px",
               borderRadius := "2px",
-              UI.popup("bottom center") := s"This is an active automation template for: ${StringOps.trimToMaxLength(node.str, 30)}",
+              UI.tooltip := s"This is an active automation template for: ${StringOps.trimToMaxLength(node.str, 30)}",
               fontSize.xSmall,
               Icons.automate,
               cursor.pointer,
@@ -910,7 +910,7 @@ object Components {
               fontSize.xSmall,
               Icons.templateReference,
               renderAsOneLineText(node).apply(maxWidth := "150px"),
-              UI.popup("bottom center") := s"This item has a template reference$referenceModifierString",
+              UI.tooltip := s"This item has a template reference$referenceModifierString",
             )
           }
         )

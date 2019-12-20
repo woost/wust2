@@ -77,10 +77,10 @@ object LeftSidebar {
                   transformOrigin := "left",
                   enableDragging map {
                     case false => VDomModifier(
-                      UI.popup("bottom center") := "Enable drag&drop of projects",
+                      UI.tooltip := "Enable drag&drop of projects",
                     )
                     case true => VDomModifier(
-                      UI.popup("bottom center") := "Disable drag&drop of projects",
+                      UI.tooltip := "Disable drag&drop of projects",
                     )
                   }
                 ),
@@ -294,9 +294,9 @@ object LeftSidebar {
 
     val syncStatusIcon = status.map { status =>
       status match {
-        case (true, true)  => dsl.span(syncedIcon, UI.tooltip("right center") := "Everything is up to date")
-        case (true, false) => dsl.span(syncingIcon, UI.tooltip("right center") := "Syncing changes...")
-        case (false, _)    => dsl.span(offlineIcon, color := "tomato", UI.tooltip("right center") := "Disconnected")
+        case (true, true)  => dsl.span(syncedIcon, UI.tooltip := "Everything is up to date")
+        case (true, false) => dsl.span(syncingIcon, UI.tooltip := "Syncing changes...")
+        case (false, _)    => dsl.span(offlineIcon, color := "tomato", UI.tooltip := "Disconnected")
       }
     }
 
@@ -466,19 +466,16 @@ object LeftSidebar {
 
   private def toggleSidebarWithProjects(sidebarWithProjects: Var[Boolean])(implicit ctx: Ctx.Owner): VNode = button(
     cls := "ui mini compact basic button",
-    div(
-      cls := "fa-fw",
-      sidebarWithProjects map {
-        case false => VDomModifier(
-          UI.popup("bottom center") := "Show non-bookmarked subprojects",
-          freeSolid.faBookmark: VDomModifier
-        )
-        case true => VDomModifier(
-          UI.popup("bottom center") := "Show only bookmarked subprojects",
-          freeSolid.faBookOpen: VDomModifier
-        )
-      }
-    ),
+    sidebarWithProjects map {
+      case false => VDomModifier(
+        UI.tooltip(boundary = "window") := "Show non-bookmarked subprojects",
+        div(cls := "fa-fw", freeSolid.faBookmark)
+      )
+      case true => VDomModifier(
+        UI.tooltip(boundary = "window") := "Show only bookmarked subprojects",
+        div(cls := "fa-fw", freeSolid.faBookOpen)
+      )
+    },
     onClick.stopPropagation.foreach(sidebarWithProjects.update(!_))
   )
 
@@ -581,7 +578,7 @@ object LeftSidebar {
       )
 
       channelIcon(node, selected, size).apply(
-        UI.popup("right center") <-- node.map(_.str),
+        UI.tooltip("right", boundary = "window") <-- node.map(_.str), //TODO: full node rendering including emoji
         channelIconModifiers
       )
     }

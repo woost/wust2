@@ -362,10 +362,6 @@ object CommonStyles extends StyleSheet.Standalone
   ".ui.modal" - (
     zIndex(ZIndex.uiModal + 1),
   )
-  ".ui.popup" - (
-    padding(5.px),
-    zIndex(ZIndex.tooltip),
-  )
 
   ".ui.dropdown .menu" - (
     zIndex(ZIndex.menu).important
@@ -377,11 +373,6 @@ object CommonStyles extends StyleSheet.Standalone
     // always position close-button inside modal
     right(0 px),
     top(0 px),
-  )
-
-  "[data-tooltip]:before,[data-tooltip]:after" - (
-    padding(5.px),
-    zIndex(ZIndex.tooltip),
   )
 
 //  ".modal-header" - ( )

@@ -259,7 +259,7 @@ object GraphChangesAutomationUI {
 
                   div(
                     margin := "2px 10px",
-                    UI.checkboxEmitter(span(fontSize.xSmall, "Add template as child of this node", UI.popup := "If you check this box, this template will make any matched node a child of this focused node. If not checked, the template will not change the hierarchy of the matched node."), isChildOfTemplate).map { addAsChild =>
+                    UI.checkboxEmitter(span(fontSize.xSmall, "Add template as child of this node", UI.tooltip := "If you check this box, this template will make any matched node a child of this focused node. If not checked, the template will not change the hierarchy of the matched node."), isChildOfTemplate).map { addAsChild =>
                       val edges = Array[Edge](Edge.Child(ParentId(focusedId), ChildId(templateNode.id)))
                       if (addAsChild) GraphChanges(addEdges = edges) else GraphChanges(delEdges = edges)
                     } --> GlobalState.eventProcessor.changes
@@ -308,7 +308,6 @@ object GraphChangesAutomationUI {
     viewRender: ViewRenderLike,
     activeMod: VDomModifier = VDomModifier.empty,
     inactiveMod: VDomModifier = VDomModifier.empty,
-    tooltipDirection: String = "bottom center",
   )(implicit ctx: Ctx.Owner): VNode = {
     val accentColor = BaseColors.pageBg.copy(h = hue(focusedId)).toHex
     val hasTemplates = Rx {
@@ -345,12 +344,12 @@ object GraphChangesAutomationUI {
 
       Rx {
         if (hasTemplates()) VDomModifier(
-          UI.tooltip(tooltipDirection) := "Automation: active",
+          UI.tooltip := "Automation: active",
           color := accentColor,
           backgroundColor := "transparent",
           activeMod
         ) else VDomModifier(
-          UI.tooltip(tooltipDirection) := "Automation: inactive",
+          UI.tooltip := "Automation: inactive",
           inactiveMod
         )
       },

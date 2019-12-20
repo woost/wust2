@@ -318,7 +318,7 @@ object RightSidebar {
     val zoomButton = div(
       div(Icons.zoom, cls := "fa-fw"),
       buttonMods,
-      UI.tooltip("top right") := "Zoom in",
+      UI.tooltip(boundary = "window") := "Zoom in",
       onClick.foreach {
         GlobalState.focus(focusPref.nodeId)
         GlobalState.graph.now.nodesById(focusPref.nodeId).foreach { node =>
@@ -338,7 +338,7 @@ object RightSidebar {
         div(
           div(Icons.delete, cls := "fa-fw"),
           buttonMods,
-          UI.tooltip("top right") := "Archive",
+          UI.tooltip(boundary = "window") := "Archive",
           onClick.stopPropagation.foreach { _ =>
             Elements.confirm("Delete this item?") {
               GlobalState.submitChanges(GraphChanges.deleteFromGraph(ChildId(focusPref.nodeId), GlobalState.graph.now))
@@ -379,7 +379,7 @@ object RightSidebar {
         justifyContent.spaceBetween,
         Rx { nodeAuthor(focusPref.nodeId)(ctx)().map(_.apply(marginLeft := "13px", marginRight.auto, paddingBottom := "0px")) },
         GlobalState.showOnlyInFullMode(zoomButton),
-        MembersModal.settingsButton(focusPref.nodeId, analyticsVia = "RightSidebar", tooltip = "Share / Invite", tooltipPosition = "top right").apply(buttonMods),
+        MembersModal.settingsButton(focusPref.nodeId, analyticsVia = "RightSidebar", tooltip = "Share / Invite").apply(buttonMods),
         deleteButton,
       )
     )
@@ -594,7 +594,7 @@ object RightSidebar {
                 Styles.flex,
                 justifyContent.spaceBetween,
 
-                b("Template Reference:", UI.popup := "Reference another template, such that the current node becomes the automation template for any existing node derived from the referenced template node."),
+                b("Template Reference:", UI.tooltip := "Reference another template, such that the current node becomes the automation template for any existing node derived from the referenced template node."),
 
                 div(
                   Rx {
