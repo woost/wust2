@@ -450,7 +450,7 @@ object MembersModal {
     Segment.trackEvent("Open Members Modal", js.Dynamic.literal(via = analyticsVia))
   }
 
-  def settingsButton(nodeId: NodeId, analyticsVia:String, tooltip:String = "Add members", tooltipPosition:String = "bottom center")(implicit ctx: Ctx.Owner):VNode = {
+  def settingsButton(nodeId: NodeId, analyticsVia:String, tooltip:String = "Add members")(implicit ctx: Ctx.Owner):VNode = {
     div(
       openSharingModalOnClick(nodeId, analyticsVia),
 
@@ -462,7 +462,7 @@ object MembersModal {
         cls := "fa-fw",
         Icons.membersModal
       ),
-      UI.tooltip(tooltipPosition) := tooltip
+      UI.tooltip(boundary = "window") := tooltip
     )
   }
 

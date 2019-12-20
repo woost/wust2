@@ -15,7 +15,7 @@ object ZIndex {
   val uiSidebarContent = 16100
   val tutorialOverlay = 17000
   val menu = 17500
-  val tooltip = 18000
+  // val tooltip = 18000 --> see webUtil/Tippy.scala
   val dragging = 20000
   val toast = 25000
 }

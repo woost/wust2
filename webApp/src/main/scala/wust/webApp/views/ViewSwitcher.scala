@@ -58,7 +58,7 @@ object ViewSwitcher {
     def addNewViewTab = div(
       div(
         padding := "7px 10px",
-        div(addViewIcon, fontSize := "16px", color := "white", paddingLeft := "2px", paddingRight := "2px", UI.tooltip("bottom left") := "Add or remove views"),
+        div(addViewIcon, fontSize := "16px", color := "white", paddingLeft := "2px", paddingRight := "2px", UI.tooltip := "Add or remove views"),
 
         UI.dropdownMenu(VDomModifier(
           color := Colors.fgColor,
@@ -128,7 +128,7 @@ object ViewSwitcher {
 
     /// @return A tooltip modifier
     def modTooltip(tabInfo: TabInfo): VDomModifier =
-      UI.tooltip("bottom left") :=
+      UI.tooltip :=
         s"${tabInfo.targetView.toString}${if (tabInfo.numItems > 0) s": ${tabInfo.numItems} ${tabInfo.wording}" else ""}"
   }
 

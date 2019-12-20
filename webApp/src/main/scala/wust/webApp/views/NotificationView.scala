@@ -395,7 +395,7 @@ object NotificationView {
 
   def markAllAsReadIcon(parentId: NodeId, graph: Graph, userId: UserId, renderTime: EpochMilli) = {
     div(
-      UI.tooltip("top center") := "Mark all as read",
+      UI.tooltip := "Mark all as read",
       Styles.flexStatic,
       cls := "fa-fw",
 

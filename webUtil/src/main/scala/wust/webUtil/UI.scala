@@ -57,26 +57,11 @@ object UI {
   @inline def toggleEmitter(labelText:VDomModifier, isChecked: Boolean): EmitterBuilder[Boolean, VNode] = toggleEmitter(labelText, Var(isChecked))
   def toggleEmitter(labelText:VDomModifier, isChecked: Rx[Boolean]): EmitterBuilder[Boolean, VNode] = checkboxEmitter(labelText, isChecked).mapResult(_(cls := "toggle"))
 
-  val tooltip: AttributeBuilder[String, VDomModifier] = str => VDomModifier.ifNot(BrowserDetect.isMobile)(data.tooltip := str, data.variation := "mini basic")
-  def tooltip(position: String): AttributeBuilder[String, VDomModifier] = str => VDomModifier.ifNot(BrowserDetect.isMobile)(data.tooltip := str, data.position := position, data.variation := "mini basic")
+  val tooltip: AttributeBuilder[String, VDomModifier] = tooltip()
+  def tooltip(placement: String = "top", boundary: String = "scrollParent", permanent: Boolean = false, sticky:Boolean = false): AttributeBuilder[String, VDomModifier] = tippy.tooltip(_placement = placement, _boundary = boundary, permanent = permanent, _sticky = sticky)
 
-  // javascript version of tooltip
-  def popup(options: PopupOptions): VDomModifier = VDomModifier.ifNot(BrowserDetect.isMobile)(
-    managedElement.asJquery { elem =>
-      elem.popup(options)
-      cancelable(() => elem.popup("destroy"))
-    }
-  )
-  val popup: AttributeBuilder[String, VDomModifier] = str => popup(new PopupOptions { content = str; hideOnScroll = true; exclusive = true; variation = "mini basic" })
-  def popup(position: String): AttributeBuilder[String, VDomModifier] = str => {
-    val _position = position
-    popup(new PopupOptions { content = str; position = _position; hideOnScroll = true; exclusive = true; variation = "mini basic" })
-  }
-  val popupHtml: AttributeBuilder[VNode, VDomModifier] = node => popup(new PopupOptions { html = node.render; hideOnScroll = true; exclusive = true; inline = true; variation = "mini basic" })
-  def popupHtml(position: String): AttributeBuilder[VNode, VDomModifier] = node => {
-    val _position = position
-    popup(new PopupOptions { html = node.render; position = _position; hideOnScroll = true; exclusive = true; inline = true; variation = "mini basic" })
-  }
+  val tooltipHtml: AttributeBuilder[VNode, VDomModifier] = tooltipHtml()
+  def tooltipHtml(placement: String = "top", boundary: String = "scrollParent", permanent: Boolean = false, sticky:Boolean = false): AttributeBuilder[VNode, VDomModifier] = tippy.tooltipHtml(_placement = placement, _boundary = boundary, permanent = permanent, _sticky = sticky)
 
   def dropdown(options: DropdownEntry*): EmitterBuilder[String, VDomModifier] = dropdown(VDomModifier.empty, options: _*)
   def dropdown(modifier: VDomModifier, options: DropdownEntry*): EmitterBuilder[String, VNode] = EmitterBuilder.ofNode { sink =>

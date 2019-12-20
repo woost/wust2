@@ -64,20 +64,20 @@ object SharedViewElements {
 
   val replyButton: VNode = {
     div(
-      div(cls := "fa-fw", UI.tooltip("bottom right") := "Reply", freeSolid.faReply),
+      div(cls := "fa-fw", UI.tooltip := "Reply", freeSolid.faReply),
       cursor.pointer,
     )
   }
 
   val deleteButton: VNode =
     div(
-      div(cls := "fa-fw", UI.tooltip("bottom right") := "Archive", Icons.delete),
+      div(cls := "fa-fw", UI.tooltip := "Archive", Icons.delete),
       cursor.pointer,
     )
 
   val undeleteButton: VNode =
     div(
-      div(cls := "fa-fw", UI.tooltip("bottom right") := "Restore", Icons.undelete),
+      div(cls := "fa-fw", UI.tooltip := "Restore", Icons.undelete),
       cursor.pointer,
     )
 
@@ -140,7 +140,7 @@ object SharedViewElements {
         cls := "chatmsg-date",
         Styles.flexStatic,
         s"edited${if(author.id != lastModification._1.id) s" by ${lastModification._1.name}" else ""}",
-        UI.popupHtml := modificationsHtml,
+        UI.tooltipHtml := modificationsHtml,
       )
     }
   }
@@ -319,7 +319,7 @@ object SharedViewElements {
     val show = SinkSourceHandler.publish[Boolean]
 
     div(
-      div(cls := "fa-fw", UI.tooltip("bottom right") := "Create new...", freeSolid.faPlus),
+      div(cls := "fa-fw", UI.tooltip := "Create new...", freeSolid.faPlus),
       cursor.pointer,
       onClick.stopPropagation foreach { ev =>
         ev.target.asInstanceOf[dom.html.Element].blur()
@@ -384,7 +384,7 @@ object SharedViewElements {
         Styles.flexStatic,
 
         cursor.pointer,
-        UI.popup := "Click to collapse", // we use the js-popup here, since it it always spawns at a visible position
+        UI.tooltip := "Click to collapse", // we use the js-popup here, since it it always spawns at a visible position
         onClick.useLazy(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(false), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes
       )
     )
@@ -506,10 +506,10 @@ object SharedViewElements {
           Avatar.user(user, size = s"${sizePx}px", enableClickFilter = enableClickFilter)(
             margin := "1px",
             VDomModifier.ifTrue(isSelf && separateMembers)(marginRight := s"${sizePx/2}px"),
-            ),
+            UI.tooltip(boundary = "window") := displayUserName(user.data)
+          ),
           Styles.flexStatic,
           cursor.grab,
-          UI.popup("bottom center") := Components.displayUserName(user.data)
         )
 
         if(otherMembers.isEmpty)

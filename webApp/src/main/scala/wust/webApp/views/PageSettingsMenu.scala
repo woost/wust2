@@ -169,7 +169,7 @@ object PageSettingsMenu {
   def addToChannelsButton(channelId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
     button(
       cls := "ui compact inverted button",
-      UI.tooltip("left center") := "Bookmark in left Sidebar",
+      UI.tooltip := "Bookmark in left Sidebar",
       Icons.bookmark,
       onClick.useLazy(GraphChanges(addEdges = Array(Edge.Pinned(channelId, GlobalState.userId.now), Edge.Notify(channelId, GlobalState.userId.now)), delEdges = Array(Edge.Invite(channelId, GlobalState.userId.now)))) --> GlobalState.eventProcessor.changes,
       onClick foreach {

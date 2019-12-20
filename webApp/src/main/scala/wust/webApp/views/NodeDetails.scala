@@ -119,7 +119,7 @@ object NodeDetails {
         width := s"${math.max(progress, 0)}%",
         transition := "width 0.2s",
         backgroundColor := s"${if (progress < 100) "#ccc" else "#32CD32"}",
-        UI.tooltip("top right") := s"$progress% Progress. ${taskStats.taskDoneCount} / ${taskStats.taskChildrenCount} done."
+        UI.tooltip := s"$progress% Progress. ${taskStats.taskDoneCount} / ${taskStats.taskChildrenCount} done.",
       ),
     )
   }
@@ -162,21 +162,21 @@ object NodeDetails {
         VDomModifier.ifTrue(taskStats().noteChildrenCount > 0)(
           renderNotesCount(
             taskStats().noteChildrenCount,
-            UI.tooltip("left center") := "Show notes",
+            UI.tooltip := "Show notes",
             onClickDefault.foreach { focusState.onItemSingleClick(FocusPreference(nodeId, Some(View.Content))) },
           ),
         ),
         VDomModifier.ifTrue(taskStats().messageChildrenCount > 0)(
           renderMessageCount(
             taskStats().messageChildrenCount,
-            UI.tooltip("left center") := "Show comments",
+            UI.tooltip := "Show comments",
             onClickDefault.foreach { focusState.onItemSingleClick(FocusPreference(nodeId, Some(View.Chat))) },
           ),
         ),
         VDomModifier.ifTrue(taskStats().projectChildrenCount > 0)(
           renderProjectsCount(
             taskStats().projectChildrenCount,
-            UI.tooltip("left center") := "Show Projects",
+            UI.tooltip := "Show Projects",
             onClickDefault.foreach { focusState.onItemSingleClick(FocusPreference(nodeId, Some(View.Dashboard))) },
           ),
         ),

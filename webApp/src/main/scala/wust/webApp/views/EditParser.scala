@@ -383,7 +383,7 @@ object EditInteraction {
 
 object EditHelper {
 
-  def uploadFieldModifier(selected: SourceStream[Option[dom.File]], fileInputId: String, tooltipDirection: String = "top left")(implicit ctx: Ctx.Owner): VDomModifier = {
+  def uploadFieldModifier(selected: SourceStream[Option[dom.File]], fileInputId: String)(implicit ctx: Ctx.Owner): VDomModifier = {
 
     val iconAndPopup: SourceStream[(VNode, Option[VNode])] = selected.map {
       case None =>
@@ -412,7 +412,7 @@ object EditHelper {
         iconAndPopup.map {
           case (icon, popup) =>
             VDomModifier(
-              popup.map(UI.popupHtml(tooltipDirection) := _),
+              popup.map(UI.tooltipHtml(boundary = "window", permanent = true, sticky = true) := _),
               div(icon, cls := "icon")
             )
         },

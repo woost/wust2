@@ -148,7 +148,6 @@ object TagList {
           tagNode.id,
           activeMod = visibility.visible,
           viewRender = viewRender,
-          tooltipDirection = "left center"
         ).apply(cls := "singleButtonWithBg", marginLeft.auto)
       )
     )

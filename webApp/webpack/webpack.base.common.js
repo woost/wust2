@@ -53,6 +53,12 @@ files.vendor = {
         Path.join(__dirname, 'node_modules/hopscotch/dist/img/sprite-green.png'),
         Path.join(__dirname, 'node_modules/hopscotch/dist/img/sprite-orange.png'),
         Path.join(__dirname, 'node_modules/flatpickr/dist/flatpickr.css'),
+        Path.join(__dirname, 'node_modules/tippy.js/dist/tippy.css'),
+        Path.join(__dirname, 'node_modules/tippy.js/dist/backdrop.css'),
+        Path.join(__dirname, 'node_modules/tippy.js/animations/shift-away.css'),
+        // Path.join(__dirname, 'node_modules/tippy.js/themes/light.css'),
+        // Path.join(__dirname, 'node_modules/tippy.js/themes/light-border.css'),
+        // Path.join(__dirname, 'node_modules/tippy.js/themes/material.css'),
     ],
     js: [
         Path.join(__dirname, 'node_modules/jquery/dist/jquery.js'),
