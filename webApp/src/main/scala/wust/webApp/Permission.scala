@@ -74,7 +74,7 @@ object Permission {
   }
 
   def permissionIndicator(level: PermissionDescription, modifier: VDomModifier = VDomModifier.empty): BasicVNode = {
-    div(level.icon, Styles.flexStatic, UI.popup("bottom center") := level.description, modifier)
+    div(level.icon, Styles.flexStatic, UI.tooltip := level.description, modifier)
   }
 
 }

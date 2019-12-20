@@ -98,7 +98,6 @@ object ListWithChatView {
   }
 
   private def chatHeader(originalFocusState: FocusState, focusState: FocusState, chatFocus: Var[NodeId], topLevelId: NodeId)(implicit ctx: Ctx.Owner) = {
-    val tooltipPosition = "bottom center"
     val buttonMods = VDomModifier(
       Styles.flexStatic,
       padding := "5px 0.5em",
@@ -127,12 +126,12 @@ object ListWithChatView {
 
           div(
             div(cls := "fa-fw", Icons.edit),
-            UI.tooltip(tooltipPosition) := "Edit Thread",
+            UI.tooltip := "Edit Thread",
             buttonMods,
             marginLeft := "10px",
             onClickDefault.foreach { originalFocusState.onItemSingleClick(FocusPreference(chatFocusedId)) },
           ),
-          MembersModal.settingsButton(chatFocusedId, analyticsVia = "ListWithChatView.chatheader", tooltip = "Add members to this thread", tooltipPosition = tooltipPosition).apply(buttonMods),
+          MembersModal.settingsButton(chatFocusedId, analyticsVia = "ListWithChatView.chatheader", tooltip = "Add members to this thread").apply(buttonMods),
         )
       )
     }
