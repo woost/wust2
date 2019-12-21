@@ -402,12 +402,12 @@ self.addEventListener('notificationclick', e => {
             const subscribedId = ndata.subscribedId;
             const baseLocation = "woost.space";
 
+            const urlOptions = `/#page=${subscribedId}&focus=${messageId}`
+
             for (const index in windowClients) {
 
                 const client = windowClients[index];
                 const url = client.url;
-
-                const urlOptions = `/#page=${subscribedId}&focus=${messageId}`
 
                 if (url.indexOf(subscribedId) !== -1 || url.indexOf(messageId) !== -1) {
                     log("Found window that is already including node.");
