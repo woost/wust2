@@ -396,7 +396,7 @@ object LeftSidebar {
             DragComponents.drag(target = DragItem.Channel(nodeId, traverseState.tail.headOption)),
           )
         },
-        permissionLevel.map(Permission.permissionIndicatorIfPublic(_, VDomModifier(fontSize := "0.7em", color.gray, marginLeft.auto, marginRight := "5px"))),
+        permissionLevel.map(Permission.permissionIndicatorIfPublic(_, VDomModifier(fontSize := "0.7em", opacity := 0.7, marginLeft.auto, marginRight := "5px"))),
         channelModifier
       ),
     )
