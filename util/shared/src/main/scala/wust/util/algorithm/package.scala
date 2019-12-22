@@ -171,10 +171,9 @@ package object algorithm {
     successors: NestedArrayInt
   ): Array[Int] = {
 
-    val n = successors.length // the number of total vertices in the graph
     val vertexCount = vertices.length // the number of vertices to sort
 
-    var sorted = new Array[Int](vertexCount) // the result
+    val sorted = new Array[Int](vertexCount) // the result
     var sortCount = 0 // count to fill the result array from back to front
     val visited = new Array[Int](vertexCount)
 
