@@ -79,7 +79,7 @@ lazy val commonSettings = Seq(
     "-Ywarn-nullary-override" ::
     "-Ywarn-nullary-unit" ::
     // "-opt-warnings:at-inline-failed" ::
-    "-Xlint:-unused,_" ::
+    "-Xlint:_" ::
     "-Ywarn-unused:-imports" ::
     // "-Ywarn-self-implicit" ::
     // "-Ywarn-dead-code" :: // does not work well with scalajs js.native in facades
