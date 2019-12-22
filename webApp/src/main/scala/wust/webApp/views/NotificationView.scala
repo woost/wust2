@@ -132,7 +132,7 @@ object NotificationView {
     val visited = ArraySet.create(graph.nodes.length)
 
     def recurse(nodeIdx: Int): Option[UnreadNode] = {
-      if ((visited contains nodeIdx) || !UnreadComponents.nodeRoleIsAccepted(graph.nodes(nodeIdx).role)) None
+      if ((visited contains nodeIdx) || !UnreadComponents.nodeIsAccepted(graph, nodeIdx)) None
       else {
         visited += nodeIdx
 

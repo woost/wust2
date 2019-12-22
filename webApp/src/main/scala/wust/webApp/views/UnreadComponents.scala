@@ -118,12 +118,17 @@ object UnreadComponents {
     lastReadTime
   }
 
-  @inline def nodeRoleIsAccepted(role: NodeRole) = InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Project, NodeRole.Note, NodeRole.Task)(role)
+  def nodeIsAccepted(graph: Graph, nodeIdx: Int) = {
+    val node = graph.nodes(nodeIdx)
+    @inline def saneNodeRole = InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Project, NodeRole.Note, NodeRole.Task)(node.role)
+    @inline def isCreatedThroughAutomation = graph.derivedFromTemplateEdgeIdx.sliceNonEmpty(nodeIdx)
+
+    saneNodeRole && !isCreatedThroughAutomation
+  }
 
   def nodeIsActivity(graph:Graph, nodeIdx:Int):Boolean = {
     @inline def nodeHasContentRole = {
-      val node = graph.nodes(nodeIdx)
-      nodeRoleIsAccepted(node.role)
+      nodeIsAccepted(graph, nodeIdx)
     }
 
     nodeHasContentRole
@@ -131,8 +136,7 @@ object UnreadComponents {
 
   def nodeIsReadable(graph:Graph, userId:UserId, nodeIdx:Int):Boolean = {
     @inline def nodeHasContentRole = {
-      val node = graph.nodes(nodeIdx)
-      nodeRoleIsAccepted(node.role)
+      nodeIsAccepted(graph, nodeIdx)
     }
     // @inline def userIsMemberOfParent = {
     //   graph.idToIdxFold(userId)(false){userIdx =>
