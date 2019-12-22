@@ -45,11 +45,15 @@ object ActivityStream {
 
     val showAllRevisions = Var(false)
 
-    val activityNodes = Rx {
-      calculateActivityList(graph(), focusState.focusedId, userId(), showAllRevisions()).take(100) // max 100 items
+    val activityNodesAll = Rx {
+      calculateActivityList(graph(), focusState.focusedId, userId(), showAllRevisions())
     }
 
-    val markAllReadButton = markAllAsReadButton("Mark all as read", activityNodes, userId)
+    val activityNodes = Rx {
+      activityNodesAll().take(100) // max 100 items
+    }
+
+    val markAllReadButton = markAllAsReadButton("Mark all as read", activityNodesAll, userId)
     val showSeenButton = showAllRevisionsButton(showAllRevisions)
 
     div(
