@@ -45,8 +45,7 @@ object LeftSidebar {
         val toplevelChannels = Rx { toplevelChannelsRx(_ => true, true) }
 
         GenericSidebar.Config(
-          mainModifier = VDomModifier(
-          ),
+          mainModifier = VDomModifier(),
           openModifier = VDomModifier(
             header.apply(Styles.flexStatic),
             div(
@@ -345,10 +344,6 @@ object LeftSidebar {
     val isPinned = Rx { nodeIdx().exists(nodeIdx => GlobalState.rawGraph().isPinned(nodeIdx, userIdx = GlobalState.rawGraph().idToIdxOrThrow(userId))) }
     val node = Rx { nodeIdx().map(nodeIdx => GlobalState.rawGraph().nodes(nodeIdx)) }
 
-    val permissionLevel = Rx {
-      Permission.resolveInherited(GlobalState.rawGraph(), nodeId)
-    }
-
     div(
       Styles.flex,
       alignItems.center,
@@ -396,7 +391,16 @@ object LeftSidebar {
             DragComponents.drag(target = DragItem.Channel(nodeId, traverseState.tail.headOption)),
           )
         },
-        permissionLevel.map(Permission.permissionIndicatorIfPublic(_, VDomModifier(fontSize := "0.7em", opacity := 0.7, marginLeft.auto, marginRight := "5px"))),
+
+        Rx{
+          node().flatMap(Permission.permissionIndicatorWithoutInherit).map{
+            _.apply(
+              fontSize := "0.7em",
+              marginLeft.auto,
+              marginRight := "5px"
+            )
+          }
+        },
         channelModifier
       ),
     )

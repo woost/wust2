@@ -185,10 +185,6 @@ object DashboardView {
       )
     }
 
-    val permissionLevel = Rx {
-      Permission.resolveInherited(GlobalState.rawGraph(), project.id)
-    }
-
     div(
       padding := "5px 0px 5px 0px",
       marginLeft := "10px",
@@ -206,7 +202,7 @@ object DashboardView {
         FeatureState.use(Feature.ZoomIntoProject)
       },
 
-      permissionLevel.map(Permission.permissionIndicatorIfPublic(_, VDomModifier(fontSize := "0.7em", color.gray))),
+      Permission.permissionIndicatorWithoutInherit(project).map(_.apply(fontSize := "0.7em", marginLeft := "0.5em")),
 
       div(
         Styles.flex,

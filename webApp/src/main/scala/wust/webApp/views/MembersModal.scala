@@ -451,19 +451,12 @@ object MembersModal {
   }
 
   def settingsButton(nodeId: NodeId, analyticsVia:String, tooltip:String = "Add members", tooltipPosition:String = "bottom center")(implicit ctx: Ctx.Owner):VNode = {
-    val permissionLevel = Rx {
-      Permission.resolveInherited(GlobalState.rawGraph(), nodeId)
-    }
-
-
     div(
       openSharingModalOnClick(nodeId, analyticsVia),
 
       display.flex,
       alignItems.flexStart,
       padding := "0.5em",
-
-      // permissionLevel.map(Permission.permissionIndicator(_)),
 
       div(
         cls := "fa-fw",

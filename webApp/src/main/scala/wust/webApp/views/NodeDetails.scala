@@ -7,7 +7,7 @@ import rx._
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
-import wust.webApp.{Client, Icons, Permission}
+import wust.webApp.{ Client, Icons, Permission }
 import wust.webApp.state.{ FocusPreference, GlobalState, FocusState, TraverseState }
 import wust.webApp.dragdrop.{ DragItem, DragPayload, DragTarget }
 import wust.webUtil.UI
@@ -28,20 +28,18 @@ object NodeDetails {
       PropertyData.Single(graph, nodeIdx())
     }
 
-    val permissionLevel = Rx {
-      node().meta.accessLevel match {
-        case NodeAccess.Level(level) if level == AccessLevel.ReadWrite => Some(Permission.viaLink)
-        case NodeAccess.Level(level) if level == AccessLevel.Read => Some(Permission.viaLinkReadonly)
-        case NodeAccess.Level(level) if level == AccessLevel.Restricted => Some(Permission.`private`)
-        case _ => None
+    val permissionIndicator = Rx {
+      Permission.permissionIndicatorWithoutInherit(node()).map{
+        _.apply(
+          padding := "3px",
+          MembersModal.openSharingModalOnClick(node().id, analyticsVia = "PermissionIndicator")
+        )
       }
     }
 
     val propertySingleEmpty = Rx {
-      propertySingle().isEmpty && permissionLevel().isEmpty // optimize for empty property because properties are array and are therefore never equal
+      propertySingle().isEmpty && permissionIndicator().isEmpty // optimize for empty property because properties are array and are therefore never equal
     }
-
-
 
     VDomModifier(
       Styles.flex,
@@ -69,17 +67,7 @@ object NodeDetails {
             alignItems.center,
             flexWrap.wrap,
 
-
-            Rx {
-              val permissionDescription = permissionLevel()
-              permissionDescription.map { descr =>
-                Permission.permissionIndicator(descr).apply(
-                  color := "#c6c6c6",
-                  padding := "3px",
-                  MembersModal.openSharingModalOnClick(node().id, analyticsVia = "PermissionIndicator")
-                )
-              }
-            },
+            permissionIndicator,
             propertySingle().info.assignedUsers.map(userNode =>
               Components.removableUserAvatar(userNode, targetNodeId = nodeId)),
           ),
