@@ -8,10 +8,12 @@ import outwatch.reactive._
 import outwatch.reactive.handler._
 import scala.scalajs.js
 import wust.webUtil.outwatchHelpers._
+import org.scalajs.dom.console
+import org.scalajs.dom.html
 
 package object tippy {
 
-import scala.util.Try
+  import scala.util.Try
 
   import wust.facades.tippy._
 
@@ -20,7 +22,10 @@ import scala.util.Try
 
   def tooltipMod(props: TippyProps): VDomModifier = managedElement.asHtml{ elem =>
     val tippyInstance = tippy(elem, props)
-    Subscription(() => Try(tippyInstance.destroy()))
+    Subscription{ () =>
+      Try(tippyInstance.destroy())
+      elem.asInstanceOf[js.Dynamic].updateDynamic("_tippy")(js.undefined)
+    }
   }
 
   //TODO: how to abstract over the tooltip content type?
