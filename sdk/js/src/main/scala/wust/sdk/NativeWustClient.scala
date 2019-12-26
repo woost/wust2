@@ -29,7 +29,7 @@ class BrowserLogHandler(apiError: Observer[Unit])(implicit ec: ExecutionContext)
     val baseHue: Double = path match {
       case List("Api", "getGraph") =>
         arguments.productIterator.toList.head.asInstanceOf[Page].parentId.map{ parentId =>
-          NodeColor.hue(parentId)
+          NodeColor.defaultHue(parentId)
         }
         .getOrElse(randomHue)
       case _ => randomHue

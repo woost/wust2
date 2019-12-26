@@ -9,8 +9,7 @@ import rx._
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
-import wust.sdk.NodeColor._
-import wust.sdk.{BaseColors, NodeColor}
+import wust.sdk.NodeColor
 import wust.util._
 import wust.util.algorithm.dfs
 import wust.util.collection._
@@ -258,8 +257,8 @@ object ChatView {
       }
     )
 
-    val bgColor = NodeColor.mixHues(commonParentIds).map(hue => BaseColors.pageBgLight.copy(h = hue).toHex)
-    val lineColor = NodeColor.mixHues(commonParentIds).map(hue => BaseColors.tag.copy(h = hue).toHex)
+    val bgColor:Rx[Option[String]] = NodeColor.pageBgLight.of(commonParentIds.headOption, GlobalState.graph)
+    val lineColor:Rx[Option[String]] = NodeColor.tag.of(commonParentIds.headOption, GlobalState.graph)// TODO: don't use tag-color here
 
     var _previousNodeId: Option[NodeId] = None
 
@@ -275,7 +274,7 @@ object ChatView {
 
         div(
           cls := "chat-expanded-thread",
-          backgroundColor :=? bgColor,
+          Rx{ backgroundColor :=? bgColor() },
 
           VDomModifier.ifTrue(inReplyGroup)(
             renderCommonParents,
@@ -284,7 +283,7 @@ object ChatView {
 
           div(
             cls := "chat-thread-messages-outer chat-thread-messages",
-            lineColor.map(lineColor => borderLeft := s"3px solid ${lineColor}"),
+            Rx { lineColor().map(lineColor => borderLeft := s"3px solid ${lineColor}")},
 
             group.map { nodeIdx =>
               val nodeId = groupGraph.nodeIds(nodeIdx)
@@ -380,11 +379,6 @@ object ChatView {
       graph.nodesById(nodeId)
     }
 
-    val parentIds = Rx {
-      val graph = GlobalState.graph()
-      graph.parents(nodeId)
-    }
-
     div(
       minWidth := "0", // fixes word-break in flexbox
       Rx {
@@ -394,10 +388,10 @@ object ChatView {
           div(
             keyed(node.id),
             chatMessageHeader( author)( padding := "2px"),
-            borderLeft := s"3px solid ${accentColor(nodeId).toHex}",
+            borderLeft := s"3px solid ${NodeColor.accent.of(node)}",
             paddingRight := "5px",
             paddingBottom := "3px",
-            backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(nodeId)).toHex,
+            backgroundColor := NodeColor.pageBgLight.of(node),
             div(
               Styles.flex,
               paddingLeft := "0.5em",
@@ -456,7 +450,7 @@ object ChatView {
           div(
             padding := "5px",
             minWidth := "0", // fixes overflow-wrap for parent preview
-            backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(replyNodeId)).toHex,
+            backgroundColor :=? NodeColor.pageBgLight.of(replyNodeId, graph),
             div(
               Styles.flex,
               renderParentMessage(focusState, traverseState, replyNodeId, isDeletedNow, currentReply, inputFieldFocusTrigger, Some(pinReply)),
@@ -478,7 +472,7 @@ object ChatView {
     scrollHandler: ScrollBottomHandler,
     inputFieldFocusTrigger: SinkSourceHandler.Simple[Unit],
   )(implicit ctx: Ctx.Owner) = {
-    val bgColor = Rx{ NodeColor.mixHues(currentReply()).map(hue => BaseColors.pageBgLight.copy(h = hue).toHex) }
+    val bgColor = Rx{ NodeColor.pageBgLight.of(currentReply().headOption, GlobalState.graph()) }
     val fileUploadHandler = Var[Option[AWS.UploadableFile]](None)
 
     def submitAction(sub: InputRow.Submission): Unit = {

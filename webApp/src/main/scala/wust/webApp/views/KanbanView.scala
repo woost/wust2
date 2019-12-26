@@ -9,7 +9,7 @@ import wust.css.Styles
 import wust.graph._
 import wust.ids._
 import wust.sdk.BaseColors
-import wust.sdk.NodeColor._
+import wust.sdk.NodeColor
 import wust.util.collection._
 import wust.webApp.Icons
 import wust.webApp.dragdrop.{DragContainer, DragItem}
@@ -17,9 +17,11 @@ import wust.webApp.state._
 import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.registerDragContainer
 import wust.webUtil.Elements._
+import wust.webUtil.tippy
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{BrowserDetect, Elements, Ownable, UI}
 import fontAwesome.freeRegular
+import colorado.HCL
 
 object KanbanView {
   val columnText = "Column"
@@ -74,7 +76,7 @@ object KanbanView {
     selectedNodeIds:Var[Set[NodeId]],
     itemName: Rx[String],
     isTopLevel: Boolean = false,
-  )(implicit ctx: Ctx.Owner): VDomModifier = {
+  ): VDomModifier = {
     nodeRole match {
       case NodeRole.Task => TaskNodeCard.renderThunk( focusState, traverseState, nodeId, selectedNodeIds, compactChildren = true)
       case NodeRole.Stage => renderColumn( focusState, traverseState, nodeId, viewRender = viewRender, selectedNodeIds, isTopLevel = isTopLevel, itemName = itemName)
@@ -157,6 +159,7 @@ object KanbanView {
     val childCount = children.map(_.size)
 
     val collapseButton = div(
+      cls := "buttonbar-button",
       div(cls := "fa-fw", freeRegular.faEyeSlash),
       onClickDefault.foreach { updateKanbanSettings(_.copy(hideUncategorized = true)) },
       Rx { UI.tooltip := s"Hide uncategorized ${itemName()}" },
@@ -186,11 +189,11 @@ object KanbanView {
           position.absolute,
           cls := "buttonbar",
           position.absolute, top := "0", right := "0",
-          VDomModifier.ifTrue(!BrowserDetect.isMobile)(cls := "autohide"),
+          VDomModifier.ifNot(BrowserDetect.isMobile)(cls := "autohide"),
           DragComponents.drag(DragItem.DisableDrag),
           Styles.flex,
           collapseButton,
-          GraphChangesAutomationUI.settingsButton( focusState.focusedId, activeMod = visibility.visible, viewRender = viewRender),
+          GraphChangesAutomationUI.settingsButton( focusState.focusedId, activeMod = visibility.visible, viewRender = viewRender).apply(cls := "buttonbar-button"),
         ),
       ),
       div(
@@ -223,12 +226,12 @@ object KanbanView {
     viewRender: ViewRenderLike,
     selectedNodeIds:Var[Set[NodeId]],
     itemName: Rx[String],
-    isTopLevel: Boolean = false,
+    isTopLevel: Boolean,
   ): VNode = div.thunk(nodeId.hashCode)(isTopLevel)(Ownable { implicit ctx =>
     val editable = Var(false)
     val node = Rx {
       val graph = GlobalState.graph()
-      graph.nodesByIdOrThrow(nodeId)
+      graph.nodesById(nodeId).map(_.asInstanceOf[Node.Content])
     }
     val isExpanded = Rx {
       val graph = GlobalState.graph()
@@ -251,7 +254,7 @@ object KanbanView {
         Styles.flex,
         alignItems.center,
 
-        editableNode( node(), editable, config = titleEditConfig, maxLength = Some(TaskNodeCard.maxLength))(ctx)(cls := "kanbancolumntitle"),
+        node().map(node => editableNode( node, editable, config = titleEditConfig, maxLength = Some(TaskNodeCard.maxLength))(ctx)(cls := "kanbancolumntitle")),
 
         childCount.map {
           case 0 => VDomModifier.empty
@@ -266,45 +269,54 @@ object KanbanView {
       val g = GlobalState.rawGraph()
       g.isDeletedNow(nodeId, parentId = traverseState.parentId)
     }
+
+    def expandCollapseButton(implicit ctx: Ctx.Owner) = Rx {div(
+      cls := "buttonbar-button",
+      div(
+        cls := "fa-fw",
+        if (isExpanded()) freeRegular.faEyeSlash else freeRegular.faEye
+      ),
+      onClick.stopPropagation.useLazy(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(!isExpanded.now), GlobalState.userId.now)) --> GlobalState.eventProcessor.changes,
+      cursor.pointer,
+      UI.tooltip := (if (isExpanded()) "Hide contents" else "Show contents")
+    )}
+
+    val editButton = div(cls := "buttonbar-button", div(cls := "fa-fw", Icons.edit), onClick.stopPropagation.use(true) --> editable, cursor.pointer, UI.tooltip := "Edit")
+    val selectColorButton = Rx{div(cls := "buttonbar-button", div(cls := "fa-fw", Icons.selectColor), node().map(node=>tippy.menu() := ColorMenu(BaseColors.kanbanColumnBg, node)), cursor.pointer, UI.tooltip := "Select Color")}
+    val deleteUndeleteButton = Rx{div(
+      cls := "buttonbar-button", 
+      div(cls := "fa-fw", if (isDeletedNow()) Icons.undelete else Icons.delete),
+      onClick.stopPropagation foreach {
+        if (isDeletedNow.now) {
+          val deleteChanges = GraphChanges.undelete(ChildId(nodeId), ParentId(traverseState.parentId))
+          GlobalState.submitChanges(deleteChanges)
+        } else {
+          Elements.confirm(s"Delete this column? Its ${itemName.now} will become uncategorized.") {
+            val deleteChanges = GraphChanges.delete(ChildId(nodeId), ParentId(traverseState.parentId))
+            GlobalState.submitChanges(deleteChanges)
+            selectedNodeIds.update(_ - nodeId)
+          }
+        }
+
+        ()
+      },
+      cursor.pointer,
+      UI.tooltip := (if (isDeletedNow()) "Recover" else "Archive")
+    )}
+
     val buttonBar = div(
       cls := "buttonbar",
-      VDomModifier.ifTrue(!BrowserDetect.isMobile)(cls := "autohide"),
+      VDomModifier.ifNot(BrowserDetect.isMobile)(cls := "autohide"),
       Styles.flex,
       DragComponents.drag(DragItem.DisableDrag),
       Rx {
         VDomModifier.ifNot(editable())(
-          div(
-            div(
-              cls := "fa-fw",
-              if (isExpanded()) freeRegular.faEyeSlash else freeRegular.faEye
-            ),
-            onClick.stopPropagation.useLazy(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(!isExpanded.now), GlobalState.userId.now)) --> GlobalState.eventProcessor.changes,
-            cursor.pointer,
-            UI.tooltip := (if (isExpanded()) "Hide contents" else "Show contents")
-          ),
+          expandCollapseButton,
           VDomModifier.ifTrue(canWrite())(
-            div(div(cls := "fa-fw", Icons.edit), onClick.stopPropagation.use(true) --> editable, cursor.pointer, UI.tooltip := "Edit"),
-            div(
-              div(cls := "fa-fw", if (isDeletedNow()) Icons.undelete else Icons.delete),
-              onClick.stopPropagation foreach {
-                if (isDeletedNow.now) {
-                  val deleteChanges = GraphChanges.undelete(ChildId(nodeId), ParentId(traverseState.parentId))
-                  GlobalState.submitChanges(deleteChanges)
-                } else {
-                  Elements.confirm(s"Delete this column? Its ${itemName.now} will become uncategorized.") {
-                    val deleteChanges = GraphChanges.delete(ChildId(nodeId), ParentId(traverseState.parentId))
-                    GlobalState.submitChanges(deleteChanges)
-                    selectedNodeIds.update(_ - nodeId)
-                  }
-                }
-
-                ()
-              },
-              cursor.pointer,
-              UI.tooltip := (if (isDeletedNow()) "Recover" else "Archive")
-            )
+            editButton,
+            selectColorButton,
+            deleteUndeleteButton,
           ),
-          //          div(div(cls := "fa-fw", Icons.zoom), onClick.stopPropagation.use(Page(nodeId)) --> GlobalState.page, cursor.pointer, UI.tooltip := "Zoom in"),
         )
       },
 
@@ -312,7 +324,7 @@ object KanbanView {
     )
 
     val scrollHandler = new ScrollBottomHandler(initialScrollToBottom = false)
-    val columnHeaderBgColor = BaseColors.kanbanColumnBg.copy(h = hue(nodeId)).toHex
+    val columnHeaderBgColor = NodeColor.kanbanColumnBg.of(node)
 
     VDomModifier(
       // sortable: draggable needs to be direct child of container
@@ -324,7 +336,7 @@ object KanbanView {
       div(
         cls := "kanbancolumnheader",
         DragComponents.dragHandleModifier,
-        backgroundColor := columnHeaderBgColor,
+        Rx{ backgroundColor :=? columnHeaderBgColor() },
 
         columnTitle,
 

@@ -6,7 +6,7 @@ import org.scalajs.dom.html
 import vectory.Vec2
 import wust.graph._
 import wust.ids._
-import wust.sdk.NodeColor._
+import wust.sdk.NodeColor
 import wust.util.algorithm
 import wust.util.time.time
 import wust.webApp.views.graphview.ForceSimulationConstants._
@@ -157,7 +157,7 @@ object StaticData {
       var reservedArea = 0.0
       selection.each[html.Element] { (elem: html.Element, node: Node, i: Int) =>
         if(graph.nodesByIdOrThrow(node.id).role == NodeRole.Tag) {
-          staticData.bgColor(i) = tagColor(node.id).toCSS
+          staticData.bgColor(i) = NodeColor.tag.colorOf(node).toCSS
           staticData.nodeCssClass(i) = "graphnode-tag"
         } else {
           staticData.nodeCssClass(i) = "nodecard node"
@@ -314,10 +314,10 @@ object StaticData {
           staticData.nodeReservedArea(pi)
         }.sum * arbitraryFactor
 
-        val color = d3.lab(eulerBgColor(graph.nodeIds(eulerSets(i).parent)).toHex) //TODO: use d3.rgb or make colorado handle opacity
+        val color = d3.lab(NodeColor.eulerBg.ofNodeWithFallback(graph.nodeIds(eulerSets(i).parent), graph)) //TODO: use d3.rgb or make colorado handle opacity
         color.opacity = 0.35
         staticData.eulerSetColor(i) = color.toString
-        staticData.eulerSetStrokeColor(i) = eulerBgColor(graph.nodeIds(eulerSets(i).parent)).toHex
+        staticData.eulerSetStrokeColor(i) = NodeColor.eulerBg.ofNodeWithFallback(graph.nodeIds(eulerSets(i).parent), graph)
 
         i += 1
       }

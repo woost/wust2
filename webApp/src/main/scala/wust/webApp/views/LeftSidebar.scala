@@ -363,7 +363,7 @@ object LeftSidebar {
         Rx {
           VDomModifier.ifTrue(selected())(
             color := Colors.sidebarBg,
-            backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(nodeId)).toHex
+            Rx{ backgroundColor :=? NodeColor.pageBg.of(node()) },
           )
         },
 
@@ -640,10 +640,10 @@ object LeftSidebar {
         val n = node()
         VDomModifier(
           if (isSelected()) VDomModifier(
-            backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(n.id)).toHex,
+            backgroundColor := NodeColor.pageBg.of(n),
             color := "white"
           )
-          else color := BaseColors.pageBg.copy(h = NodeColor.hue(n.id)).toHex,
+          else color := NodeColor.pageBg.of(n),
 
           replaceEmoji(iconText(n.str))
         )

@@ -9,7 +9,7 @@ import rx._
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
-import wust.sdk.{BaseColors, NodeColor}
+import wust.sdk.NodeColor
 import wust.util._
 import wust.util.collection._
 import wust.webApp.Icons
@@ -254,11 +254,14 @@ object ThreadView {
   }
 
   private def renderExpandedThread(focusState: FocusState, traverseState: TraverseState, transitiveParentIds: Set[NodeId], nodeId: NodeId, nodeIdList: List[ParentId], showReplyField: Var[Boolean])(implicit ctx: Ctx.Owner) = {
-    val bgColor = BaseColors.pageBgLight.copy(h = NodeColor.hue(nodeId)).toHex
     VDomModifier(
       cls := "chat-expanded-thread",
-      backgroundColor := bgColor,
-      borderLeft := s"3px solid ${NodeColor.accentColor(nodeId).toHex}",
+      Rx{ 
+        VDomModifier(
+          backgroundColor :=? NodeColor.pageBgLight.of(nodeId, GlobalState.graph()),
+          borderLeft := s"3px solid ${NodeColor.accent.of(nodeId, GlobalState.graph())}",
+        )
+      },
       marginLeft := "-3px",
 
       drag(target = DragItem.Thread(nodeId :: Nil)),

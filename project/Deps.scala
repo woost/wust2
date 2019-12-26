@@ -78,7 +78,7 @@ object Deps {
   val base58s = dep("io.github.fdietze.base58s" %%% "base58s" % "fbedca4")
   val monix = dep("io.monix" %%% "monix" % "3.0.0")
   val taggedTypes = dep("org.rudogma" %%% "supertagged" % "1.4")
-  val colorado = dep("com.github.fdietze.colorado" %%% "colorado" % "8722023")
+  val colorado = dep("com.github.fdietze.colorado" %%% "colorado" % "71c8113")
   val scalacss = dep("com.github.japgolly.scalacss" %%% "core" % "0.5.6")
   val kantanRegex = new {
     private val version = "0.5.0"

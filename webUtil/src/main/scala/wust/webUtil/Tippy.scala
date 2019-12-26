@@ -1,5 +1,6 @@
 package wust.webUtil
 
+import org.scalajs.dom.Element
 import outwatch.dom._
 import outwatch.dom.dsl.{ label, _ }
 import outwatch.dom.helpers.AttributeBuilder
@@ -66,7 +67,7 @@ package object tippy {
     permanent: Boolean = false,
     _sticky: Boolean = false
   ): AttributeBuilder[VNode, VDomModifier] = node => tooltipMod(new TippyProps {
-    content = node.render
+    content = (() => node.render): js.Function0[Element]
 
     ignoreAttributes = true // increases performance by not parsing data-attributes of content
     theme = defaultTheme
@@ -85,5 +86,22 @@ package object tippy {
       plugins = js.Array[TippyPlugin](TippyPlugin.sticky)
       sticky = true
     }
+  })
+
+  def menu(
+    _placement: String = "bottom",
+    _boundary: String = "scrollParent"
+  ): AttributeBuilder[VNode, VDomModifier] = node => tooltipMod(new TippyProps {
+    content = (() => node.render): js.Function0[Element]
+
+    ignoreAttributes = true // increases performance by not parsing data-attributes of content
+    theme = "light-border"
+    zIndex = defaultZIndex
+
+    trigger = "click"
+    interactive = true
+
+    placement = _placement
+    boundary = _boundary
   })
 }

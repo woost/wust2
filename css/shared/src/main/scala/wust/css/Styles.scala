@@ -1195,17 +1195,17 @@ object CommonStyles extends StyleSheet.Standalone
     visibility.hidden
   )
 
-  ".nodecard .buttonbar.autohide > div" - (
+  ".nodecard .buttonbar.autohide > .buttonbar-button" - (
     color(c"rgb(157, 157, 157)"),
     padding(0 px, 4 px)
   )
 
-  ".nodecard .buttonbar > div" - ( // touch
+  ".nodecard .buttonbar > .buttonbar-button" - ( // touch
     color(c"rgb(157, 157, 157)"),
     padding(0 px, 5 px) // more spacing for big fingers
   )
 
-  ".nodecard .buttonbar > div:hover" - (
+  ".nodecard .buttonbar > .buttonbar-button:hover" - (
     backgroundColor(c"rgba(215, 215, 215, 0.9)"),
     color(c"rgb(71, 71, 71)")
   )
@@ -1240,31 +1240,31 @@ object CommonStyles extends StyleSheet.Standalone
     visibility.visible
   )
 
-  ".kanbancolumnheader .buttonbar > div," +
-  ".kanban-uncategorized-title .buttonbar > div," +
-  ".nodecard .buttonbar > div" - (
+  ".kanbancolumnheader .buttonbar > .buttonbar-button," +
+  ".kanban-uncategorized-title .buttonbar > .buttonbar-button," +
+  ".nodecard .buttonbar > .buttonbar-button" - (
     borderRadius(3 px),
     marginLeft(2 px)
   )
 
   val hoverButtonBgColor = c"rgba(64, 82, 100, 0.3)"
 
-  ".kanbancolumnheader .buttonbar.autohide > div," +
-  ".kanban-uncategorized-title .buttonbar.autohide > div" - (
+  ".kanbancolumnheader .buttonbar.autohide > .buttonbar-button," +
+  ".kanban-uncategorized-title .buttonbar.autohide > .buttonbar-button" - (
     padding(2 px),
     backgroundColor(hoverButtonBgColor),
     color(c"rgba(255, 255, 255, 0.83)")
   )
 
-  ".kanbancolumnheader .buttonbar > div," +
-  ".kanban-uncategorized-title .buttonbar > div" - (
+  ".kanbancolumnheader .buttonbar > .buttonbar-button," +
+  ".kanban-uncategorized-title .buttonbar > .buttonbar-button" - (
     padding(5 px),
     backgroundColor(hoverButtonBgColor),
     color(c"rgba(255, 255, 255, 0.83)"),
   )
 
-  ".kanbancolumnheader .buttonbar > div:hover," +
-  ".kanban-uncategorized-title .buttonbar > div:hover" - (
+  ".kanbancolumnheader .buttonbar > .buttonbar-button:hover," +
+  ".kanban-uncategorized-title .buttonbar > .buttonbar-button:hover" - (
     backgroundColor(c"hsla(0, 0%, 0%, 0.72)"),
     color(white),
   )

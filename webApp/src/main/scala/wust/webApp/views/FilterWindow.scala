@@ -5,6 +5,7 @@ import outwatch.dom.{VDomModifier, _}
 import rx.{Ctx, Rx}
 import wust.css.Styles
 import wust.ids.Feature
+import wust.sdk.NodeColor
 import wust.webApp.Icons
 import wust.webApp.state.{FeatureState, GlobalState}
 import wust.webUtil.outwatchHelpers._
@@ -44,7 +45,7 @@ object FilterWindow {
       titleModifier = Ownable(implicit ctx =>
         Rx{
           VDomModifier(
-            backgroundColor := GlobalState.pageStyle().pageBgColor,
+            backgroundColor :=? NodeColor.pageBgLight.of(GlobalState.page().parentId, GlobalState.graph()),
             color.white,
           )
         }),

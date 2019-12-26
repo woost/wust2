@@ -32,7 +32,7 @@ object TippyPlugin {
 
 trait TippyProps extends js.Object {
   // https://atomiks.github.io/tippyjs/all-props
-  var content: js.UndefOr[String | Element] = js.undefined
+  var content: js.UndefOr[String | Element | js.Function0[Element]] = js.undefined
   var appendTo: js.UndefOr[String | Element] = js.undefined
   var boundary: js.UndefOr[String | Element] = js.undefined
   var flipOnUpdate: js.UndefOr[Boolean] = js.undefined
@@ -48,6 +48,8 @@ trait TippyProps extends js.Object {
 
   var plugins: js.UndefOr[js.Array[TippyPlugin]] = js.undefined
   var sticky: js.UndefOr[Boolean] = js.undefined // requires sticky plugin
+
+  var popperOptions: js.UndefOr[js.Dynamic] = js.undefined
 }
 
 @js.native

@@ -6,7 +6,7 @@ import rx._
 import wust.css.ZIndex
 import wust.ids._
 import wust.webApp.dragdrop.{DragActions, DragItem, DragPayload, DragTarget}
-import wust.webApp.state.{FocusState, GlobalState, PageStyle}
+import wust.webApp.state.{FocusState, GlobalState}
 import wust.webUtil.outwatchHelpers._
 
 import scala.scalajs.LinkingInfo
@@ -26,7 +26,6 @@ object GraphView {
 
     val forceSimulation = new ForceSimulation( focusState, onDrop(_, _, _), roleToDragItemPayload, roleToDragItemTarget)
 
-    val nodeStyle = PageStyle.ofNode(focusState.focusedId)
     val showControls = Var(LinkingInfo.developmentMode)
 
     div(

@@ -3,13 +3,48 @@ package wust.sdk
 import cats.data.NonEmptyList
 import colorado._
 import wust.ids._
+import wust.graph.{ Node, Graph }
+import rx._
 
 import scala.collection.breakOut
 
-object NodeColor {
-  def genericHue(seed: Any): Double = {
-    val rnd = new scala.util.Random(new scala.util.Random(seed.hashCode).nextLong()) // else nextDouble is too predictable
+case class BaseColor(base: Color) {
+  val hcl = base.hcl
 
+  @inline def finalColor(hue: Double): HCL = hcl.copy(h = hue)
+  @inline def finalHex(hue: Double): String = finalColor(hue).toHex
+
+  def of(node:Node.Content):String = colorOf(node).toHex
+  def colorOf(node: Node.Content): HCL = {
+    val settingsHue = for {
+      nodeSettings <- node.settings
+      globalSettings <- nodeSettings.global
+      colorHue <- globalSettings.colorHue
+    } yield colorHue
+    val hue = settingsHue.getOrElse(NodeColor.genericHue(node.id))
+    hcl.copy(h = hue)
+  }
+
+  def rgbOf(node: Node):RGB = colorOf(node).rgb
+  def of(node: Node): String = colorOf(node).toHex
+  def colorOf(node: Node): HCL = {
+    node match {
+      case node: Node.Content => colorOf(node)
+      case node               => finalColor(NodeColor.genericHue(node.id))
+    }
+  }
+
+  def of(node: Option[Node]): Option[String] = node.map(of)
+  def of(node: Rx[Option[Node]])(implicit ctx: Ctx.Owner): Rx[Option[String]] = node.map(_.map(of))
+  def of(nodeId: NodeId, graph: Graph): Option[String] = of(graph.nodesById(nodeId))
+  def ofNodeWithFallback(nodeId: NodeId, graph: Graph): String = of(graph.nodesById(nodeId)).getOrElse(finalHex(NodeColor.genericHue(nodeId)))
+  def of(nodeId: Option[NodeId], graph: Graph): Option[String] = nodeId.flatMap(nodeId => of(nodeId, graph))
+  def of(nodeId: NodeId, graph: Rx[Graph])(implicit ctx: Ctx.Owner): Rx[Option[String]] = Rx{ of(graph().nodesById(nodeId)) }
+  def of(nodeId: Option[NodeId], graph: Rx[Graph])(implicit ctx: Ctx.Owner): Rx[Option[String]] = Rx{ nodeId.flatMap(nodeId => of(graph().nodesById(nodeId))) }
+}
+
+object NodeColor {
+  def goodHue(hueFraction: Double): Double = {
     // the hues between 1 and 1.8 look ugly (dark yellow)
     // Color preview:
     // div(
@@ -35,43 +70,29 @@ object NodeColor {
     //      ^
     //     removed ugly interval here
     //
-    // then pick random number of the shorter interval.
+
     val skipRangeStart = 1.0
     val skipRangeEnd = 1.8
     val skipRangeSize = skipRangeEnd - skipRangeStart
-    val fullRangeSize = Math.PI*2
+    val fullRangeSize = Math.PI * 2
     val selectedRangeSize = fullRangeSize - skipRangeSize
-    val random = rnd.nextDouble() * selectedRangeSize
-    if(random < skipRangeStart) random
-    else skipRangeSize + random
+    val scaledHue = hueFraction * selectedRangeSize
+    if (scaledHue < skipRangeStart) scaledHue
+    else skipRangeSize + scaledHue
   }
 
-  @inline def hue(id: NodeId): Double = genericHue(id)
-  @inline def hue(id: Option[NodeId]): Option[Double] = id map genericHue
-  @inline def eulerBgColor(id: NodeId): HCL = BaseColors.eulerBg.copy(h = hue(id))
-  @inline def tagColor(nodeId: NodeId): HCL =  BaseColors.tag.copy(h = hue(nodeId))
-  @inline def accentColor(nodeId: NodeId): HCL =  BaseColors.accent.copy(h = hue(nodeId))
+  def genericHue(seed: Any): Double = {
+    val rnd = new scala.util.Random(new scala.util.Random(seed.hashCode).nextLong()) // else nextDouble is too predictable
 
-  def mixHues(parentIds: Iterable[NodeId]): Option[Double] =
-    NonEmptyList
-      .fromList(parentIds.map(id => BaseColors.pageBgLight.copy(h = hue(id)))(breakOut): List[Color])
-      .map(parentColors => mixColors(parentColors).hcl.h)
-
-  def mixColors(a: Color, b: Color): LAB = {
-    val aLab = a.lab
-    val bLab = b.lab
-    import aLab.{a => aa, b => ab, l => al}
-    import bLab.{a => ba, b => bb, l => bl}
-    LAB((al + bl) / 2, (aa + ba) / 2, (ab + bb) / 2)
+    goodHue(hueFraction = rnd.nextDouble())
   }
 
-  def mixColors(colors: NonEmptyList[Color]): LAB = {
-    // arithmetic mean in LAB color space
-    val colorSum = colors.foldLeft(LAB(0, 0, 0))((c1, c2Color) => {
-      val c2 = c2Color.lab
-      LAB(c1.l + c2.l, c1.a + c2.a, c1.b + c2.b)
-    })
-    val colorCount = colors.size
-    LAB(colorSum.l / colorCount, colorSum.a / colorCount, colorSum.b / colorCount)
-  }
+  @inline def defaultHue(id: NodeId): Double = genericHue(id)
+
+  val pageBg = BaseColor(BaseColors.pageBg)
+  val pageBgLight = BaseColor(BaseColors.pageBgLight)
+  val kanbanColumnBg = BaseColor(BaseColors.kanbanColumnBg)
+  val eulerBg = BaseColor(BaseColors.eulerBg)
+  val tag = BaseColor(BaseColors.tag)
+  val accent = BaseColor(BaseColors.accent)
 }

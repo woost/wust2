@@ -233,10 +233,6 @@ object GlobalState {
   //  }
   val permissionState: Rx[PermissionState] = Notifications.createPermissionStateRx()
 
-  val pageStyle = Rx {
-    PageStyle(view(), page())
-  }
-
   val topbarIsVisible: Rx[Boolean] = Rx{ screenSize() != ScreenSize.Small }
   @inline def smallScreen: Boolean = screenSize.now == ScreenSize.Small
   @inline def largeScreen: Boolean = screenSize.now == ScreenSize.Large

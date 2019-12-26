@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.sdk.{BaseColors, NodeColor}
 import com.github.ghik.silencer.silent
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -309,7 +310,6 @@ object GraphChangesAutomationUI {
     activeMod: VDomModifier = VDomModifier.empty,
     inactiveMod: VDomModifier = VDomModifier.empty,
   )(implicit ctx: Ctx.Owner): VNode = {
-    val accentColor = BaseColors.pageBg.copy(h = hue(focusedId)).toHex
     val hasTemplates = Rx {
       val graph = GlobalState.rawGraph()
       graph.automatedEdgeIdx.sliceNonEmpty(graph.idToIdxOrThrow(focusedId))
@@ -345,7 +345,7 @@ object GraphChangesAutomationUI {
       Rx {
         if (hasTemplates()) VDomModifier(
           UI.tooltip := "Automation: active",
-          color := accentColor,
+          Rx { color :=? NodeColor.pageBg.of(focusedId, GlobalState.graph()) },
           backgroundColor := "transparent",
           activeMod
         ) else VDomModifier(

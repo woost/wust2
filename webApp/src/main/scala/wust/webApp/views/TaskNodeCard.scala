@@ -56,6 +56,7 @@ object TaskNodeCard {
         icon : VDomModifier,
         modifier : VDomModifier) = {
         div(
+          cls := "buttonbar-button",
           cls := "item",
           span(cls := "icon", icon),
           modifier,
