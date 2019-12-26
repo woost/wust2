@@ -9,19 +9,19 @@ import wust.facades.fomanticui.ModalOptions
 import wust.webApp.views.Components._
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{ModalConfig, Ownable}
+import wust.sdk.NodeColor
 
 import scala.scalajs.js
 
 
 object Modal {
   import wust.graph.Node
-  import wust.sdk.{BaseColors, NodeColor}
 
   @inline def defaultHeader(node: Node, modalHeader: VDomModifier, icon: VDomModifier)(implicit ctx: Ctx.Owner): VDomModifier = defaultHeader( Some(node), modalHeader, icon)
   @inline def defaultHeader(modalHeader: VDomModifier, icon: VDomModifier)(implicit ctx: Ctx.Owner): VDomModifier = defaultHeader( None, modalHeader, icon)
   def defaultHeader(node: Option[Node], modalHeader: VDomModifier, icon: VDomModifier)(implicit ctx: Ctx.Owner): VDomModifier = {
     VDomModifier(
-      backgroundColor :=? node.map(node => BaseColors.pageBg.copy(h = NodeColor.hue(node.id)).toHex),
+      backgroundColor :=? node.map(node => NodeColor.pageBg.of(node)),
       color.white,
       div(
         Styles.flex,

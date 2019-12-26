@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.webUtil.tippy
 import acyclic.file
 import fontAwesome._
 import outwatch.dom._
@@ -8,12 +9,13 @@ import rx._
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
+import wust.sdk.{ BaseColors, NodeColor }
 import wust.webApp._
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.state._
 import wust.webApp.views.Components._
-import wust.webApp.views.DragComponents.{drag, registerDragContainer}
-import wust.webUtil.{Ownable, UI}
+import wust.webApp.views.DragComponents.{ drag, registerDragContainer }
+import wust.webUtil.{ Ownable, UI }
 import wust.webUtil.outwatchHelpers._
 
 object TagList {
@@ -51,7 +53,7 @@ object TagList {
       titleModifier = Ownable(implicit ctx =>
         Rx{
           VDomModifier(
-            backgroundColor := GlobalState.pageStyle().pageBgColor,
+            backgroundColor :=? NodeColor.pageBg.of(GlobalState.page().parentId, GlobalState.graph()),
             color.white
           )
         }),
@@ -59,7 +61,7 @@ object TagList {
     )
   }
 
-  def body(viewRender: ViewRenderLike)(implicit ctx:Ctx.Owner) = {
+  def body(viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner) = {
     val newTagFieldActive: Var[Boolean] = Var(false)
     div(
       Rx {
@@ -96,15 +98,15 @@ object TagList {
       graph.tagChildrenIdx(workspaceIdx).map(tagIdx => graph.roleTree(root = tagIdx, NodeRole.Tag))
     }
 
-    def renderTag(parentId: NodeId, tag: Node) = checkboxNodeTag(tag, viewRender, tagModifier = removableTagMod(() =>
+    def renderTag(parentId: NodeId, tag: Node.Content) = checkboxNodeTag(tag, viewRender, tagModifier = removableTagMod(() =>
       GlobalState.submitChanges(GraphChanges.disconnect(Edge.Child)(ParentId(parentId), ChildId(tag.id)))), dragOptions = id => DragComponents.drag(DragItem.Tag(id)), withAutomation = true)
 
     def renderTagTree(parentId: NodeId, trees: Seq[Tree])(implicit ctx: Ctx.Owner): VDomModifier = trees.map {
       case Tree.Leaf(node) =>
-        renderTag(parentId, node)
+        renderTag(parentId, node.asInstanceOf[Node.Content])
       case Tree.Parent(node, children) =>
         VDomModifier(
-          renderTag(parentId, node),
+          renderTag(parentId, node.asInstanceOf[Node.Content]),
           div(
             paddingLeft := "10px",
             renderTagTree(node.id, children)
@@ -122,7 +124,7 @@ object TagList {
   }
 
   def checkboxNodeTag(
-    tagNode: Node,
+    tagNode: Node.Content,
     viewRender: ViewRenderLike,
     tagModifier: VDomModifier = VDomModifier.empty,
     dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId), target = DragItem.DisableDrag),
@@ -142,13 +144,15 @@ object TagList {
         ),
         label(), // needed for fomanticui
       ),
-      nodeTag(tagNode, dragOptions).apply(tagModifier),
+      nodeTag(tagNode, dragOptions).apply(tagModifier, marginRight.auto),
+
+      div(cls := "singleButtonWithBg", marginRight := "3px", div(cls := "fa-fw", Icons.selectColor, cursor.pointer, tippy.menu() := ColorMenu(BaseColors.tag, tagNode))),
       VDomModifier.ifTrue(withAutomation)(
         GraphChangesAutomationUI.settingsButton(
           tagNode.id,
           activeMod = visibility.visible,
           viewRender = viewRender,
-        ).apply(cls := "singleButtonWithBg", marginLeft.auto)
+        ).apply(cls := "singleButtonWithBg")
       )
     )
   }

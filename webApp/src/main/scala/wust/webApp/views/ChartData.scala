@@ -44,10 +44,8 @@ object ChartData {
                   label = chartLabel
                   data = chartPoints
                   backgroundColor = chartColors.map {
-                    case c if c.background.isEmpty => s"rgba(${ c.front.ri }, ${ c.front.gi }, ${ c.front.bi }, 0.2)"
-                    case c =>
-                      val bg = c.background.get
-                      s"rgb(${ bg.ri }, ${ bg.gi }, ${ bg.bi }, 0.2)"
+                    case c@LabelColor(_, None) => c.front.toCSS(a = 0.2)
+                    case c@LabelColor(_, Some(bgColor)) => bgColor.toCSS(0.2)
                   }
                   borderColor = chartColors.map(_.front.toCSS)
                   borderWidth = 1.0
@@ -82,7 +80,7 @@ object ChartData {
           Some(ChartDataContainer(
             label = stats.user.str,
             dataValue = stats.numTasks,
-            color = LabelColor(BaseColors.kanbanColumnBg.copy(h = NodeColor.hue(stats.user.id)).rgb)
+            color = LabelColor(NodeColor.kanbanColumnBg.rgbOf(stats.user))
           ))
         else
           None
@@ -111,7 +109,7 @@ object ChartData {
           ChartDataContainer(
             label = stageName,
             dataValue = stageChildren,
-            color = LabelColor(BaseColors.kanbanColumnBg.copy(h = NodeColor.hue(node.id)).rgb),
+            color = LabelColor(NodeColor.kanbanColumnBg.rgbOf(node)),
           )
       }
     }

@@ -57,7 +57,7 @@ files.vendor = {
         Path.join(__dirname, 'node_modules/tippy.js/dist/backdrop.css'),
         Path.join(__dirname, 'node_modules/tippy.js/animations/shift-away.css'),
         // Path.join(__dirname, 'node_modules/tippy.js/themes/light.css'),
-        // Path.join(__dirname, 'node_modules/tippy.js/themes/light-border.css'),
+        Path.join(__dirname, 'node_modules/tippy.js/themes/light-border.css'),
         // Path.join(__dirname, 'node_modules/tippy.js/themes/material.css'),
     ],
     js: [

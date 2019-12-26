@@ -29,6 +29,7 @@ object Icons {
     })
   )
   val reply: IconDefinition = freeSolid.faReply
+  val selectColor: IconDefinition = freeSolid.faPalette
 
   val showOnCard: IconDefinition = freeRegular.faEye
 

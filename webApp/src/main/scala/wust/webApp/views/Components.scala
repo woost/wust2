@@ -16,7 +16,6 @@ import wust.facades.fomanticui.{SearchOptions, SearchSourceEntry}
 import wust.facades.jquery.JQuerySelection
 import wust.graph._
 import wust.ids.{Feature, _}
-import wust.sdk.NodeColor._
 import wust.sdk.{BaseColors, NodeColor}
 import wust.util.StringOps._
 import wust.util._
@@ -179,7 +178,7 @@ object Components {
     span(
       cls := "node colorful tag",
       injected,
-      backgroundColor := tagColor(tag.id).toHex,
+      backgroundColor := NodeColor.tag.of(tag),
       cursor.default,
     )
   }
@@ -330,7 +329,7 @@ object Components {
               VDomModifier(
                 color := bucket.color.toCSS,
                 backgroundColor := bucket.bgColor.toCSS,
-                boxShadow := s"rgba(${ bucket.bgColor.ri }, ${ bucket.bgColor.gi }, ${ bucket.bgColor.bi }, 0.75) 0px 0px 6px 0px",
+                boxShadow := s"${ bucket.bgColor.toCSS(a = 0.75) } 0px 0px 6px 0px",
                 UI.tooltip := bucket.name,
               )
             }
@@ -440,7 +439,7 @@ object Components {
           case _ =>
             span(
               freeSolid.faFolder,
-              color := BaseColors.pageBg.copy(h = NodeColor.hue(node.id)).toHex
+              color := NodeColor.pageBg.of(node),
             )
         }
 
@@ -476,7 +475,7 @@ object Components {
           case node if node.role == NodeRole.Tag => VDomModifier( //TODO merge this definition with renderNodeTag
             cls := "tag colorful",
             cls := "nodecard",
-            backgroundColor := tagColor(node.id).toHex,
+            backgroundColor := NodeColor.tag.of(node),
             contentNode(node),
           )
           case node => VDomModifier(
@@ -887,7 +886,7 @@ object Components {
               fontSize.xSmall,
               Icons.automate,
               cursor.pointer,
-              color := tagColor(node.id).toHex,
+              color := NodeColor.tag.of(node),
               onClick.stopPropagation.foreach {
                 GlobalState.focus(workspace.id)
               }

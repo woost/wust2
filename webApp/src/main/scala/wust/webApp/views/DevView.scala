@@ -46,11 +46,7 @@ object DevView {
       right := "0",
       boxSizing.borderBox,
       padding := "5px",
-      GlobalState.pageStyle.map { pageStyle =>
-        Seq(
-          backgroundColor := Colors.sidebarBg,
-        )
-      },
+      backgroundColor := Colors.sidebarBg,
       cls := "shadow"
     )
 

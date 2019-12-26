@@ -10,7 +10,7 @@ import rx._
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
-import wust.sdk.Colors
+import wust.sdk.{Colors,NodeColor}
 import wust.webApp.state._
 import wust.webApp.views.SharedViewElements._
 import wust.webApp.{Icons, ItemProperties}
@@ -91,9 +91,6 @@ object RightSidebar {
     focusFuture: Var[List[FocusPreference]],
     ignoreNextUpdate: () => Unit
   )(implicit ctx: Ctx.Owner): VNode = {
-    val nodeStyle = PageStyle.ofNode(focusPref.nodeId)
-
-
     val focusState = FocusState(
       view = View.Empty,
       contextParentId = focusPref.nodeId,
@@ -217,7 +214,7 @@ object RightSidebar {
           ), active = false),
           accordionEntry("Views", VDomModifier(
             height := "100%",
-            viewContent(focusPref, parentIdAction, focusState, nodeStyle, viewRender),
+            viewContent(focusPref, parentIdAction, focusState, viewRender),
           ), active = true),
         ),
         styles = "styled fluid",
@@ -235,7 +232,6 @@ object RightSidebar {
     focusPref: FocusPreference,
     parentIdAction: Option[FocusPreference] => Unit, // TODO: use focusState instead
     focusState:FocusState,
-    nodeStyle: PageStyle,
     viewRender: ViewRenderLike
   )(implicit ctx: Ctx.Owner) = {
 
@@ -264,7 +260,7 @@ object RightSidebar {
 
       div(
         cls := "pageheader",
-        backgroundColor := nodeStyle.pageBgColor,
+        Rx{ backgroundColor :=? NodeColor.pageBg.of(focusPref.nodeId, GlobalState.graph()) },
         paddingTop := "10px", // to have some colored space above the tabs
         Styles.flexStatic,
         Styles.flex,

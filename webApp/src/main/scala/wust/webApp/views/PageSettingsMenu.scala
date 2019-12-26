@@ -7,7 +7,7 @@ import outwatch.ext.monix._
 import rx._
 import wust.graph._
 import wust.ids._
-import wust.sdk.{BaseColors, NodeColor}
+import wust.sdk.NodeColor
 import wust.util._
 import wust.webApp._
 import wust.webApp.state._
@@ -155,7 +155,7 @@ object PageSettingsMenu {
       sidebarModifier = VDomModifier(
         borderWidth := "0px 0px 0px 5px",
         width := "165px",
-        borderColor := BaseColors.pageBg.copy(h = NodeColor.hue(channelId)).toHex,
+        Rx{ borderColor :=? NodeColor.pageBg.of(channelId, GlobalState.graph()) },
       )
     )
   }

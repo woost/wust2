@@ -1,7 +1,10 @@
 package wust.ids
 
 // Independent of View
-final case class GlobalNodeSettings(itemNameOpt: Option[String] = None) {
+final case class GlobalNodeSettings(
+  itemNameOpt: Option[String] = None,
+  colorHue: Option[Double] = None
+) {
   @inline def itemName: String = itemNameOpt.getOrElse("Item")
 }
 

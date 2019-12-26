@@ -1,21 +1,24 @@
 package wust.webApp.views
 
+import wust.webUtil.tippy
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
+import wust.webApp.Icons
 import wust.css.Styles
 import wust.ids._
-import wust.sdk.Colors
+import wust.sdk.{ Colors, NodeColor, BaseColors }
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.state._
 import wust.webApp.views.DragComponents.registerDragContainer
 import wust.webUtil.Ownable
 import wust.webUtil.outwatchHelpers._
 import GlobalState.showOnlyInFullMode
+import wust.graph.Node
 
 object PageHeader {
 
-  def apply(viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(viewRender: ViewRenderLike): VNode = {
     div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
       VDomModifier(
         cls := "pageheader",
@@ -29,9 +32,8 @@ object PageHeader {
 
   private def pageRow(pageNodeId: NodeId, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VDomModifier = {
 
-    val pageStyle = PageStyle.ofNode(pageNodeId)
     val pageNodeOpt = Rx {
-      GlobalState.graph().nodesById(pageNodeId)
+      GlobalState.graph().nodesById(pageNodeId).map(_.asInstanceOf[Node.Content])
     }
 
     val focusState: Rx[Option[FocusState]] = Rx {
@@ -40,7 +42,6 @@ object PageHeader {
     }
 
     def channelTitle(focusState: FocusState)(implicit ctx: Ctx.Owner) = div(
-      backgroundColor := pageStyle.pageBgColor,
       cls := "pageheader-channeltitle",
 
       Components.sidebarNodeFocusMod(pageNodeId, focusState),
@@ -49,6 +50,7 @@ object PageHeader {
       Rx {
         pageNodeOpt().map { node =>
           VDomModifier(
+            backgroundColor := NodeColor.pageBg.of(node),
             Components.renderNodeCardMod(node, Components.renderAsOneLineText(_), projectWithIcon = false),
             DragItem.fromNodeRole(node.id, node.role).map(DragComponents.drag(_)),
           )
@@ -78,7 +80,7 @@ object PageHeader {
     }
 
     VDomModifier(
-      backgroundColor := pageStyle.pageBgColor,
+      Rx{ backgroundColor :=? NodeColor.pageBg.of(pageNodeOpt()) },
 
       showOnlyInFullMode(
         div(
@@ -125,7 +127,7 @@ object PageHeader {
               case _           =>
             }
           },
-
+        Rx{ pageNodeOpt().map(node => div(cls := "fa-fw", Icons.selectColor, cursor.pointer, tippy.menu() := ColorMenu(BaseColors.pageBg, node))) },
         div(
           Styles.flex,
           alignItems.center,
