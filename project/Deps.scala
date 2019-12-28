@@ -136,8 +136,8 @@ object Deps {
   val javaEmojis = dep("com.github.GRBurst" % "emoji-java" % "24b956c")
   val stripeJava = dep("com.stripe" % "stripe-java" % "14.0.0")
 
-  val webpackVersion = "4.38.0"
-  val webpackDevServerVersion = "3.2.1"
+  val webpackVersion = "4.41.5"
+  val webpackDevServerVersion = "3.10.1"
 
   object npm {
     val defaultPassiveEvents = "default-passive-events" -> "1.0.10"
