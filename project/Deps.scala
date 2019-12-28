@@ -18,15 +18,15 @@ object Deps {
   // core libraries
   val cats = new {
     val core = dep("org.typelevel" %%% "cats-core" % "2.1.0")
-    val kittens = dep("org.typelevel" %%% "kittens" % "1.2.1")
+    val kittens = dep("org.typelevel" %%% "kittens" % "2.0.0")
   }
   val akka = new {
     private val version = "2.5.26"
-    private val httpVersion = "10.1.10"
+    private val httpVersion = "10.1.11"
     val http = dep("com.typesafe.akka" %% "akka-http" % httpVersion)
     val httpCore = dep("com.typesafe.akka" %% "akka-http-core" % httpVersion)
-    val httpCirce = dep("de.heikoseeberger" %% "akka-http-circe" % "1.27.0")
-    val httpPlay = dep("de.heikoseeberger" %% "akka-http-play-json" % "1.27.0")
+    val httpCirce = dep("de.heikoseeberger" %% "akka-http-circe" % "1.30.0")
+    val httpPlay = dep("de.heikoseeberger" %% "akka-http-play-json" % "1.30.0")
     val httpCors = dep("ch.megard" %% "akka-http-cors" % "0.3.1")
     val stream = dep("com.typesafe.akka" %% "akka-stream" % version)
     val actor = dep("com.typesafe.akka" %% "akka-actor" % version)
@@ -71,8 +71,8 @@ object Deps {
     val core = dep("com.outr" %%% "scribe" % "2.7.9")
   }
   val pureconfig = dep("com.github.pureconfig" %% "pureconfig" % "0.9.2")
-  val monocle = dep("com.github.julien-truffaut" %% "monocle-macro" % "1.6.0-M1")
-  val monocleCore = dep("com.github.julien-truffaut" %% "monocle-core" % "1.6.0-M1")
+  val monocle = dep("com.github.julien-truffaut" %% "monocle-macro" % "2.0.0")
+  val monocleCore = dep("com.github.julien-truffaut" %% "monocle-core" % "2.0.0")
   val sourcecode = dep("com.github.cornerman.sourcecode" %%% "sourcecode" % "998ee90c15")
   val cuid = dep("io.github.cornerman.scala-cuid" %%% "scala-cuid" % "437a396")
   val base58s = dep("io.github.fdietze.base58s" %%% "base58s" % "fbedca4")
