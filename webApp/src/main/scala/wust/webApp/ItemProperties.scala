@@ -9,6 +9,7 @@ import rx._
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
+import wust.ids.serialize.Circe._
 import wust.webApp.state._
 import wust.webApp.views._
 import wust.webUtil.outwatchHelpers._

@@ -46,6 +46,9 @@ trait Circe {
   implicit val nodeAccessDecoder: Decoder[NodeAccess] = deriveConfiguredDecoder[NodeAccess]
   implicit val nodeAccessEncoder: Encoder[NodeAccess] = deriveConfiguredEncoder[NodeAccess]
 
+  implicit val NodeTypeSelectionDecoder: Decoder[NodeTypeSelection] = deriveConfiguredDecoder[NodeTypeSelection]
+  implicit val NodeTypeSelectionEncoder: Encoder[NodeTypeSelection] = deriveConfiguredEncoder[NodeTypeSelection]
+
   implicit val KanbanSettingsDecoder: Decoder[KanbanSettings] = deriveConfiguredDecoder[KanbanSettings]
   implicit val KanbanSettingsEncoder: Encoder[KanbanSettings] = deriveConfiguredEncoder[KanbanSettings]
   implicit val NodeSettingsDecoder: Decoder[NodeSettings] = deriveConfiguredDecoder[NodeSettings]
