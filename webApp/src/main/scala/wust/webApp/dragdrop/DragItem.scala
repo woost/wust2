@@ -3,6 +3,7 @@ package wust.webApp.dragdrop
 import outwatch.reactive._
 import wust.graph.Edge
 import wust.ids.{NodeId, NodeRole, UserId}
+import scala.scalajs.js
 
 sealed trait DragPayload extends Product with Serializable { def nodeIds: Seq[NodeId] }
 sealed trait DragTarget extends Product with Serializable { def nodeIds: Seq[NodeId] }
@@ -25,6 +26,7 @@ object DragItem {
 
   final case class Thread(nodeIds: Seq[NodeId]) extends DragTarget { override def toString = s"Thread(${nodeIds.map(_.shortHumanReadable).mkString(",")})" }
   final case class Stage(nodeId: NodeId) extends DragPayloadAndTarget { def nodeIds = Seq(nodeId); override def toString = s"Stage(${nodeId.shortHumanReadable})" }
+  final case class CalendarDay(date:js.Date) extends DragTarget { def nodeIds = Seq.empty }
 
   case object Sidebar extends DragTarget { def nodeIds = Seq.empty }
   final case class Channel(nodeId: NodeId, parentId: Option[NodeId]) extends DragPayloadAndTarget { def nodeIds = Seq(nodeId); override def toString = s"Channel(${nodeId.shortHumanReadable}, parentId: ${parentId.map(_.shortHumanReadable)})" }
@@ -75,6 +77,7 @@ object DragContainer {
 
   case object Sidebar extends DragContainer
   case object Chat extends DragContainer
+  case object Calendar extends DragContainer
 
   val propName = "_wust_dragcontainer"
 }

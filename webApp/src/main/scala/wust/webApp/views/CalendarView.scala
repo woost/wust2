@@ -20,6 +20,8 @@ import wust.webApp.views.Components._
 import wust.webUtil.outwatchHelpers._
 import collection.mutable
 import collection.immutable
+import wust.webApp.views.DragComponents.{ drag, registerDragContainer }
+import wust.webApp.dragdrop.{DragItem, _}
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
@@ -95,6 +97,7 @@ object CalendarView {
         }
       },
 
+      registerDragContainer(DragContainer.Calendar),
     ),
   )
 
@@ -164,6 +167,7 @@ object CalendarView {
       VDomModifier.ifTrue(isToday)(boxShadow := "0 0 0px 2px rgb(242, 107, 77)"),
       borderRadius := "2px",
       overflow.hidden,
+      drag(target = DragItem.CalendarDay(dateOfCell)),
     )
   }
 

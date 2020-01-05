@@ -408,4 +408,16 @@ object GraphChanges {
   def connectWithProperty(sourceId: NodeId, propertyName: String, targetId: NodeId) = {
     connect(Edge.LabeledProperty)(sourceId, EdgeData.LabeledProperty(propertyName), PropertyId(targetId))
   }
+
+  def setDueDate(nodeId: NodeId, dueDate: EpochMilli) = {
+    // graph.idToIdxFold(GraphChanges.empty)(nodeid){nodeIdx => 
+    //   val props = PropertyData.getProperties(graph, nodeIdx)
+    //   props.get(EdgeData.LabeledProperty.dueDate.key).foreach { propValues =>
+    //   }
+    // }
+
+    val dateNode = Node.Content(NodeId.fresh, NodeData.Date(DateMilli(dueDate)), NodeRole.Neutral, NodeMeta.default, None)
+    addNode(dateNode) merge
+    connect(Edge.LabeledProperty)(nodeId, EdgeData.LabeledProperty(EdgeData.LabeledProperty.dueDate.key), PropertyId(dateNode.id))
+  }
 }
