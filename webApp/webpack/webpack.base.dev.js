@@ -141,19 +141,19 @@ if (!process.env.WUST_CORE_PORT) {
 }
 module.exports.devServer = {
     // https://webpack.js.org/configuration/dev-server
+    host: "0.0.0.0", //TODO this is needed so that in dev docker containers can access devserver through docker bridge
     port: process.env.WUST_PORT,
+    allowedHosts: [ ".localhost" ],
+
     contentBase: [
         module.exports.output.path,
         woost.dirs.root // serve complete project for providing source-maps, needs to be ignored for watching
     ],
     watchContentBase: true,
-    open: false, // open page in browser
-    hot: false,
-    hotOnly: false, // only reload when build is sucessful
-    inline: true, // live reloading
-    overlay: false, // this breaks the compiled app-fastopt-library.js
-    host: "0.0.0.0", //TODO this is needed so that in dev docker containers can access devserver through docker bridge
-    allowedHosts: [ ".localhost" ],
+    watchOptions: {
+        ignored: (path) => !path.startsWith(module.exports.output.path),
+    },
+    clientLogLevel: 'warn',
 
     //proxy websocket requests to app
     proxy : [
