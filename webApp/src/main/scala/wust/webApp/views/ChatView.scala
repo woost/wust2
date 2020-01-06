@@ -370,7 +370,7 @@ object ChatView {
     val authorAndCreated = Rx {
       val graph = GlobalState.graph()
       graph.idToIdxFold(nodeId)((Option.empty[Node.User], Option.empty[EpochMilli])) { nodeIdx =>
-        (graph.authorsByIndex(nodeIdx).headOption, Some(graph.nodeCreated(nodeIdx)))
+        (graph.nodeCreator(nodeIdx), Some(graph.nodeCreated(nodeIdx)))
       }
     }
 
