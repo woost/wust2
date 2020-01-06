@@ -416,7 +416,7 @@ object GraphChanges {
     //   }
     // }
 
-    val dateNode = Node.Content(NodeId.fresh, NodeData.Date(DateMilli(dueDate)), NodeRole.Neutral, NodeMeta.default, None)
+    val dateNode = Node.Content(NodeId.fresh, NodeData.Date(DateMilli(dueDate), end = None), NodeRole.Neutral, NodeMeta.default, None)
     addNode(dateNode) merge
     connect(Edge.LabeledProperty)(nodeId, EdgeData.LabeledProperty(EdgeData.LabeledProperty.dueDate.key), PropertyId(dateNode.id))
   }

@@ -51,16 +51,18 @@ object NodeData {
   }
   object Decimal extends Named
 
-  final case class DateTime(content: DateTimeMilli) extends Named with Content {
+  final case class DateTime(content: DateTimeMilli, end: Option[DateTimeMilli]) extends Named with Content {
     def plainStr = content.toString
-    def str = content.isoDateAndTime
+    def str = s"${content.isoDateAndTime}${end.fold("")(d => s"->${d.isoDateAndTime}")}"
   }
   object DateTime extends Named
-  final case class Date(content: DateMilli) extends Named with Content {
+
+  final case class Date(content: DateMilli, end: Option[DateMilli]) extends Named with Content {
     def plainStr = content.toString
-    def str = content.isoDate
+    def str = s"${content.isoDateAndTime}${end.fold("")(d => s"->${d.isoDateAndTime}")}"
   }
   object Date extends Named
+
   final case class Duration(content: DurationMilli) extends Named with Content {
     def str = content.toString
   }

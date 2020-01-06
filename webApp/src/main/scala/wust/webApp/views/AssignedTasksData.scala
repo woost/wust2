@@ -75,7 +75,7 @@ object AssignedTasksData {
               if(edge.data.key == EdgeData.LabeledProperty.dueDate.key) {
                 val propertyIdx = graph.edgesIdx.b(edgeIdx)
                 graph.nodes(propertyIdx) match {
-                  case Node.Content(_, NodeData.DateTime(dateTime), NodeRole.Neutral, _, _, _) =>
+                  case Node.Content(_, NodeData.DateTime(dateTime, _), NodeRole.Neutral, _, _, _) =>
                     dueDate = Some(dateTime)
                     false
                   case _                                                                    => true

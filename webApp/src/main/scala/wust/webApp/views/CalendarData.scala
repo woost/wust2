@@ -87,9 +87,16 @@ object CalendarData {
   }
 
   def getCalendarData(graph: Graph, parentId: NodeId): CalendarData = {
+
     val parentIdxOpt = graph.idToIdx(parentId)
     parentIdxOpt.fold(CalendarData.empty){ parentIdx =>
       val eventBuilder = Array.newBuilder[Event]
+      def addEvent(start:EpochMilli, endOpt:Option[EpochMilli], node:Node) = {
+        val startDate = new js.Date(start)
+        val endDate = new js.Date(endOpt.getOrElse(start))
+        eventBuilder += Event(startDate = startDate, endDate = endDate, node = node)
+      }
+
       graph.childrenIdx.foreachElement(parentIdx) { nodeIdx =>
         val node = graph.nodes(nodeIdx)
         if (node.role == NodeRole.Task) {
@@ -97,12 +104,8 @@ object CalendarData {
           props.get(EdgeData.LabeledProperty.dueDate.key).foreach { propValues =>
             propValues.foreach { propValue =>
               propValue.node.data match {
-                case NodeData.DateTime(dueDate) =>
-                  val startDate = new js.Date(dueDate)
-                  eventBuilder += Event(startDate = startDate, endDate = startDate, node = node)
-                case NodeData.Date(dueDate) =>
-                  val startDate = new js.Date(dueDate)
-                  eventBuilder += Event(startDate = startDate, endDate = startDate, node = node)
+                case NodeData.DateTime(dueDate, endOpt) => addEvent(dueDate, endOpt, node)
+                case NodeData.Date(dueDate, endOpt) => addEvent(dueDate, endOpt, node)
                 case _ =>
               }
             }

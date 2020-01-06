@@ -110,7 +110,7 @@ object MeisterTask {
       }
 
       task.dueDate.foreach { date =>
-        val dateNode = Node.Content(NodeId.fresh, NodeData.DateTime(DateTimeMilli(date)), NodeRole.Neutral, NodeMeta.default, None)
+        val dateNode = Node.Content(NodeId.fresh, NodeData.DateTime(DateTimeMilli(date), end = None), NodeRole.Neutral, NodeMeta.default, None)
         addNodes += dateNode
         addEdges += Edge.LabeledProperty(taskNode.id, EdgeData.LabeledProperty.dueDate, PropertyId(dateNode.id))
       }

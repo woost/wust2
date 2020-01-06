@@ -28,7 +28,7 @@ trait FlatpickrOptions extends js.Object {
   var ariaDateFormat: js.UndefOr[String] = js.undefined //Defines how the date will be formatted in the aria-label for calendar days, using the same tokens as dateFormat. If you change this, you should choose a value that will make sense if a screen reader reads it out loud.
   var clickOpens: js.UndefOr[Boolean] = js.undefined //Whether clicking on the input should open the picker. You could disable this if you wish to open the calendar manually with.open()
   var dateFormat: js.UndefOr[String] = js.undefined //A string of characters which are used to define how the date will be displayed in the input box. The supported characters are defined in the table below.
-  var defaultDate: js.UndefOr[String | js.Date] = js.undefined // Sets the initial selected date(s). If you're using mode: "multiple" or a range calendar supply an Array of Date objects or an Array of date strings which follow your dateFormat.Otherwise, you can supply a single Date object or a date string.
+  var defaultDate: js.UndefOr[String | js.Date | js.Array[js.Date]] = js.undefined // Sets the initial selected date(s). If you're using mode: "multiple" or a range calendar supply an Array of Date objects or an Array of date strings which follow your dateFormat.Otherwise, you can supply a single Date object or a date string.
   var defaultHour: js.UndefOr[Double] = js.undefined //Initial value of the hour element.
   var defaultMinute: js.UndefOr[Double] = js.undefined // Initial value of the minute element.
   // var disable	Array	[]	See Disabling dates

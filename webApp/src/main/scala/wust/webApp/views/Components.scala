@@ -62,7 +62,7 @@ object Components {
   def displayDuration(data: NodeData.Duration) = span(StringJsOps.durationToString(data.content))
   def displayRelativeDate(data: NodeData.RelativeDate) = VDomModifier(span(color := "lightgray", "X + "), span(StringJsOps.durationToString(data.content)))
   def displayDate(data: NodeData.Date) = span(StringJsOps.dateToString(data.content))
-  def displayDateTime(data: NodeData.DateTime) = span(StringJsOps.dateTimeToString(data.content))
+  def displayDateTime(data: NodeData.DateTime) = span(StringJsOps.dateTimeToString(data.content), data.end.map(endDate => VDomModifier(" - " ,StringJsOps.dateTimeToString(endDate))))
   def displayPlaceholder(data: NodeData.Placeholder) = span(
     color := "#CD5C5C	",
     freeSolid.faExclamation,
@@ -323,7 +323,7 @@ object Components {
 
     val dueModifier = VDomModifier.ifTrue(key.data.key == EdgeData.LabeledProperty.dueDate.key) {
       property.data match {
-        case NodeData.DateTime(dueDate) =>
+        case NodeData.DateTime(dueDate,_) =>
           DueDate.bucketOf(EpochMilli.now, dueDate).fold(VDomModifier.empty) { bucket =>
             VDomModifier.ifNot(bucket.isFarFuture) {
               VDomModifier(

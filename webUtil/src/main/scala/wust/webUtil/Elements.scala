@@ -1,5 +1,6 @@
 package wust.webUtil
 
+import wust.facades.flatpickr.FlatpickrOptions
 import typings.chartDotJs.chartDotJsMod.ChartConfiguration
 import fontAwesome.{ IconLookup, Params, Transform, fontawesome, freeSolid }
 import wust.facades.dateFns.DateFns
@@ -554,29 +555,42 @@ object Elements {
     }
   }
 
+  def flatpickrRange(placeholder: String, withTime: Boolean, initialDate: js.Array[js.Date], isInline: Boolean = false, openTrigger: SourceStream[Boolean] = SourceStream.empty): EmitterBuilder[js.Array[js.Date], VDomModifier] = flatpickrRaw(new FlatpickrOptions {
+          enableTime = withTime
+          altInput = true
+          inline = isInline
+          defaultDate = initialDate
+          mode = "range"
+    }, openTrigger, placeholder)
+
+  def flatpickr(placeholder: String, withTime: Boolean, initialDate: Option[js.Date], isInline: Boolean = false, openTrigger: SourceStream[Boolean] = SourceStream.empty): EmitterBuilder[js.Date, VDomModifier] = flatpickrRaw(new FlatpickrOptions {
+          enableTime = withTime
+          altInput = true
+          inline = isInline
+          defaultDate = initialDate.orUndefined
+          mode = "single"
+    }, openTrigger, placeholder).map(_.head)
+
   // https://stackoverflow.com/questions/28983016/how-to-paste-rich-text-from-clipboard-to-html-textarea-element
-  def flatpickr(placeholder: String, withTime: Boolean, initialDate: Option[js.Date], isInline: Boolean = false, openTrigger: SourceStream[Boolean] = SourceStream.empty): EmitterBuilder[js.Date, VDomModifier] = EmitterBuilder.ofModifier { sink =>
+  def flatpickrRaw(options: FlatpickrOptions, openTrigger: SourceStream[Boolean], placeholder: String): EmitterBuilder[js.Array[js.Date], VDomModifier] = EmitterBuilder.ofModifier { sink =>
+    options.onClose = { (dateArr, _, element) =>
+      if (dateArr.nonEmpty) sink.onNext(dateArr)
+    }: js.Function3[js.Array[js.Date], String, js.Any, Unit]
+
+
     input(
       uniqueKey,
       dsl.placeholder := placeholder,
       managedElement { elem =>
         import wust.facades.flatpickr._
-        val instance = Flatpickr(elem, new FlatpickrOptions {
-          enableTime = withTime
-          altInput = true
-          inline = isInline
-          defaultDate = initialDate.orUndefined
-          onClose = { (dateArr, _, element) =>
-            if (dateArr.nonEmpty) sink.onNext(dateArr.head)
-          }: js.Function3[js.Array[js.Date], String, js.Any, Unit]
-        })
+        val instance = Flatpickr(elem, options)
 
         Subscription.composite(
-          Subscription(instance.destroy),
           openTrigger.foreach {
             case true  => instance.open()
             case false => instance.close()
-          }
+          },
+          Subscription(instance.destroy),
         )
       }
     )

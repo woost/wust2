@@ -636,7 +636,7 @@ object GraphChangesAutomation {
               case None => data
             }
 
-          case NodeData.RelativeDate(duration) => NodeData.DateTime(DateTimeMilli(copyTime plus duration))
+          case NodeData.RelativeDate(duration) => NodeData.DateTime(DateTimeMilli(copyTime plus duration), end = None)
 
           case data: NodeData.Content => data
 

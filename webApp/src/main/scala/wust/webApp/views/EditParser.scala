@@ -265,14 +265,41 @@ object EditElementParser {
   }
 
   implicit object EditDateTimeMilli extends EditElementParser[DateTimeMilli] {
-
     def render(config: Config, initial: Task[Option[DateTimeMilli]], handler: Handler[EditInteraction[DateTimeMilli]])(implicit ctx: Ctx.Owner) = {
-
       SourceStream.fromAsync(initial).prepend(None).map { dateTime =>
         val initialDate = dateTime.map(new js.Date(_))
         Elements.flatpickr("Select Date and Time", withTime = true, initialDate = initialDate).foreach { date =>
           handler.onNext(EditInteraction.Input(DateTimeMilli(EpochMilli(date.getTime.toLong))))
         }
+      }
+    }
+  }
+
+  implicit object EditNodeDataDateTime extends EditElementParser[NodeData.DateTime] {
+    def render(config: Config, initial: Task[Option[NodeData.DateTime]], handler: Handler[EditInteraction[NodeData.DateTime]])(implicit ctx: Ctx.Owner) = {
+      SourceStream.fromAsync(initial).prepend(None).map { dateTime =>
+        val initialDate = dateTime.fold(js.Array[js.Date]())(dateTime => js.Array(new js.Date(dateTime.content)))
+        // val hasEndDate = Var(dateTime.exists(_.end.isDefined))
+        val hasEndDate = Var(true)
+        div(
+          UI.toggle("End Date", hasEndDate),
+          Rx {
+            if(hasEndDate()) {
+              Elements.flatpickrRange("Select Date and Time", withTime = true, initialDate = initialDate).foreach { selectedDate =>
+                val newStartDate = DateTimeMilli(EpochMilli(selectedDate.head.getTime.toLong))
+                val newEndDate = if(selectedDate.size == 2) Some(DateTimeMilli(EpochMilli(selectedDate(1).getTime.toLong))) else None
+                val newDateTime = NodeData.DateTime(content = newStartDate, end = newEndDate)
+                handler.onNext(EditInteraction.Input(newDateTime))
+              }
+            } else {
+              Elements.flatpickr("Select Date and Time", withTime = true, initialDate = initialDate.headOption).foreach { selectedDate =>
+                val newStartDate = DateTimeMilli(EpochMilli(selectedDate.getTime.toLong))
+                val newDateTime = NodeData.DateTime(content = newStartDate, end = None)
+                handler.onNext(EditInteraction.Input(newDateTime))
+              }
+            }
+          }
+        )
       }
     }
   }
@@ -312,8 +339,8 @@ object EditElementParser {
 
   implicit val EditNodeDataInteger: EditElementParser[NodeData.Integer] = EditInteger.map[NodeData.Integer](NodeData.Integer.apply)(_.content)
   implicit val EditNodeDataDecimal: EditElementParser[NodeData.Decimal] = EditDouble.map[NodeData.Decimal](NodeData.Decimal.apply)(_.content)
-  implicit val EditNodeDataDate: EditElementParser[NodeData.Date] = EditDateMilli.map[NodeData.Date](NodeData.Date.apply)(_.content)
-  implicit val EditNodeDataDateTime: EditElementParser[NodeData.DateTime] = EditDateTimeMilli.map[NodeData.DateTime](NodeData.DateTime.apply)(_.content)
+  implicit val EditNodeDataDate: EditElementParser[NodeData.Date] = EditDateMilli.map[NodeData.Date](NodeData.Date.apply(_, end = None))(_.content)
+  // implicit val EditNodeDataDateTime: EditElementParser[NodeData.DateTime] = EditDateTimeMilli.map[NodeData.DateTime](NodeData.DateTime.apply)(_.content)
   implicit val EditNodeDataRelativeDate: EditElementParser[NodeData.RelativeDate] = EditDurationMilli.map[NodeData.RelativeDate](NodeData.RelativeDate.apply)(_.content)
   implicit val EditNodeDataDuration: EditElementParser[NodeData.Duration] = EditDurationMilli.map[NodeData.Duration](NodeData.Duration.apply)(_.content)
 
