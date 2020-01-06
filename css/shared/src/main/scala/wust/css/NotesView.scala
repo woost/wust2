@@ -19,7 +19,7 @@ trait NotesView extends StyleSheet.Standalone {
       width(100 %%),
       &(".notesview-note") - (
         // readability like github readme:
-        padding(48 px),
+        padding(40 px, 25 px),
         fontSize(16 px),
       ),
     )

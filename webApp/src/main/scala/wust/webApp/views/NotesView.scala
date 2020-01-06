@@ -101,10 +101,11 @@ object NotesView {
         div(
           cls := "notesview-note",
           cls := "enable-text-selection",
+          Rx { VDomModifier.ifTrue(editMode())(padding := "30px 0px 0px 0px") },
 
           Components.editableNode(node, editMode = editMode, config = EditableContent.Config.cancelOnError.copy(submitOnEnter = false, submitOnBlur = false)).append(
             width := "100%",
-            Rx { VDomModifier.ifTrue(editMode())(boxShadow := "0px 0px 0px 2px  rgba(65,184,255, 1)") },
+            Rx { VDomModifier.ifTrue(editMode())(boxShadow := "0px 0px 0px 2px  rgba(65,184,255, 1)", padding := "10px") },
           ),
         ),
         div(
