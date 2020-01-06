@@ -21,7 +21,7 @@ import wust.webUtil.outwatchHelpers._
 import collection.mutable
 import collection.immutable
 import wust.webApp.views.DragComponents.{ drag, registerDragContainer }
-import wust.webApp.dragdrop.{DragItem, _}
+import wust.webApp.dragdrop.{ DragItem, _ }
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
@@ -33,6 +33,7 @@ object CalendarView {
   val gridSpacing = 3
   val eventLineHeight = 30
   val minWeekHeight = 1
+  val pagePadding = "20px"
 
   case class MonthInfo(selectedDate: js.Date) {
     val weeksInMonth: Int = DateFns.getWeeksInMonth(selectedDate) // TODO: ,{ weekStartsOn: 1 }
@@ -58,10 +59,14 @@ object CalendarView {
     }
 
     div(
-      padding := "20px",
       Styles.flex,
       flexDirection.column,
       div(
+        Styles.flexStatic,
+        paddingTop := pagePadding,
+        paddingLeft := pagePadding,
+        paddingRight := pagePadding,
+
         Styles.flex,
         alignItems.center,
         Rx {
@@ -70,21 +75,18 @@ object CalendarView {
         button(freeSolid.faCaretLeft, cls := "ui compact basic button", onClickDefault.useLazy(DateFns.subMonths(selectedDate.now, 1)) --> selectedDate),
         button("Today", cls := "ui compact basic button", onClickDefault.useLazy(new js.Date()) --> selectedDate),
         button(freeSolid.faCaretRight, cls := "ui compact basic button", onClickDefault.useLazy(DateFns.addMonths(selectedDate.now, 1)) --> selectedDate),
-        marginBottom := "20px",
-      ),
-      div(
-        marginBottom := "20px",
       ),
       renderCalendar(monthInfo, calendarData),
-      div(
-        // padding-bottom flexbox hack
-        Styles.flexStatic,
-        height := "20px",
-      ),
     )
   }
 
-  private def renderCalendar(monthInfo: Rx[MonthInfo], calendarData: Rx[CalendarData])(implicit ctx: Ctx.Owner) = VDomModifier(
+  private def renderCalendar(monthInfo: Rx[MonthInfo], calendarData: Rx[CalendarData])(implicit ctx: Ctx.Owner) = div(
+    overflowY.auto,
+    paddingTop := "20px",
+    paddingLeft := pagePadding,
+    paddingRight := pagePadding,
+    paddingBottom := pagePadding,
+
     renderWeekHeader(),
     div(
       Styles.flexStatic,
@@ -103,6 +105,8 @@ object CalendarView {
 
   private def renderWeekHeader() = {
     div(
+      paddingLeft := pagePadding,
+      paddingRight := pagePadding,
       Styles.flexStatic,
       Styles.flex,
       opacity := 0.4,
