@@ -166,8 +166,8 @@ object ReminderSetup {
           ("At fixed Date/Time", ConditionKind.Date(DateKind.Absolute)) ::
           ("Before Date/Time of Property", ConditionKind.Date(DateKind.Before)) ::
           ("After Date/Time of Property", ConditionKind.Date(DateKind.After)) ::
-          ("In Stage", ConditionKind.Stage) ::
-          ("Filled Properties", ConditionKind.FilledProperties) ::
+          // ("In Stage", ConditionKind.Stage) ::
+          // ("Filled Properties", ConditionKind.FilledProperties) ::
           Nil,
         )
       ),
