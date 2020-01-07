@@ -15,10 +15,10 @@ import scala.concurrent.duration.FiniteDuration
 
 sealed trait ReminderInfo
 object ReminderInfo {
-  final case class DateTime(timestamp: EpochMilli, medium: RemindMedium, target: RemindTarget, edge: Edge) extends ReminderInfo
+  final case class DateTime(timestamp: EpochMilli, medium: RemindMedium, target: RemindTarget) extends ReminderInfo
 }
 
-final case class ReminderContext(userDetail: Data.UserDetail, node: Node, reason: String)
+final case class ReminderContext(userDetail: Data.UserDetail, node: Node, reason: String, edge: Data.Edge)
 
 class PollingNotifier(db: Db, emailFlow: AppEmailFlow) {
 
@@ -43,10 +43,11 @@ class PollingNotifier(db: Db, emailFlow: AppEmailFlow) {
       reminderContexts.flatMap { reminderContexts =>
         reminderContexts.foreach(notify)
 
-        // db.edge.delete(reminderContexts.map(_.edge)).map { _ =>
-        //   Ack.Continue
-        // }
-        ???
+        db.ctx.transaction { implicit ec =>
+          db.edge.delete(reminderContexts.map(_.edge)).map { _ =>
+            Ack.Continue
+          }
+        }
       }
     }.recover { case NonFatal(err) =>
       scribe.warn("Failed to get reminders for polling, will retry.", err)

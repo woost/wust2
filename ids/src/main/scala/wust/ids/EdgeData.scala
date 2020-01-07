@@ -27,7 +27,7 @@ object EdgeData {
   final case class Mention(mentionName: String) extends Named with EdgeData
   object Mention extends Named
 
-  final case class Remind(condition: RemindCondition, medium: RemindMedium, target: RemindTarget, isSent: Boolean = false) extends Named with EdgeData
+  final case class Remind(condition: RemindCondition, medium: RemindMedium, target: RemindTarget) extends Named with EdgeData
   object Remind extends Named
 
   final case class Child(deletedAt: Option[EpochMilli], ordering: BigDecimal) extends Named with EdgeData {
