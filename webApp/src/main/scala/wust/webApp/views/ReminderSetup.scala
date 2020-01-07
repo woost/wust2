@@ -99,8 +99,8 @@ object ReminderSetup {
 
         val datePropertyNames = Rx {
           val graph = GlobalState.rawGraph()
-          PropertyData.Single(graph, graph.idToIdxOrThrow(nodeId))
-            .properties.collect { case p if p.values.exists(v => v.node.data.isInstanceOf[NodeData.Date] || v.node.data.isInstanceOf[NodeData.RelativeDate] || v.node.data.isInstanceOf[NodeData.DateTime]) => p.key }
+          val propertyData = PropertyData.Single(graph, graph.idToIdxOrThrow(nodeId))
+          propertyData.properties.collect { case p if p.values.exists(v => v.node.data.isInstanceOf[NodeData.Date] || v.node.data.isInstanceOf[NodeData.RelativeDate] || v.node.data.isInstanceOf[NodeData.DateTime]) => p.key }
         }
 
         div(
