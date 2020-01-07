@@ -242,11 +242,14 @@ object ReminderSetup {
     case object FilledProperties extends ConditionKind
 
     import io.circe._
-    import io.circe.generic.auto._
+    import io.circe.generic.extras.semiauto._
     import wust.ids.serialize.Circe._
+
+    implicit val ConditionKindDecoder: Decoder[ConditionKind] = deriveConfiguredDecoder[ConditionKind]
+    implicit val ConditionKindEncoder: Encoder[ConditionKind] = deriveConfiguredEncoder[ConditionKind]
+
     implicit val parser: EditStringParser[ConditionKind] = EditImplicits.circe.StringParser[ConditionKind]
     implicit val stringifier: ValueStringifier[ConditionKind] = EditImplicits.circe.Stringifier[ConditionKind]
-
   }
 
   private sealed trait DateKind
@@ -257,8 +260,12 @@ object ReminderSetup {
     case object Before extends Relative
 
     import io.circe._
-    import io.circe.generic.auto._
+    import io.circe.generic.extras.semiauto._
     import wust.ids.serialize.Circe._
+
+    implicit val DateKindDecoder: Decoder[DateKind] = deriveConfiguredDecoder[DateKind]
+    implicit val DateKindEncoder: Encoder[DateKind] = deriveConfiguredEncoder[DateKind]
+
     implicit val parser: EditStringParser[DateKind] = EditImplicits.circe.StringParser[DateKind]
     implicit val stringifier: ValueStringifier[DateKind] = EditImplicits.circe.Stringifier[DateKind]
   }
