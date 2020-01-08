@@ -34,20 +34,20 @@ object TaskNodeCard {
     dragPayload: NodeId => DragPayload = DragItem.Task.apply,
   ): VNode = div.thunkStatic(nodeId.toStringFast)(Ownable { implicit ctx =>
 
-    val nodeIdx = GlobalState.graph.map(_.idToIdxOrThrow(nodeId)) // TODO: these actually crash!
-    val parentIdx = GlobalState.graph.map(_.idToIdxOrThrow(traverseState.parentId))
-    val node = Rx {
-      GlobalState.graph().nodes(nodeIdx())
+    val nodeIdxOpt = GlobalState.graph.map(_.idToIdx(nodeId))
+    val parentIdx = GlobalState.graph.map(_.idToIdx(traverseState.parentId))
+    val nodeOpt = Rx {
+      nodeIdxOpt().map(GlobalState.graph().nodes)
     }
-    val isDeletedNow = Rx {
+    val isDeletedNow:Rx[Boolean] = Rx {
       if( isProperty ) false
-      else GlobalState.graph().isDeletedNowIdx(nodeIdx(), parentIdx())
+      else nodeIdxOpt().exists(nodeIdx => GlobalState.graph().isDeletedNowIdx(nodeIdx, parentIdx()))
     }
-    val isExpanded = Rx {
-      GlobalState.graph().isExpanded(GlobalState.userId(), nodeIdx()).getOrElse(false)
+    val isExpanded:Rx[Boolean] = Rx {
+      nodeIdxOpt().flatMap(nodeIdx => GlobalState.graph().isExpanded(GlobalState.userId(), nodeIdx)).getOrElse(false)
     }
 
-    val childStats = Rx { NodeDetails.ChildStats.from(nodeIdx(), GlobalState.graph()) }
+    val childStats = Rx { nodeIdxOpt().fold(NodeDetails.ChildStats.empty)(nodeIdx => NodeDetails.ChildStats.from(nodeIdx, GlobalState.graph())) }
 
     val buttonBar = {
       /// @return a Builder for a menu item which takes a boolean specifying whether it should be compressed or not
@@ -71,7 +71,7 @@ object TaskNodeCard {
       def toggleDeleteClickAction(): Unit = {
         val graph = GlobalState.graph.now
         val focusedIdx = graph.idToIdxOrThrow(focusState.focusedId)
-        val stageParents = graph.stageParentsIdx.collect(nodeIdx.now) { case p if graph.workspacesForParent(p).contains(focusedIdx) => graph.nodeIds(p) }
+        val stageParents = nodeIdxOpt.now.fold(Array.empty[NodeId])( nodeIdx => graph.stageParentsIdx.collect(nodeIdx) { case p if graph.workspacesForParent(p).contains(focusedIdx) => graph.nodeIds(p) })
         val hasMultipleStagesInFocusedNode = stageParents.exists(_ != traverseState.parentId)
         val removeFromWorkspaces = if (hasMultipleStagesInFocusedNode) GraphChanges.empty else deleteOrUndelete(ChildId(nodeId), ParentId(focusState.focusedId))
 
@@ -146,20 +146,22 @@ object TaskNodeCard {
         marginRight := (if (BrowserDetect.isMobile) "35px" else "5px"), //TODO: better? leave room for buttonbar to not overlay
       )),
       VDomModifier.ifTrue(showCheckbox)(
-        node.map(Components.taskCheckbox( _, traverseState.parentId :: Nil).apply(float.left, marginRight := "5px"))
+        Rx{ nodeOpt().map(Components.taskCheckbox( _, traverseState.parentId :: Nil).apply(float.left, marginRight := "5px")) }
       ),
 
-      node.map { node =>
-        Components.nodeCardMod(
-          node,
-          maxLength = Some(maxLength),
-          contentInject = VDomModifier(
-            VDomModifier.ifNot(showCheckbox)(marginLeft := "2px"),
-            VDomModifier.ifTrue(isDone)(textDecoration.lineThrough),
-            VDomModifier.ifTrue(inOneLine)(alignItems.flexStart, NodeDetails.tagsPropertiesAssignments(focusState, traverseState, nodeId), marginRight := "40px"), // marginRight to not interfere with button bar...
-          ),
-          nodeInject = VDomModifier.ifTrue(inOneLine)(marginRight := "10px"),
-        )
+      Rx{
+        nodeOpt().map { node =>
+          Components.nodeCardMod(
+            node,
+            maxLength = Some(maxLength),
+            contentInject = VDomModifier(
+              VDomModifier.ifNot(showCheckbox)(marginLeft := "2px"),
+              VDomModifier.ifTrue(isDone)(textDecoration.lineThrough),
+              VDomModifier.ifTrue(inOneLine)(alignItems.flexStart, NodeDetails.tagsPropertiesAssignments(focusState, traverseState, nodeId), marginRight := "40px"), // marginRight to not interfere with button bar...
+              ),
+            nodeInject = VDomModifier.ifTrue(inOneLine)(marginRight := "10px"),
+            )
+        }
       },
 
       Rx {

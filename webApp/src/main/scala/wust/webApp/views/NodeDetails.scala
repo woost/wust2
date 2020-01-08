@@ -83,6 +83,7 @@ object NodeDetails {
   }
 
   object ChildStats {
+    val empty = ChildStats(0,0,0,0,0,0)
     def from(nodeIdx: Int, graph: Graph): ChildStats = {
       val messageChildrenCount = graph.messageChildrenIdx.sliceLength(nodeIdx)
 
