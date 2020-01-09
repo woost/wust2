@@ -37,11 +37,11 @@ object NotesView {
           val nodeIdx = graph.idToIdxOrThrow(focusState.focusedId)
 
           val childNodes = graph.noteChildrenIdx.map(nodeIdx) { childIdx =>
-            graph.nodes(childIdx)
-          }.sortBy(_.id)
+            graph.nodeIds(childIdx)
+          }.sorted
 
-          childNodes.map { node =>
-            renderNote(node, focusState = focusState, traverseState = traverseState)
+          childNodes.map { nodeId =>
+            renderNote(nodeId, focusState = focusState, traverseState = traverseState)
           }
         },
         registerDragContainer,
@@ -71,15 +71,19 @@ object NotesView {
     )
   }
 
-  private def renderNote(node: Node, focusState: FocusState, traverseState: TraverseState)(implicit ctx: Ctx.Owner): VNode = {
+  private def renderNote(nodeId: NodeId, focusState: FocusState, traverseState: TraverseState)(implicit ctx: Ctx.Owner): VNode = {
     val parentId = focusState.focusedId
-    div.thunk(node.id.toStringFast)()(Ownable { implicit ctx =>
+    div.thunkStatic(nodeId.toStringFast)(Ownable { implicit ctx =>
 
-      val nodeIdx = GlobalState.graph.map(_.idToIdxOrThrow(node.id))
+      val nodeIdx = GlobalState.graph.map(_.idToIdxOrThrow(nodeId))
       val parentIdx = GlobalState.graph.map(_.idToIdxOrThrow(parentId))
 
+      val node = Rx {
+        GlobalState.graph().nodes(nodeIdx())
+      }
+
       val isExpanded = Rx {
-        GlobalState.graph().isExpanded(GlobalState.userId(), node.id).getOrElse(false)
+        GlobalState.graph().isExpanded(GlobalState.userId(), nodeId).getOrElse(false)
       }
       val childStats = Rx { NodeDetails.ChildStats.from(nodeIdx(), GlobalState.graph()) }
 
@@ -89,7 +93,7 @@ object NotesView {
 
       val propertySingle = Rx {
         val graph = GlobalState.graph()
-        PropertyData.Single(graph, graph.idToIdxOrThrow(node.id))
+        PropertyData.Single(graph, graph.idToIdxOrThrow(nodeId))
       }
 
       val editMode = Var(false)
@@ -97,24 +101,26 @@ object NotesView {
       VDomModifier(
         cls := "ui segment",
         cls := "note",
-        Rx { VDomModifier.ifNot(editMode())(Components.sidebarNodeFocusMod(node.id, focusState)) },
+        Rx { VDomModifier.ifNot(editMode())(Components.sidebarNodeFocusMod(nodeId, focusState)) },
         div(
           cls := "notesview-note",
           cls := "enable-text-selection",
           Rx { VDomModifier.ifTrue(editMode())(padding := "30px 0px 0px 0px") },
 
-          Components.editableNode(node, editMode = editMode, config = EditableContent.Config.cancelOnError.copy(submitOnEnter = false, submitOnBlur = false)).append(
-            width := "100%",
-            Rx { VDomModifier.ifTrue(editMode())(boxShadow := "0px 0px 0px 2px  rgba(65,184,255, 1)", padding := "10px") },
-          ),
+          Rx {
+            Components.editableNode(node(), editMode = editMode, config = EditableContent.Config.cancelOnError.copy(submitOnEnter = false, submitOnBlur = false)).append(
+              width := "100%",
+              Rx { VDomModifier.ifTrue(editMode())(boxShadow := "0px 0px 0px 2px  rgba(65,184,255, 1)", padding := "10px") },
+            )
+          }
         ),
         div(
           alignItems.center,
-          NodeDetails.tagsPropertiesAssignments(focusState, traverseState, node.id)
+          NodeDetails.tagsPropertiesAssignments(focusState, traverseState, nodeId)
         ),
-        NodeDetails.cardFooter(node.id, childStats, isExpanded, focusState, isCompact = true),
+        NodeDetails.cardFooter(nodeId, childStats, isExpanded, focusState, isCompact = true),
         NodeDetails.nestedTaskList(
-          nodeId = node.id,
+          nodeId = nodeId,
           isExpanded = isExpanded,
           focusState = focusState,
           traverseState = traverseState,
@@ -125,12 +131,12 @@ object NotesView {
 
         Rx {
           VDomModifier.ifNot(editMode())(
-            DragComponents.dragWithHandle(DragItem.Note(node.id)),
+            DragComponents.dragWithHandle(DragItem.Note(nodeId)),
             cursor.auto, // overwrite drag cursor
           )
         },
 
-        controls (node.id, parentId, editMode, isDeleted)
+        controls (nodeId, parentId, editMode, isDeleted)
           .apply(
             position.absolute,
             top := "10px",
