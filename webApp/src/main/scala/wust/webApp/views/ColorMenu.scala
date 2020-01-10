@@ -71,8 +71,8 @@ object ColorMenu {
         }
       ),
       Rx{
-        VDomModifier.ifTrue(colorCount() == 8)(
-          div(textAlign.right, "more", opacity := 0.5, onClickDefault.use(16) --> colorCount, marginRight := "5px")
+        VDomModifier.ifTrue(colorCount() <= 16)(
+          div(textAlign.right, "more", opacity := 0.5, onClickDefault.use(colorCount()*2) --> colorCount, marginRight := "5px")
         )
       }
     )
