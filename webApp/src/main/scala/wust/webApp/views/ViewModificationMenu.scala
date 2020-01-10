@@ -4,6 +4,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.reactive._
 import rx._
+import wust.webApp.StagingOnly
 import wust.css.Styles
 import wust.graph.{ GraphChanges, Node }
 import wust.ids.{ Feature, _ }
@@ -54,6 +55,14 @@ object ViewModificationMenu {
     initialView.foreach(addNewView(currentView, done, nodeRx, existingViews, _))
     currentView.triggerLater { view => addNewView(currentView, done, nodeRx, existingViews, view.asInstanceOf[View.Visible]) }
 
+    val stagingOnlyViews = List(View.Calendar)
+    val selectableList = {
+      if(StagingOnly.isTrue)
+        View.selectableList
+      else
+        View.selectableList.diff(stagingOnlyViews)
+    }
+
     VDomModifier(
       div(
         Styles.flex,
@@ -67,7 +76,7 @@ object ViewModificationMenu {
 
         Rx {
           val currentViews = existingViews()
-          val possibleViews = View.selectableList.filterNot(currentViews.contains)
+          val possibleViews = selectableList.filterNot(currentViews.contains)
           possibleViews.map { view =>
             val info = ViewSwitcher.viewToTabInfo(view, 0, 0, 0)
             div(

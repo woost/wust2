@@ -158,7 +158,7 @@ object View {
     // View.Thread,
     // View.Files,
     // View.Form,
-    View.Calendar,
+    // View.Calendar,
   // View.Gantt,
   // View.Topological,
   )
