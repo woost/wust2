@@ -27,7 +27,7 @@ object AssignedTasksData {
     val userIdxs = userId.map(graph.idToIdxOrThrow(_))
 
     userIdxs.map { userIdx =>
-      val user = graph.nodes(userIdx).asInstanceOf[Node.User]
+      val user = graph.nodes(userIdx).as[Node.User]
       val assignedTaskCount = graph.assignedNodesIdx(userIdx).count(nodeIdx =>
         graph.notDeletedChildrenIdx(focusedIdx).contains(nodeIdx) &&
         graph.nodes(nodeIdx).role == NodeRole.Task &&

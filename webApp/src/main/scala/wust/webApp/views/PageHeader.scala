@@ -33,7 +33,7 @@ object PageHeader {
   private def pageRow(pageNodeId: NodeId, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VDomModifier = {
 
     val pageNodeOpt = Rx {
-      GlobalState.graph().nodesById(pageNodeId).map(_.asInstanceOf[Node.Content])
+      GlobalState.graph().nodesByIdAs[Node.Content](pageNodeId)
     }
 
     val focusState: Rx[Option[FocusState]] = Rx {

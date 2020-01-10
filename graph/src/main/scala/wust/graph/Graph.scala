@@ -238,6 +238,7 @@ final case class GraphLookup private(
   def idToIdx(nodeId: NodeId): Option[Int] = idToIdxFold[Option[Int]](nodeId)(None)(Some(_))
   def nodesByIdOrThrow(nodeId: NodeId): Node = nodes(idToIdxOrThrow(nodeId))
   def nodesById(nodeId: NodeId): Option[Node] = idToIdxFold[Option[Node]](nodeId)(None)(idx => Some(nodes(idx)))
+  def nodesByIdAs[T <: Node](nodeId: NodeId): Option[T] = idToIdxFold[Option[T]](nodeId)(None)(idx => Some(nodes(idx).as[T]))
 
   def contains(nodeId: NodeId): Boolean = idToIdxFold[Boolean](nodeId)(false)(_ => true)
 
@@ -464,7 +465,7 @@ final case class GraphLookup private(
   @inline def authorsIn(nodeId: NodeId): Seq[Node.User] = idToIdxFold(nodeId)(Seq.empty[Node.User])(authorsInByIndex(_))
 
   def membersByIndex(idx: Int): Seq[Node.User] = {
-    membershipEdgeForNodeIdx(idx).viewMap(edgeIdx => nodes(edgesIdx.b(edgeIdx)).asInstanceOf[Node.User])
+    membershipEdgeForNodeIdx(idx).viewMap(edgeIdx => nodes(edgesIdx.b(edgeIdx)).as[Node.User])
   }
   @inline def members(nodeId: NodeId): Seq[Node.User] = idToIdxFold(nodeId)(Seq.empty[Node.User])(membersByIndex(_))
 

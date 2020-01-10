@@ -102,7 +102,7 @@ object GraphChangesAutomation {
               true
             case "fileUrl" if nodeStringOption.isEmpty =>
               currentReferenceNodes = currentReferenceNodes.filter(_.data match { case _: NodeData.File => true; case _ => false })
-              nodeStringOption = Some(node => s"${Client.wustFilesUrl.getOrElse("")}/${node.data.asInstanceOf[NodeData.File].key}")
+              nodeStringOption = Some(node => s"${Client.wustFilesUrl.getOrElse("")}/${node.data.as[NodeData.File].key}")
               true
             case name if name.startsWith("join(") && joinSeparatorOption.isEmpty =>
               join1Regex.findFirstMatchIn(name) match {

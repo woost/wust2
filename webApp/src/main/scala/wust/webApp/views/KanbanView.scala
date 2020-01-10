@@ -231,7 +231,7 @@ object KanbanView {
     val editable = Var(false)
     val node = Rx {
       val graph = GlobalState.graph()
-      graph.nodesById(nodeId).map(_.asInstanceOf[Node.Content])
+      graph.nodesByIdAs[Node.Content](nodeId)
     }
     val isExpanded = Rx {
       val graph = GlobalState.graph()

@@ -103,10 +103,10 @@ object TagList {
 
     def renderTagTree(parentId: NodeId, trees: Seq[Tree])(implicit ctx: Ctx.Owner): VDomModifier = trees.map {
       case Tree.Leaf(node) =>
-        renderTag(parentId, node.asInstanceOf[Node.Content])
+        renderTag(parentId, node.as[Node.Content])
       case Tree.Parent(node, children) =>
         VDomModifier(
-          renderTag(parentId, node.asInstanceOf[Node.Content]),
+          renderTag(parentId, node.as[Node.Content]),
           div(
             paddingLeft := "10px",
             renderTagTree(node.id, children)
