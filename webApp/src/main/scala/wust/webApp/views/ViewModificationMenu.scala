@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.sdk.{ Colors, NodeColor, BaseColors }
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.reactive._
@@ -35,7 +36,7 @@ object ViewModificationMenu {
   )(implicit ctx: Ctx.Owner): VDomModifier = {
 
     val nodeRx = Rx {
-      GlobalState.graph().nodesById(channelId)
+      GlobalState.graph().nodesByIdAs[Node.Content](channelId)
     }
     val existingViews = Rx {
       val node = nodeRx()
@@ -66,8 +67,11 @@ object ViewModificationMenu {
         alignItems.flexStart,
         padding := "5px",
 
-        b(
-          "Add a view:",
+        div(
+          width := "100%",
+          Styles.flex,
+          b("Add a view:"),
+          Rx{ nodeRx().map(node => ColorMenu.menuIcon(BaseColors.pageBg, node).apply(marginLeft.auto)) },
         ),
 
         Rx {

@@ -8,7 +8,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
 import outwatch.ext.monix._
-import outwatch.reactive.{ SinkObserver, _ }
+import outwatch.reactive._
 import outwatch.reactive.handler._
 import rx._
 import wust.css.{ CommonStyles, Styles }
@@ -36,16 +36,19 @@ import scala.collection.breakOut
 import scala.scalajs.js
 
 object ColorMenu {
-  def menuIcon(baseColor: HCL, node: Node.Content)(implicit ctx: Ctx.Owner) = div(
+  def menuIcon(baseColor: HCL, node: Node.Content)(implicit ctx: Ctx.Owner) = {
+    val closeMenuTrigger = SinkSourceHandler.publish[Unit]
     div(
-      cls := "fa-fw",
-      Icons.selectColor,
-      UI.tooltip := "Change Color",
-    ),
-    tippy.menu() := menuContent(BaseColors.pageBg, node),
-  )
+      div(
+        cls := "fa-fw",
+        Icons.selectColor,
+        UI.tooltip := "Change Color",
+      ),
+      tippy.menu(close = closeMenuTrigger) := menuContent(BaseColors.pageBg, node, closeMenuTrigger),
+    )
+  }
 
-  def menuContent(baseColor: HCL, node: Node.Content)(implicit ctx: Ctx.Owner) = {
+  def menuContent(baseColor: HCL, node: Node.Content, closeMenuTrigger: SinkObserver[Unit] = SinkObserver.empty)(implicit ctx: Ctx.Owner) = {
     val colorCount = Var(8)
     val stepSize = Rx{ 1.0 / colorCount() }
     val squareSize = "30px"
@@ -71,10 +74,13 @@ object ColorMenu {
               margin := "5px",
               backgroundColor := baseColor.copy(h = hue).toHex,
               onClickDefault.foreach {
-                val newNode = node.updateSettings(_.updateGlobal(globalSettings => globalSettings.copy(colorHue = Some(hue))))
-                val change = GraphChanges.addNode(newNode)
-                GlobalState.submitChanges(change)
-                ()
+                closeMenuTrigger.onNext(())
+                // Introduce async boundary: close dropdown before applying change (feels snappier)
+                Elements.defer {
+                  val newNode = node.updateSettings(_.updateGlobal(globalSettings => globalSettings.copy(colorHue = Some(hue))))
+                  val change = GraphChanges.addNode(newNode)
+                  GlobalState.submitChanges(change)
+                }
               }
             )
           }

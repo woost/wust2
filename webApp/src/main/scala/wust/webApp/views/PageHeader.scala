@@ -127,7 +127,6 @@ object PageHeader {
               case _           =>
             }
           },
-        Rx{ pageNodeOpt().map(node => ColorMenu.menuIcon(BaseColors.pageBg, node)) },
         div(
           Styles.flex,
           alignItems.center,
