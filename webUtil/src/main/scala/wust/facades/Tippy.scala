@@ -43,6 +43,7 @@ trait TippyProps extends js.Object {
   var ignoreAttributes: js.UndefOr[Boolean] = js.undefined
   var showOnCreate: js.UndefOr[Boolean] = js.undefined
   var delay: js.UndefOr[Double | js.Tuple2[Any, Any]] = js.undefined
+  var duration: js.UndefOr[Double | js.Tuple2[Any, Any]] = js.undefined
   var hideOnClick: js.UndefOr[Boolean] = js.undefined
   var trigger: js.UndefOr[String] = js.undefined
 
@@ -55,5 +56,7 @@ trait TippyProps extends js.Object {
 @js.native
 trait TippyInstance extends js.Object {
   // https://atomiks.github.io/tippyjs/methods/
+  def show(): Unit = js.native
+  def hide(): Unit = js.native
   def destroy(): Unit = js.native
 }

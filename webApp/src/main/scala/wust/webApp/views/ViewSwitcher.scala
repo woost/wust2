@@ -2,6 +2,7 @@ package wust.webApp.views
 
 import cats.data.NonEmptyList
 import fontAwesome._
+import wust.webUtil.tippy
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
@@ -61,13 +62,13 @@ object ViewSwitcher {
         padding := "7px 10px",
         div(addViewIcon, fontSize := "16px", color := "white", paddingLeft := "2px", paddingRight := "2px", UI.tooltip := "Add or remove views"),
 
-        UI.dropdownMenu(VDomModifier(
+        tippy.menu(close = closeDropdown) := div(
           color := Colors.fgColor,
           padding := "5px",
           div(cls := "item", display.none), //TODO ui dropdown needs at least one element
 
           ViewModificationMenu.selector(channelId, currentView, initialView, closeDropdown)
-        ), close = closeDropdown, dropdownModifier = cls := "top left")
+        )
       )
     )
 

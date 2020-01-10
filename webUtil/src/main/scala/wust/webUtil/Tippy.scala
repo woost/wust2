@@ -11,6 +11,7 @@ import scala.scalajs.js
 import wust.webUtil.outwatchHelpers._
 import org.scalajs.dom.console
 import org.scalajs.dom.html
+import outwatch.reactive._
 
 package object tippy {
 
@@ -21,11 +22,13 @@ package object tippy {
   private val defaultTheme = "" // see https://atomiks.github.io/tippyjs/#themes and https://atomiks.github.io/tippyjs/themes/ and add line in webpack.base.common.js
   private val defaultZIndex = 18000
 
-  def tooltipMod(props: TippyProps): VDomModifier = managedElement.asHtml{ elem =>
+  def tooltipMod(props: TippyProps, triggerHide: SourceStream[Unit] = SourceStream.empty): VDomModifier = managedElement.asHtml{ elem =>
     val tippyInstance = tippy(elem, props)
+    val hideSubscription = triggerHide.foreach(_ => tippyInstance.hide())
     Subscription{ () =>
       Try(tippyInstance.destroy())
       elem.asInstanceOf[js.Dynamic].updateDynamic("_tippy")(js.undefined)
+      hideSubscription.cancel()
     }
   }
 
@@ -90,18 +93,23 @@ package object tippy {
 
   def menu(
     _placement: String = "bottom",
-    _boundary: String = "scrollParent"
-  ): AttributeBuilder[VNode, VDomModifier] = node => tooltipMod(new TippyProps {
-    content = (() => node.render): js.Function0[Element]
+    _boundary: String = "window",
+    close: SourceStream[Unit] = SourceStream.empty
+  ): AttributeBuilder[VNode, VDomModifier] = node => VDomModifier(
+    tooltipMod(new TippyProps {
+      content = (() => node.render): js.Function0[Element]
 
-    ignoreAttributes = true // increases performance by not parsing data-attributes of content
-    theme = "light-border"
-    zIndex = defaultZIndex
+      ignoreAttributes = true // increases performance by not parsing data-attributes of content
+      theme = "light-border"
+      zIndex = defaultZIndex
 
-    trigger = "click"
-    interactive = true
+      trigger = "click"
+      interactive = true
+      duration = 0
 
-    placement = _placement
-    boundary = _boundary
-  })
+      placement = _placement
+      boundary = _boundary
+    }, close),
+    cursor.pointer
+  )
 }

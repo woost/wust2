@@ -161,24 +161,26 @@ object ViewModificationMenu {
     scribe.info(s"ViewModificationMenu.addNewView($newView)")
     if (View.selectableList.contains(newView)) { // only allow defined views
       done.onNext(())
-      val node = nodeRx.now
-      node.foreach { node =>
-        val currentViews = existingViews.now
+      // Introduce async boundary: close dropdown before applying change (feels snappier)
+      Elements.defer {
+        val node = nodeRx.now
+        node.foreach { node =>
+          val currentViews = existingViews.now
 
-        if (!currentViews.contains(newView)) {
-          val newNode = node match {
-            case n: Node.Content => n.copy(views = Some(currentViews :+ newView))
-            case n: Node.User    => n.copy(views = Some(currentViews :+ newView))
+          if (!currentViews.contains(newView)) {
+            val newNode = node match {
+              case n: Node.Content => n.copy(views = Some(currentViews :+ newView))
+              case n: Node.User    => n.copy(views = Some(currentViews :+ newView))
+            }
+
+            GlobalState.submitChanges(GraphChanges.addNode(newNode))
           }
 
-          GlobalState.submitChanges(GraphChanges.addNode(newNode))
-        }
-
-        if (currentView.now != newView) {
-          currentView() = newView
+          if (currentView.now != newView) {
+            currentView() = newView
+          }
         }
       }
-
     }
   }
 
