@@ -30,7 +30,7 @@ object ViewHeuristic {
   }
 
   def bestView(graph: Graph, node: Node, userId:UserId): Option[View.Visible] = {
-    node.views.fold(Some[View.Visible](View.Chat)){ views =>
+    node.views.fold(Option[View.Visible](View.Chat)){ views =>
       val roleStats = graph.topLevelRoleStats(userId, node.id)
       (if(roleStats.nonEmpty)
       views.find {
