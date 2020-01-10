@@ -47,10 +47,6 @@ object ViewModificationMenu {
       }
     }
 
-    val hasViews = Rx {
-      nodeRx().fold(false)(_.views.isDefined)
-    }
-
     //TODO rewrite this in a less sideeffecting way
     initialView.foreach(addNewView(currentView, done, nodeRx, existingViews, _))
     currentView.triggerLater { view => addNewView(currentView, done, nodeRx, existingViews, view.asInstanceOf[View.Visible]) }
@@ -136,25 +132,7 @@ object ViewModificationMenu {
       },
     )
   }
-  private def resetView(currentView: Var[View], done: SinkObserver[Unit], nodeRx: Rx[Option[Node]]): Unit = {
-    done.onNext(())
-    val node = nodeRx.now
-    node.foreach { node =>
-      if (node.views.isDefined) {
-        val newNode = node match {
-          case n: Node.Content => n.copy(views = None)
-          case n: Node.User    => n.copy(views = None)
-        }
 
-        val newView = ViewHeuristic.bestView(GlobalState.graph.now, node, GlobalState.user.now.id).getOrElse(View.Empty)
-        if (currentView.now != newView) {
-          currentView() = newView
-        }
-
-        GlobalState.submitChanges(GraphChanges.addNode(newNode))
-      }
-    }
-  }
   private def removeView(currentView: Var[View], done: SinkObserver[Unit], nodeRx: Rx[Option[Node]], view: View.Visible): Unit = {
     done.onNext(())
     val node = nodeRx.now
