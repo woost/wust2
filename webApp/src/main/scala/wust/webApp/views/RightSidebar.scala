@@ -72,7 +72,7 @@ object RightSidebar {
   val propertiesAccordionText = "Properties & Custom Fields"
   val addCustomFieldText = "Add Custom Field"
 
-  private val buttonMods = VDomModifier(
+  private val buttonModsLight = VDomModifier(
     cls := "hover-full-opacity",
     color := "gray",
     fontSize := "16px",
@@ -81,6 +81,12 @@ object RightSidebar {
     Styles.flexStatic,
   )
 
+  private val buttonModsOnColor = VDomModifier(
+    fontSize := "16px",
+    padding := "5px 10px",
+    cursor.pointer,
+    Styles.flexStatic,
+  )
 
   def content(
     focusPref: FocusPreference,
@@ -113,7 +119,7 @@ object RightSidebar {
 
         div(
           div(freeSolid.faAngleDoubleRight, cls := "fa-fw"),
-          buttonMods,
+          buttonModsLight,
           fontSize := "18px",
           onClickDefault.use(None).foreach(parentIdAction)
         ),
@@ -131,7 +137,7 @@ object RightSidebar {
           VDomModifier.ifTrue(focusHistory().nonEmpty || focusFuture().nonEmpty)(
             div(
               div(freeSolid.faArrowLeft, cls := "fa-fw"),
-              buttonMods,
+              buttonModsLight,
               focusHistory.map {
                 case Nil => opacity := 0.5
                 case _   => cls := "hover-full-opacity"
@@ -149,7 +155,7 @@ object RightSidebar {
             ),
             div(
               div(cls := "fa-fw", freeSolid.faArrowRight),
-              buttonMods,
+              buttonModsLight,
               focusFuture.map {
                 case Nil => opacity := 0.5
                 case _   => cls := "hover-full-opacity"
@@ -174,7 +180,7 @@ object RightSidebar {
               Rx{ if(isFullscreen()) freeSolid.faCompress:VDomModifier else freeSolid.faExpand:VDomModifier },
               cls := "fa-fw"
             ),
-            buttonMods,
+            buttonModsLight,
             onClickDefault.foreach(isFullscreen.update(!_))
           )
         )
@@ -253,6 +259,26 @@ object RightSidebar {
     currentView.triggerLater(viewSwitcherVar() = _)
     viewSwitcherVar.triggerLater(newView => ViewHeuristic.visibleView(graph, focusPref.nodeId, newView).foreach(currentView() = _))
 
+
+    val zoomButton = div(
+      div(Icons.zoom, cls := "fa-fw"),
+      buttonModsOnColor,
+      UI.tooltip(boundary = "window") := "Zoom in",
+      onClick.foreach {
+        GlobalState.focus(focusPref.nodeId)
+        GlobalState.graph.now.nodesById(focusPref.nodeId).foreach { node =>
+          node.role match {
+            case NodeRole.Task    => FeatureState.use(Feature.ZoomIntoTask)
+            case NodeRole.Message => FeatureState.use(Feature.ZoomIntoMessage)
+            case NodeRole.Note    => FeatureState.use(Feature.ZoomIntoNote)
+            case NodeRole.Project => FeatureState.use(Feature.ZoomIntoProject)
+            case _                =>
+          }
+        }
+      }
+    )
+
+
     VDomModifier(
       Styles.flex,
       flexDirection.column,
@@ -261,13 +287,14 @@ object RightSidebar {
       div(
         cls := "pageheader",
         Rx{ backgroundColor :=? NodeColor.pageBg.of(focusPref.nodeId, GlobalState.graph()) },
-        paddingTop := "10px", // to have some colored space above the tabs
         Styles.flexStatic,
         Styles.flex,
         alignItems.center,
 
-        ViewSwitcher(focusPref.nodeId, viewSwitcherVar, focusPref.view.flatMap(ViewHeuristic.visibleView(graph, focusPref.nodeId, _))),
-        UnreadComponents.activityButtons(focusPref.nodeId, modifiers = marginLeft.auto) --> currentView,
+        ViewSwitcher(focusPref.nodeId, viewSwitcherVar, focusPref.view.flatMap(ViewHeuristic.visibleView(graph, focusPref.nodeId, _))).apply(marginTop := "10px"),
+        div(GlobalState.showOnlyInFullMode(zoomButton), marginLeft.auto),
+        MembersModal.settingsButton(focusPref.nodeId, analyticsVia = "RightSidebar", tooltip = "Share / Invite").apply(buttonModsOnColor),
+        UnreadComponents.activityButtons(focusPref.nodeId) --> currentView,
       ),
 
       Rx {
@@ -311,29 +338,11 @@ object RightSidebar {
       GlobalState.graph().hasNotDeletedParents(focusPref.nodeId)
     }
 
-    val zoomButton = div(
-      div(Icons.zoom, cls := "fa-fw"),
-      buttonMods,
-      UI.tooltip(boundary = "window") := "Zoom in",
-      onClick.foreach {
-        GlobalState.focus(focusPref.nodeId)
-        GlobalState.graph.now.nodesById(focusPref.nodeId).foreach { node =>
-          node.role match {
-            case NodeRole.Task    => FeatureState.use(Feature.ZoomIntoTask)
-            case NodeRole.Message => FeatureState.use(Feature.ZoomIntoMessage)
-            case NodeRole.Note    => FeatureState.use(Feature.ZoomIntoNote)
-            case NodeRole.Project => FeatureState.use(Feature.ZoomIntoProject)
-            case _                =>
-          }
-        }
-      }
-    )
-
     val deleteButton = Rx {
       VDomModifier.ifTrue(hasNotDeletedParents())(
         div(
           div(Icons.delete, cls := "fa-fw"),
-          buttonMods,
+          buttonModsLight,
           UI.tooltip(boundary = "window") := "Archive",
           onClick.stopPropagation.foreach { _ =>
             Elements.confirm("Delete this item?") {
@@ -374,8 +383,6 @@ object RightSidebar {
         alignItems.center,
         justifyContent.spaceBetween,
         Rx { nodeAuthor(focusPref.nodeId)(ctx)().map(_.apply(marginLeft := "13px", marginRight.auto, paddingBottom := "0px")) },
-        GlobalState.showOnlyInFullMode(zoomButton),
-        MembersModal.settingsButton(focusPref.nodeId, analyticsVia = "RightSidebar", tooltip = "Share / Invite").apply(buttonMods),
         deleteButton,
       )
     )
