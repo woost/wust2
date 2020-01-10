@@ -1,6 +1,7 @@
 package wust.webApp.views
 
 //import acyclic.file
+import wust.webUtil.tippy
 import fontAwesome._
 import org.scalajs.dom
 import outwatch.dom._
@@ -35,7 +36,16 @@ import scala.collection.breakOut
 import scala.scalajs.js
 
 object ColorMenu {
-  def apply(baseColor: HCL, node: Node.Content)(implicit ctx: Ctx.Owner) = {
+  def menuIcon(baseColor: HCL, node: Node.Content)(implicit ctx: Ctx.Owner) = div(
+    div(
+      cls := "fa-fw",
+      Icons.selectColor,
+      UI.tooltip := "Change Color",
+    ),
+    tippy.menu() := menuContent(BaseColors.pageBg, node),
+  )
+
+  def menuContent(baseColor: HCL, node: Node.Content)(implicit ctx: Ctx.Owner) = {
     val colorCount = Var(8)
     val stepSize = Rx{ 1.0 / colorCount() }
     val squareSize = "30px"
@@ -72,9 +82,16 @@ object ColorMenu {
       ),
       Rx{
         VDomModifier.ifTrue(colorCount() <= 16)(
-          div(textAlign.right, "more", opacity := 0.5, onClickDefault.use(colorCount()*2) --> colorCount, marginRight := "5px")
+          div(
+            "more",
+            fontWeight.normal, // might be inherited
+            textAlign.right,
+            opacity := 0.5, onClickDefault.use(colorCount() * 2) --> colorCount,
+            marginRight := "5px"
+          )
         )
       }
     )
   }
+
 }

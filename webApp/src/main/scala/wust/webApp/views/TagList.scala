@@ -146,7 +146,7 @@ object TagList {
       ),
       nodeTag(tagNode, dragOptions).apply(tagModifier, marginRight.auto),
 
-      div(cls := "singleButtonWithBg", marginRight := "3px", div(cls := "fa-fw", Icons.selectColor, cursor.pointer, tippy.menu() := ColorMenu(BaseColors.tag, tagNode))),
+      div(cls := "singleButtonWithBg", marginRight := "3px", ColorMenu.menuIcon(BaseColors.tag, tagNode)),
       VDomModifier.ifTrue(withAutomation)(
         GraphChangesAutomationUI.settingsButton(
           tagNode.id,

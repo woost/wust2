@@ -127,7 +127,7 @@ object PageHeader {
               case _           =>
             }
           },
-        Rx{ pageNodeOpt().map(node => div(cls := "fa-fw", Icons.selectColor, cursor.pointer, tippy.menu() := ColorMenu(BaseColors.pageBg, node))) },
+        Rx{ pageNodeOpt().map(node => ColorMenu.menuIcon(BaseColors.pageBg, node)) },
         div(
           Styles.flex,
           alignItems.center,

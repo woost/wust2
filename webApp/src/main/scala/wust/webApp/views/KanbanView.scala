@@ -282,7 +282,7 @@ object KanbanView {
     )}
 
     val editButton = div(cls := "buttonbar-button", div(cls := "fa-fw", Icons.edit), onClick.stopPropagation.use(true) --> editable, cursor.pointer, UI.tooltip := "Edit")
-    val selectColorButton = Rx{div(cls := "buttonbar-button", div(cls := "fa-fw", Icons.selectColor), node().map(node=>tippy.menu() := ColorMenu(BaseColors.kanbanColumnBg, node)), cursor.pointer, UI.tooltip := "Select Color")}
+    val selectColorButton = Rx{node().map(node => div(cls := "buttonbar-button", ColorMenu.menuIcon(BaseColors.kanbanColumnBg, node)))}
     val deleteUndeleteButton = Rx{div(
       cls := "buttonbar-button", 
       div(cls := "fa-fw", if (isDeletedNow()) Icons.undelete else Icons.delete),
