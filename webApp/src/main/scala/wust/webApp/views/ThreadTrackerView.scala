@@ -77,12 +77,13 @@ object ThreadTrackerView extends AppDefinition {
     div(
       Styles.growFull,
       padding := "20px",
-      Styles.flex,
-      flexDirection.column,
-      alignItems.center,
+      textAlign.center,
+      
 
       h1("Tired of losing important information in your chat history?"),
       h3("Manage your threads like in an issue tracker."),
+
+      p(b("Threads")," are a way to group chat messages under a specific topic to stay organized.", opacity := 0.5),
 
       div(
         marginTop := "50px",
