@@ -14,6 +14,7 @@ import wust.webApp.state.{GlobalState, UploadingFile}
 import wust.webApp.views.WoostLogoComponents._
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{ModalConfig, Ownable}
+import wust.webUtil.Elements.onClickDefault
 
 object UploadComponents {
   def renderUploadedFile(nodeId: NodeId, file: NodeData.File)(implicit ctx: Ctx.Owner): VNode = {
@@ -57,7 +58,7 @@ object UploadComponents {
                   overlay,
                   centerStyle,
                   div(freeSolid.faExclamationTriangle, " Error Uploading File"),
-                  button(cls := "ui button", "Retry upload", onClick.stopPropagation.foreach { retry.runAsyncAndForget }, cursor.pointer)
+                  button(cls := "ui button", "Retry upload", onClickDefault.foreach { retry.runAsyncAndForget })
                 )
               )
               case Some(UploadingFile.Waiting(dataUrl)) => div(
@@ -75,7 +76,7 @@ object UploadComponents {
         contentType match {
           case t if t.startsWith("image/") =>
             val image = img(alt := fileName, downloadUrl.map(src := _), cls := "ui image")
-            image(maxHeight := maxImageHeight, cursor.pointer, onClick.stopPropagation.foreach {
+            image(maxHeight := maxImageHeight, onClickDefault.foreach {
               GlobalState.uiModalConfig.onNext(Ownable(_ => ModalConfig(StringOps.trimToMaxLength(file.fileName, 20), image(cls := "fluid"), modalModifier = cls := "basic"))) //TODO: better size settings
               ()
             })

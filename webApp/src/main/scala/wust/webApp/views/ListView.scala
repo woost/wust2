@@ -359,7 +359,7 @@ object ListView {
             width := "300px",
           )
         } else div(
-          onClick.stopPropagation.use(true) --> fieldActive,
+          onClickDefault.use(true) --> fieldActive,
           cls := "listviewaddsectiontext",
           color := "rgba(0,0,0,0.62)",
           s"+ $addSectionText",

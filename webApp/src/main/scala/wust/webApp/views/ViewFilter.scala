@@ -88,7 +88,9 @@ object ViewFilter {
             val baseTransform = GlobalState.graphTransformations.now.filterNot(_.isInstanceOf[GraphOperation.ContentContains])
             if (needle.length < 1) baseTransform
             else baseTransform :+ GraphOperation.ContentContains(needle)
-          } --> GlobalState.graphTransformations
+          } --> GlobalState.graphTransformations,
+          onClick.stopPropagation.discard, // prevent rightsidebar from closing
+          onMouseDown.stopPropagation.discard, // prevent rightsidebar from closing
         ),
         i(cls := "search icon", marginRight := "5px"),
       )

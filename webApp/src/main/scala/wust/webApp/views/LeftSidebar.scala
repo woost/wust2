@@ -71,6 +71,7 @@ object LeftSidebar {
                   div(
                     Rx { VDomModifier.ifNot(enableDragging())(opacity := 0.5) },
                     "Drag&Drop",
+                    onMouseDown.stopPropagation.discard, // prevent rightsidebar from closing
                   ),
                 ), enableDragging).apply(
                   transform := "scale(0.7)",
@@ -211,11 +212,10 @@ object LeftSidebar {
       marginRight := "3px"
     ),
     div("Woost", marginRight := "5px"),
-    onClick.use(UrlConfig.default) --> GlobalState.urlConfig,
+    onClickDefault(UrlConfig.default) --> GlobalState.urlConfig,
     onClick foreach {
       FeatureState.use(Feature.ClickLogo)
     },
-    cursor.pointer
   )
 
   def header(implicit ctx: Ctx.Owner): VNode = {
@@ -241,9 +241,8 @@ object LeftSidebar {
       width := "40px",
       textAlign.center,
       Icons.hamburger,
-      cursor.pointer,
       // TODO: stoppropagation is needed because of https://github.com/OutWatch/outwatch/pull/193
-      onClick.stopPropagation foreach {
+      onClickDefault foreach {
         FeatureState.use(if (leftSidebarOpen.now) Feature.CloseLeftSidebar else Feature.OpenLeftSidebar)
         leftSidebarOpen() = !leftSidebarOpen.now
       }
@@ -323,7 +322,6 @@ object LeftSidebar {
 
     div(
       padding := "1px 3px",
-      cursor.pointer,
       cls := "fa-fw", // same width for expand and collapse icon
       Rx {
         if (expanded())
@@ -331,7 +329,7 @@ object LeftSidebar {
         else
           VDomModifier(freeSolid.faAngleRight, color := "#a9a9a9")
       },
-      onClick.stopPropagation.useLazy(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(!expanded.now), userId)) --> GlobalState.eventProcessor.changes
+      onClickDefault.useLazy(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(!expanded.now), userId)) --> GlobalState.eventProcessor.changes
     )
   }
 
@@ -476,12 +474,13 @@ object LeftSidebar {
         div(cls := "fa-fw", freeSolid.faBookOpen)
       )
     },
-    onClick.stopPropagation.foreach(sidebarWithProjects.update(!_))
+    onClickDefault.foreach(sidebarWithProjects.update(!_))
   )
 
   private def filterInput(sidebarFilter: Var[String])(implicit ctx: Ctx.Owner): VNode = {
     div(
-      onClick.stopPropagation.discard,
+      onClick.stopPropagation.discard, // prevent rightsidebar from closing
+      onMouseDown.stopPropagation.discard, // prevent rightsidebar from closing
       cls := "ui mini fluid icon input",
       input(
         tpe := "text",
@@ -511,7 +510,7 @@ object LeftSidebar {
                     cls := "mini compact green ui button",
                     padding := "0.5em",
                     i(cls := "icon fa-fw", freeSolid.faCheck),
-                    onClick.stopPropagation.foreach {
+                    onClickDefault.foreach {
                       val changes = GraphChanges(
                         addEdges = Array(Edge.Pinned(nodeId, userId), Edge.Notify(nodeId, userId)),
                         delEdges = Array(Edge.Invite(nodeId, userId))
@@ -524,7 +523,7 @@ object LeftSidebar {
                     cls := "mini compact ui button",
                     padding := "0.5em",
                     i(cls := "icon fa-fw", freeSolid.faTimes),
-                    onClick.stopPropagation.foreach {
+                    onClickDefault.foreach {
                       //TODO: sadly a click here still triggers a channel-focus
                       confirm("Ignore and delete invitation?") {
                         val changes = GraphChanges(delEdges = Array(Edge.Invite(nodeId, userId)))

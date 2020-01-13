@@ -90,7 +90,7 @@ object FeedbackForm {
           cls := "ui tiny blue button",
           marginRight := "0",
           "Send",
-          onClick foreach { submit() },
+          onClickDefault foreach { submit() },
         // onClick(false) --> showPopup,
         ),
       )
@@ -103,7 +103,7 @@ object FeedbackForm {
       fontWeight := 700,
       cursor.pointer,
 
-      onClick.stopPropagation foreach {
+      onClickDefault foreach {
         showPopup.update(!_)
       },
       onGlobalEscape.use(false) --> showPopup,
@@ -136,7 +136,7 @@ object FeedbackForm {
         ),
         voteOnFeaturesButton,
         div("You can also send us an e-mail: ", Components.woostEmailLink(prefix = "support"), margin := "20px 2px"),
-        onClick.stopPropagation foreach {}, // prevents closing feedback form by global click
+        onClick.stopPropagation.discard, // prevents closing feedback form by global click
       )
     )
   }
@@ -179,7 +179,7 @@ object FeedbackForm {
     button(
       span(freeSolid.faComments, marginRight := "0.5em"), "Open Support Chat",
       cls := "ui blue button",
-      onClick.foreach { _ =>
+      onClickDefault.foreach { _ =>
         openCrispChat()
       }
     )
@@ -203,7 +203,8 @@ object FeedbackForm {
             scribe.error("Failed to init nolt", e)
         }
       }
-    }
+    },
+    onMouseDown.stopPropagation.discard, // prevent rightsidebar from closing
   )
 
 }

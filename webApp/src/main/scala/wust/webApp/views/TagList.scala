@@ -17,6 +17,7 @@ import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.{ drag, registerDragContainer }
 import wust.webUtil.{ Ownable, UI }
 import wust.webUtil.outwatchHelpers._
+import wust.webUtil.Elements.onClickDefault
 
 object TagList {
   val addTagText = "Add Tag"
@@ -191,7 +192,7 @@ object TagList {
             cls := "kanbanaddnodefieldtext",
             s"+ $addTagText",
             color := "gray",
-            onClick.stopPropagation foreach { newTagFieldActive() = true }
+            onClickDefault foreach { newTagFieldActive() = true }
           )
       }
     )

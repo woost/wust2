@@ -75,9 +75,7 @@ object FeatureExplorer {
                 Rx { (if (showDescription()) freeSolid.faCaretDown: VNode else freeSolid.faCaretRight: VNode).apply(marginRight := "0.5em") },
                 details.title, fontWeight.bold, fontSize := "1em",
               ),
-              onMouseDown.stopPropagation.discard, // prevent rightsidebar from closing
-              onClick.stopPropagation.foreach { showDescription() = !showDescription.now },
-              cursor.pointer,
+              onClickDefault.foreach { showDescription() = !showDescription.now },
               Rx{
                 VDomModifier.ifTrue(showDescription())(
                   div(

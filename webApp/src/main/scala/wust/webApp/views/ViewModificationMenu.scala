@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.webUtil.Elements.onClickDefault
 import wust.sdk.{ Colors, NodeColor, BaseColors }
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -84,7 +85,7 @@ object ViewModificationMenu {
               cls := "ui basic button compact mini",
               Elements.icon(info.icon),
               view.toString,
-              onClick.stopPropagation.foreach{
+              onClickDefault.foreach{
                 addNewView(currentView, done, nodeRx, existingViews, view)
                 trackAddViewFeature(view)
               },

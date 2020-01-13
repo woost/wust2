@@ -15,6 +15,7 @@ import wust.webApp.state.{ FeatureState, FocusState, GlobalState, Placeholder, T
 import wust.webApp.views.DragComponents.registerDragContainer
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{ Elements, UI }
+import wust.webUtil.Elements.onClickDefault
 
 // Notes view, this is a simple view for storing note/wiki/documentation on a node.
 // It  renders all direct children of noderole note and allows to add new notes.
@@ -165,7 +166,7 @@ object NotesView {
     Icons.edit,
     cursor.pointer,
     margin := "5px",
-    onClick.stopPropagation.foreach {
+    onClickDefault.foreach {
       editMode() = !editMode.now
       if (editMode.now)
         FeatureState.use(Feature.EditNote)
@@ -180,7 +181,7 @@ object NotesView {
       case false => renderFontAwesomeIcon(Icons.delete)
     },
     cursor.pointer,
-    onClick.stopPropagation.foreach {
+    onClickDefault.foreach {
       if (isDeleted.now) {
         val changes = GraphChanges.undelete(ChildId(nodeId), ParentId(parentId))
         GlobalState.submitChanges(changes)

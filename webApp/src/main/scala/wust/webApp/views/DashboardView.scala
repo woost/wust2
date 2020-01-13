@@ -15,6 +15,7 @@ import wust.webApp.views.DragComponents.registerDragContainer
 import wust.webApp.{Icons, Permission, DevOnly}
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{BrowserDetect, UI}
+import wust.webUtil.Elements.onClickDefault
 
 // Shows overview over a project:
 // - subprojects
@@ -162,7 +163,7 @@ object DashboardView {
           "Restore",
           cls := "ui button mini compact basic",
           cursor.pointer,
-          onClick.stopPropagation.useLazy(GraphChanges.connect(Edge.Child)(ParentId(focusState.focusedId), ChildId(project.id))) --> GlobalState.eventProcessor.changes
+          onClickDefault.useLazy(GraphChanges.connect(Edge.Child)(ParentId(focusState.focusedId), ChildId(project.id))) --> GlobalState.eventProcessor.changes
         )
       )
     } else {
@@ -177,7 +178,7 @@ object DashboardView {
             case true  => Icons.bookmark
             case false => Icons.unbookmark
           },
-          onClick.stopPropagation.useLazy(
+          onClickDefault.useLazy(
             if (isPinned.now) GraphChanges.unpin(project.id, GlobalState.userId.now) else GraphChanges.pin(project.id, GlobalState.userId.now)
           ) --> GlobalState.eventProcessor.changes
         ),

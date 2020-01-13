@@ -1,6 +1,7 @@
 package wust.webApp.views
 
 import acyclic.file
+import wust.webUtil.Elements.onClickDefault
 import fontAwesome._
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -233,7 +234,7 @@ object UnreadComponents {
           cls := "ui mini inverted compact button",
           Icons.notifications,
           UI.tooltip := "Unread Items",
-          onClick.stopPropagation.use(View.Notifications) --> sink,
+          onClickDefault.use(View.Notifications) --> sink,
         )
       )
     }
@@ -242,7 +243,7 @@ object UnreadComponents {
       cls := "ui mini inverted compact button",
       Icons.activityStream,
       UI.tooltip := "Activity Stream",
-      onClick.stopPropagation.use(View.ActivityStream) --> sink,
+      onClickDefault.use(View.ActivityStream) --> sink,
     )
 
     div(

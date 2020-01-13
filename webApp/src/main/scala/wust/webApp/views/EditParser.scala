@@ -245,8 +245,8 @@ object EditElementParser {
     def render(config: Config, initial: Task[Option[DateMilli]], handler: Handler[EditInteraction[DateMilli]])(implicit ctx: Ctx.Owner) = {
       SourceStream.fromAsync(initial).prepend(None).map { dateTime =>
         val initialDate = dateTime.map(new js.Date(_))
-        Elements.flatpickr("Select Date", withTime = false, initialDate = initialDate).foreach { date =>
-          handler.onNext(EditInteraction.Input(DateMilli(EpochMilli(date.getTime.toLong))))
+          Elements.flatpickr("Select Date", withTime = false, initialDate = initialDate).foreach { date =>
+            handler.onNext(EditInteraction.Input(DateMilli(EpochMilli(date.getTime.toLong))))
         }
       }
     }
@@ -270,8 +270,8 @@ object EditElementParser {
 
       SourceStream.fromAsync(initial).prepend(None).map { dateTime =>
         val initialDate = dateTime.map(new js.Date(_))
-        Elements.flatpickr("Select Date and Time", withTime = true, initialDate = initialDate).foreach { date =>
-          handler.onNext(EditInteraction.Input(DateTimeMilli(EpochMilli(date.getTime.toLong))))
+          Elements.flatpickr("Select Date and Time", withTime = true, initialDate = initialDate).foreach { date =>
+            handler.onNext(EditInteraction.Input(DateTimeMilli(EpochMilli(date.getTime.toLong))))
         }
       }
     }
@@ -418,6 +418,8 @@ object EditHelper {
         },
         cls := "ui circular basic icon button",
         fontSize := "1.2em", // same size as submit-button in Chat/InputRow
+        onMouseDown.stopPropagation.discard, // prevent rightsidebar from closing
+        onClick.stopPropagation.discard, // prevent rightsidebar from closing
       ),
 
       onDragOverModifier,

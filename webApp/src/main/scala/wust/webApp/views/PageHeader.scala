@@ -15,6 +15,7 @@ import wust.webUtil.Ownable
 import wust.webUtil.outwatchHelpers._
 import GlobalState.showOnlyInFullMode
 import wust.graph.Node
+import wust.webUtil.Elements.onClickDefault
 
 object PageHeader {
 
@@ -62,7 +63,7 @@ object PageHeader {
           pageNodeId,
           labelModifier = border := s"1px solid ${Colors.unreadBorder}" // light border has better contrast on colored pageheader background
         ),
-        onClick.stopPropagation.use(View.Notifications).foreach(view => GlobalState.urlConfig.update(_.focus(view))),
+        onClickDefault.use(View.Notifications).foreach(view => GlobalState.urlConfig.update(_.focus(view))),
         float.right,
         alignSelf.center,
       ))

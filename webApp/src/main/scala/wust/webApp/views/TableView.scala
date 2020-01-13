@@ -17,6 +17,7 @@ import wust.webApp.views.SharedViewElements.onClickNewNamePrompt
 import wust.webApp.{Icons, ItemProperties, views}
 import wust.webUtil.UI
 import wust.webUtil.outwatchHelpers._
+import wust.webUtil.Elements.onClickDefault
 
 import scala.collection.{breakOut, mutable}
 
@@ -164,7 +165,7 @@ object TableView {
           case false => miniButton(
             paddingLeft := "5px",
             Icons.edit,
-            onClick.stopPropagation.use(true) --> editMode
+            onClickDefault.use(true) --> editMode
           )
           case true  => VDomModifier.empty
         }
@@ -200,7 +201,7 @@ object TableView {
           case false => miniButton(
             paddingLeft := "5px",
             Icons.edit,
-            onClick.stopPropagation.use(true) --> editMode
+            onClickDefault.use(true) --> editMode
           )
           case true  => VDomModifier.empty
         }
@@ -243,6 +244,8 @@ object TableView {
                   ItemProperties.TypeConfig(prefilledType = predictedType, hidePrefilledType = true),
                   ItemProperties.EdgeFactory.labeledProperty(propertyKey, predictedShowOnCard)// ItemProperties.EdgeFactory.labeledProperty(property.key, predictedShowOnCard)
                 ),
+                onClick.stopPropagation.discard, // prevent rightsidebar from closing
+                onMouseDown.stopPropagation.discard, // prevent rightsidebar from closing
               )
       }
 
@@ -401,7 +404,7 @@ object TableView {
                   keyed, // TODO: this key is a hack. if we leave it out the onclick event of edit-icon only works once! with this key, it works. outwatch-bug!
                   Icons.delete,
                   " Delete",
-                  onClick.stopPropagation.foreach {
+                  onClickDefault.foreach {
                     if (dom.window.confirm(s"Do you really want to remove the column '$name' in all children?")) {
                       GlobalState.submitChanges(GraphChanges(delEdges = edges.map(e => e)(breakOut)))
                     }
@@ -447,7 +450,7 @@ object TableView {
       "Export to CSV",
       cls := "ui mini compact button basic",
       cursor.pointer,
-      onClick.stopPropagation.foreach {
+      onClickDefault.foreach {
         val data = CsvHelper.tableToCsv(node, propertyGroup)
         DownloadHelper.promptDownload(
           fileName = StringOps.trimToMaxLength(node.str, 50) + ".csv",

@@ -276,17 +276,17 @@ object KanbanView {
         cls := "fa-fw",
         if (isExpanded()) freeRegular.faEyeSlash else freeRegular.faEye
       ),
-      onClick.stopPropagation.useLazy(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(!isExpanded.now), GlobalState.userId.now)) --> GlobalState.eventProcessor.changes,
+      onClickDefault.useLazy(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(!isExpanded.now), GlobalState.userId.now)) --> GlobalState.eventProcessor.changes,
       cursor.pointer,
       UI.tooltip := (if (isExpanded()) "Hide contents" else "Show contents")
     )}
 
-    val editButton = div(cls := "buttonbar-button", div(cls := "fa-fw", Icons.edit), onClick.stopPropagation.use(true) --> editable, cursor.pointer, UI.tooltip := "Edit")
+    val editButton = div(cls := "buttonbar-button", div(cls := "fa-fw", Icons.edit), onClickDefault.use(true) --> editable, cursor.pointer, UI.tooltip := "Edit")
     val selectColorButton = Rx{node().map(node => div(cls := "buttonbar-button", ColorMenu.menuIcon(BaseColors.kanbanColumnBg, node)))}
     val deleteUndeleteButton = Rx{div(
       cls := "buttonbar-button", 
       div(cls := "fa-fw", if (isDeletedNow()) Icons.undelete else Icons.delete),
-      onClick.stopPropagation foreach {
+      onClickDefault foreach {
         if (isDeletedNow.now) {
           val deleteChanges = GraphChanges.undelete(ChildId(nodeId), ParentId(traverseState.parentId))
           GlobalState.submitChanges(deleteChanges)
@@ -378,7 +378,7 @@ object KanbanView {
                   "Contents are hidden, click to show."
                 )
               ),
-              onClick.stopPropagation.useLazy(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(true), GlobalState.userId.now)) --> GlobalState.eventProcessor.changes,
+              onClickDefault.useLazy(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(true), GlobalState.userId.now)) --> GlobalState.eventProcessor.changes,
               cursor.pointer,
               paddingBottom := "7px",
             ),
@@ -444,7 +444,7 @@ object KanbanView {
             cls := "kanbanaddnodefieldtext",
             Rx{ s"+ Add ${itemName()}" },
             color := "rgba(0,0,0,0.62)",
-            onClick.stopPropagation.use(true) --> active
+            onClickDefault.use(true) --> active
           )
       }
     )
@@ -504,7 +504,7 @@ object KanbanView {
             showMarkdownHelp = false
           )
         } else div(
-          onClick.stopPropagation.use(true) --> fieldActive,
+          onClickDefault.use(true) --> fieldActive,
           cls := "kanbanaddnodefieldtext",
           paddingTop := "10px",
           color := "rgba(0,0,0,0.62)",

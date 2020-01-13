@@ -290,7 +290,7 @@ object ThreadView {
       " reply",
       marginTop := "3px",
       marginLeft := "8px",
-      onClick.stopPropagation foreach { showReplyField() = true }
+      onClickDefault foreach { showReplyField() = true }
     )
   }
 
@@ -319,7 +319,7 @@ object ThreadView {
       margin := "3px",
       closeButton(
         padding := "15px",
-        onClick.stopPropagation foreach { showReplyField() = false },
+        onClickDefault foreach { showReplyField() = false },
       ),
     )
   }

@@ -435,7 +435,13 @@ object Elements {
     }
   }
 
-  def onClickDefault: EmitterBuilder.Sync[com.raquo.domtypes.jsdom.defs.events.TypedTargetMouseEvent[org.scalajs.dom.Element], outwatch.dom.VDomModifier] = onClick.stopPropagation.mapResult(mod => VDomModifier(mod, cursor.pointer))
+  def onClickDefault: EmitterBuilder.Sync[com.raquo.domtypes.jsdom.defs.events.TypedTargetMouseEvent[org.scalajs.dom.Element], outwatch.dom.VDomModifier] = {
+    onClick.stopPropagation.mapResult(mod => VDomModifier(
+      mod,
+      cursor.pointer,
+      onMouseDown.stopPropagation.discard, // avoid toggling right sidebar
+    ))
+  }
   val safeRelForTargetBlank = "noopener noreferrer"
 
   // https://www.jitbit.com/alexblog/256-targetblank---the-most-underestimated-vulnerability-ever/

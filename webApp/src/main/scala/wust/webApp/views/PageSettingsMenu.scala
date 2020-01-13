@@ -13,6 +13,7 @@ import wust.webApp._
 import wust.webApp.state._
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{Elements, Ownable, UI}
+import wust.webUtil.Elements.onClickDefault
 
 import scala.collection.breakOut
 
@@ -171,7 +172,7 @@ object PageSettingsMenu {
       cls := "ui compact inverted button",
       UI.tooltip := "Bookmark in left Sidebar",
       Icons.bookmark,
-      onClick.useLazy(GraphChanges(addEdges = Array(Edge.Pinned(channelId, GlobalState.userId.now), Edge.Notify(channelId, GlobalState.userId.now)), delEdges = Array(Edge.Invite(channelId, GlobalState.userId.now)))) --> GlobalState.eventProcessor.changes,
+      onClickDefault.useLazy(GraphChanges(addEdges = Array(Edge.Pinned(channelId, GlobalState.userId.now), Edge.Notify(channelId, GlobalState.userId.now)), delEdges = Array(Edge.Invite(channelId, GlobalState.userId.now)))) --> GlobalState.eventProcessor.changes,
       onClick foreach {
         GlobalState.graph.now.nodesById(channelId).foreach { node =>
           node.role match {

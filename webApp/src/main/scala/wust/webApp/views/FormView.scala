@@ -132,7 +132,7 @@ object FormView {
               cls := "ui button primary",
               disabled <-- container.isEmptySource,
               "Save",
-              onClick.stopPropagation.foreach { _ =>
+              onClickDefault.foreach { _ =>
                 val current = container.currentValues()
                 if (current.nonEmpty) {
                   GlobalState.submitChanges(current.reduce(_ merge _))

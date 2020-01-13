@@ -10,6 +10,7 @@ import wust.webApp.Icons
 import wust.webApp.state.{FeatureState, GlobalState}
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{Elements, Ownable}
+import wust.webUtil.Elements.onClickDefault
 
 object FilterWindow {
   val resetAllFiltersText = "Reset all filters"
@@ -86,13 +87,12 @@ object FilterWindow {
       Styles.flex,
       justifyContent.flexEnd,
       button(
-        marginTop := "20px",
-        cls := "ui compact basic button",
-        cursor.pointer,
         Elements.icon(Icons.noFilter),
         span(resetAllFiltersText),
-        onClick.stopPropagation.use(GlobalState.defaultTransformations) --> GlobalState.graphTransformations,
-        onClick.stopPropagation foreach { FeatureState.use(Feature.ResetFilters) },
+        cls := "ui compact basic button",
+        marginTop := "20px",
+        onClickDefault.use(GlobalState.defaultTransformations) --> GlobalState.graphTransformations,
+        onClick foreach { FeatureState.use(Feature.ResetFilters) },
       )
     )
   )

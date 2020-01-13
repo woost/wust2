@@ -262,6 +262,7 @@ object SharedViewElements {
             else GlobalState.removeSelectedNode(nodeId)
           },
           onClick.stopPropagation.discard, // fix safari event, that automatically clicks on the message row, which again would unselect the message
+          onMouseDown.stopPropagation.discard, // prevent rightsidebar from closing
         ),
         label()
       )
@@ -280,15 +281,15 @@ object SharedViewElements {
           cls := "chatmsg-controls",
           if(isDeletedNow()) {
             ifCanWrite(undeleteButton(
-              onClick.useLazy(GraphChanges.undelete(ChildId(nodeId), directParentIds)) --> GlobalState.eventProcessor.changes,
+              onClickDefault.useLazy(GraphChanges.undelete(ChildId(nodeId), directParentIds)) --> GlobalState.eventProcessor.changes,
             ))
           }
           else VDomModifier(
             replyButton(
-              onClick foreach { replyAction }
+              onClickDefault foreach { replyAction }
             ),
             ifCanWrite(deleteButton(
-              onClick foreach {
+              onClickDefault foreach {
                 Elements.confirm("Delete this message?") {
                   GlobalState.submitChanges(GraphChanges.delete(ChildId(nodeId), directParentIds))
                   GlobalState.removeSelectedNode(nodeId)
@@ -320,8 +321,7 @@ object SharedViewElements {
 
     div(
       div(cls := "fa-fw", UI.tooltip := "Create new...", freeSolid.faPlus),
-      cursor.pointer,
-      onClick.stopPropagation foreach { ev =>
+      onClickDefault foreach { ev =>
         ev.target.asInstanceOf[dom.html.Element].blur()
         show.onNext(true)
       },
@@ -360,18 +360,18 @@ object SharedViewElements {
       fontSize := "20px",
       marginBottom := "10px",
       "Constant synchronization",
-      button("Connect to GitHub", width := "100%", onClick foreach(connectToGithub())),
+      button("Connect to GitHub", width := "100%", onClickDefault foreach(connectToGithub())),
       "One time import",
       input(tpe := "text", width := "100%", onInput.value --> urlImporter),
       button(
         "GitHub",
         width := "100%",
-        onClick(urlImporter) foreach((url: String) => importGithubUrl(url))
+        onClickDefault(urlImporter) foreach((url: String) => importGithubUrl(url))
       ),
       button(
         "Gitter",
         width := "100%",
-        onClick(urlImporter) foreach((url: String) => importGitterUrl(url))
+        onClickDefault(urlImporter) foreach((url: String) => importGitterUrl(url))
       ),
     )
   }
@@ -383,9 +383,8 @@ object SharedViewElements {
         paddingRight := "10px",
         Styles.flexStatic,
 
-        cursor.pointer,
         UI.tooltip := "Click to collapse", // we use the js-popup here, since it it always spawns at a visible position
-        onClick.useLazy(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(false), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes
+        onClickDefault.useLazy(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(false), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes
       )
     )
   }
@@ -400,16 +399,14 @@ object SharedViewElements {
         div(
           cls := "expand-collapsebutton",
           div(freeSolid.faAngleDown, cls := "fa-fw"),
-          onClick.useLazy(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(false), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes,
-          cursor.pointer,
+          onClickDefault.useLazy(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(false), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes,
         )
       } else {
         div(
           cls := "expand-collapsebutton",
           div(freeSolid.faAngleRight, cls := "fa-fw"),
           VDomModifier.ifTrue(!alwaysShow && childrenSize() == 0)(visibility.hidden),
-          onClick.useLazy(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(true), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes,
-          cursor.pointer,
+          onClickDefault.useLazy(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(true), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes,
         )
       }
     }
@@ -470,7 +467,7 @@ object SharedViewElements {
     onHide: () => Boolean = () => true,
   ) = EmitterBuilder.ofModifier[InputRow.Submission] { sink =>
     VDomModifier(
-      onClick.stopPropagation.use(Ownable { implicit ctx =>
+      onClickDefault.use(Ownable { implicit ctx =>
         newNamePromptModalConfig(
           sink,
           header,
@@ -484,7 +481,6 @@ object SharedViewElements {
           onHide = onHide,
         )
       }) --> GlobalState.uiModalConfig,
-      cursor.pointer
     )
   }
 

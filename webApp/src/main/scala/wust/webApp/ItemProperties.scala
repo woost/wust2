@@ -291,7 +291,8 @@ object ItemProperties {
       div(
         managePropertiesContent(target, config, edgeFactory, names).mapResult(_.apply(width := "200px")) --> closeDropdown,
         descriptionModifier
-      )
+      ),
+      onMouseDown.stopPropagation.discard, // prevent rightsidebar from closing
     ), closeDropdown, dropdownModifier = dropdownModifier)
   }
 

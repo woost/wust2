@@ -74,7 +74,7 @@ object SelectedNodes {
         }
       ),
 
-      onClick foreach { _ =>
+      onClickDefault foreach { _ =>
         val changes =
           if (allSelectedNodesAreDeleted.now)
             selectedNodesList.foldLeft(GraphChanges.empty)((c, t) => c merge GraphChanges.undelete(ChildId(t.nodeId), t.directParentIds))
@@ -90,7 +90,7 @@ object SelectedNodes {
   private def clearSelectionButton() = {
     closeButton(
       cls := "actionbutton",
-      onClick foreach {
+      onClickDefault foreach {
         GlobalState.clearSelectedNodes()
       }
     )
@@ -104,7 +104,7 @@ object SelectedNodes {
         "×",
         cls := "actionbutton",
         margin := "0",
-        onClick.stopPropagation foreach {
+        onClickDefault.stopPropagation foreach {
           GlobalState.removeSelectedNode(node.id)
         }
       ),

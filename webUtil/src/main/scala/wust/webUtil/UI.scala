@@ -18,6 +18,7 @@ import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 import monix.reactive.Observer
 import Elements.escapeHtml
+import Elements.onClickDefault
 import wust.facades.emojijs.EmojiConvertor
 
 
@@ -47,6 +48,7 @@ object UI {
         tpe := "checkbox",
         onChange.checked --> sink,
         onClick.stopPropagation.discard, // fix safari emitting extra click event onChange
+        onMouseDown.stopPropagation.discard, // prevent RightSidebar from closing
         checked <-- isChecked,
         // defaultChecked := isChecked.now
       ),
@@ -191,7 +193,8 @@ object UI {
           cls := "title" + (if (entry.active) " active" else ""),
           i(cls := "dropdown icon"),
           entry.title,
-          ),
+          onMouseDown.stopPropagation.discard, // avoid toggling right sidebar
+        ),
         div(
           cls := "content" + (if (entry.active) " active" else ""),
           padding := "0px",
@@ -319,7 +322,7 @@ object UI {
   def toggleButton(active: Rx[Boolean])(implicit ctx: Ctx.Owner): VNode = button(
     cls := "ui button",
     active.map(VDomModifier.ifTrue(_)(cls := "active")),
-    onClick.stopPropagation.asHtml.foreach(_.blur())
+    onClickDefault.asHtml.foreach(_.blur())
   )
 
 }

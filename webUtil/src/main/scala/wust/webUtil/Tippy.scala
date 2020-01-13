@@ -110,6 +110,7 @@ package object tippy {
       placement = _placement
       boundary = _boundary
     }, close),
-    cursor.pointer
+    cursor.pointer,
+    onMouseDown.stopPropagation.discard,
   )
 }

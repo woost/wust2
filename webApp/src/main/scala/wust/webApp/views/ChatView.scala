@@ -405,13 +405,13 @@ object ChatView {
                   )
                 }
               ),
-              div(cls := "fa-fw", Icons.reply, padding := "3px 20px 3px 5px", onClick.stopPropagation foreach { currentReply.update(_ ++ Set(nodeId)) }, cursor.pointer),
-              div(cls := "fa-fw", Icons.zoom, padding := "3px 20px 3px 5px", onClick.stopPropagation foreach {
+              div(cls := "fa-fw", Icons.reply, padding := "3px 20px 3px 5px", onClickDefault foreach { currentReply.update(_ ++ Set(nodeId)) }, cursor.pointer),
+              div(cls := "fa-fw", Icons.zoom, padding := "3px 20px 3px 5px", onClickDefault foreach {
                 focusState.contextParentIdAction(node.id)
                 GlobalState.clearSelectedNodes()
                 FeatureState.use(Feature.ZoomIntoMessage)
               }, cursor.pointer),
-              pinReply.map{ pinReply => div(cls := "fa-fw", freeSolid.faThumbtack, Rx { pinReply().ifFalse[VDomModifier](opacity := 0.4) }, padding := "3px 20px 3px 5px", onClick.stopPropagation foreach { pinReply() = !pinReply.now; inputFieldFocusTrigger.onNext(()); () }, cursor.pointer) },
+              pinReply.map{ pinReply => div(cls := "fa-fw", freeSolid.faThumbtack, Rx { pinReply().ifFalse[VDomModifier](opacity := 0.4) }, padding := "3px 20px 3px 5px", onClickDefault foreach { pinReply() = !pinReply.now; inputFieldFocusTrigger.onNext(()); () }, cursor.pointer) },
             )
           ))
       },
@@ -422,7 +422,7 @@ object ChatView {
   //TODO share code with threadview?
   private def additionalNodeActions(focusState: FocusState, currentReply: Var[Set[NodeId]], inputFieldTriggerFocus: SinkSourceHandler.Simple[Unit])(implicit ctx: Ctx.Owner): Boolean => List[VNode] = canWriteAll => List(
     replyButton(
-      onClick foreach {
+      onClickDefault foreach {
         currentReply() = GlobalState.selectedNodes.now.map(_.nodeId)(breakOut):Set[NodeId]
         GlobalState.clearSelectedNodes()
         inputFieldTriggerFocus.onNext(Unit)
@@ -456,7 +456,9 @@ object ChatView {
               renderParentMessage(focusState, traverseState, replyNodeId, isDeletedNow, currentReply, inputFieldFocusTrigger, Some(pinReply)),
               closeButton(
                 marginLeft.auto,
-                onTap foreach { currentReply.update(_ - replyNodeId) }
+                onTap foreach { currentReply.update(_ - replyNodeId) },
+                onClick.stopPropagation.discard, // prevent rightsidebar from closing
+                onMouseDown.stopPropagation.discard, // prevent rightsidebar from closing
               ),
             )
           )

@@ -128,6 +128,7 @@ object EditableContent {
 
       basicModifiers(config, handler.edit),
       inputModifiers(config, handler.edit),
+      onMouseDown.stopPropagation.discard, // prevent rightsidebar from closing when clicking inside text field
 
       EditHelper.valueParsingModifier[T, dom.html.TextArea](Task.pure(initial), handler.edit, EmitterBuilder.combine(emitter(handler.save), inputEmitter(config), blurEmitter(config)), identity, _.value, e => EditStringParser[T].parse(e.value)),
     ))
@@ -188,25 +189,25 @@ object EditableContent {
 
   @inline private def stringFromSelect(element: dom.html.Select): String = element.value
 
-  private def cancelButton(current: SinkObserver[EditInteraction[Nothing]]) = dsl.span(
+  private def cancelButton(current: SinkObserver[EditInteraction[Nothing]]) = dsl.button(
     "Cancel",
     cls := "ui button compact mini",
     padding := "5px",
     margin := "1px",
     flexShrink := 0,
     fontSize.xSmall,
-    styleAttr := "cursor: pointer !important", // overwrite style from semantic ui with important
-    onClick.stopPropagation.use(EditInteraction.Cancel) --> current
+    onClickDefault.use(EditInteraction.Cancel) --> current,
+    cls := "enable-text-selection a", // enforce cursor: pointer
   )
-  private def saveButton(current: SinkObserver[Unit]) = dsl.span(
+  private def saveButton(current: SinkObserver[Unit]) = dsl.button(
     "Save",
     cls := "ui button primary compact mini",
     padding := "5px",
     margin := "1px",
     flexShrink := 0,
     fontSize.xSmall,
-    styleAttr := "cursor: pointer !important", // overwrite style from semantic ui with important
-    onClick.stopPropagation.use(()) --> current
+    onClickDefault.use(()) --> current,
+    cls := "enable-text-selection a", // enforce cursor: pointer
   )
 
   final case class CommonEditHandler[T](edit: Handler[EditInteraction[T]], save: SourceStream[Unit])

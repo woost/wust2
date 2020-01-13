@@ -259,7 +259,7 @@ object NotificationView {
                               color := readColor,
                             ),
 
-                            onClick.stopPropagation.foreach {
+                            onClickDefault.foreach {
                               val changes = if (allSeen) GraphChanges.from(delEdges = GlobalState.graph.now.readEdgeIdx.flatMap[Edge.Read](GlobalState.graph.now.idToIdxOrThrow(node.id)) { idx =>
                                 val edge = GlobalState.graph.now.edges(idx).as[Edge.Read]
                                 if (edge.userId == GlobalState.user.now.id && edge.data.timestamp >= renderTime) Array(edge) else Array.empty
@@ -381,7 +381,7 @@ object NotificationView {
       marginBottom := "3px",
       Styles.flexStatic,
 
-      onClick.stopPropagation.foreach {
+      onClickDefault.foreach {
         val changes = GraphChanges(
           addEdges = calculateDeepUnreadChildren(graph, parentId, userId, renderTime = renderTime)
             .map(nodeIdx => Edge.Read(GlobalState.graph.now.nodeIds(nodeIdx), EdgeData.Read(EpochMilli.now), GlobalState.user.now.id))(breakOut)

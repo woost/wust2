@@ -1,6 +1,7 @@
 package wust.webApp.views
 
 import cats.data.NonEmptyList
+import wust.webUtil.Elements.onClickDefault
 import fontAwesome._
 import wust.webUtil.tippy
 import outwatch.dom._
@@ -151,7 +152,7 @@ object ViewSwitcher {
     // VDomModifier.ifTrue(tabInfo.numItems > 0)(span(tabInfo.numItems, paddingLeft := "7px")),
 
     // actions
-    onClick.stopPropagation.foreach { e =>
+    onClickDefault.foreach { e =>
       val clickedView = tabInfo.targetView.asInstanceOf[View.Visible]
       if (e.ctrlKey) {
         currentView.update{ oldView =>

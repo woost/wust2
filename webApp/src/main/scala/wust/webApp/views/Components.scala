@@ -612,7 +612,7 @@ object Components {
       implicit ctx: Ctx.Owner
     ): VNode = {
       editableNode( node, editMode, maxLength, config)(ctx)(
-        onClick.stopPropagation foreach {
+        onClickDefault foreach {
           if(!editMode.now) {
             editMode() = true
           }
@@ -843,7 +843,7 @@ object Components {
             cls := "ui mini compact negative basic button",
             marginLeft := "10px",
             "Remove",
-            onClick.stopPropagation.use(element) --> removeSink
+            onClickDefault.use(element) --> removeSink
           ),
         )
       }
@@ -981,8 +981,7 @@ object Components {
           },
           div(item.title),
           div(item.description),
-          onClick.foreach { item.clickAction() },
-          cursor.pointer,
+          onClickDefault.foreach { item.clickAction() },
 
           innerModifier
         )

@@ -11,6 +11,7 @@ import wust.webApp.state.{FeatureState, GlobalState, ScreenSize, PresentationMod
 import wust.webApp.views.Components._
 import wust.webApp.StagingOnly
 import wust.webUtil.outwatchHelpers._
+import wust.webUtil.Elements.onClickDefault
 
 object WelcomeView {
   def apply(implicit ctx: Ctx.Owner): VNode = {
@@ -65,7 +66,7 @@ object WelcomeView {
     cls := "primary",
     padding := "20px",
     id := "tutorial-newprojectbutton",
-    onClick.stopPropagation.foreach {
+    onClickDefault.foreach {
       FeatureState.use(Feature.CreateProjectFromWelcomeView)
     }
   )
