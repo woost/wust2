@@ -1,5 +1,6 @@
 package wust.webUtil
 
+import org.scalajs.dom.console
 import typings.chartDotJs.chartDotJsMod.ChartConfiguration
 import fontAwesome.{ IconLookup, Params, Transform, fontawesome, freeSolid }
 import wust.facades.dateFns.DateFns
@@ -69,6 +70,32 @@ object Elements {
       },
     )
   }
+
+  private def overVerticalScrollbar(e: MouseEvent): Boolean = {
+    val scrollbarWidth = 15
+    val targetPos = e.target.asInstanceOf[HTMLElement].getBoundingClientRect().left
+    val currentTargetPos = e.currentTarget.asInstanceOf[HTMLElement].getBoundingClientRect().left
+    val mouseTargetPos = e.asInstanceOf[js.Dynamic].offsetX.asInstanceOf[Double]
+    val mousePos = targetPos - currentTargetPos + mouseTargetPos
+    val visibleElementWidth = e.currentTarget.asInstanceOf[HTMLElement].offsetWidth
+    // console.log("vertical", mousePos, visibleElementWidth)
+    mousePos > (visibleElementWidth - scrollbarWidth)
+  }
+
+  private def overHorizontalScrollbar(e: MouseEvent): Boolean = {
+    val scrollbarWidth = 15
+    val targetPos = e.target.asInstanceOf[HTMLElement].getBoundingClientRect().top
+    val currentTargetPos = e.currentTarget.asInstanceOf[HTMLElement].getBoundingClientRect().top
+    val mouseTargetPos = e.asInstanceOf[js.Dynamic].offsetY.asInstanceOf[Double]
+    val mousePos = e.asInstanceOf[js.Dynamic].clientY.asInstanceOf[Double]
+    val visibleElementHeight = e.currentTarget.asInstanceOf[HTMLElement].offsetHeight
+    // console.log("horizontal", mousePos, visibleElementHeight)
+    mousePos > (visibleElementHeight - scrollbarWidth)
+  }
+
+  val onMouseDownOverVerticalScrollbarStopPropagation = onMouseDown.filter(overVerticalScrollbar).stopPropagation.discard
+
+  val onMouseDownOverHorizontalScrollbarStopPropagation = onMouseDown.filter(overHorizontalScrollbar).stopPropagation.discard
 
   def onClickPreventDefaultExceptCtrl(action: => Unit): VDomModifier = {
     // on middle click / ctrl+click opens new tab with `href`

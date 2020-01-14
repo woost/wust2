@@ -29,7 +29,7 @@ import scala.scalajs.js
 object LeftSidebar {
   val minWidthSidebar = 40
 
-  def apply: VNode = {
+  def apply(): VNode = {
 
     def authStatus(implicit ctx: Ctx.Owner) = AuthControls.authStatusOnLightBackground().map(_(marginBottom := "15px", alignSelf.center))
 

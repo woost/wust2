@@ -1,6 +1,9 @@
 package wust.webApp.views
 
+import scala.scalajs.js
 import org.scalajs.dom
+import org.scalajs.dom.raw.HTMLElement
+import org.scalajs.dom.console
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
@@ -14,6 +17,8 @@ import wust.webUtil.{ BrowserDetect, UI }
 import wust.webUtil.outwatchHelpers._
 import wust.facades.segment.Segment
 import fontAwesome.freeSolid
+import org.scalajs.dom.raw.MouseEvent
+import wust.webUtil.Elements
 
 object MainView {
 
@@ -38,6 +43,9 @@ object MainView {
     )
   }
 
+  private val onMouseDownCloseRightSidebar = onMouseDown.use(None) --> GlobalState.rightSidebarNode
+
+
   private def presentation(mode: PresentationMode.Alternative)(implicit ctx: Ctx.Owner): VDomModifier = {
     div(
       Styles.growFull,
@@ -55,7 +63,7 @@ object MainView {
           Styles.growFull,
           flexDirection.column,
 
-          onMouseDown.use(None) --> GlobalState.rightSidebarNode,
+          onMouseDownCloseRightSidebar,
 
           content(PresentationMode.ContentOnly),
         ),
@@ -130,15 +138,13 @@ object MainView {
 
       onMouseDown.use(()) --> GlobalState.mouseClickInMainView,
 
-      LeftSidebar.apply(
-        onMouseDown.use(None) --> GlobalState.rightSidebarNode,
-      ),
+      LeftSidebar(),
 
       div(
         Styles.flex,
         Styles.growFull,
         flexDirection.column,
-        onMouseDown.use(None) --> GlobalState.rightSidebarNode,
+        onMouseDownCloseRightSidebar,
 
         //      DevOnly { DevView },
         topBannerContainer,
@@ -180,6 +186,8 @@ object MainView {
 
       flexDirection.column,
       overflow.auto,
+      Elements.onMouseDownOverHorizontalScrollbarStopPropagation,
+      Elements.onMouseDownOverVerticalScrollbarStopPropagation,
       position.relative, // important for position absolute of loading animation to have the correct width of its parent element
 
       backgroundColor := Colors.contentBg,
