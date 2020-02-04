@@ -63,7 +63,7 @@ object ViewSwitcher {
         padding := "7px 10px",
         div(addViewIcon, fontSize := "16px", color := "white", paddingLeft := "2px", paddingRight := "2px", UI.tooltip := "Add or remove views"),
 
-        tippy.menu(close = closeDropdown) := div(
+        tippy.menu(close = closeDropdown, _boundary = "scrollParent") := div(
           color := Colors.fgColor,
           padding := "5px",
           div(cls := "item", display.none), //TODO ui dropdown needs at least one element
