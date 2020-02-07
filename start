@@ -85,7 +85,7 @@ function self() {
     psql)
         export $env_postgres_secret $env_postgres_local
         PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOSTNAME -U $POSTGRES_USER -p $POSTGRES_PORT ${@:2}
-        # postgres_core_command psql -h localhost -U $POSTGRES_USER ${@:2}
+        # postgres_core_command psql -h $POSTGRES_HOSTNAME -U $POSTGRES_USER -p $POSTGRES_PORT ${@:2}
         ;;
     psqlbatch)
         export $env_postgres_secret $env_postgres_local
@@ -116,8 +116,8 @@ function self() {
         postgres_core_command pg_dump --clean --if-exists -h localhost -U wust > "$filepath"
         ;;
     pg_restore)
-        postgres_core_psqlbatch -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
-        cat $2 | postgres_core_command pg_restore -h localhost -U wust -Fc -d wust
+        # postgres_core_psqlbatch -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+        cat $2 | postgres_core_command pg_restore --clean -h localhost -U wust -Fc -d wust
         ;;
     pgrestore)
         postgres_core_psqlbatch -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
