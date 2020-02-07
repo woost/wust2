@@ -369,6 +369,12 @@ object GlobalStateFactory {
       Segment.trackEvent("Presentation Mode", js.Dynamic.literal(mode = presentationMode.toString))
     }
 
+    GlobalState.urlConfig.map(_.pageChange.page).foreach { rawPage =>
+      rawPage.parentId.foreach {pageId =>
+        Segment.trackEvent("urlPage", js.Dynamic.literal(pageIdBase58 = pageId.toBase58, pageIdUuid = pageId.toUuid.toString))
+      }
+    }
+
     GlobalState.view.toSourceStream.dropWhile(_ == View.Empty).filter(_ => !GlobalState.showPageNotFound.now).foreach { view =>
       // DebugOnly { UI.toast("", title = view.viewKey, level = ToastLevel.Info) }
       Segment.page(view.viewKey)
