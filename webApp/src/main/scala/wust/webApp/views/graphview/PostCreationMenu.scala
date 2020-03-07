@@ -39,7 +39,6 @@ object PostCreationMenu {
     div(
       emitter(inputHandler).foreach { content =>
         if(content.nonEmpty) {
-          val author = GlobalState.user.now
           val changes = GraphChanges.addNodeWithParent(Node.MarkdownTask(content), ParentId(focusState.focusedId))
           GlobalState.submitChanges(changes)
         }

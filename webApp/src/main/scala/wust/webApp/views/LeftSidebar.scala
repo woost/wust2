@@ -213,7 +213,7 @@ object LeftSidebar {
       marginRight := "3px"
     ),
     div("Woost", marginRight := "5px"),
-    onClickDefault(UrlConfig.default) --> GlobalState.urlConfig,
+    onClickDefault.use(UrlConfig.default) --> GlobalState.urlConfig,
     onClick foreach {
       FeatureState.use(Feature.ClickLogo)
     },
