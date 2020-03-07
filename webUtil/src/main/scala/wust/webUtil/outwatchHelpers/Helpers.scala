@@ -3,8 +3,6 @@ package wust.webUtil.outwatchHelpers
 import monix.execution.{Ack, Cancelable}
 import monix.reactive.{Observable, Observer}
 import outwatch._
-import outwatch.EmitterBuilder
-import rx._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js

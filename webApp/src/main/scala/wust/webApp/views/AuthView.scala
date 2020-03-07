@@ -4,6 +4,7 @@ import org.scalajs.dom
 import outwatch._
 import outwatch.dsl._
 import outwatch.reactive.handler._
+import colibri.ext.rx._
 import rx._
 import wust.api.{AuthResult, AuthUser, Password}
 import wust.css.Styles

@@ -3,6 +3,7 @@ package wust.webApp.views
 import cats.data.NonEmptyList
 import outwatch._
 import outwatch.dsl._
+import colibri.ext.rx._
 import rx._
 import wust.ids.ViewOperator
 import wust.webApp.state.{GlobalState, ScreenSize}

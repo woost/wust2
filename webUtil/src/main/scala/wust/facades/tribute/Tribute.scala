@@ -19,7 +19,6 @@ class Tribute[Value](collection: TributeCollection[Value]) extends js.Object {
 object Tribute {
   import outwatch._
   import colibri._
-  import outwatch.EmitterBuilder
 
   implicit def render[Value]: Render[Tribute[Value]] = { tribute =>
     VDomModifier(

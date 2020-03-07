@@ -4,7 +4,7 @@ import flatland._
 import org.scalajs.dom
 import outwatch._
 import outwatch.dsl.{label, _}
-import outwatch.EmitterBuilder
+import colibri.ext.rx._
 import colibri._
 import rx._
 import wust.css.Styles

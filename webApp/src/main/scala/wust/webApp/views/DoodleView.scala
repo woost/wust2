@@ -3,8 +3,8 @@ package wust.webApp.views
 import cats.data.EitherT
 import outwatch._
 import outwatch.dsl._
-import outwatch.EmitterBuilder
 import colibri._
+import colibri.ext.rx._
 import outwatch.reactive.handler._
 import rx._
 import wust.css.Styles

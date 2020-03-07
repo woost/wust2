@@ -4,6 +4,7 @@ import fontAwesome._
 import org.scalajs.dom.experimental.permissions.PermissionState
 import outwatch._
 import outwatch.dsl._
+import colibri.ext.rx._
 import colibri.ext.monix._
 import rx.{Ctx, Rx}
 import wust.graph.Node.User

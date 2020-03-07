@@ -16,9 +16,8 @@ import wust.util.Empty
 
 import outwatch._
 import colibri._
-import outwatch.EmitterBuilder
-import outwatch.reactive.handlers.monix._
 import colibri.ext.monix._
+import colibri.ext.rx._
 
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.scalajs.js
@@ -161,24 +160,6 @@ package object outwatchHelpers extends KeyHash with RxInstances {
   def withManualOwner(f: Ctx.Owner => VDomModifier): VDomModifier = {
     val ctx = createManualOwner()
     VDomModifier(f(ctx), dsl.onDomUnmount foreach { ctx.contextualRx.kill() })
-  }
-
-  implicit object obsCanCancel extends CanCancel[Obs] {
-    def cancel(obs: Obs) = obs.kill()
-  }
-
-  implicit object RxSource extends Source[Rx] {
-    def subscribe[G[_] : Sink, A](stream: Rx[A])(sink: G[_ >: A]): Cancelable = {
-      implicit val ctx = Ctx.Owner.Unsafe
-      Sink[G].onNext(sink)(stream.now)
-      val obs = stream.triggerLater(Sink[G].onNext(sink)(_))
-      Cancelable(() => obs.kill())
-    }
-  }
-
-  implicit object VarSink extends Sink[Var] {
-    @inline override def onNext[A](sink: Var[A])(value: A): Unit = sink() = value
-    @inline override def onError[A](sink: Var[A])(ex: Throwable): Unit = throw ex //TODO notify somebody
   }
 
   implicit class TypedElementsWithJquery[O <: dom.Element, R](val builder: EmitterBuilder[O, R]) extends AnyVal {

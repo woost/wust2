@@ -2,6 +2,7 @@ package wust.webApp.views
 
 import outwatch.dsl._
 import outwatch.{VDomModifier, _}
+import colibri.ext.rx._
 import rx.{Ctx, Rx}
 import wust.css.Styles
 import wust.ids.Feature

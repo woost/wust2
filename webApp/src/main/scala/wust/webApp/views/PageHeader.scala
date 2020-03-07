@@ -3,6 +3,7 @@ package wust.webApp.views
 import wust.webUtil.tippy
 import outwatch._
 import outwatch.dsl._
+import colibri.ext.rx._
 import rx._
 import wust.webApp.Icons
 import wust.css.Styles

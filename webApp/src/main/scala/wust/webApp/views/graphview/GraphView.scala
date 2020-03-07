@@ -2,6 +2,7 @@ package wust.webApp.views.graphview
 
 import outwatch._
 import outwatch.dsl._
+import colibri.ext.rx._
 import rx._
 import wust.css.ZIndex
 import wust.ids._

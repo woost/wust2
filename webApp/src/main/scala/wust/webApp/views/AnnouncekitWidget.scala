@@ -3,6 +3,7 @@ package wust.webApp.views
 import fontAwesome.freeSolid
 import outwatch._
 import outwatch.dsl._
+import colibri.ext.rx._
 import rx._
 import wust.facades.announcekit._
 import wust.webApp._

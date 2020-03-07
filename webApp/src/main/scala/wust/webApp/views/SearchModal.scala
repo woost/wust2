@@ -5,6 +5,7 @@ import org.scalajs.dom
 import outwatch._
 import outwatch.dsl._
 import colibri._
+import colibri.ext.rx._
 import rx._
 import wust.graph._
 import wust.webApp._

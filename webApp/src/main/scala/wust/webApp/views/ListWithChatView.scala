@@ -5,6 +5,7 @@ import flatland._
 import fontAwesome.freeSolid
 import outwatch._
 import outwatch.dsl._
+import colibri.ext.rx._
 import colibri._
 import rx._
 import wust.css.Styles

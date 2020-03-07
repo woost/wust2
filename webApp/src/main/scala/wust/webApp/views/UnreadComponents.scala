@@ -5,7 +5,7 @@ import wust.webUtil.Elements.onClickDefault
 import fontAwesome._
 import outwatch._
 import outwatch.dsl._
-import outwatch.EmitterBuilder
+import colibri.ext.rx._
 import colibri._
 import rx._
 import wust.graph._

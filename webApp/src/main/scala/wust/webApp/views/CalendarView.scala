@@ -7,6 +7,7 @@ import org.scalajs.dom
 import outwatch._
 import outwatch.dsl._
 import outwatch.dsl.styles.extra.transform
+import colibri.ext.rx._
 import colibri._
 import rx._
 import wust.css.Styles

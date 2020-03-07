@@ -2,7 +2,7 @@ package wust.webApp.views
 
 import outwatch._
 import outwatch.dsl._
-import outwatch.EmitterBuilder
+import colibri.ext.rx._
 import colibri._
 import outwatch.reactive.handler._
 import rx._

@@ -6,6 +6,7 @@ import outwatch._
 import outwatch.dsl._
 import outwatch.dsl.styles.extra._
 import colibri.ext.monix._
+import colibri.ext.rx._
 import colibri._
 import rx._
 import wust.css.{ CommonStyles, Styles }

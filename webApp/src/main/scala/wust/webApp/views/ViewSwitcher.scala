@@ -6,7 +6,7 @@ import fontAwesome._
 import wust.webUtil.tippy
 import outwatch._
 import outwatch.dsl._
-import outwatch.EmitterBuilder
+import colibri.ext.rx._
 import colibri._
 import rx._
 import wust.css.Styles

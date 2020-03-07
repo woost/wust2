@@ -4,6 +4,7 @@ import org.scalajs.dom
 
 import scala.scalajs.js
 import outwatch.VDomModifier
+import colibri.ext.rx._
 import rx._
 import wust.webUtil.outwatchHelpers._
 

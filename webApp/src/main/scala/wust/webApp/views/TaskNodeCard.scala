@@ -3,6 +3,7 @@ package wust.webApp.views
 import outwatch._
 import outwatch.dsl._
 import colibri.ext.monix._
+import colibri.ext.rx._
 import rx._
 import wust.css.{CommonStyles, Styles}
 import wust.graph._

@@ -3,7 +3,7 @@ package wust.webApp.views
 import fontAwesome._
 import outwatch._
 import outwatch.dsl._
-import outwatch.EmitterBuilder
+import colibri.ext.rx._
 import rx._
 import wust.css.Styles
 import wust.graph._

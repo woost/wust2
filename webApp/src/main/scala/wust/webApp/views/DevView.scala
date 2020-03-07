@@ -3,6 +3,7 @@ package wust.webApp.views
 import outwatch._
 import outwatch.dsl._
 import outwatch.dsl.styles.extra._
+import colibri.ext.rx._
 import rx._
 import wust.api._
 import wust.css.Styles

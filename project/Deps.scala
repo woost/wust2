@@ -52,16 +52,17 @@ object Deps {
   // val d3v4 = dep("com.github.fdietze" %%% "scala-js-d3v4" % "master-SNAPSHOT")
   val fontawesome = dep("com.github.grburst" % "scala-js-fontawesome" % "d673579a18")
   val vectory = dep("com.github.fdietze.vectory" %%% "vectory" % "4931100")
-  // val scalarx = dep("com.github.lihaoyi" %%% "scalarx" % "0.4.0")
-  val scalarx = dep("com.github.cornerman.scalarx" %%% "scalarx" % "7daef55")
-  // val scalarx = dep("com.github.fdietze.duality" %%% "scalarx" % "fc761c9")
+  val scalarx = dep("com.github.cornerman.scalarx" %%% "scalarx" % "70cd41c")
   val outwatch = new {
-    private val version = "a59c858e"
+    private val version = "4fbeaff"
     // val core = dep("io.github.outwatch" %%% "outwatch" % "0.11.1-SNAPSHOT")
     val core = dep("com.github.cornerman.outwatch" %%% "outwatch" % version)
-    // val monix = dep("io.github.outwatch" %%% "outwatch-monix" % "0.11.1-SNAPSHOT")
-    val monix = dep("com.github.cornerman.outwatch" %%% "outwatch-monix" % version)
     val util = dep("com.github.cornerman.outwatch" %%% "outwatch-util" % version)
+  }
+  val colibri = new {
+    private val version = "4979072"
+    val monix = dep("com.github.cornerman.colibri" %%% "colibri-monix" % version)
+    val rx = dep("com.github.cornerman.colibri" %%% "colibri-rx" % version)
   }
   val bench = dep("com.github.fdietze.bench" %%% "bench" % "e66a721")
   // val bench = dep("com.github.fdietze" %%% "bench" % "master-SNAPSHOT")

@@ -3,6 +3,7 @@ package wust.webApp.views
 import outwatch._
 import outwatch.dsl._
 import fontAwesome.freeSolid
+import colibri.ext.rx._
 import rx.Ctx
 import org.scalajs.dom
 import wust.api.AuthUser

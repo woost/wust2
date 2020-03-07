@@ -4,7 +4,7 @@ import wust.sdk.{BaseColors, NodeColor}
 import com.github.ghik.silencer.silent
 import outwatch._
 import outwatch.dsl._
-import outwatch.EmitterBuilder
+import colibri.ext.rx._
 import colibri.ext.monix._
 import colibri._
 import rx.{Ctx, Rx, Var}

@@ -5,6 +5,7 @@ import outwatch._
 import outwatch.dsl._
 import outwatch.dsl.styles.extra._
 import outwatch.reactive.handler._
+import colibri.ext.rx._
 import rx._
 import vectory._
 import wust.graph._

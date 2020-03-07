@@ -3,8 +3,8 @@ package wust.webApp
 import org.scalajs.dom
 import outwatch._
 import outwatch.dsl._
-import outwatch.EmitterBuilder
 import colibri._
+import colibri.ext.rx._
 import rx._
 import wust.css.Styles
 import wust.graph._

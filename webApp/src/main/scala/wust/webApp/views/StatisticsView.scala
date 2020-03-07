@@ -3,6 +3,7 @@ package wust.webApp.views
 import fontAwesome.IconDefinition
 import outwatch.dsl._
 import outwatch.{VNode, _}
+import colibri.ext.rx._
 import rx._
 import wust.css.Styles
 import wust.graph.SemanticNodeRole

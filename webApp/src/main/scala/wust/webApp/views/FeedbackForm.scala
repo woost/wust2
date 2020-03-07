@@ -6,6 +6,7 @@ import org.scalajs.dom.window.{clearTimeout, setTimeout}
 import outwatch._
 import outwatch.dsl._
 import outwatch.reactive.handler._
+import colibri.ext.rx._
 import rx._
 import wust.api.AuthUser.{Implicit, Real}
 import wust.css.{Styles, ZIndex}

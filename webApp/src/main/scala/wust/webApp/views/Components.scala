@@ -5,7 +5,7 @@ import fontAwesome._
 import org.scalajs.dom
 import outwatch._
 import outwatch.dsl._
-import outwatch.EmitterBuilder
+import colibri.ext.rx._
 import colibri.ext.monix._
 import colibri._
 import outwatch.reactive.handler._

@@ -6,6 +6,7 @@ import org.scalajs.dom.raw.HTMLElement
 import org.scalajs.dom.console
 import outwatch._
 import outwatch.dsl._
+import colibri.ext.rx._
 import rx._
 import wust.css.{ Styles, ZIndex }
 import wust.ids.Feature

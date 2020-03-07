@@ -3,6 +3,7 @@ package wust.webApp.views
 import outwatch._
 import outwatch.dsl._
 import colorado.RGB
+import colibri.ext.rx._
 import rx._
 import wust.ids.NodeRole
 import wust.sdk.{BaseColors, NodeColor}

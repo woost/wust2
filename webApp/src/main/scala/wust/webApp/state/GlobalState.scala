@@ -6,6 +6,7 @@ import org.scalajs.dom.experimental.permissions.PermissionState
 import org.scalajs.dom.window
 import outwatch.dsl.events
 import colibri.ext.monix._
+import colibri.ext.rx._
 import colibri._
 import rx._
 import wust.api._

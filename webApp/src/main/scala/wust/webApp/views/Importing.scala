@@ -6,7 +6,7 @@ import org.scalajs.dom
 import org.scalajs.dom.experimental._
 import outwatch._
 import outwatch.dsl._
-import outwatch.EmitterBuilder
+import colibri.ext.rx._
 import colibri.ext.monix._
 import colibri._
 import rx.{Ctx, Rx, Var}

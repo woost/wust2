@@ -11,9 +11,9 @@ import wust.util.collection._
 import outwatch._
 import outwatch.dsl._
 import outwatch.helpers._
-import colibri._
 import outwatch.reactive.handler._
 import colibri._
+import colibri.ext.rx._
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._

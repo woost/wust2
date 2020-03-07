@@ -5,6 +5,7 @@ import java.lang.Math._
 import colorado.HCL
 import outwatch.{VNode, _}
 import colibri.Observable
+import colibri.ext.rx._
 import wust.graph.Node
 import wust.sdk.NodeColor.genericHue
 import wust.webApp.Client
