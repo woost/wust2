@@ -4,9 +4,9 @@ package wust.webApp.state
 import com.github.ghik.silencer.silent
 import org.scalajs.dom.experimental.permissions.PermissionState
 import org.scalajs.dom.window
-import outwatch.dom.dsl.events
-import outwatch.ext.monix._
-import outwatch.reactive._
+import outwatch.dsl.events
+import colibri.ext.monix._
+import colibri._
 import rx._
 import wust.api._
 import wust.graph._
@@ -20,8 +20,8 @@ import wust.webApp.{ Client, WoostConfig }
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{ BrowserDetect, ModalConfig, Ownable }
 import wust.facades.segment.Segment
-import outwatch.dom._
-import outwatch.dom.dsl._
+import outwatch._
+import outwatch.dsl._
 import rx._
 import wust.webUtil.outwatchHelpers._
 
@@ -35,12 +35,12 @@ object GlobalState {
 
   val automationIsDisabled = Var(false)
 
-  val isClientOnline = SourceStream.merge(Client.observable.connected.map(_ => true), Client.observable.closed.map(_ => false)).behavior(false)
+  val isClientOnline = Observable.merge(Client.observable.connected.map(_ => true), Client.observable.closed.map(_ => false)).behavior(false)
   //TODO: is browser does not trigger?!
-  val isBrowserOnline = SourceStream.merge(events.window.onOffline.map(_ => false), events.window.onOnline.map(_ => true)).behavior(false)
+  val isBrowserOnline = Observable.merge(events.window.onOffline.map(_ => false), events.window.onOnline.map(_ => true)).behavior(false)
 
   // register the serviceworker and get an update observable when serviceworker updates are available.
-  val serviceWorkerIsActivated: SourceStream[Unit] = if (LinkingInfo.productionMode) ServiceWorker.register(WoostConfig.value.urls.serviceworker) else SourceStream.empty
+  val serviceWorkerIsActivated: Observable[Unit] = if (LinkingInfo.productionMode) ServiceWorker.register(WoostConfig.value.urls.serviceworker) else Observable.empty
 
   val eventProcessor = EventProcessor(
     Client.observable.event,
@@ -52,7 +52,7 @@ object GlobalState {
 
   eventProcessor.graph.foreach { g => scribe.debug("eventProcessor.graph: " + g) }
 
-  val mouseClickInMainView = SinkSourceHandler.publish[Unit]
+  val mouseClickInMainView = Subject.publish[Unit]
 
   @inline def changes = eventProcessor.changes
   def submitChanges(changes: GraphChanges) = {
@@ -70,7 +70,7 @@ object GlobalState {
 
   val hasError = Var(false)
 
-  val screenSize: Rx[ScreenSize] = outwatch.dom.dsl.events.window.onResize
+  val screenSize: Rx[ScreenSize] = outwatch.dsl.events.window.onResize
     .debounce(0.2 second)
     .map(_ => ScreenSize.calculate())
     .unsafeToRx(ScreenSize.calculate())
@@ -94,10 +94,10 @@ object GlobalState {
 
   val uploadingFiles: Var[Map[NodeId, UploadingFile]] = Var(Map.empty)
 
-  val uiSidebarConfig = SinkSourceHandler.publish[Ownable[GenericSidebar.SidebarConfig]]
-  val uiSidebarClose = SinkSourceHandler.publish[Unit]
-  val uiModalConfig = SinkSourceHandler.publish[Ownable[ModalConfig]]
-  val uiModalClose = SinkSourceHandler.publish[Unit]
+  val uiSidebarConfig = Subject.publish[Ownable[GenericSidebar.SidebarConfig]]
+  val uiSidebarClose = Subject.publish[Unit]
+  val uiModalConfig = Subject.publish[Ownable[ModalConfig]]
+  val uiModalClose = Subject.publish[Unit]
 
   @silent("deprecated")
   val rawGraph: Rx[Graph] = {

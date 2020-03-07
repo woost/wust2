@@ -6,9 +6,9 @@ import scala.scalajs.js
 import org.scalajs.dom
 import org.scalajs.dom.experimental.permissions.PermissionState
 import org.scalajs.dom.window
-import outwatch.dom.helpers.OutwatchTracing
-import outwatch.ext.monix._
-import outwatch.reactive._
+import outwatch.helpers.OutwatchTracing
+import colibri.ext.monix._
+import colibri._
 import rx._
 import wust.api.ApiEvent.ReplaceGraph
 import wust.facades.wdtEmojiBundle.wdtEmojiBundle
@@ -64,7 +64,7 @@ object GlobalStateFactory {
       }
     }
 
-    SourceStream.merge(EditableContent.currentlyEditing, UI.currentlyEditing).subscribe(eventProcessor.stopEventProcessing)
+    Observable.merge(EditableContent.currentlyEditing, UI.currentlyEditing).subscribe(eventProcessor.stopEventProcessing)
 
     // on mobile left and right sidebars overlay the screen.
     // close the right sidebar when the left sidebar is opened on mobile.
@@ -252,7 +252,7 @@ object GlobalStateFactory {
       var prevPage: PageChange = null
       var prevUser: Node.User = null
 
-      urlConfigAndUser.toSourceStream
+      urlConfigAndUser.toObservable
         .filter {
           case (urlConfig, user) =>
             @inline def userWasChanged = prevUser == null || prevUser.id != user.id || prevUser.data.isImplicit != user.data.isImplicit
@@ -272,7 +272,7 @@ object GlobalStateFactory {
         }.switchMap {
           case (urlConfig, user) =>
             val currentTransitChanges = lastTransitChanges.fold(GraphChanges.empty)(_ merge _)
-            SourceStream
+            Observable
               .fromFuture(getNewGraph(urlConfig.pageChange.page))
               .recover { case _ => Graph.empty }
               .map(g => ReplaceGraph(g.applyChanges(currentTransitChanges)))
@@ -339,7 +339,7 @@ object GlobalStateFactory {
     }
 
     // we send client errors from javascript to the backend
-    outwatch.dom.dsl.events.window.onError.foreach({ (e: dom.ErrorEvent) =>
+    outwatch.dsl.events.window.onError.foreach({ (e: dom.ErrorEvent) =>
       e.message match {
         case "Uncaught TypeError: Cannot read property 'insertBefore' of null" => // draggable
         case _ =>
@@ -375,13 +375,13 @@ object GlobalStateFactory {
       }
     }
 
-    GlobalState.view.toSourceStream.dropWhile(_ == View.Empty).filter(_ => !GlobalState.showPageNotFound.now).foreach { view =>
+    GlobalState.view.toObservable.dropWhile(_ == View.Empty).filter(_ => !GlobalState.showPageNotFound.now).foreach { view =>
       // DebugOnly { UI.toast("", title = view.viewKey, level = ToastLevel.Info) }
       Segment.page(view.viewKey)
     }
 
     // debounce: to skip an intermediate state that satisfies pageNotFound conditions
-    GlobalState.showPageNotFound.toSourceStream.debounce(200 millis).foreach { notFound =>
+    GlobalState.showPageNotFound.toObservable.debounce(200 millis).foreach { notFound =>
       if (notFound) {
         DebugOnly { UI.toast("", title = "Page Not Found", level = ToastLevel.Warning) }
         Segment.page("PageNotFound")

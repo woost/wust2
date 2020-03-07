@@ -2,11 +2,11 @@ package wust.webApp.views
 
 import wust.sdk.{BaseColors, NodeColor}
 import com.github.ghik.silencer.silent
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.dom.helpers.EmitterBuilder
-import outwatch.ext.monix._
-import outwatch.reactive._
+import outwatch._
+import outwatch.dsl._
+import outwatch.EmitterBuilder
+import colibri.ext.monix._
+import colibri._
 import rx.{Ctx, Rx, Var}
 import wust.css.{Styles, ZIndex}
 import wust.graph.{Edge, GraphChanges, Node}
@@ -197,8 +197,8 @@ object GraphChangesAutomationUI {
 
             Components.removeableList[Node](
               templates,
-              SinkObserver.combine(
-                SinkObserver.lift(GlobalState.eventProcessor.changes.contramap[Node] { templateNode =>
+              Observer.combine(
+                Observer.lift(GlobalState.eventProcessor.changes.contramap[Node] { templateNode =>
                   val g = GlobalState.rawGraph.now
                   val existingParent = g.parentEdgeIdx(g.idToIdxOrThrow(templateNode.id)).find { edgeIdx =>
                     val edge = graph.edges(edgeIdx).as[Edge.Child]
@@ -213,7 +213,7 @@ object GraphChangesAutomationUI {
                     delEdges = Array(Edge.Automated(focusedId, TemplateId(templateNode.id)))
                   )
                 }),
-                SinkObserver.create[Node](templateNode => GlobalState.rightSidebarNode.update(_.filter(_.nodeId != templateNode.id)))
+                Observer.create[Node](templateNode => GlobalState.rightSidebarNode.update(_.filter(_.nodeId != templateNode.id)))
               )
             )({ templateNode =>
                 val propertySingle = PropertyData.Single(graph, graph.idToIdxOrThrow(templateNode.id))

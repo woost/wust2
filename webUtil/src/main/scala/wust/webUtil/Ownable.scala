@@ -1,7 +1,7 @@
 package wust.webUtil
 
 import cats.Monad
-import outwatch.dom.Render
+import outwatch.Render
 import rx._
 
 class Ownable[T](get: Ctx.Owner => T) extends (Ctx.Owner => T) {

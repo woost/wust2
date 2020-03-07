@@ -3,8 +3,8 @@ package wust.webApp.views
 import wust.css.{Styles, ZIndex}
 import fontAwesome.freeSolid
 import org.scalajs.dom
-import outwatch.dom._
-import outwatch.dom.dsl._
+import outwatch._
+import outwatch.dsl._
 import wust.webApp.views.Components._
 import wust.webUtil.outwatchHelpers._
 import wust.facades.segment.Segment

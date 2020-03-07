@@ -2,9 +2,9 @@ package wust.webApp.views
 
 import flatland.ArraySet
 import org.scalajs.dom
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.reactive._
+import outwatch._
+import outwatch.dsl._
+import colibri._
 import rx._
 import wust.graph._
 import wust.webApp._
@@ -23,9 +23,9 @@ object SearchModal {
       final case class Local(query: String) extends SearchInput
     }
 
-    val searchLocal = SinkSourceHandler.publish[String]
-    val searchGlobal = SinkSourceHandler.publish[String]
-    val searchInputProcess = SinkSourceHandler.publish[String]
+    val searchLocal = Subject.publish[String]
+    val searchGlobal = Subject.publish[String]
+    val searchInputProcess = Subject.publish[String]
 
     def renderSearchResult(needle: String, haystack: List[Node], globalSearchScope: Boolean) = {
       val searchRes = Search.byString(needle, haystack, Some(100), 0.75).map{ nodeRes =>
@@ -61,9 +61,9 @@ object SearchModal {
       )
     }
 
-    val searches = SourceStream.merge(searchLocal.map(SearchInput.Local), searchGlobal.map(SearchInput.Global)).distinctOnEquals
+    val searches = Observable.merge(searchLocal.map(SearchInput.Local), searchGlobal.map(SearchInput.Global)).distinctOnEquals
 
-    val searchResult: SourceStream[VDomModifier] = searches.map {
+    val searchResult: Observable[VDomModifier] = searches.map {
       case SearchInput.Local(query) if query.nonEmpty =>
         val graph = GlobalState.graph.now
         val nodes = graph.nodes.toList

@@ -1,8 +1,8 @@
 package wust.webApp.views
 
 import fontAwesome.freeSolid
-import outwatch.dom._
-import outwatch.dom.dsl._
+import outwatch._
+import outwatch.dsl._
 import rx._
 import wust.facades.announcekit._
 import wust.webApp._

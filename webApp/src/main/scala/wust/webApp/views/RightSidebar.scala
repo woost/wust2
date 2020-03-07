@@ -3,9 +3,9 @@ package wust.webApp.views
 import acyclic.file
 import com.github.ghik.silencer.silent
 import fontAwesome.freeSolid
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.ext.monix._
+import outwatch._
+import outwatch.dsl._
+import colibri.ext.monix._
 import rx._
 import wust.css.Styles
 import wust.graph._

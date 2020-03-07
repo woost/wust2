@@ -2,10 +2,10 @@ package wust.webApp.views
 
 import monix.eval.Task
 import org.scalajs.dom
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.dom.helpers.EmitterBuilder
-import outwatch.reactive._
+import outwatch._
+import outwatch.dsl._
+import outwatch.EmitterBuilder
+import colibri._
 import outwatch.reactive.handler._
 import rx._
 import wust.css.Styles
@@ -186,8 +186,8 @@ trait EditElementParser[T] { self =>
   @inline final def mapEval[R](f: T => Task[R])(g: R => Task[T]): EditElementParser[R] = flatMapEval[R](t => f(t).map(EditInteraction.Input(_)))(r => g(r).map(EditInteraction.Input(_)))
   final def flatMapEval[R](f: T => Task[EditInteraction[R]])(g: R => Task[EditInteraction[T]]): EditElementParser[R] = new EditElementParser[R] {
     def render(config: Config, initial: Task[Option[R]], handler: Handler[EditInteraction[R]])(implicit ctx: Ctx.Owner) = {
-      //TODO: all observable methods in SourceStream, then have Observer methods without connectable?
-      val connectableSink = handler.redirect[SourceStream, EditInteraction[T]](_.concatMapAsync(_.toEither.fold(Task.pure(_), f)))
+      //TODO: all observable methods in Observable, then have Observer methods without connectable?
+      val connectableSink = handler.redirect[Observable, EditInteraction[T]](_.concatMapAsync(_.toEither.fold(Task.pure(_), f)))
       VDomModifier(managedFunction(() => connectableSink.connect()), self.render(
         config,
         initial.flatMap(_.fold[Task[Option[T]]](Task.pure(None))(g(_).map(_.toOption))),
@@ -243,7 +243,7 @@ object EditElementParser {
   }
   implicit object EditDateMilli extends EditElementParser[DateMilli] {
     def render(config: Config, initial: Task[Option[DateMilli]], handler: Handler[EditInteraction[DateMilli]])(implicit ctx: Ctx.Owner) = {
-      SourceStream.fromAsync(initial).prepend(None).map { dateTime =>
+      Observable.fromAsync(initial).prepend(None).map { dateTime =>
         val initialDate = dateTime.map(new js.Date(_))
           Elements.flatpickr("Select Date", withTime = false, initialDate = initialDate).foreach { date =>
             handler.onNext(EditInteraction.Input(DateMilli(EpochMilli(date.getTime.toLong))))
@@ -268,7 +268,7 @@ object EditElementParser {
 
     def render(config: Config, initial: Task[Option[DateTimeMilli]], handler: Handler[EditInteraction[DateTimeMilli]])(implicit ctx: Ctx.Owner) = {
 
-      SourceStream.fromAsync(initial).prepend(None).map { dateTime =>
+      Observable.fromAsync(initial).prepend(None).map { dateTime =>
         val initialDate = dateTime.map(new js.Date(_))
           Elements.flatpickr("Select Date and Time", withTime = true, initialDate = initialDate).foreach { date =>
             handler.onNext(EditInteraction.Input(DateTimeMilli(EpochMilli(date.getTime.toLong))))
@@ -305,7 +305,7 @@ object EditElementParser {
             case _ => VDomModifier.empty
           }
         ),
-        EditHelper.uploadFieldModifier(SourceStream.concatAsync(initial, handler.map(_.toOption)), randomId)
+        EditHelper.uploadFieldModifier(Observable.concatAsync(initial, handler.map(_.toOption)), randomId)
       )
     }
   }
@@ -383,9 +383,9 @@ object EditInteraction {
 
 object EditHelper {
 
-  def uploadFieldModifier(selected: SourceStream[Option[dom.File]], fileInputId: String)(implicit ctx: Ctx.Owner): VDomModifier = {
+  def uploadFieldModifier(selected: Observable[Option[dom.File]], fileInputId: String)(implicit ctx: Ctx.Owner): VDomModifier = {
 
-    val iconAndPopup: SourceStream[(VNode, Option[VNode])] = selected.map {
+    val iconAndPopup: Observable[(VNode, Option[VNode])] = selected.map {
       case None =>
         (span(Icons.fileUpload), None)
       case Some(file) =>

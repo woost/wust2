@@ -1,10 +1,10 @@
 package wust.webApp.views
 
 import org.scalajs.dom
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.dom.helpers.EmitterBuilder
-import outwatch.reactive._
+import outwatch._
+import outwatch.dsl._
+import outwatch.EmitterBuilder
+import colibri._
 import rx.{Ctx, Rx}
 import wust.css.Styles
 import wust.webApp.jsdom.{IntersectionObserver, IntersectionObserverOptions}
@@ -37,7 +37,7 @@ object InfiniteScroll {
 
           observer.observe(elem)
 
-          Subscription { () =>
+          Cancelable { () =>
             observer.unobserve(elem)
             observer.disconnect()
           }

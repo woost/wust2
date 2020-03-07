@@ -2,9 +2,9 @@ package wust.webApp.views
 
 import flatland._
 import fontAwesome._
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.reactive._
+import outwatch._
+import outwatch.dsl._
+import colibri._
 import rx._
 import wust.css.Styles
 import wust.graph._
@@ -33,10 +33,10 @@ object ThreadView {
   def apply(focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
 
     val scrollHandler = new ScrollBottomHandler
-    val inputFieldFocusTrigger = SinkSourceHandler.publish[Unit]
+    val inputFieldFocusTrigger = Subject.publish[Unit]
 
 
-    val pageCounter = SinkSourceHandler.publish[Int]
+    val pageCounter = Subject.publish[Int]
     val shouldLoadInfinite = Var[Boolean](false)
 
     div(
@@ -57,7 +57,7 @@ object ThreadView {
   }
 
   private def selectedNodesBar(
-    inputFieldFocusTrigger: SinkSourceHandler.Simple[Unit],
+    inputFieldFocusTrigger: Subject[Unit],
   )(implicit ctx: Ctx.Owner) = VDomModifier (
     position.relative, // for absolute positioning of selectednodes
     SelectedNodes(
@@ -72,7 +72,7 @@ object ThreadView {
   private def chatHistory(
     focusState: FocusState,
     traverseState: TraverseState,
-    externalPageCounter: SourceStream[Int],
+    externalPageCounter: Observable[Int],
     shouldLoadInfinite: Var[Boolean],
     scrollHandler: ScrollBottomHandler,
   )(implicit ctx: Ctx.Owner): VDomModifier = {
@@ -382,7 +382,7 @@ object ThreadView {
   private def chatInput(
     focusState: FocusState,
     scrollHandler: ScrollBottomHandler,
-    inputFieldFocusTrigger: SinkSourceHandler.Simple[Unit],
+    inputFieldFocusTrigger: Subject[Unit],
   )(implicit ctx: Ctx.Owner) = {
     val fileUploadHandler = Var[Option[AWS.UploadableFile]](None)
 

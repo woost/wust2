@@ -2,10 +2,10 @@ package wust.webApp.views
 
 import d3v4._
 import org.scalajs.dom
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.dom.dsl.styles.extra.transform
-import outwatch.reactive._
+import outwatch._
+import outwatch.dsl._
+import outwatch.dsl.styles.extra.transform
+import colibri._
 import rx._
 import wust.css.Styles
 import wust.graph._
@@ -144,7 +144,7 @@ object GanttView {
       })
 
       selection.call(zoom)
-      Subscription(() => selection.on("zoom", null: ListenerFunction0))
+      Cancelable(() => selection.on("zoom", null: ListenerFunction0))
     }
   }
 

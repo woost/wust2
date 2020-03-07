@@ -1,7 +1,7 @@
 package wust.webApp.views
 
 import outwatch.reactive.handler._
-import outwatch.dom.VDomModifier
+import outwatch.VDomModifier
 import wust.webApp.state.PresentationMode
 import rx._
 import wust.ids.View.ListWithChat

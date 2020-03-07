@@ -1,9 +1,9 @@
 package wust.webApp.views
 
 import fontAwesome.{IconLookup, freeSolid}
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.reactive._
+import outwatch._
+import outwatch.dsl._
+import colibri._
 import rx._
 import wust.css.Styles
 import wust.graph._
@@ -43,7 +43,7 @@ object CreateNewPrompt {
     val nodeRole = Var[SelectableNodeRole](defaultNodeRole)
     val addToChannels = Var[Boolean](defaultAddToChannels)
     val nodeAccess = Var[NodeAccess](NodeAccess.Inherited)
-    val triggerSubmit = SinkSourceHandler.publish[Unit]
+    val triggerSubmit = Subject.publish[Unit]
 
     def newMessage(sub: InputRow.Submission) = {
       val parents: Vector[ParentId] = if (parentNodes.now.isEmpty) Vector(ParentId(GlobalState.user.now.id: NodeId)) else parentNodes.now

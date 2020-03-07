@@ -1,7 +1,7 @@
 package wust.webApp.views
 
-import outwatch.dom._
-import outwatch.dom.dsl._
+import outwatch._
+import outwatch.dsl._
 import rx._
 import wust.css.Styles
 import wust.ids._

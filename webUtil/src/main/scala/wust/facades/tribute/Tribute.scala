@@ -17,16 +17,16 @@ class Tribute[Value](collection: TributeCollection[Value]) extends js.Object {
   def appendCurrent(values: js.Array[Value]): Unit = js.native
 }
 object Tribute {
-  import outwatch.dom._
-  import outwatch.reactive._
-  import outwatch.dom.helpers.EmitterBuilder
+  import outwatch._
+  import colibri._
+  import outwatch.EmitterBuilder
 
   implicit def render[Value]: Render[Tribute[Value]] = { tribute =>
     VDomModifier(
       snabbdom.VNodeProxy.repairDomBeforePatch, // the emoji-picker modifies the dom
       managedElement.asHtml { element =>
         tribute.attach(element)
-        Subscription { () =>
+        Cancelable { () =>
           tribute.detach(element)
         }
       }

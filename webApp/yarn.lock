@@ -4524,11 +4524,6 @@ osenv@^0.1.4:
     os-homedir "^1.0.0"
     os-tmpdir "^1.0.0"
 
-outwatch-snabbdom@0.7.7:
-  version "0.7.7"
-  resolved "https://registry.yarnpkg.com/outwatch-snabbdom/-/outwatch-snabbdom-0.7.7.tgz#00d024c8faa35822482d01d60b4856141d0300f2"
-  integrity sha512-aA2gXvOmGCW5ztjh6NoodxcjlD8sFJcIYTdInPVMvL36wu8oAradyciVQyraNhcYuJnw14QZ1dtLxaY0pR5qaw==
-
 p-cancelable@^0.3.0:
   version "0.3.0"
   resolved "https://registry.yarnpkg.com/p-cancelable/-/p-cancelable-0.3.0.tgz#b9e123800bcebb7ac13a479be195b507b98d30fa"
@@ -5712,6 +5707,10 @@ slash@^1.0.0:
 slash@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/slash/-/slash-2.0.0.tgz#de552851a1759df3a8f206535442f5ec4ddeab44"
+
+"snabbdom@git://github.com/cornerman/snabbdom.git#semver:0.7.4":
+  version "0.7.4"
+  resolved "git://github.com/cornerman/snabbdom.git#2814da5d929d432b9c3fc5ecf91ca03c72e17bbe"
 
 snapdragon-node@^2.0.1:
   version "2.1.1"

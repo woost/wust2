@@ -1,8 +1,8 @@
 package wust.webApp.views
 
 import fontAwesome.{IconDefinition, freeRegular, freeSolid}
-import outwatch.dom._
-import outwatch.dom.dsl._
+import outwatch._
+import outwatch.dsl._
 import rx._
 import wust.css.Styles
 import wust.facades.dateFns.DateFns

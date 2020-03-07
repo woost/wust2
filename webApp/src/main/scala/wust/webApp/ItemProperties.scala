@@ -1,10 +1,10 @@
 package wust.webApp
 
 import org.scalajs.dom
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.dom.helpers.EmitterBuilder
-import outwatch.reactive._
+import outwatch._
+import outwatch.dsl._
+import outwatch.EmitterBuilder
+import colibri._
 import rx._
 import wust.css.Styles
 import wust.graph._
@@ -283,7 +283,7 @@ object ItemProperties {
   }
 
   def managePropertiesDropdown(target: Target, config: TypeConfig = TypeConfig.default, edgeFactory: EdgeFactory = EdgeFactory.labeledProperty, names: Names = Names.default, descriptionModifier: VDomModifier = VDomModifier.empty, dropdownModifier: VDomModifier = cls := "top left", elementModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
-    val closeDropdown = SinkSourceHandler.publish[Unit]
+    val closeDropdown = Subject.publish[Unit]
     UI.dropdownMenu(VDomModifier(
       padding := "5px",
       div(cls := "item", display.none), // dropdown menu needs an item

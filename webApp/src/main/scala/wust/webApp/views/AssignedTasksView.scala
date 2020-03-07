@@ -1,8 +1,8 @@
 package wust.webApp.views
 
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.reactive._
+import outwatch._
+import outwatch.dsl._
+import colibri._
 import rx._
 import wust.css.Styles
 import wust.graph.{Edge, GraphChanges, Node}
@@ -122,7 +122,7 @@ object AssignedTasksView {
   )
 
   private def chooseUser(users: Rx[Seq[Node.User]], selectedUserId: Var[Option[UserId]])(implicit ctx: Ctx.Owner): VNode = {
-    val close = SinkSourceHandler.publish[Unit]
+    val close = Subject.publish[Unit]
     val avatarSize = "20px"
     val allUsersDiv = div(height := avatarSize)
     div(

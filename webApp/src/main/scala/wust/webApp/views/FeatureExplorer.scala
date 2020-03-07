@@ -4,9 +4,9 @@ import acyclic.file
 import wust.webUtil.Elements._
 import fontAwesome._
 import monix.eval.Task
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.reactive._
+import outwatch._
+import outwatch.dsl._
+import colibri._
 import rx._
 import wust.css.Styles
 import wust.facades.crisp._
@@ -188,13 +188,13 @@ object FeatureExplorer {
   )
 
   val usedFeatureAnimation = {
-    import outwatch.dom.dsl.styles.extra._
+    import outwatch.dsl.styles.extra._
 
     import scala.concurrent.duration._
 
     val shake = 0.2
 
-    val animationObservable = SourceStream.concatAsync(
+    val animationObservable = Observable.concatAsync(
       Task(transform := "rotate(-20deg)").delayExecution(shake seconds),
       Task(transform := "rotate(0deg)").delayExecution(shake seconds),
       Task(visibility.hidden).delayExecution(5 seconds)

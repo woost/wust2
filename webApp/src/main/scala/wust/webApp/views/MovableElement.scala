@@ -2,9 +2,9 @@ package wust.webApp.views
 
 import fontAwesome.freeSolid
 import org.scalajs.dom
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.reactive._
+import outwatch._
+import outwatch.dsl._
+import colibri._
 import rx._
 import wust.css.{Styles, ZIndex}
 import wust.webUtil.Ownable

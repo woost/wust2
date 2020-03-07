@@ -1,8 +1,8 @@
 package wust.webApp.views
 
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.reactive._
+import outwatch._
+import outwatch.dsl._
+import colibri._
 import rx._
 import wust.css.ZIndex
 import wust.facades.fomanticui.SidebarOptions
@@ -90,7 +90,7 @@ object GenericSidebar {
   }
 
   final case class SidebarConfig(items: VDomModifier, sidebarModifier: VDomModifier = VDomModifier.empty)
-  def sidebar(config: SourceStream[Ownable[SidebarConfig]], globalClose: SourceStream[Unit], targetSelector: Option[String]): VNode = {
+  def sidebar(config: Observable[Ownable[SidebarConfig]], globalClose: Observable[Unit], targetSelector: Option[String]): VNode = {
 
     div(
       cls := "ui sidebar right icon labeled borderless vertical menu mini",

@@ -1,6 +1,6 @@
 package wust.webApp.views
 
-import outwatch.dom.dsl._
+import outwatch.dsl._
 import wust.facades.hopscotch.{I18n, Step, Tour, hopscotch}
 
 import scala.scalajs.js

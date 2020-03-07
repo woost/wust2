@@ -3,7 +3,7 @@ package wust.webApp.jsdom
 import io.circe.{Decoder, Encoder, Json}
 import org.scalajs.dom.experimental.serviceworkers
 import org.scalajs.dom.window
-import outwatch.reactive._
+import colibri._
 import wust.api.Authentication
 import wust.webUtil.outwatchHelpers._
 
@@ -16,8 +16,8 @@ object ServiceWorker {
   private var activeServiceworker: Option[serviceworkers.ServiceWorker] = None
 
   // returns an observable that notifies whenever a new serviceworker is registered and activated
-  def register(location: String): SourceStream[Unit] = {
-    val subject = SinkSourceHandler.publish[Unit]
+  def register(location: String): Observable[Unit] = {
+    val subject = Subject.publish[Unit]
 
     Navigator.serviceWorker.foreach { sw =>
       // Use the window load event to keep the page load performant

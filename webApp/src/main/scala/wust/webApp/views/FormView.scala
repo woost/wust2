@@ -1,9 +1,9 @@
 package wust.webApp.views
 
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.dom.helpers.EmitterBuilder
-import outwatch.reactive._
+import outwatch._
+import outwatch.dsl._
+import outwatch.EmitterBuilder
+import colibri._
 import outwatch.reactive.handler._
 import rx._
 import wust.css.Styles
@@ -19,13 +19,13 @@ import scala.scalajs.js
 class ContainerSink[T] {
   private var array = new js.Array[js.UndefOr[T]]
 
-  private val isEmptyHandler = SinkSourceHandler[Boolean](true)
-  val isEmptySource: SourceStream[Boolean] = isEmptyHandler.distinctOnEquals
+  private val isEmptyHandler = Subject.behavior[Boolean](true)
+  val isEmptySource: Observable[Boolean] = isEmptyHandler.distinctOnEquals
 
-  def register(): SinkObserver[T] = {
+  def register(): Observer[T] = {
     val index = array.length
     array.push(js.undefined)
-    SinkObserver.create[T] { value =>
+    Observer.create[T] { value =>
       array(index) = value
       isEmptyHandler.onNext(false)
     }
@@ -184,7 +184,7 @@ object FormView {
       implicit ctx => handler => searchAndSelectNodeApplied[Handler](
         ProHandler(
           handler.edit.contramap[Option[NodeId]](EditInteraction.fromOption(_)),
-          handler.edit.collect[Option[NodeId]] { case EditInteraction.Input(id) => Some(id) }.prepend(Some(node.id)).replayLatest
+          handler.edit.collect[Option[NodeId]] { case EditInteraction.Input(id) => Some(id) }.prepend(Some(node.id)).replay.refCount
         ),
         filter = (n: Node) => true,
       ),

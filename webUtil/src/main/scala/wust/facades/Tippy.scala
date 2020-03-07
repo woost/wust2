@@ -5,11 +5,9 @@ import scala.scalajs.js.|
 import scala.scalajs.js.annotation._
 import org.scalajs.dom.Element
 
-import outwatch.dom._
-import outwatch.dom.dsl.{ label, _ }
-import outwatch.dom.helpers.AttributeBuilder
-import outwatch.ext.monix._
-import outwatch.reactive._
+import outwatch._
+import outwatch.dsl.{ label, _ }
+import colibri.ext.monix._
 import outwatch.reactive.handler._
 
 @js.native

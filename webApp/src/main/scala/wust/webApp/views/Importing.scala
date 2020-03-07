@@ -4,11 +4,11 @@ import cats.effect.IO
 import fontAwesome.freeSolid
 import org.scalajs.dom
 import org.scalajs.dom.experimental._
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.dom.helpers.EmitterBuilder
-import outwatch.ext.monix._
-import outwatch.reactive._
+import outwatch._
+import outwatch.dsl._
+import outwatch.EmitterBuilder
+import colibri.ext.monix._
+import colibri._
 import rx.{Ctx, Rx, Var}
 import wust.css.Styles
 import wust.external.{meistertask, trello, wunderlist}
@@ -291,7 +291,7 @@ object Importing {
     )
   }
 
-  private def renderSource(source: Source, changesObserver: SinkObserver[GraphChanges.Import])(implicit ctx: Ctx.Owner): EmitterBuilder[Option[Source], VDomModifier] = EmitterBuilder.ofModifier { sink =>
+  private def renderSource(source: Source, changesObserver: Observer[GraphChanges.Import])(implicit ctx: Ctx.Owner): EmitterBuilder[Option[Source], VDomModifier] = EmitterBuilder.ofModifier { sink =>
     val importers = Importer.fromSource(source)
     div(
       Styles.flex,
@@ -346,7 +346,7 @@ object Importing {
 
   }
 
-  private def renderSourceBody(source: Option[Source], changesObserver: SinkObserver[GraphChanges.Import], allSources: List[Source])(implicit ctx: Ctx.Owner) = source match {
+  private def renderSourceBody(source: Option[Source], changesObserver: Observer[GraphChanges.Import], allSources: List[Source])(implicit ctx: Ctx.Owner) = source match {
     case Some(source) => renderSource(source, changesObserver)
     case None => selectSource(allSources)
   }
@@ -356,7 +356,7 @@ object Importing {
     val selectedSource = Var[Option[Source]](None)
     val allSources = Source.all
 
-    val changesObserver = SinkObserver.lift(GlobalState.eventProcessor.changes.contramap[GraphChanges.Import] { importChanges =>
+    val changesObserver = Observer.lift(GlobalState.eventProcessor.changes.contramap[GraphChanges.Import] { importChanges =>
       //TODO: do not sideeffect with state changes here...
       importChanges.focusNodeId.foreach { focusNodeId =>
         GlobalState.urlConfig.update(_.focus(Page(focusNodeId), needsGet = false))

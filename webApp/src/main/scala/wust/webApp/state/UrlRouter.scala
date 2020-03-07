@@ -2,7 +2,7 @@ package wust.webApp.state
 
 import org.scalajs.dom.raw.HashChangeEvent
 import org.scalajs.dom.window
-import outwatch.dom.dsl._
+import outwatch.dsl._
 import rx._
 import wust.webApp.parsers.UrlConfigWriter
 

@@ -2,8 +2,8 @@ package wust.webApp.state
 
 import acyclic.file
 import org.scalajs.dom.console
-import outwatch.dom._
-import outwatch.dom.dsl._
+import outwatch._
+import outwatch.dsl._
 import wust.ids.{Feature, View}
 import wust.webApp.{DebugOnly, Icons}
 import wust.webApp.views.{ViewGraphTransformation, _}

@@ -1,7 +1,7 @@
 package wust.webApp.views
 
-import outwatch.dom.dsl._
-import outwatch.dom.{VDomModifier, _}
+import outwatch.dsl._
+import outwatch.{VDomModifier, _}
 import rx.{Ctx, Rx}
 import wust.css.Styles
 import wust.ids.Feature

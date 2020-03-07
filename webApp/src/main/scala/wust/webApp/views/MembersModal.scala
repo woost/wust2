@@ -3,9 +3,9 @@ package wust.webApp.views
 import cats.data.NonEmptyList
 import fontAwesome._
 import org.scalajs.dom
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.dom.helpers.EmitterBuilder
+import outwatch._
+import outwatch.dsl._
+import outwatch.EmitterBuilder
 import outwatch.reactive.handler._
 import rx._
 import scala.scalajs.js

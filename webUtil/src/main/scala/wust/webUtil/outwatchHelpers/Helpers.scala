@@ -2,8 +2,8 @@ package wust.webUtil.outwatchHelpers
 
 import monix.execution.{Ack, Cancelable}
 import monix.reactive.{Observable, Observer}
-import outwatch.dom._
-import outwatch.dom.helpers.EmitterBuilder
+import outwatch._
+import outwatch.EmitterBuilder
 import rx._
 
 import scala.concurrent.{ExecutionContext, Future}

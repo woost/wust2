@@ -2,9 +2,9 @@ package wust.webApp.views
 
 import wust.webUtil.Elements.onClickDefault
 import wust.sdk.{ Colors, NodeColor, BaseColors }
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.reactive._
+import outwatch._
+import outwatch.dsl._
+import colibri._
 import rx._
 import wust.webApp.StagingOnly
 import wust.css.Styles
@@ -25,7 +25,7 @@ object ViewModificationMenu {
         if (view != GlobalState.viewConfig.now.view) GlobalState.urlConfig.update(_.focus(view))
       }
 
-      selector(channelId, currentView, None, SinkObserver.empty)
+      selector(channelId, currentView, None, Observer.empty)
     })
   }
 
@@ -33,7 +33,7 @@ object ViewModificationMenu {
     channelId: NodeId,
     currentView: Var[View],
     initialView: Option[View.Visible],
-    done: SinkObserver[Unit]
+    done: Observer[Unit]
   )(implicit ctx: Ctx.Owner): VDomModifier = {
 
     val nodeRx = Rx {
@@ -111,7 +111,7 @@ object ViewModificationMenu {
               alignSelf.flexStart
             ),
 
-            Components.removeableList(currentViews, removeSink = SinkObserver.create(removeView(currentView, done, nodeRx, _))) { view =>
+            Components.removeableList(currentViews, removeSink = Observer.create(removeView(currentView, done, nodeRx, _))) { view =>
               val info = ViewSwitcher.viewToTabInfo(view, 0, 0, 0)
               VDomModifier(
                 marginTop := "8px",
@@ -138,7 +138,7 @@ object ViewModificationMenu {
     )
   }
 
-  private def removeView(currentView: Var[View], done: SinkObserver[Unit], nodeRx: Rx[Option[Node]], view: View.Visible): Unit = {
+  private def removeView(currentView: Var[View], done: Observer[Unit], nodeRx: Rx[Option[Node]], view: View.Visible): Unit = {
     done.onNext(())
     val node = nodeRx.now
     node.foreach { node =>
@@ -162,7 +162,7 @@ object ViewModificationMenu {
   }
 
   //TODO: gets triggered 3 times when adding a view. Should only trigger once
-  private def addNewView(currentView: Var[View], done: SinkObserver[Unit], nodeRx: Rx[Option[Node]], existingViews: Rx[List[View.Visible]], newView: View.Visible): Unit = {
+  private def addNewView(currentView: Var[View], done: Observer[Unit], nodeRx: Rx[Option[Node]], existingViews: Rx[List[View.Visible]], newView: View.Visible): Unit = {
     scribe.info(s"ViewModificationMenu.addNewView($newView)")
     if (View.selectableList.contains(newView)) { // only allow defined views
       done.onNext(())

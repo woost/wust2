@@ -1,7 +1,7 @@
 package wust.webApp.views.graphview
 
-import outwatch.dom._
-import outwatch.dom.dsl._
+import outwatch._
+import outwatch.dsl._
 import rx._
 import wust.css.ZIndex
 import wust.ids._

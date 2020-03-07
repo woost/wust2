@@ -1,10 +1,10 @@
 package wust.webApp.views
 
 import cats.data.EitherT
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.dom.helpers.EmitterBuilder
-import outwatch.reactive._
+import outwatch._
+import outwatch.dsl._
+import outwatch.EmitterBuilder
+import colibri._
 import outwatch.reactive.handler._
 import rx._
 import wust.css.Styles
@@ -31,12 +31,12 @@ import scala.concurrent.Future
 object AdminView {
 
   def apply = {
-    val templateNameString = SinkSourceHandler[String]
+    val templateNameString = Subject.replay[String]
     val templateName = templateNameString.map(TemplateName(_))
-    val nodeIdString = SinkSourceHandler[String]
+    val nodeIdString = Subject.replay[String]
     val nodeId = nodeIdString.mapFilter(str => Cuid.fromBase58String(str).toOption.map(NodeId(_)))
 
-    val allTemplates = SourceStream.fromFuture(Client.api.getTemplates())
+    val allTemplates = Observable.fromFuture(Client.api.getTemplates())
 
     div(
       padding := "20px",

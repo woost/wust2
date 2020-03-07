@@ -2,11 +2,11 @@ package wust.webApp.views
 
 import fontAwesome._
 import org.scalajs.dom
-import outwatch.dom._
-import outwatch.dom.dsl.{label, _}
-import outwatch.dom.helpers.EmitterBuilder
-import outwatch.ext.monix._
-import outwatch.reactive._
+import outwatch._
+import outwatch.dsl.{label, _}
+import outwatch.EmitterBuilder
+import colibri.ext.monix._
+import colibri._
 import outwatch.reactive.handler._
 import rx._
 import wust.css.Styles
@@ -317,7 +317,7 @@ object SharedViewElements {
   }
 
   def createNewButton(focusState:FocusState, addToChannels: Boolean = false, nodeRole: CreateNewPrompt.SelectableNodeRole = CreateNewPrompt.SelectableNodeRole.Task)(implicit ctx: Ctx.Owner): VNode = {
-    val show = SinkSourceHandler.publish[Boolean]
+    val show = Subject.publish[Boolean]
 
     div(
       div(cls := "fa-fw", UI.tooltip := "Create new...", freeSolid.faPlus),
@@ -413,7 +413,7 @@ object SharedViewElements {
   }
 
   def newNamePromptModalConfig(
-    newNameSink: SinkObserver[InputRow.Submission],
+    newNameSink: Observer[InputRow.Submission],
     header: VDomModifier,
     body: VDomModifier = VDomModifier.empty,
     placeholder: Placeholder = Placeholder.empty,
@@ -421,7 +421,7 @@ object SharedViewElements {
     enableMentions: Boolean = true,
     enableEmojiPicker: Boolean = false,
     showSubmitIcon:Boolean = true,
-    triggerSubmit:SourceStream[Unit] = SourceStream.empty,
+    triggerSubmit:Observable[Unit] = Observable.empty,
     additionalChanges: NodeId => GraphChanges = _ => GraphChanges.empty,
   )(implicit ctx: Ctx.Owner) = {
     ModalConfig(
@@ -460,7 +460,7 @@ object SharedViewElements {
     body: Ownable[VDomModifier] = Ownable.value(VDomModifier.empty),
     placeholder: Placeholder = Placeholder.empty,
     showSubmitIcon:Boolean = true,
-    triggerSubmit:SourceStream[Unit] = SourceStream.empty,
+    triggerSubmit:Observable[Unit] = Observable.empty,
     additionalChanges: NodeId => GraphChanges = _ => GraphChanges.empty,
     enableMentions: Boolean = true,
     enableEmojiPicker: Boolean = false,

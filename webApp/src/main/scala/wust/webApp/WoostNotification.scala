@@ -2,9 +2,9 @@ package wust.webApp
 
 import fontAwesome._
 import org.scalajs.dom.experimental.permissions.PermissionState
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.ext.monix._
+import outwatch._
+import outwatch.dsl._
+import colibri.ext.monix._
 import rx.{Ctx, Rx}
 import wust.graph.Node.User
 import wust.graph._

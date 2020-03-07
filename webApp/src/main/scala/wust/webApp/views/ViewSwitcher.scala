@@ -4,10 +4,10 @@ import cats.data.NonEmptyList
 import wust.webUtil.Elements.onClickDefault
 import fontAwesome._
 import wust.webUtil.tippy
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.dom.helpers.EmitterBuilder
-import outwatch.reactive._
+import outwatch._
+import outwatch.dsl._
+import outwatch.EmitterBuilder
+import colibri._
 import rx._
 import wust.css.Styles
 import wust.ids._
@@ -56,7 +56,7 @@ object ViewSwitcher {
 
   val addViewIcon = freeSolid.faCaretDown
   def apply(channelId: NodeId, currentView: Var[View], initialView: Option[View.Visible] = None)(implicit ctx: Ctx.Owner): VNode = {
-    val closeDropdown = SinkSourceHandler.publish[Unit]
+    val closeDropdown = Subject.publish[Unit]
 
     def addNewViewTab = div(
       div(

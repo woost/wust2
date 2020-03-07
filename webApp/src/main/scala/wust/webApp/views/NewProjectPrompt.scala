@@ -2,10 +2,10 @@ package wust.webApp.views
 
 import flatland._
 import org.scalajs.dom
-import outwatch.dom._
-import outwatch.dom.dsl.{label, _}
-import outwatch.dom.helpers.EmitterBuilder
-import outwatch.reactive._
+import outwatch._
+import outwatch.dsl.{label, _}
+import outwatch.EmitterBuilder
+import colibri._
 import rx._
 import wust.css.Styles
 import wust.graph._
@@ -24,7 +24,7 @@ object NewProjectPrompt {
   val newProjectText = "New Project"
   def newProjectButton(label: String = newProjectText, focusNewProject: Boolean = true, buttonClass: String = "", extraChanges: NodeId => GraphChanges = _ => GraphChanges.empty): VNode = {
     val selectedViews = Var[Seq[View.Visible]](Seq.empty)
-    val triggerSubmit = SinkSourceHandler.publish[Unit]
+    val triggerSubmit = Subject.publish[Unit]
     val importChanges = Var(Option.empty[GraphChanges.Import])
     def body(implicit ctx: Ctx.Owner) = div(
       color := "#333",
@@ -113,7 +113,7 @@ object NewProjectPrompt {
 
   def multiCheckbox[T: ClassTag](checkboxes: Array[T], description: T => VDomModifier): EmitterBuilder[Seq[T], VDomModifier] = EmitterBuilder.ofModifier { sink =>
     var checkedState = Array.fill(checkboxes.length)(false)
-    val changed = SinkSourceHandler.publish[Unit]
+    val changed = Subject.publish[Unit]
 
     div(
       Styles.flex,

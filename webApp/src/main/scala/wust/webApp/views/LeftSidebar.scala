@@ -2,11 +2,11 @@ package wust.webApp.views
 
 import fontAwesome.{ freeSolid, _ }
 import org.scalajs.dom
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.dom.dsl.styles.extra._
-import outwatch.ext.monix._
-import outwatch.reactive._
+import outwatch._
+import outwatch.dsl._
+import outwatch.dsl.styles.extra._
+import colibri.ext.monix._
+import colibri._
 import rx._
 import wust.css.{ CommonStyles, Styles }
 import wust.graph._
@@ -288,7 +288,7 @@ object LeftSidebar {
       val isSynced = Rx {
         GlobalState.isSynced() && !GlobalState.isLoading()
       }
-      SourceStream.combineLatest(GlobalState.isClientOnline.distinctOnEquals, isSynced)
+      Observable.combineLatest(GlobalState.isClientOnline.distinctOnEquals, isSynced)
     }
 
     val syncStatusIcon = status.map { status =>
@@ -302,7 +302,7 @@ object LeftSidebar {
     div(syncStatusIcon)
   }
 
-  val beforeInstallPromptEvents: SourceStream[dom.Event] = events.window.eventProp("beforeinstallprompt").preventDefault
+  val beforeInstallPromptEvents: Observable[dom.Event] = events.window.eventProp("beforeinstallprompt").preventDefault
 
   def beforeInstallPrompt(buttonModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner) = {
     div(

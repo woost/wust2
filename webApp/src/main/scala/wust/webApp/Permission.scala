@@ -1,8 +1,8 @@
 package wust.webApp
 
 import fontAwesome._
-import outwatch.dom._
-import outwatch.dom.dsl._
+import outwatch._
+import outwatch.dsl._
 import wust.css.Styles
 import wust.graph._
 import wust.ids._

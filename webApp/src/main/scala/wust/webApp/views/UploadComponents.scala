@@ -1,9 +1,9 @@
 package wust.webApp.views
 
 import fontAwesome._
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.dom.helpers.EmitterBuilder
+import outwatch._
+import outwatch.dsl._
+import outwatch.EmitterBuilder
 import rx._
 import wust.css.Styles
 import wust.graph._

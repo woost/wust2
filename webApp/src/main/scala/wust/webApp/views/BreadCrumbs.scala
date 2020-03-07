@@ -1,9 +1,9 @@
 package wust.webApp.views
 
 import fontAwesome.freeSolid
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.dom.dsl.styles.extra._
+import outwatch._
+import outwatch.dsl._
+import outwatch.dsl.styles.extra._
 import rx._
 import wust.graph.Graph
 import wust.ids._
@@ -102,7 +102,7 @@ object BreadCrumbs {
         }
 
         VDomModifier.ifTrue(!hideIfSingle || elements.length > 1)(
-          intersperseWhile(elements, div(freeSolid.faAngleRight, cls := "divider"), (mod: VDomModifier) => !mod.isInstanceOf[outwatch.dom.EmptyModifier.type])
+          intersperseWhile(elements, div(freeSolid.faAngleRight, cls := "divider"), (mod: VDomModifier) => !mod.isInstanceOf[outwatch.EmptyModifier.type])
         )
       },
       registerDragContainer,

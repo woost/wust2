@@ -3,11 +3,11 @@ package wust.webApp.views
 //import acyclic.file
 import fontAwesome._
 import org.scalajs.dom
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.dom.helpers.EmitterBuilder
-import outwatch.ext.monix._
-import outwatch.reactive.{SinkObserver, _}
+import outwatch._
+import outwatch.dsl._
+import outwatch.EmitterBuilder
+import colibri.ext.monix._
+import colibri._
 import outwatch.reactive.handler._
 import rx._
 import wust.css.{CommonStyles, Styles}
@@ -660,7 +660,7 @@ object Components {
         implicit ctx => handler => searchAndSelectNodeApplied[Handler](
           ProHandler(
             handler.edit.contramap[Option[NodeId]](EditInteraction.fromOption(_)),
-            handler.edit.collect[Option[NodeId]] { case EditInteraction.Input(id) => Some(id) }.prepend(Some(node.id)).replayLatest
+            handler.edit.collect[Option[NodeId]] { case EditInteraction.Input(id) => Some(id) }.prepend(Some(node.id)).replay.refCount
           ),
           filter = (_:Node) => true
         ),
@@ -688,7 +688,7 @@ object Components {
         div(
           search,
 
-          SourceStream.map(observable) {
+          Observable.map(observable) {
             case Some(nodeId) => div(
               marginTop := "4px",
               Styles.flex,
@@ -826,7 +826,7 @@ object Components {
       )
     })
 
-  def removeableList[T](elements: Seq[T], removeSink: SinkObserver[T], tooltip: Option[String] = None)(renderElement: T => VDomModifier): VNode = {
+  def removeableList[T](elements: Seq[T], removeSink: Observer[T], tooltip: Option[String] = None)(renderElement: T => VDomModifier): VNode = {
     div(
       width := "100%",
       elements.map { element =>

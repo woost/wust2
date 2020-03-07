@@ -1,9 +1,9 @@
 package wust.webApp.views
 
 import org.scalajs.dom
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.ext.monix._
+import outwatch._
+import outwatch.dsl._
+import colibri.ext.monix._
 import rx._
 import wust.graph._
 import wust.ids._

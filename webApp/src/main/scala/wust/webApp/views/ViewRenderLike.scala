@@ -1,7 +1,7 @@
 package wust.webApp.views
 
 import acyclic.file
-import outwatch.dom.VNode
+import outwatch.VNode
 import rx.Ctx
 import wust.ids.View
 import wust.webApp.state.FocusState

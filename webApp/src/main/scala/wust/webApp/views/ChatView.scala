@@ -2,9 +2,9 @@ package wust.webApp.views
 
 import flatland._
 import fontAwesome.freeSolid
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.reactive._
+import outwatch._
+import outwatch.dsl._
+import colibri._
 import rx._
 import wust.css.Styles
 import wust.graph._
@@ -33,7 +33,7 @@ object ChatView {
   def apply(focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
 
     val scrollHandler = new ScrollBottomHandler
-    val inputFieldFocusTrigger = SinkSourceHandler.publish[Unit]
+    val inputFieldFocusTrigger = Subject.publish[Unit]
 
     val currentReply = Var(Set.empty[NodeId])
     currentReply.foreach{ _ =>
@@ -41,7 +41,7 @@ object ChatView {
     }
     val pinReply = Var(false)
 
-    val pageCounter = SinkSourceHandler.publish[Int]
+    val pageCounter = Subject.publish[Int]
     val shouldLoadInfinite = Var[Boolean](false)
 
     val traverseState = TraverseState(focusState.focusedId)
@@ -74,7 +74,7 @@ object ChatView {
   private def selectedNodesBar(
     focusState: FocusState,
     currentReply: Var[Set[NodeId]],
-    inputFieldFocusTrigger: SinkSourceHandler.Simple[Unit],
+    inputFieldFocusTrigger: Subject[Unit],
   )(implicit ctx: Ctx.Owner) = VDomModifier (
     position.relative, // for absolute positioning of selectednodes
     SelectedNodes(
@@ -91,8 +91,8 @@ object ChatView {
     traverseState: TraverseState,
     currentReply: Var[Set[NodeId]],
     scrollHandler: ScrollBottomHandler,
-    inputFieldFocusTrigger: SinkSourceHandler.Simple[Unit],
-    externalPageCounter: SourceStream[Int],
+    inputFieldFocusTrigger: Subject[Unit],
+    externalPageCounter: Observable[Int],
     shouldLoadInfinite: Var[Boolean]
   )(implicit ctx: Ctx.Owner): VDomModifier = {
     val pageParentId = focusState.focusedId
@@ -217,7 +217,7 @@ object ChatView {
   }
 
 
-  private def thunkRxFun(focusState: FocusState, traverseState: TraverseState, graph: Graph, group: Array[Int], pageParentId: NodeId, currentReply: Var[Set[NodeId]], inputFieldFocusTrigger: SinkSourceHandler.Simple[Unit]): ThunkVNode = {
+  private def thunkRxFun(focusState: FocusState, traverseState: TraverseState, graph: Graph, group: Array[Int], pageParentId: NodeId, currentReply: Var[Set[NodeId]], inputFieldFocusTrigger: Subject[Unit]): ThunkVNode = {
     // because of equals check in thunk, we implicitly generate a wrapped array
     val nodeIds: Seq[NodeId] = group.viewMap(graph.nodeIds)
     val key = nodeIds.head.toString
@@ -229,7 +229,7 @@ object ChatView {
     div.thunk(key)(nodeIds, GlobalState.screenSize.now, commonParentIds, pageParentId)(Ownable(implicit ctx => thunkGroup( focusState, traverseState, graph, group, pageParentId, currentReply, inputFieldFocusTrigger = inputFieldFocusTrigger)))
   }
 
-  private def thunkGroup(focusState: FocusState, traverseState: TraverseState, groupGraph: Graph, group: Array[Int], pageParentId: NodeId, currentReply: Var[Set[NodeId]], inputFieldFocusTrigger: SinkSourceHandler.Simple[Unit])(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def thunkGroup(focusState: FocusState, traverseState: TraverseState, groupGraph: Graph, group: Array[Int], pageParentId: NodeId, currentReply: Var[Set[NodeId]], inputFieldFocusTrigger: Subject[Unit])(implicit ctx: Ctx.Owner): VDomModifier = {
 
     val groupHeadId = groupGraph.nodeIds(group(0))
     val author: Rx[Option[Node.User]] = Rx {
@@ -309,7 +309,7 @@ object ChatView {
     )
   }
 
-  private def renderMessageRow(focusState: FocusState, traverseState: TraverseState, pageParentId: NodeId, nodeId: NodeId, directParentIds: Iterable[ParentId], inReplyGroup: Boolean, isDeletedNow: Rx[Boolean], currentReply: Var[Set[NodeId]], inputFieldFocusTrigger: SinkSourceHandler.Simple[Unit], previousNodeId: Option[NodeId])(implicit ctx: Ctx.Owner): VNode = {
+  private def renderMessageRow(focusState: FocusState, traverseState: TraverseState, pageParentId: NodeId, nodeId: NodeId, directParentIds: Iterable[ParentId], inReplyGroup: Boolean, isDeletedNow: Rx[Boolean], currentReply: Var[Set[NodeId]], inputFieldFocusTrigger: Subject[Unit], previousNodeId: Option[NodeId])(implicit ctx: Ctx.Owner): VNode = {
 
     val isSelected = Rx {
       GlobalState.selectedNodes().exists(_.nodeId == nodeId)
@@ -364,7 +364,7 @@ object ChatView {
     nodeId: NodeId,
     isDeletedNow: Boolean,
     currentReply: Var[Set[NodeId]],
-    inputFieldFocusTrigger: SinkSourceHandler.Simple[Unit],
+    inputFieldFocusTrigger: Subject[Unit],
     pinReply: Option[Var[Boolean]] = None
   )(implicit ctx: Ctx.Owner) = {
     val authorAndCreated = Rx {
@@ -420,7 +420,7 @@ object ChatView {
   }
 
   //TODO share code with threadview?
-  private def additionalNodeActions(focusState: FocusState, currentReply: Var[Set[NodeId]], inputFieldTriggerFocus: SinkSourceHandler.Simple[Unit])(implicit ctx: Ctx.Owner): Boolean => List[VNode] = canWriteAll => List(
+  private def additionalNodeActions(focusState: FocusState, currentReply: Var[Set[NodeId]], inputFieldTriggerFocus: Subject[Unit])(implicit ctx: Ctx.Owner): Boolean => List[VNode] = canWriteAll => List(
     replyButton(
       onClickDefault foreach {
         currentReply() = GlobalState.selectedNodes.now.map(_.nodeId)(breakOut):Set[NodeId]
@@ -435,7 +435,7 @@ object ChatView {
   private def renderCurrentReply(
     focusState: FocusState,
     traverseState: TraverseState,
-    inputFieldFocusTrigger: SinkSourceHandler.Simple[Unit],
+    inputFieldFocusTrigger: Subject[Unit],
     currentReply: Var[Set[NodeId]],
     pinReply: Var[Boolean]
   )(implicit ctx: Ctx.Owner): Rx[BasicVNode] = {
@@ -472,7 +472,7 @@ object ChatView {
     currentReply: Var[Set[NodeId]],
     pinReply: Var[Boolean],
     scrollHandler: ScrollBottomHandler,
-    inputFieldFocusTrigger: SinkSourceHandler.Simple[Unit],
+    inputFieldFocusTrigger: Subject[Unit],
   )(implicit ctx: Ctx.Owner) = {
     val bgColor = Rx{ NodeColor.pageBgLight.of(currentReply().headOption, GlobalState.graph()) }
     val fileUploadHandler = Var[Option[AWS.UploadableFile]](None)

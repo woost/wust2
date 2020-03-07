@@ -1,10 +1,10 @@
 package wust.webApp.views
 
 import cats.data.EitherT
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.dom.helpers.EmitterBuilder
-import outwatch.reactive._
+import outwatch._
+import outwatch.dsl._
+import outwatch.EmitterBuilder
+import colibri._
 import outwatch.reactive.handler._
 import rx._
 import wust.css.Styles
@@ -32,7 +32,7 @@ object WoostAppView {
 
   def render(woostApp: AppDefinition)(implicit ctx: Ctx.Owner) = {
 
-    val state = SinkSourceHandler[AppDefinition.State](AppDefinition.State.Landing)
+    val state = Subject.behavior[AppDefinition.State](AppDefinition.State.Landing)
 
     div(
       Styles.growFull,

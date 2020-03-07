@@ -1,8 +1,8 @@
 package wust.webApp.views
 
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.reactive._
+import outwatch._
+import outwatch.dsl._
+import colibri._
 import rx._
 import wust.css.Styles
 import wust.facades.fomanticui.ModalOptions
@@ -49,7 +49,7 @@ object Modal {
       ),
     )
   }
-  def modal(config: SourceStream[Ownable[ModalConfig]], globalClose: SinkSourceHandler.Simple[Unit]): VNode = div(
+  def modal(config: Observable[Ownable[ModalConfig]], globalClose: Subject[Unit]): VNode = div(
     cls := "ui modal",
     config.map[VDomModifier] { configRx =>
       configRx.flatMap(config => Ownable { implicit ctx =>

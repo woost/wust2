@@ -8,11 +8,12 @@ import rx._
 import wust.webUtil.outwatchHelpers._
 import wust.util.collection._
 
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.dom.helpers._
-import outwatch.reactive._
+import outwatch._
+import outwatch.dsl._
+import outwatch.helpers._
+import colibri._
 import outwatch.reactive.handler._
+import colibri._
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
@@ -23,8 +24,8 @@ import wust.facades.emojijs.EmojiConvertor
 
 
 object UI {
-  private val currentlyEditingSubject = SinkSourceHandler.publish[Boolean]
-  def currentlyEditing: SourceStream[Boolean] = currentlyEditingSubject
+  private val currentlyEditingSubject = Subject.publish[Boolean]
+  def currentlyEditing: Observable[Boolean] = currentlyEditingSubject
 
   def message(msgType:String = "", header:Option[VDomModifier] = None, content:Option[VDomModifier] = None):VNode = {
     div(
@@ -149,7 +150,7 @@ object UI {
   val verticalDivider = div(cls := "ui vertical divider")
   def verticalDivider(text:String) = div(cls := "ui vertical divider", text)
 
-  def dropdownMenu(items: VDomModifier, close: SourceStream[Unit] = SourceStream.empty, dropdownModifier: VDomModifier = VDomModifier.empty): VDomModifier = VDomModifier(
+  def dropdownMenu(items: VDomModifier, close: Observable[Unit] = Observable.empty, dropdownModifier: VDomModifier = VDomModifier.empty): VDomModifier = VDomModifier(
     cls := "ui pointing link inline dropdown",
     dropdownModifier,
     Elements.withoutDefaultPassiveEvents, // revert default passive events, else dropdown is not working

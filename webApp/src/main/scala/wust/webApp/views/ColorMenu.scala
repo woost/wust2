@@ -4,11 +4,11 @@ package wust.webApp.views
 import wust.webUtil.tippy
 import fontAwesome._
 import org.scalajs.dom
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.dom.helpers.EmitterBuilder
-import outwatch.ext.monix._
-import outwatch.reactive._
+import outwatch._
+import colibri._
+import outwatch.dsl._
+import outwatch.EmitterBuilder
+import colibri.ext.monix._
 import outwatch.reactive.handler._
 import rx._
 import wust.css.{ CommonStyles, Styles }
@@ -37,7 +37,7 @@ import scala.scalajs.js
 
 object ColorMenu {
   def menuIcon(baseColor: HCL, node: Node.Content)(implicit ctx: Ctx.Owner) = {
-    val closeMenuTrigger = SinkSourceHandler.publish[Unit]
+    val closeMenuTrigger = Subject.publish[Unit]
     div(
       div(
         cls := "fa-fw",
@@ -48,7 +48,7 @@ object ColorMenu {
     )
   }
 
-  def menuContent(baseColor: HCL, node: Node.Content, closeMenuTrigger: SinkObserver[Unit] = SinkObserver.empty)(implicit ctx: Ctx.Owner) = {
+  def menuContent(baseColor: HCL, node: Node.Content, closeMenuTrigger: Observer[Unit] = Observer.empty)(implicit ctx: Ctx.Owner) = {
     val colorCount = Var(8)
     val stepSize = Rx{ 1.0 / colorCount() }
     val squareSize = "30px"

@@ -510,6 +510,7 @@ lazy val webUtil = project
       Deps.scalacss.value ::
       Deps.scalarx.value ::
       Deps.outwatch.core.value ::
+      Deps.outwatch.util.value ::
       Deps.outwatch.monix.value ::
       Deps.monocle.value ::
       Deps.vectory.value ::

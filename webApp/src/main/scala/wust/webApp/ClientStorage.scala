@@ -11,9 +11,7 @@ import cats.effect.SyncIO
 import io.circe._
 import io.circe.parser._
 import io.circe.syntax._
-import outwatch.ext.monix._
-import outwatch.ext.monix.handler._
-import outwatch.ext.monix.util.LocalStorage
+import outwatch.util.LocalStorage
 import rx._
 import wust.api.Authentication
 import wust.api.serialize.Circe._
@@ -60,7 +58,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
       LocalStorage
         .handlerWithoutEvents[SyncIO](keys.auth)
         .unsafeRunSync()
-        .mapHandler[Option[Authentication]](auth => Option(toJson(auth)))(_.flatMap(fromJson[Authentication]))
+        .transformSubject[Option[Authentication]](_.contramap(auth => Option(toJson(auth))))(_.map(_.flatMap(fromJson[Authentication])))
         .unsafeToVar(internal(keys.auth).flatMap(fromJson[Authentication]))
     } else Var(None)
   }
@@ -116,7 +114,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
       LocalStorage
         .handlerWithoutEvents[SyncIO](storageKey)
         .unsafeRunSync()
-        .mapHandler[Map[String, String]](changes => Option(toJson(changes)))(_.flatMap(fromJson[Map[String, String]]).getOrElse(Map.empty))
+        .transformSubject[Map[String, String]](_.contramap(changes => Option(toJson(changes))))(_.map(_.flatMap(fromJson[Map[String, String]]).getOrElse(Map.empty)))
         .unsafeToVar(internal(storageKey).flatMap(fromJson[Map[String, String]]).getOrElse(Map.empty))
     } else Var(Map.empty)
   }
@@ -126,7 +124,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
       LocalStorage
         .handlerWithoutEvents[SyncIO](keys.sidebarOpen)
         .unsafeRunSync()
-        .mapHandler[Option[Boolean]](open => Option(toJson(open)))(_.flatMap(fromJson[Boolean]))
+        .transformSubject[Option[Boolean]](_.contramap(open => Option(toJson(open))))(_.map(_.flatMap(fromJson[Boolean])))
         .unsafeToVar(internal(keys.sidebarOpen).flatMap(fromJson[Boolean]))
     } else Var(None)
   }
@@ -136,7 +134,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
       LocalStorage
         .handlerWithoutEvents[SyncIO](keys.maximizedTags)
         .unsafeRunSync()
-        .mapHandler[Option[Boolean]](open => Option(toJson(open)))(_.flatMap(fromJson[Boolean]))
+        .transformSubject[Option[Boolean]](_.contramap(open => Option(toJson(open))))(_.map(_.flatMap(fromJson[Boolean])))
         .unsafeToVar(internal(keys.maximizedTags).flatMap(fromJson[Boolean]))
     } else Var(None)
   }
@@ -146,7 +144,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
       LocalStorage
         .handlerWithoutEvents[SyncIO](keys.sidebarWithProjects)
         .unsafeRunSync()
-        .mapHandler[Option[Boolean]](open => Option(toJson(open)))(_.flatMap(fromJson[Boolean]))
+        .transformSubject[Option[Boolean]](_.contramap(open => Option(toJson(open))))(_.map(_.flatMap(fromJson[Boolean])))
         .unsafeToVar(internal(keys.sidebarWithProjects).flatMap(fromJson[Boolean]))
     } else Var(None)
   }
@@ -156,7 +154,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
       LocalStorage
         .handlerWithoutEvents[SyncIO](keys.taglistOpen)
         .unsafeRunSync()
-        .mapHandler[Option[Boolean]](open => Option(toJson(open)))(_.flatMap(fromJson[Boolean]))
+        .transformSubject[Option[Boolean]](_.contramap(open => Option(toJson(open))))(_.map(_.flatMap(fromJson[Boolean])))
         .unsafeToVar(internal(keys.taglistOpen).flatMap(fromJson[Boolean]))
     } else Var(None)
   }
@@ -166,7 +164,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
       LocalStorage
         .handlerWithoutEvents[SyncIO](keys.filterlistOpen)
         .unsafeRunSync()
-        .mapHandler[Option[Boolean]](open => Option(toJson(open)))(_.flatMap(fromJson[Boolean]))
+        .transformSubject[Option[Boolean]](_.contramap(open => Option(toJson(open))))(_.map(_.flatMap(fromJson[Boolean])))
         .unsafeToVar(internal(keys.filterlistOpen).flatMap(fromJson[Boolean]))
     } else Var(None)
   }
@@ -176,7 +174,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
       LocalStorage
         .handlerWithoutEvents[SyncIO](keys.backendTimeDelta)
         .unsafeRunSync()
-        .mapHandler[DurationMilli](delta => Option(toJson(delta)))(_.flatMap(fromJson[DurationMilli]).getOrElse(DurationMilli(0L)))
+        .transformSubject[DurationMilli](_.contramap(delta => Option(toJson(delta))))(_.map(_.flatMap(fromJson[DurationMilli]).getOrElse(DurationMilli(0L))))
         .unsafeToVar(internal(keys.backendTimeDelta).flatMap(fromJson[DurationMilli]).getOrElse(DurationMilli(0L)))
     } else Var(DurationMilli(0L))
   }

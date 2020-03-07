@@ -5,9 +5,9 @@ import flatland._
 import org.scalajs.dom
 import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.{CanvasRenderingContext2D, html}
-import outwatch.dom._
-import outwatch.dom.dsl.events
-import outwatch.reactive._
+import outwatch._
+import outwatch.dsl.events
+import colibri._
 import rx._
 import vectory._
 import wust.graph._
@@ -82,10 +82,10 @@ class ForceSimulation(
   if (!BrowserDetect.isMobile)
     keyDown(KeyCode.Ctrl).foreach { isCtrlPressed = _ }
 
-  var simulationCancelable:Subscription = Subscription.empty
+  var simulationCancelable:Cancelable = Cancelable.empty
   val component: VNode = {
-    import outwatch.dom.dsl._
-    import outwatch.dom.dsl.styles.extra._
+    import outwatch.dsl._
+    import outwatch.dsl.styles.extra._
 
     div(
       keyed, // forces onDestroy (forbids reuse of dom node),
@@ -134,9 +134,9 @@ class ForceSimulation(
   }
 
 
-  def initSimulation(backgroundElement:dom.html.Element, canvasLayerElement: dom.html.Canvas, nodeContainerElement: dom.html.Element)(implicit ctx: Ctx.Owner):Subscription = {
-    val cancelable = Subscription.builder()
-    cancelable += Subscription(() => scribe.info("canceling simulation"))
+  def initSimulation(backgroundElement:dom.html.Element, canvasLayerElement: dom.html.Canvas, nodeContainerElement: dom.html.Element)(implicit ctx: Ctx.Owner):Cancelable = {
+    val cancelable = Cancelable.builder()
+    cancelable += Cancelable(() => scribe.info("canceling simulation"))
 
     scribe.info(log("-------------------- init simulation"))
     val background = d3.select(backgroundElement)
@@ -187,7 +187,7 @@ class ForceSimulation(
       .scaleExtent(js.Array(0.01, 10))
       .on("zoom", () => zoomed())
       .clickDistance(10) // interpret short drags as clicks
-    cancelable += Subscription(() => zoom.on("zoom", null))
+    cancelable += Cancelable(() => zoom.on("zoom", null))
 
     background
       .call(zoom) // mouse events only get catched in background layer, then trigger zoom events, which in turn trigger zoomed()
@@ -210,9 +210,9 @@ class ForceSimulation(
           }
         }
       )
-    cancelable += Subscription(() => background.on("click", null:ListenerFunction0))
+    cancelable += Cancelable(() => background.on("click", null:ListenerFunction0))
 
-    cancelable += SourceStream.mergeVaried(events.window.onResize, GlobalState.rightSidebarNode.map(_.isDefined).toTailSourceStream).foreach { _ =>
+    cancelable += Observable.mergeVaried(events.window.onResize, GlobalState.rightSidebarNode.map(_.isDefined).toTailObservable).foreach { _ =>
       // TODO: detect element resize instead: https://www.npmjs.com/package/element-resize-detector
       resized()
       startAnimated()
@@ -396,7 +396,7 @@ class ForceSimulation(
       startAnimated() // this also triggers the initial simulation start
     }
 
-    cancelable += Subscription(() => stop())
+    cancelable += Cancelable(() => stop())
 
     cancelable
   }
@@ -510,7 +510,7 @@ object ForceSimulation {
   @inline def log(msg: String) = s"ForceSimulation: $msg"
 
   def calcPostWidth(node: Node) = {
-    import outwatch.dom.dsl._
+    import outwatch.dsl._
     val arbitraryFactor = 2.4
     val contentWidth = node.data.str.length // TODO: wrong with markdown rendering
     val calcWidth = if (contentWidth > 10) {
@@ -544,7 +544,7 @@ object ForceSimulation {
       node
         .enter()
         .append((node: Node) => {
-          import outwatch.dom.dsl._
+          import outwatch.dsl._
           // TODO: is outwatch rendering slow here? Should we use d3 instead?
           val postWidth = calcPostWidth(node)
           div(

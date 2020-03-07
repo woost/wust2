@@ -4,10 +4,10 @@ import wust.css.ZIndex
 import wust.sdk.Colors
 import d3v4._
 import org.scalajs.dom
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.dom.dsl.styles.extra.transform
-import outwatch.reactive._
+import outwatch._
+import outwatch.dsl._
+import outwatch.dsl.styles.extra.transform
+import colibri._
 import rx._
 import wust.css.Styles
 import wust.graph._

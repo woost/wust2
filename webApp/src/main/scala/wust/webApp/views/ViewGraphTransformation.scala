@@ -1,6 +1,6 @@
 package wust.webApp.views
 
-import outwatch.dom.VDomModifier
+import outwatch.VDomModifier
 import wust.webApp.Icons
 import wust.webUtil.outwatchHelpers._
 import wust.webApp.state.GlobalState

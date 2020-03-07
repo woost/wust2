@@ -3,10 +3,10 @@ package wust.webApp.views
 import acyclic.file
 import wust.webUtil.Elements.onClickDefault
 import fontAwesome._
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.dom.helpers.EmitterBuilder
-import outwatch.reactive._
+import outwatch._
+import outwatch.dsl._
+import outwatch.EmitterBuilder
+import colibri._
 import rx._
 import wust.graph._
 import wust.ids._
@@ -205,7 +205,7 @@ object UnreadComponents {
 
             observer.observe(elem)
 
-            Subscription { () =>
+            Cancelable { () =>
               observer.unobserve(elem)
               observer.disconnect()
             }

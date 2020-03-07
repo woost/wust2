@@ -3,8 +3,8 @@ package wust.webApp.views
 import wust.webUtil.tippy
 import acyclic.file
 import fontAwesome._
-import outwatch.dom._
-import outwatch.dom.dsl._
+import outwatch._
+import outwatch.dsl._
 import rx._
 import wust.css.Styles
 import wust.graph._

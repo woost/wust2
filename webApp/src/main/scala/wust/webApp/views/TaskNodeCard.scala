@@ -1,8 +1,8 @@
 package wust.webApp.views
 
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.ext.monix._
+import outwatch._
+import outwatch.dsl._
+import colibri.ext.monix._
 import rx._
 import wust.css.{CommonStyles, Styles}
 import wust.graph._

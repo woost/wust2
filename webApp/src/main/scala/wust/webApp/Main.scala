@@ -4,7 +4,7 @@ import cats.effect.IO
 import colorado.HCL
 import org.scalajs.dom
 import org.scalajs.dom.{console, document}
-import outwatch.dom._
+import outwatch._
 import rx._
 import wust.api.ApiEvent
 import wust.facades.defaultPassiveEvents.DefaultPassiveEvents

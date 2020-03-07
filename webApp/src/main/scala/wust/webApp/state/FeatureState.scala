@@ -2,7 +2,7 @@ package wust.webApp.state
 
 // import acyclic.file
 import scala.scalajs.js
-import outwatch.reactive._
+import colibri._
 import rx._
 import wust.api.{AuthUser, UsedFeature}
 import wust.facades.segment.Segment
@@ -106,7 +106,7 @@ object FeatureState {
     suggestions
   }
 
-  val usedNewFeatureTrigger = SinkSourceHandler.publish[Feature]
+  val usedNewFeatureTrigger = Subject.publish[Feature]
   usedNewFeatureTrigger.foreach { feature =>
     Segment.trackEvent(
       "First Time Feature",

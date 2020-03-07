@@ -1,8 +1,8 @@
 package wust.webApp.views
 
 import cats.data.NonEmptyList
-import outwatch.dom._
-import outwatch.dom.dsl._
+import outwatch._
+import outwatch.dsl._
 import rx._
 import wust.ids.ViewOperator
 import wust.webApp.state.{GlobalState, ScreenSize}

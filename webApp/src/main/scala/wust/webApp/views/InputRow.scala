@@ -3,10 +3,11 @@ package wust.webApp.views
 import fontAwesome._
 import org.scalajs.dom
 import org.scalajs.dom.window
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.ext.monix._
-import outwatch.reactive._
+import outwatch._
+import outwatch.dsl._
+import colibri.ext.monix._
+import colibri.ext.monix.ops._
+import colibri._
 import rx._
 import wust.api.AuthUser
 import wust.css.Styles
@@ -35,12 +36,12 @@ object InputRow {
     fileUploadHandler: Option[Var[Option[AWS.UploadableFile]]] = None,
     blurAction: Option[String => Unit] = None,
     scrollHandler: Option[ScrollBottomHandler] = None,
-    triggerFocus: SourceStream[Unit] = SourceStream.empty,
+    triggerFocus: Observable[Unit] = Observable.empty,
     autoFocus: Boolean = false,
     placeholder: Placeholder = Placeholder.empty,
     preFillByShareApi: Boolean = false,
     submitOnEnter: Boolean = !BrowserDetect.isMobile,
-    triggerSubmit: SourceStream[Unit] = SourceStream.empty,
+    triggerSubmit: Observable[Unit] = Observable.empty,
     additionalChanges:NodeId => GraphChanges = _ => GraphChanges.empty,
     submitIcon: VDomModifier = freeRegular.faPaperPlane,
     showSubmitIcon: Boolean = BrowserDetect.isMobile,
@@ -57,8 +58,8 @@ object InputRow {
         val elements = List(share.title, share.text, share.url).filter(_.nonEmpty)
         elements.mkString(" - ")
       }
-    }.toSourceStream.dropWhile(_.isEmpty)
-    else SourceStream.empty // drop starting sequence of empty values. only interested once share api defined.
+    }.toObservable.dropWhile(_.isEmpty)
+    else Observable.empty // drop starting sequence of empty values. only interested once share api defined.
 
     val markdownHelpOpened = Var(false)
     val markdownHelpModifiers = Var(VDomModifier.empty)
@@ -113,7 +114,7 @@ object InputRow {
         GlobalState.user.now match {
           case user: AuthUser.Implicit if user.name.isEmpty =>
 
-            val sink = SinkObserver.lift(GlobalState.eventProcessor.changes.redirectMapMaybe[Submission] { sub =>
+            val sink = Observer.lift(GlobalState.eventProcessor.changes.redirectMapMaybe[Submission] { sub =>
               val userNode = user.toNode
               userNode.data.updateName(sub.text).map(data => GraphChanges.addNode(userNode.copy(data = data)) merge sub.changes(userNode.id))
             })
@@ -188,9 +189,9 @@ object InputRow {
     val initialValueAndSubmitOptions = {
       // ignore submit events if mentions or emoji picker is open
       if (submitOnEnter) {
-        valueWithEnterWithInitial(SourceStream.lift(initialValue), filterEvent = filterSubmitEvent) foreach handleInput _
+        valueWithEnterWithInitial(Observable.lift(initialValue), filterEvent = filterSubmitEvent) foreach handleInput _
       } else {
-        valueWithCtrlEnterWithInitial(SourceStream.lift(initialValue), filterEvent = filterSubmitEvent) foreach handleInput _
+        valueWithCtrlEnterWithInitial(Observable.lift(initialValue), filterEvent = filterSubmitEvent) foreach handleInput _
       }
     }
 

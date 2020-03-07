@@ -6,20 +6,19 @@ import cats.Functor
 import fontAwesome.{ AbstractElement, FontawesomeObject, IconLookup, fontawesome }
 import wust.webUtil.macros.KeyHash
 import monix.eval.Task
-import monix.execution.{ Ack, Cancelable, CancelableFuture, Scheduler }
+import monix.execution.{ Ack, CancelableFuture, Scheduler }
 import monix.reactive.OverflowStrategy.Unbounded
-import monix.reactive.{ Observable, Observer }
 import org.scalajs.dom
 import org.scalajs.dom.{ console, document }
 import rx._
 import wust.facades.jquery.JQuerySelection
 import wust.util.Empty
 
-import outwatch.dom._
-import outwatch.reactive._
-import outwatch.dom.helpers.EmitterBuilder
-import outwatch.ext.monix.handler._
-import outwatch.ext.monix._
+import outwatch._
+import colibri._
+import outwatch.EmitterBuilder
+import outwatch.reactive.handlers.monix._
+import colibri.ext.monix._
 
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.scalajs.js
@@ -99,35 +98,35 @@ package object outwatchHelpers extends KeyHash with RxInstances {
       }
     }
 
-    def toTailObservable: Observable[T] = {
-      Observable.create[T](Unbounded) { observer =>
+    def toTailMonixObservable: monix.reactive.Observable[T] = {
+      monix.reactive.Observable.create[T](Unbounded) { observer =>
         implicit val ctx = Ctx.Owner.Unsafe
 
         val obs = rx.triggerLater(observer.onNext(_))
 
-        Cancelable(() => obs.kill())
+        monix.execution.Cancelable(() => obs.kill())
       }
     }
 
-    def toObservable: Observable[T] = Observable.create[T](Unbounded) { observer =>
+    def toMonixObservable: monix.reactive.Observable[T] = monix.reactive.Observable.create[T](Unbounded) { observer =>
+      // transfer ownership from scala.rx to Monix. now Monix decides when the rx is killed.
+      implicit val ctx = Ctx.Owner.Unsafe
+      val obs = rx.foreach(observer.onNext)
+      monix.execution.Cancelable(() => obs.kill())
+    }
+
+    def toObservable: Observable[T] = Observable.create[T] { observer =>
       // transfer ownership from scala.rx to Monix. now Monix decides when the rx is killed.
       implicit val ctx = Ctx.Owner.Unsafe
       val obs = rx.foreach(observer.onNext)
       Cancelable(() => obs.kill())
     }
 
-    def toSourceStream: SourceStream[T] = SourceStream.create[T] { observer =>
-      // transfer ownership from scala.rx to Monix. now Monix decides when the rx is killed.
-      implicit val ctx = Ctx.Owner.Unsafe
-      val obs = rx.foreach(observer.onNext)
-      Subscription(() => obs.kill())
-    }
-
-    def toTailSourceStream: SourceStream[T] = SourceStream.create[T] { observer =>
+    def toTailObservable: Observable[T] = Observable.create[T] { observer =>
       // transfer ownership from scala.rx to Monix. now Monix decides when the rx is killed.
       implicit val ctx = Ctx.Owner.Unsafe
       val obs = rx.triggerLater(observer.onNext(_))
-      Subscription(() => obs.kill())
+      Cancelable(() => obs.kill())
     }
 
     @inline def subscribe[G[_]: Sink](that: G[T])(implicit ctx: Ctx.Owner): Obs = rx.foreach(Sink[G].onNext(that)(_))
@@ -164,16 +163,16 @@ package object outwatchHelpers extends KeyHash with RxInstances {
     VDomModifier(f(ctx), dsl.onDomUnmount foreach { ctx.contextualRx.kill() })
   }
 
-  implicit object obsCancelSubscription extends CancelSubscription[Obs] {
+  implicit object obsCanCancel extends CanCancel[Obs] {
     def cancel(obs: Obs) = obs.kill()
   }
 
   implicit object RxSource extends Source[Rx] {
-    def subscribe[G[_] : Sink, A](stream: Rx[A])(sink: G[_ >: A]): Subscription = {
+    def subscribe[G[_] : Sink, A](stream: Rx[A])(sink: G[_ >: A]): Cancelable = {
       implicit val ctx = Ctx.Owner.Unsafe
       Sink[G].onNext(sink)(stream.now)
       val obs = stream.triggerLater(Sink[G].onNext(sink)(_))
-      Subscription(() => obs.kill())
+      Cancelable(() => obs.kill())
     }
   }
 
@@ -189,8 +188,8 @@ package object outwatchHelpers extends KeyHash with RxInstances {
     }
   }
 
-  implicit class ManagedElementsWithJquery(val builder: outwatch.dom.managedElement.type) extends AnyVal {
-    def asJquery[T : CancelSubscription](subscription: JQuerySelection => T): VDomModifier = builder { elem =>
+  implicit class ManagedElementsWithJquery(val builder: outwatch.managedElement.type) extends AnyVal {
+    def asJquery[T : CanCancel](subscription: JQuerySelection => T): VDomModifier = builder { elem =>
       import wust.facades.jquery.JQuery._
       subscription($(elem.asInstanceOf[dom.html.Element]))
     }
@@ -203,7 +202,6 @@ package object outwatchHelpers extends KeyHash with RxInstances {
       _ <- OutWatch.renderReplace[SyncIO](document.createElement("div"), dsl.div(new VNodeProxyNode(proxy)))
     } yield proxy.elm.get).unsafeRunSync() // TODO
 
-    @inline def append(m: VDomModifier*) = vNode.apply(m: _*)
   }
 
   @inline implicit class RichRxVNode(val vNode: Rx[VNode]) extends AnyVal {
@@ -225,41 +223,31 @@ package object outwatchHelpers extends KeyHash with RxInstances {
     rx
   }
 
-  implicit class WustRichObserver[T](val o: Observer[T]) extends AnyVal {
-    //TODO: helper in outwatch monixops for redirectFuture
-    def redirectEval[R](f: R => Task[T]): Observer[R] = redirectFuture(r => f(r).runToFuture)
-    def redirectFuture[R](f: R => Future[T]): Observer[R] = new Observer[R] {
-      override def onNext(elem: R): Future[Ack] = f(elem).flatMap(o.onNext(_))
-      override def onError(ex: Throwable): Unit = o.onError(ex)
-      override def onComplete(): Unit = o.onComplete()
-    }
-  }
-
-  implicit class WustRichSourceStream[T](val o: SourceStream[T]) extends AnyVal {
+  implicit class WustRichObservable[T](val o: Observable[T]) extends AnyVal {
     //This is unsafe, as we leak the subscription here, this should only be done
     //for rx that are created only once in the app lifetime (e.g. in globalState)
     def unsafeToRx(seed: T): rx.Rx[T] = Rx.create(seed) { o.subscribe(_) }
   }
 
-  implicit class WustRichObservable[T](val o: Observable[T]) extends AnyVal {
+  implicit class WustRichMonixObservable[T](val o: monix.reactive.Observable[T]) extends AnyVal {
     //This is unsafe, as we leak the subscription here, this should only be done
     //for rx that are created only once in the app lifetime (e.g. in globalState)
     def unsafeToRx(seed: T): rx.Rx[T] = Rx.create(seed) { subscribe(_) }
 
-    def subscribe[G[_] : Sink](that: G[T]): Cancelable = o.subscribe(value => { Sink[G].onNext(that)(value); Ack.Continue }, Sink[G].onError(that)(_))
+    def subscribe[G[_] : Sink](that: G[T]): monix.execution.Cancelable = o.subscribe(value => { Sink[G].onNext(that)(value); Ack.Continue }, Sink[G].onError(that)(_))
 
-    def onErrorThrow: Cancelable = o.subscribe(_ => Ack.Continue, throw _)
-    def foreachSafe(callback: T => Unit): Cancelable = o.map(callback).onErrorRecover{ case NonFatal(e) => scribe.warn(e); Unit }.subscribe()
+    def onErrorThrow: monix.execution.Cancelable = o.subscribe(_ => Ack.Continue, throw _)
+    def foreachSafe(callback: T => Unit): monix.execution.Cancelable = o.map(callback).onErrorRecover{ case NonFatal(e) => scribe.warn(e); Unit }.subscribe()
 
-    def debug: Cancelable = debug()
+    def debug: CancelableFuture[Unit] = debug()
     def debug(name: String = ""): CancelableFuture[Unit] = o.foreach(x => scribe.info(s"$name: $x"))
     def debug(print: T => String): CancelableFuture[Unit] = o.foreach(x => scribe.info(print(x)))
   }
 
   //TODO: Outwatch observable for specific key is pressed Observable[Boolean]
-  def keyDown(keyCode: Int): SourceStream[Boolean] = SourceStream.merge(
-    outwatch.dom.dsl.events.document.onKeyDown.collect { case e if e.keyCode == keyCode => true },
-    outwatch.dom.dsl.events.document.onKeyUp.collect { case e if e.keyCode == keyCode => false }
+  def keyDown(keyCode: Int): Observable[Boolean] = Observable.merge(
+    outwatch.dsl.events.document.onKeyDown.collect { case e if e.keyCode == keyCode => true },
+    outwatch.dsl.events.document.onKeyUp.collect { case e if e.keyCode == keyCode => false }
   ).prepend(false)
 
   import scalacss.defaults.Exports.StyleA
@@ -282,9 +270,9 @@ package object outwatchHelpers extends KeyHash with RxInstances {
     () => requester(code)
   }
 
-  def inNextAnimationFrame[T](next: T => Unit): SinkObserver[T] = {
+  def inNextAnimationFrame[T](next: T => Unit): Observer[T] = {
     val requester = requestSingleAnimationFrame()
-    SinkObserver.create[T](elem => requester(next(elem)))
+    Observer.create[T](elem => requester(next(elem)))
   }
 
   implicit class RichEmitterBuilderEvent[R](val builder: EmitterBuilder[dom.Event, R]) extends AnyVal {

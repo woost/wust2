@@ -3,8 +3,8 @@ package wust.webApp.views
 import fontAwesome._
 import org.scalajs.dom
 import org.scalajs.dom.window.{clearTimeout, setTimeout}
-import outwatch.dom._
-import outwatch.dom.dsl._
+import outwatch._
+import outwatch.dsl._
 import outwatch.reactive.handler._
 import rx._
 import wust.api.AuthUser.{Implicit, Real}

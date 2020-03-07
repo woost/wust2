@@ -3,7 +3,7 @@ package wust.webApp.state
 import org.scalajs.dom
 
 import scala.scalajs.js
-import outwatch.dom.VDomModifier
+import outwatch.VDomModifier
 import rx._
 import wust.webUtil.outwatchHelpers._
 

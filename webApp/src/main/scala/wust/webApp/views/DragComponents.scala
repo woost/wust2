@@ -1,9 +1,9 @@
 package wust.webApp.views
 
 import org.scalajs.dom
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.dom.helpers.EmitterBuilder
+import outwatch._
+import outwatch.dsl._
+import outwatch.EmitterBuilder
 import snabbdom.VNodeProxy
 import wust.webApp.dragdrop._
 import wust.webUtil.Elements._

@@ -18,11 +18,12 @@ import wust.webUtil.outwatchHelpers._
 import wust.ids.EpochMilli
 import wust.util._
 
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.reactive._
+import outwatch._
+import outwatch.dsl._
+import colibri._
+import colibri.ext.monix._
 import outwatch.reactive.handler._
-import outwatch.dom.helpers.{ EmitterBuilder, PropBuilder }
+import outwatch.helpers.PropBuilder
 
 import scala.concurrent.duration._
 import scala.scalajs.js
@@ -126,7 +127,7 @@ object Elements {
   val onGlobalEscape: EmitterBuilder[KeyboardEvent, VDomModifier] =
     if (BrowserDetect.isMobile) EmitterBuilder.empty else EmitterBuilder.fromSource(events.document.onKeyDown.filter(e => e.keyCode == KeyCode.Escape))
 
-  val onGlobalClick: helpers.EmitterBuilderExecution[MouseEvent, VDomModifier, helpers.EmitterBuilder.Execution] =
+  val onGlobalClick: EmitterBuilderExecution[MouseEvent, VDomModifier, EmitterBuilder.Execution] =
     EmitterBuilder.fromSource(events.document.onClick)
 
   val onGlobalMouseDown: EmitterBuilder[MouseEvent, VDomModifier] =
@@ -309,12 +310,12 @@ object Elements {
       }
   }
 
-  final class ValueWithEnter(overrideValue: SourceStream[String] = SourceStream.empty, clearValue: Boolean = true, eventHandler: EmitterBuilder.Sync[dom.KeyboardEvent, VDomModifier] = onEnter) {
+  final class ValueWithEnter(overrideValue: Observable[String] = Observable.empty, clearValue: Boolean = true, eventHandler: EmitterBuilder.Sync[dom.KeyboardEvent, VDomModifier] = onEnter) {
     private var elem: HTMLInputElement = _
 
     private val userInput = Handler.unsafe[String]
-    private val clearInput = if (clearValue) Handler.unsafe[Unit] else ProHandler(SinkObserver.empty, SourceStream.empty)
-    private val writeValue = SourceStream.merge(clearInput.map(_ => ""), overrideValue)
+    private val clearInput = if (clearValue) Handler.unsafe[Unit] else ProHandler(Observer.empty, Observable.empty)
+    private val writeValue = Observable.merge(clearInput.map(_ => ""), overrideValue)
 
     def trigger(): Unit = {
       // We clear input field before userInput is triggered
@@ -390,7 +391,7 @@ object Elements {
   def valueWithCtrlEnter: EmitterBuilder.Sync[String, VDomModifier] = valueWithCtrlEnter(true)
   def valueWithEnter(clearValue: Boolean, filterEvent: () => Boolean = () => true): EmitterBuilder.Sync[String, VDomModifier] = (new ValueWithEnter(clearValue = clearValue, eventHandler = onEnter.filter(_ => filterEvent()))).emitterBuilder
   def valueWithCtrlEnter(clearValue: Boolean, filterEvent: () => Boolean = () => true): EmitterBuilder.Sync[String, VDomModifier] = (new ValueWithEnter(clearValue = clearValue, eventHandler = onCtrlEnter.filter(_ => filterEvent()))).emitterBuilder
-  def valueWithEnterWithInitial(overrideValue: SourceStream[String], clearValue: Boolean = true, filterEvent: () => Boolean = () => true): EmitterBuilder.Sync[String, VDomModifier] = {
+  def valueWithEnterWithInitial(overrideValue: Observable[String], clearValue: Boolean = true, filterEvent: () => Boolean = () => true): EmitterBuilder.Sync[String, VDomModifier] = {
     new ValueWithEnter(
       overrideValue = overrideValue,
       clearValue = clearValue,
@@ -398,7 +399,7 @@ object Elements {
     ).emitterBuilder
   }
 
-  def valueWithCtrlEnterWithInitial(overrideValue: SourceStream[String], clearValue: Boolean = true, filterEvent: () => Boolean = () => true): EmitterBuilder.Sync[String, VDomModifier] = {
+  def valueWithCtrlEnterWithInitial(overrideValue: Observable[String], clearValue: Boolean = true, filterEvent: () => Boolean = () => true): EmitterBuilder.Sync[String, VDomModifier] = {
     new ValueWithEnter(
       overrideValue = overrideValue,
       clearValue = clearValue,
@@ -462,7 +463,7 @@ object Elements {
     }
   }
 
-  def onClickDefault: EmitterBuilder.Sync[com.raquo.domtypes.jsdom.defs.events.TypedTargetMouseEvent[org.scalajs.dom.Element], outwatch.dom.VDomModifier] = {
+  def onClickDefault: EmitterBuilder.Sync[com.raquo.domtypes.jsdom.defs.events.TypedTargetMouseEvent[org.scalajs.dom.Element], outwatch.VDomModifier] = {
     onClick.stopPropagation.mapResult(mod => VDomModifier(
       mod,
       cursor.pointer,
@@ -588,7 +589,7 @@ object Elements {
   }
 
   // https://stackoverflow.com/questions/28983016/how-to-paste-rich-text-from-clipboard-to-html-textarea-element
-  def flatpickr(placeholder: String, withTime: Boolean, initialDate: Option[js.Date], isInline: Boolean = false, openTrigger: SourceStream[Boolean] = SourceStream.empty): EmitterBuilder[js.Date, VDomModifier] = EmitterBuilder.ofModifier { sink =>
+  def flatpickr(placeholder: String, withTime: Boolean, initialDate: Option[js.Date], isInline: Boolean = false, openTrigger: Observable[Boolean] = Observable.empty): EmitterBuilder[js.Date, VDomModifier] = EmitterBuilder.ofModifier { sink =>
     input(
       uniqueKey,
       dsl.placeholder := placeholder,
@@ -604,8 +605,8 @@ object Elements {
           }: js.Function3[js.Array[js.Date], String, js.Any, Unit]
         })
 
-        Subscription.composite(
-          Subscription(instance.destroy),
+        Cancelable.composite(
+          Cancelable(instance.destroy),
           openTrigger.foreach {
             case true  => instance.open()
             case false => instance.close()

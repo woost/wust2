@@ -1,8 +1,8 @@
 package wust.webApp.views
 
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.dom.dsl.styles.extra._
+import outwatch._
+import outwatch.dsl._
+import outwatch.dsl.styles.extra._
 import rx._
 import wust.api._
 import wust.css.Styles
@@ -33,7 +33,7 @@ object DevView {
   }
 
   def button =
-    outwatch.dom.dsl.button(fontSize := "14px", padding := "0px 5px", margin := "0px 1px")
+    outwatch.dsl.button(fontSize := "14px", padding := "0px 5px", margin := "0px 1px")
 
   def devPeek(additions: Seq[VDomModifier] = Nil)(implicit ctx: Ctx.Owner) = {
     val show = Var(false)

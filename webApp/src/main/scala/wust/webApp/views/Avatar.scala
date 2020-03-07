@@ -3,8 +3,8 @@ package wust.webApp.views
 import java.lang.Math._
 
 import colorado.HCL
-import outwatch.dom.{VNode, _}
-import outwatch.reactive.SourceStream
+import outwatch.{VNode, _}
+import colibri.Observable
 import wust.graph.Node
 import wust.sdk.NodeColor.genericHue
 import wust.webApp.Client
@@ -33,7 +33,7 @@ object Avatar {
         )
     }
 
-    val filterOnOtherAvatar = SourceStream.map(GlobalState.graphTransformations)(_.exists(gt => gt.isInstanceOf[GraphOperation.OnlyAssignedTo] && gt.asInstanceOf[GraphOperation.OnlyAssignedTo].userId != user.id))
+    val filterOnOtherAvatar = Observable.map(GlobalState.graphTransformations)(_.exists(gt => gt.isInstanceOf[GraphOperation.OnlyAssignedTo] && gt.asInstanceOf[GraphOperation.OnlyAssignedTo].userId != user.id))
 
     vnode.append(
       cls := "avatar",
@@ -119,7 +119,7 @@ object Avatar {
   private val svgWidthOne = dsl.svg.width := "1"
   private val svgHeightOne = dsl.svg.height := "1"
   private def addPixel(pixels: js.Array[VNode], x: Int, y: Int, color: String): Unit = {
-    import outwatch.dom.dsl.svg
+    import outwatch.dsl.svg
     pixels push svg.circle(
       dsl.svg.cx := (x + 0.5).toString,
       dsl.svg.cy := (y + 0.5).toString,
@@ -133,7 +133,7 @@ object Avatar {
   }
 
   @inline def renderSvg(n: Int, pixels: js.Array[VNode]): VDomModifier = {
-    import outwatch.dom.dsl.svg.viewBox
+    import outwatch.dsl.svg.viewBox
     VDomModifier(
       viewBox := s"0 0 $n $n",
       // dsl.style("shape-rendering") := "optimizeSpeed",
@@ -142,7 +142,7 @@ object Avatar {
   }
 
   def verticalMirror(seed: Any, n: Int): VNode = {
-    import outwatch.dom.dsl.svg.svg
+    import outwatch.dsl.svg.svg
 
     svg.thunkStatic(uniqueKey(seed.toString)) {
       val rnd = new scala.util.Random(new scala.util.Random(seed.hashCode).nextLong()) // else nextDouble is too predictable

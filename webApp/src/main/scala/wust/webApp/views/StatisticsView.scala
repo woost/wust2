@@ -1,8 +1,8 @@
 package wust.webApp.views
 
 import fontAwesome.IconDefinition
-import outwatch.dom.dsl._
-import outwatch.dom.{VNode, _}
+import outwatch.dsl._
+import outwatch.{VNode, _}
 import rx._
 import wust.css.Styles
 import wust.graph.SemanticNodeRole

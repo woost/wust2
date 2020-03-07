@@ -2,9 +2,9 @@ package wust.webApp.views
 
 import fontAwesome.IconDefinition
 import org.scalajs.dom
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.ext.monix._
+import outwatch._
+import outwatch.dsl._
+import colibri.ext.monix._
 import outwatch.reactive.handler._
 import rx._
 import wust.api._

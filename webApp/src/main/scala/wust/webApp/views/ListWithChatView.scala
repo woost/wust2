@@ -3,9 +3,9 @@ package wust.webApp.views
 import wust.sdk.Colors
 import flatland._
 import fontAwesome.freeSolid
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.reactive._
+import outwatch._
+import outwatch.dsl._
+import colibri._
 import rx._
 import wust.css.Styles
 import wust.graph._

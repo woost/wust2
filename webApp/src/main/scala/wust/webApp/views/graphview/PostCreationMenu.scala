@@ -1,9 +1,9 @@
 package wust.webApp.views.graphview
 
 import d3v4.d3
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.dom.dsl.styles.extra._
+import outwatch._
+import outwatch.dsl._
+import outwatch.dsl.styles.extra._
 import outwatch.reactive.handler._
 import rx._
 import vectory._

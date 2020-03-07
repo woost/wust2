@@ -2,9 +2,9 @@ package wust.webApp.views
 
 import wust.webUtil.{ Ownable }
 import fontAwesome.freeSolid
-import outwatch.dom._
-import outwatch.dom.dsl._
-import outwatch.reactive._
+import outwatch._
+import outwatch.dsl._
+import colibri._
 import rx._
 import wust.css.Styles
 import wust.graph._
@@ -53,7 +53,7 @@ object NotesView {
   }
 
   private def inputRow(focusState: FocusState)(implicit ctx: Ctx.Owner) = {
-    val triggerSubmit = SinkSourceHandler.publish[Unit]
+    val triggerSubmit = Subject.publish[Unit]
 
     InputRow(
       Some(focusState),

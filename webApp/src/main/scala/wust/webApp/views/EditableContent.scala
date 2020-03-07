@@ -2,10 +2,10 @@ package wust.webApp.views
 
 import monix.eval.Task
 import org.scalajs.dom
-import outwatch.dom._
-import outwatch.dom.dsl.{emitter, _}
-import outwatch.dom.helpers.EmitterBuilder
-import outwatch.reactive._
+import outwatch._
+import outwatch.dsl.{emitter, _}
+import outwatch.EmitterBuilder
+import colibri._
 import outwatch.reactive.handler._
 import rx._
 import wust.css.ZIndex
@@ -17,8 +17,8 @@ import wust.webUtil.{BrowserDetect, UI}
 import scala.concurrent.duration._
 
 object EditableContent {
-  private val currentlyEditingSubject = SinkSourceHandler.publish[Boolean]
-  def currentlyEditing: SourceStream[Boolean] = currentlyEditingSubject
+  private val currentlyEditingSubject = Subject.publish[Boolean]
+  def currentlyEditing: Observable[Boolean] = currentlyEditingSubject
 
   sealed trait Position
   object Position {
@@ -189,7 +189,7 @@ object EditableContent {
 
   @inline private def stringFromSelect(element: dom.html.Select): String = element.value
 
-  private def cancelButton(current: SinkObserver[EditInteraction[Nothing]]) = dsl.button(
+  private def cancelButton(current: Observer[EditInteraction[Nothing]]) = dsl.button(
     "Cancel",
     cls := "ui button compact mini",
     padding := "5px",
@@ -199,7 +199,7 @@ object EditableContent {
     onClickDefault.use(EditInteraction.Cancel) --> current,
     cls := "enable-text-selection a", // enforce cursor: pointer
   )
-  private def saveButton(current: SinkObserver[Unit]) = dsl.button(
+  private def saveButton(current: Observer[Unit]) = dsl.button(
     "Save",
     cls := "ui button primary compact mini",
     padding := "5px",
@@ -210,11 +210,11 @@ object EditableContent {
     cls := "enable-text-selection a", // enforce cursor: pointer
   )
 
-  final case class CommonEditHandler[T](edit: Handler[EditInteraction[T]], save: SourceStream[Unit])
+  final case class CommonEditHandler[T](edit: Handler[EditInteraction[T]], save: Observable[Unit])
   private def commonEditStructure[T](initial: Option[T], current: Handler[EditInteraction[T]], config: Config, handle: EditInteraction[T] => EditInteraction[T])(modifier: CommonEditHandler[T] => VDomModifier) = {
     val handledCurrent = ProHandler(
       current.contramap[EditInteraction[T]](handleEditInteraction[T](initial, config) andThen handle),
-      current.filter(uniqueEditInteraction[T](initial)).replayLatest
+      current.filter(uniqueEditInteraction[T](initial)).replay.refCount
     )
 
     val saveHandler = Handler.publish.unsafe[Unit]
@@ -252,7 +252,7 @@ object EditableContent {
       ),
 
       config.submitMode match {
-        case SubmitMode.Automatic => VDomModifier.ifNot(BrowserDetect.isMobile)(onGlobalEscape.use(EditInteraction.Cancel) -->[SinkObserver] handledCurrent)
+        case SubmitMode.Automatic => VDomModifier.ifNot(BrowserDetect.isMobile)(onGlobalEscape.use(EditInteraction.Cancel) -->[Observer] handledCurrent)
         case _ => VDomModifier.empty
       },
 
@@ -327,7 +327,7 @@ object EditableContent {
     case e => e
   }
 
-  private def showErrorsOutside[T](interaction: SourceStream[EditInteraction[T]], errorMode: ErrorMode): VDomModifier = errorMode match {
+  private def showErrorsOutside[T](interaction: Observable[EditInteraction[T]], errorMode: ErrorMode): VDomModifier = errorMode match {
     case ErrorMode.ShowInline => interaction.map {
       case EditInteraction.Error(error) => div(
         cls := "ui pointing red basic mini label",
@@ -342,7 +342,7 @@ object EditableContent {
     case _ =>  VDomModifier.empty
   }
 
-  private def showErrorsInside[T](interaction: SourceStream[EditInteraction[T]]): VDomModifier = interaction.map {
+  private def showErrorsInside[T](interaction: Observable[EditInteraction[T]]): VDomModifier = interaction.map {
     case EditInteraction.Error(error) => VDomModifier(
       boxShadow := s"0 0 1px 1px #e0b4b4",
       borderColor := "#e0b4b4",

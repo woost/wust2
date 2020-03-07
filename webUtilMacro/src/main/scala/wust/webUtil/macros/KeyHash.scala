@@ -2,7 +2,7 @@ package wust.webUtil.macros
 
 import java.security.MessageDigest
 
-import outwatch.dom.Key
+import outwatch.Key
 
 import scala.reflect.macros.blackbox.Context
 
@@ -51,28 +51,28 @@ object KeyHashMacro {
 
     val hash = uniquePositionHash(c)
 
-    c.Expr[Key](q"_root_.outwatch.dom.dsl.key := $hash")
+    c.Expr[Key](q"_root_.outwatch.dsl.key := $hash")
   }
   def uniqueKeyedWith(c: Context)(value: c.Expr[String]): c.Expr[Key] = {
     import c.universe._
 
     val hash = uniquePositionHash(c) + ":"
 
-    c.Expr[Key](q"_root_.outwatch.dom.dsl.key := $hash + $value")
+    c.Expr[Key](q"_root_.outwatch.dsl.key := $hash + $value")
   }
   def keyed(c: Context): c.Expr[Key] = {
     import c.universe._
 
     val hash = positionHashCode(c)
 
-    c.Expr[Key](q"_root_.outwatch.dom.dsl.key := $hash")
+    c.Expr[Key](q"_root_.outwatch.dsl.key := $hash")
   }
   def keyedWith(c: Context)(value: c.Expr[Any]): c.Expr[Key] = {
     import c.universe._
 
     val hash = positionHashCode(c)
 
-    c.Expr[Key](q"_root_.outwatch.dom.dsl.key := _root_.scala.runtime.Statics.mix($hash, $value.hashCode())")
+    c.Expr[Key](q"_root_.outwatch.dsl.key := _root_.scala.runtime.Statics.mix($hash, $value.hashCode())")
   }
 }
 

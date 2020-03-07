@@ -4,8 +4,8 @@ import scala.scalajs.js
 import org.scalajs.dom
 import org.scalajs.dom.raw.HTMLElement
 import org.scalajs.dom.console
-import outwatch.dom._
-import outwatch.dom.dsl._
+import outwatch._
+import outwatch.dsl._
 import rx._
 import wust.css.{ Styles, ZIndex }
 import wust.ids.Feature

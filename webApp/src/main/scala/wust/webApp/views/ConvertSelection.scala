@@ -1,8 +1,8 @@
 package wust.webApp.views
 
 import fontAwesome.IconLookup
-import outwatch.dom._
-import outwatch.dom.dsl._
+import outwatch._
+import outwatch.dsl._
 import rx._
 import wust.graph.{GraphChanges, Node}
 import wust.ids.{Feature, NodeRole}

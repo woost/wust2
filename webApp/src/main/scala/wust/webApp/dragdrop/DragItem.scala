@@ -1,6 +1,6 @@
 package wust.webApp.dragdrop
 
-import outwatch.reactive._
+import colibri._
 import wust.graph.Edge
 import wust.ids.{NodeId, NodeRole, UserId}
 import scala.scalajs.js
@@ -54,7 +54,7 @@ object DragItem {
 }
 
 sealed trait DragContainer extends Product with Serializable {
-  val triggerRepair = SinkSourceHandler.publish[Unit]
+  val triggerRepair = Subject.publish[Unit]
 }
 sealed trait SortableContainer extends DragContainer {
   def parentId: NodeId

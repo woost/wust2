@@ -1,7 +1,7 @@
 package wust.webApp.views
 
-import outwatch.dom._
-import outwatch.dom.dsl._
+import outwatch._
+import outwatch.dsl._
 import wust.facades.wdtEmojiBundle._
 import wust.webUtil.Elements.onGlobalEscape
 

@@ -1,8 +1,8 @@
 package wust.webApp.views
 
 import wust.webUtil.tippy
-import outwatch.dom._
-import outwatch.dom.dsl._
+import outwatch._
+import outwatch.dsl._
 import rx._
 import wust.webApp.Icons
 import wust.css.Styles
