@@ -511,6 +511,7 @@ lazy val webUtil = project
       Deps.scalarx.value ::
       Deps.outwatch.core.value ::
       Deps.outwatch.util.value ::
+      Deps.outwatch.repairdom.value ::
       Deps.colibri.monix.value ::
       Deps.colibri.rx.value ::
       Deps.monocle.value ::

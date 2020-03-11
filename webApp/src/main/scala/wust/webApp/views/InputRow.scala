@@ -5,6 +5,7 @@ import org.scalajs.dom
 import org.scalajs.dom.window
 import outwatch._
 import outwatch.dsl._
+import outwatch.repairdom.RepairDom
 import colibri.ext.monix._
 import colibri.ext.monix.ops._
 import colibri.ext.rx._
@@ -133,7 +134,7 @@ object InputRow {
     val emojiPicker = if (enableEmojiPicker && !BrowserDetect.isMobile) {
       val randomId = "emoji-picker-" + scala.util.Random.nextInt
       Some(VDomModifier(
-        snabbdom.VNodeProxy.repairDomBeforePatch, // the emoji-picker modifies the dom
+        RepairDom.patchHook, // the emoji-picker modifies the dom
         cls := randomId,
         onDomMount.foreach {
           //TODO: how to cleanup?

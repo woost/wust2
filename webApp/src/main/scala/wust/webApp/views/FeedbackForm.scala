@@ -6,6 +6,7 @@ import org.scalajs.dom.window.{clearTimeout, setTimeout}
 import outwatch._
 import outwatch.dsl._
 import outwatch.reactive.handler._
+import outwatch.repairdom.RepairDom
 import colibri.ext.rx._
 import rx._
 import wust.api.AuthUser.{Implicit, Real}
@@ -191,7 +192,7 @@ object FeedbackForm {
     cls := "ui violet tiny fluid button",
     marginTop := "5px",
     cls := "vote-button",
-    snabbdom.VNodeProxy.repairDomBeforePatch, // nolt button modifies the dom
+    RepairDom.patchHook, // nolt button modifies the dom
     DeployedOnly {
       onDomMount.foreach { _ =>
         try {

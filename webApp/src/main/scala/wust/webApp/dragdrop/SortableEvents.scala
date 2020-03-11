@@ -10,6 +10,8 @@ import wust.webApp.views.DragComponents.{ readDragContainer, readDragPayload, re
 import wust.webUtil.JSDefined
 import collection.mutable
 
+import outwatch.repairdom.RepairDom
+
 import scala.scalajs.js
 
 // This file registers all drag-event listeners.
@@ -51,7 +53,7 @@ class SortableEvents(draggable: Draggable) {
 
   val dirtyContainers = mutable.HashSet.empty[HTMLElement]
   def setDirty(element: HTMLElement): Unit = {
-    snabbdom.VNodeProxy.setDirty(element)
+    RepairDom.setDirty(element)
     dirtyContainers += element
   }
   def domCleanup(): Unit = {

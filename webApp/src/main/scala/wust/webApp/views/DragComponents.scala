@@ -3,6 +3,7 @@ package wust.webApp.views
 import org.scalajs.dom
 import outwatch._
 import outwatch.dsl._
+import outwatch.repairdom.RepairDom
 import colibri.ext.rx._
 import snabbdom.VNodeProxy
 import wust.webApp.dragdrop._
@@ -28,11 +29,11 @@ object DragComponents {
         case _:SortableContainer => cls := "sortable-container"
         case _ => cls := "draggable-container"
       },
-      snabbdom.VNodeProxy.repairDomBeforePatch, // draggable modifies the dom, but snabbdom assumes that the dom corresponds to its last vdom representation. So Before patch
+      RepairDom.patchHook, // draggable modifies the dom, but snabbdom assumes that the dom corresponds to its last vdom representation. So Before patch
 
       new DomMountHook({ proxy = _ }),
       managedFunction(() => container.triggerRepair.foreach { _ =>
-        if(proxy != null) VNodeProxy.repairDom(proxy)
+        if(proxy != null) RepairDom.repairNode(proxy)
       }),
 
       prop(DragContainer.propName) := (() => container),

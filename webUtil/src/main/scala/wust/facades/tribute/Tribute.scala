@@ -6,6 +6,8 @@ import scala.scalajs.js
 import scala.scalajs.js.|
 import scala.scalajs.js.annotation._
 
+import outwatch.repairdom.RepairDom
+
 @js.native
 @JSImport("tributejs", JSImport.Default)
 class Tribute[Value](collection: TributeCollection[Value]) extends js.Object {
@@ -22,7 +24,7 @@ object Tribute {
 
   implicit def render[Value]: Render[Tribute[Value]] = { tribute =>
     VDomModifier(
-      snabbdom.VNodeProxy.repairDomBeforePatch, // the emoji-picker modifies the dom
+      RepairDom.patchHook, // the emoji-picker modifies the dom
       managedElement.asHtml { element =>
         tribute.attach(element)
         Cancelable { () =>

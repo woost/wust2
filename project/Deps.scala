@@ -54,10 +54,11 @@ object Deps {
   val vectory = dep("com.github.fdietze.vectory" %%% "vectory" % "4931100")
   val scalarx = dep("com.github.cornerman.scalarx" %%% "scalarx" % "70cd41c")
   val outwatch = new {
-    private val version = "4fbeaff"
+    private val version = "975176c"
     // val core = dep("io.github.outwatch" %%% "outwatch" % "0.11.1-SNAPSHOT")
-    val core = dep("com.github.cornerman.outwatch" %%% "outwatch" % version)
-    val util = dep("com.github.cornerman.outwatch" %%% "outwatch-util" % version)
+    val core = dep("com.github.outwatch.outwatch" %%% "outwatch" % version)
+    val util = dep("com.github.outwatch.outwatch" %%% "outwatch-util" % version)
+    val repairdom = dep("com.github.outwatch.outwatch" %%% "outwatch-repairdom" % version)
   }
   val colibri = new {
     private val version = "4979072"

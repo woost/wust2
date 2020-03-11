@@ -91,9 +91,9 @@ class ForceSimulation(
       keyed, // forces onDestroy (forbids reuse of dom node),
       // so that this dirty dom is not reused (https://github.com/OutWatch/outwatch/issues/287)
       // somehow postpatch is not triggered, so that the dom is not automatically repaired...
-      // snabbdom.VNodeProxy.repairDomBeforePatch,
+      // RepairDom.patchHook,
       managedElement.asHtml { elem =>
-        // snabbdom.VNodeProxy.setDirty(elem)
+        // RepairDom.setDirty(elem)
         backgroundElement() = Some(elem)
         cancelable { () => backgroundElement() = None; simulationCancelable.cancel() }
       },
