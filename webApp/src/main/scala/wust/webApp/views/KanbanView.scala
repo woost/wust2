@@ -255,7 +255,7 @@ object KanbanView {
         Styles.flex,
         alignItems.center,
 
-        node().map(node => editableNode( node, editable, config = titleEditConfig, maxLength = Some(TaskNodeCard.maxLength))(ctx)(cls := "kanbancolumntitle")),
+        node().map(node => editableNode( node, editable, config = titleEditConfig)(ctx)(cls := "kanbancolumntitle")),
 
         childCount.map {
           case 0 => VDomModifier.empty

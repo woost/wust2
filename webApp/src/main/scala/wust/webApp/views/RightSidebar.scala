@@ -523,7 +523,7 @@ object RightSidebar {
                   fontSize.small,
                   span("Backlinks: ", color.gray),
                   propertySingle.info.reverseProperties.map { node =>
-                    Components.nodeCard(node, maxLength = Some(50)).apply(
+                    Components.nodeCard(node).apply(
                       margin := "3px",
                       Components.sidebarNodeFocusClickMod(node.id, focusState)
                     )
@@ -608,7 +608,7 @@ object RightSidebar {
                         alignItems.center,
                         justifyContent.flexEnd,
                         VDomModifier.ifTrue(referenceModifiers.nonEmpty)(i(marginRight := "4px", s"${referenceModifiers.mkString(", ")}: ")),
-                        Components.nodeCard(node, maxLength = Some(100)).apply(
+                        Components.nodeCard(node).apply(
                           Components.sidebarNodeFocusClickMod(node.id, focusState)
                         ),
                         div(padding := "4px", Icons.delete, deleteButton(node.id))

@@ -272,7 +272,7 @@ object ActivityStream {
           ),
 
           div(
-            nodeCard(activityNode.node, maxLength = Some(250), projectWithIcon = true).apply(
+            nodeCard(activityNode.node, projectWithIcon = true).apply(
               VDomModifier.ifTrue(activityNode.revision.isInstanceOf[Revision.Delete])(cls := "node-deleted"),
 
               Components.sidebarNodeFocusMod(activityNode.node.id, focusState)

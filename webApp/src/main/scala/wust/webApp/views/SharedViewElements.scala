@@ -175,7 +175,7 @@ object SharedViewElements {
 
     def render(node: Node, focusState:FocusState, isDeletedNow: Boolean)(implicit ctx: Ctx.Owner) = {
       if(isDeletedNow)
-        nodeCardWithoutRender(node, maxLength = Some(25)).apply(cls := "node-deleted")
+        nodeCardWithoutRender(node).apply(cls := "node-deleted")
       else {
         node.role match {
           case NodeRole.Task =>

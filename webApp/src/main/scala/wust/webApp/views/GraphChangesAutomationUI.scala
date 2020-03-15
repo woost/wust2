@@ -223,7 +223,7 @@ object GraphChangesAutomationUI {
                 }
 
                 div(
-                  Components.nodeCard(templateNode, maxLength = Some(100)).apply(
+                  Components.nodeCard(templateNode).apply(
                     padding := "10px",
                     width := "200px",
                     div(

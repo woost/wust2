@@ -402,7 +402,7 @@ object ChatView {
                 fontSize.smaller,
                 node.role match {
                   case _ => VDomModifier(
-                    renderNodeData( node, maxLength = Some(100))
+                    renderNodeData( node)
                   )
                 }
               ),

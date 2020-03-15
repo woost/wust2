@@ -17,8 +17,6 @@ import wust.webUtil.{BrowserDetect, Elements, Ownable, UI}
 
 object TaskNodeCard {
 
-  val maxLength = 300 // TODO: use text-overflow:ellipsis instead.
-
   def renderThunk(
     focusState: FocusState,
     traverseState: TraverseState,
@@ -154,7 +152,6 @@ object TaskNodeCard {
         nodeOpt().map { node =>
           Components.nodeCardMod(
             node,
-            maxLength = Some(maxLength),
             contentInject = VDomModifier(
               VDomModifier.ifNot(showCheckbox)(marginLeft := "2px"),
               VDomModifier.ifTrue(isDone)(textDecoration.lineThrough),

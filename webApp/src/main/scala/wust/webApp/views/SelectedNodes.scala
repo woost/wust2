@@ -110,7 +110,7 @@ object SelectedNodes {
         }
       ),
     ),
-      maxLength = Some(20)).apply(
+      ).apply(
         drag(DragItem.SelectedNode(node.id)),
         cls := "draggable"
       )
