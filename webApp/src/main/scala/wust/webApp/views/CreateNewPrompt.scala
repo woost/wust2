@@ -228,7 +228,6 @@ object CreateNewPrompt {
                     justifyContent.spaceBetween,
                     span(freeSolid.faTimes, cursor.pointer, onClick.useLazy(childNodes.now.filterNot(_ == node.id)) --> childNodes, opacity := 0.4, paddingLeft := "10px")
                   ),
-                  maxLength = Some(20),
                   projectWithIcon = true,
                 ).apply(
                     marginBottom := "3px",

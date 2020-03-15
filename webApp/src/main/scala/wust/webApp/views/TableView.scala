@@ -124,10 +124,10 @@ object TableView {
       }.mkString(", "),
       value = VDomModifier(
         edges.map {
-          case (Some(edge), node: Node.Content)                         => Components.editablePropertyNodeOnClick(node, edge, maxLength = Some(50), config = EditableContent.Config.default)
+          case (Some(edge), node: Node.Content)                         => Components.editablePropertyNodeOnClick(node, edge, config = EditableContent.Config.default)
           case (_, tag: Node.Content) if tag.role == NodeRole.Tag       => Components.removableNodeTag(tag, row)
           case (_, stage: Node.Content) if stage.role == NodeRole.Stage => Components.removableNodeTag(stage, row)
-          case (_, node: Node.Content)                                  => Components.editableNodeOnClick(node, maxLength = Some(50), config = EditableContent.Config.default)
+          case (_, node: Node.Content)                                  => Components.editableNodeOnClick(node, config = EditableContent.Config.default)
           case (_, user: Node.User)                                     => Components.removableAssignedUser(user, row)
         },
         position.relative, // for cancel and save button absolute popup
@@ -453,7 +453,7 @@ object TableView {
       onClickDefault.foreach {
         val data = CsvHelper.tableToCsv(node, propertyGroup)
         DownloadHelper.promptDownload(
-          fileName = StringOps.trimToMaxLength(node.str, 50) + ".csv",
+          fileName = node.str + ".csv",
           data = data,
           `type` = Some("text/csv"),
           endings = Some("native")

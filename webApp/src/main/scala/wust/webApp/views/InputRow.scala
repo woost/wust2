@@ -154,7 +154,7 @@ object InputRow {
           }
         }: js.Function1[js.UndefOr[TributeItem[Node]], String]
         menuItemTemplate = { item =>
-          val card = Components.nodeCard(item.original, contentInject = VDomModifier.ifTrue(item.original.id == GlobalState.userId.now)(i(" (yourself)")), projectWithIcon = true, maxLength = Some(200))
+          val card = Components.nodeCard(item.original, contentInject = VDomModifier.ifTrue(item.original.id == GlobalState.userId.now)(i(" (yourself)")), projectWithIcon = true)
           val entry = if (item.original.id == GlobalState.userId.now) card.apply(
             Styles.flex,
             alignItems.center,

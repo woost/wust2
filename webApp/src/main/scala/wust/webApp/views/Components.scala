@@ -69,9 +69,9 @@ object Components {
     i(marginLeft := "0.25em", "missing")
   )
 
-  def renderNodeData(node: Node, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VNode = node.data match {
-    case NodeData.Markdown(content)  => markdownVNode(node.id, trimToMaxLength(content, maxLength))
-    case NodeData.PlainText(content) => div(trimToMaxLength(content, maxLength))
+  def renderNodeData(node: Node)(implicit ctx: Ctx.Owner): VNode = node.data match {
+    case NodeData.Markdown(content)  => markdownVNode(node.id, content)
+    case NodeData.PlainText(content) => div(content)
     case user: NodeData.User         => div(displayUserName(user))
     case file: NodeData.File         => renderUploadedFile( node.id, file)
     case data: NodeData.RelativeDate => div(displayRelativeDate(data))
@@ -79,7 +79,7 @@ object Components {
     case data: NodeData.DateTime     => div(displayDateTime(data))
     case data: NodeData.Placeholder  => div(displayPlaceholder(data))
     case data: NodeData.Duration     => div(displayDuration(data))
-    case d                           => div(trimToMaxLength(d.str, maxLength))
+    case d                           => div(d.str)
   }
 
   def replaceEmoji(str: String): VNode = {
@@ -268,7 +268,7 @@ object Components {
                   //TODO: rightsidebarnodcardmod ?
                   onClick.stopPropagation.use(Some(FocusPreference(property.node.id))).foreach(parentIdAction(_))
                 ),
-                maxLength = Some(100), config = EditableContent.Config.default,
+                config = EditableContent.Config.default,
               ).apply(cls := "propertyvalue"),
 
               div(
@@ -305,12 +305,12 @@ object Components {
 
     val propertyRendering = property.role match {
       case NodeRole.Neutral => property.data match {
-        case NodeData.Placeholder(selection) => editableNodeOnClick(property, maxLength = Some(50), config = EditableContent.Config.cancelOnError.copy(submitOnBlur = false)).apply(
+        case NodeData.Placeholder(selection) => editableNodeOnClick(property, config = EditableContent.Config.cancelOnError.copy(submitOnBlur = false)).apply(
           onDblClick.stopPropagation.discard, // do not propagate dbl click which would focus the nodecard.
           cursor.pointer,
           cls := "neutral"
         )
-        case _ => renderNodeData( property, maxLength = Some(50)).apply(cls := "detail", cls := "neutral" ),
+        case _ => renderNodeData( property).apply(cls := "detail", cls := "neutral" ),
       }
         case _ =>
           TaskNodeCard.renderThunk(
@@ -493,34 +493,34 @@ object Components {
         renderNodeCardMod(node, contentInject, projectWithIcon = projectWithIcon)
       )
     }
-    def nodeCardMod(node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VDomModifier = {
+    def nodeCardMod(node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
       renderNodeCardMod(
         node,
-        contentInject = node => VDomModifier(renderNodeData( node, maxLength).apply(nodeInject), contentInject)
+        contentInject = node => VDomModifier(renderNodeData( node).apply(nodeInject), contentInject)
       )
     }
-    def nodeCard(node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None, projectWithIcon: Boolean = true)(implicit ctx: Ctx.Owner): VNode = {
+    def nodeCard(node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, projectWithIcon: Boolean = true)(implicit ctx: Ctx.Owner): VNode = {
       renderNodeCard(
         node,
-        contentInject = node => VDomModifier(renderNodeData( node, maxLength).apply(nodeInject), contentInject),
+        contentInject = node => VDomModifier(renderNodeData( node).apply(nodeInject), contentInject),
         projectWithIcon = projectWithIcon
       )
     }
-    def nodeCardWithoutRender(node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VNode = {
+    def nodeCardWithoutRender(node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
       renderNodeCard(
         node,
-        contentInject = node => VDomModifier(p(StringOps.trimToMaxLength(node.str, maxLength), nodeInject), contentInject)
+        contentInject = node => VDomModifier(p(node.str, nodeInject), contentInject)
       )
     }
 
   def editModeIndicator(editMode:Var[Boolean])(implicit ctx: Ctx.Owner) = Rx { VDomModifier.ifTrue(editMode())(boxShadow := "0px 0px 0px 2px  rgba(65,184,255, 1)") }
 
-    def nodeCardEditable(node: Node, editMode: Var[Boolean], contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None, prependInject: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
+    def nodeCardEditable(node: Node, editMode: Var[Boolean], contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, prependInject: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
       renderNodeCard(
         node,
         contentInject = node => VDomModifier(
           prependInject,
-          editableNode( node, editMode, maxLength).apply(nodeInject),
+          editableNode( node, editMode).apply(nodeInject),
           contentInject
         ),
         projectWithIcon = false,
@@ -529,13 +529,13 @@ object Components {
       )
     }
 
-  def nodeCardEditableOnClick(node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None, prependInject: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
+  def nodeCardEditableOnClick(node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, prependInject: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
     val editMode = Var(false)
     renderNodeCard(
       node,
       contentInject = node => VDomModifier(
         prependInject,
-        editableNodeOnClick( node, maxLength).apply(nodeInject),
+        editableNodeOnClick( node).apply(nodeInject),
         contentInject
       ),
     ).apply(
@@ -605,13 +605,12 @@ object Components {
 
     def editableNodeOnClick(
       node: Node,
-      maxLength: Option[Int] = None,
       editMode: Var[Boolean] = Var(false),
       config: EditableContent.Config = EditableContent.Config.cancelOnError
     )(
       implicit ctx: Ctx.Owner
     ): VNode = {
-      editableNode( node, editMode, maxLength, config)(ctx)(
+      editableNode( node, editMode, config)(ctx)(
         onClickDefault foreach {
           if(!editMode.now) {
             editMode() = true
@@ -621,10 +620,10 @@ object Components {
       )
     }
 
-    def editablePropertyNodeOnClick(node: Node, edge: Edge.LabeledProperty, nonPropertyModifier: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None, editMode: Var[Boolean] = Var(false), config: EditableContent.Config = EditableContent.Config.cancelOnError)(
+    def editablePropertyNodeOnClick(node: Node, edge: Edge.LabeledProperty, nonPropertyModifier: VDomModifier = VDomModifier.empty, editMode: Var[Boolean] = Var(false), config: EditableContent.Config = EditableContent.Config.cancelOnError)(
       implicit ctx: Ctx.Owner
     ): VNode = {
-      editablePropertyNode( node, edge, editMode, nonPropertyModifier, maxLength, config)(ctx)(
+      editablePropertyNode( node, edge, editMode, nonPropertyModifier, config)(ctx)(
         onClick.stopPropagation foreach {
           if(!editMode.now) {
             editMode() = true
@@ -634,9 +633,9 @@ object Components {
       )
     }
 
-    def editableNode(node: Node, editMode: Var[Boolean], maxLength: Option[Int] = None, config: EditableContent.Config = EditableContent.Config.cancelOnError)(implicit ctx: Ctx.Owner): VNode = {
+    def editableNode(node: Node, editMode: Var[Boolean], config: EditableContent.Config = EditableContent.Config.cancelOnError)(implicit ctx: Ctx.Owner): VNode = {
       div(
-        EditableContent.ofNodeOrRender( node, editMode, implicit ctx => node => renderNodeData( node, maxLength), config).editValue.map(GraphChanges.addNode).foreach{ changes =>
+        EditableContent.ofNodeOrRender( node, editMode, implicit ctx => node => renderNodeData( node), config).editValue.map(GraphChanges.addNode).foreach{ changes =>
           GlobalState.submitChanges(changes)
           changes.addNodes.head.role match {
             case NodeRole.Project => FeatureState.use(Feature.EditProjectInRightSidebar)
@@ -650,13 +649,13 @@ object Components {
       )
     }
 
-    def editablePropertyNode(node: Node, edge: Edge.LabeledProperty, editMode: Var[Boolean], nonPropertyModifier: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None, config: EditableContent.Config = EditableContent.Config.cancelOnError)(implicit ctx: Ctx.Owner): VNode = {
+    def editablePropertyNode(node: Node, edge: Edge.LabeledProperty, editMode: Var[Boolean], nonPropertyModifier: VDomModifier = VDomModifier.empty, config: EditableContent.Config = EditableContent.Config.cancelOnError)(implicit ctx: Ctx.Owner): VNode = {
 
-      def contentEditor = EditableContent.ofNodeOrRender( node, editMode, implicit ctx => node => renderNodeData( node, maxLength), config).editValue.map(GraphChanges.addNode) --> GlobalState.eventProcessor.changes
+      def contentEditor = EditableContent.ofNodeOrRender( node, editMode, implicit ctx => node => renderNodeData( node), config).editValue.map(GraphChanges.addNode) --> GlobalState.eventProcessor.changes
 
       def refEditor = EditableContent.customOrRender[NodeId](
         node.id, editMode,
-        implicit ctx => nodeId => GlobalState.rawGraph.map(g => nodeCard(g.nodesByIdOrThrow(nodeId), maxLength = maxLength).apply(Styles.wordWrap, nonPropertyModifier)),
+        implicit ctx => nodeId => GlobalState.rawGraph.map(g => nodeCard(g.nodesByIdOrThrow(nodeId)).apply(Styles.wordWrap, nonPropertyModifier)),
         implicit ctx => handler => searchAndSelectNodeApplied[Handler](
           ProHandler(
             handler.edit.contramap[Option[NodeId]](EditInteraction.fromOption(_)),
@@ -697,7 +696,7 @@ object Components {
               span("Selected:", color.gray, margin := "0px 5px 0px 5px"),
               GlobalState.graph.map { g =>
                 val node = g.nodesByIdOrThrow(nodeId)
-                Components.nodeCard(node, maxLength = Some(100)).apply(Styles.wordWrap)
+                Components.nodeCard(node).apply(Styles.wordWrap)
               }
             )
             case None => VDomModifier.empty
@@ -727,7 +726,7 @@ object Components {
 
             new SearchSourceEntry {
               title = node.id.toCuidString
-              description = trimToMaxLength(str, 36)
+              description = str
               data = node.asInstanceOf[js.Any]
             }
           }(breakOut): js.Array[SearchSourceEntry]
@@ -882,7 +881,7 @@ object Components {
             div(
               marginLeft := "2px",
               borderRadius := "2px",
-              UI.tooltip := s"This is an active automation template for: ${StringOps.trimToMaxLength(node.str, 30)}",
+              UI.tooltip := s"This is an active automation template for: ${node.str}",
               fontSize.xSmall,
               Icons.automate,
               cursor.pointer,
