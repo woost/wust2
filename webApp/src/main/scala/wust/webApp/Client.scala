@@ -28,8 +28,6 @@ object Client {
   private val protocol = location.protocol
 
   private def calculateCoreAddress(withVersion: Boolean): String = {
-    val socketProtocol = if (location.protocol == "https:") "wss:" else "ws:"
-
     if (LinkingInfo.developmentMode)
       s"$hostname$port" // allows to access the devserver without subdomain
     else {
