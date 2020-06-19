@@ -5,7 +5,7 @@
 Goal: Scale communication and collaboration within large groups.
 The core idea can be imagined as a mix of the expressiveness of mind-mapping, Wiki and realtime collaborative editing.
 
-This project is in an early stage of development. You can already play around with the online version: https://app.woost.space.
+This project is in an early stage of development. You can already play around with the online version: https://app.woost.space. It is hosted in AWS.
 
 Contributions very welcome. Please ask questions and share ideas.
 
@@ -159,14 +159,12 @@ and open firewall port in ```configuration.nix```:
 networking.firewall.allowedTCPPorts = [ 12345 ];
 ```
 
-The images are automatically published to docker.woost.space once a day from `master`.
-
 # Deployment
 Requirements:
 * docker
 * docker-compose
 
-All used docker services are defined in `docker/services.yml` and can be configured with the following environment variables:
+All used docker services can be configured with the following environment variables:
 * **POSTGRES_PASSWORD**: a password for the postgres application user 'wust'
 * **WUST_AUTH_SECRET**: a secret for signing JWT tokens
 * **WUST_EMAIL_ADDRESS**: from address for sent email (optional)
@@ -177,15 +175,10 @@ All used docker services are defined in `docker/services.yml` and can be configu
 * **WUST_WEB_PUSH_PUBLIC_KEY**: vapid public key (optional)
 * **WUST_WEB_PUSH_PRIVATE_KEY**: vapid private key (optional)
 
-The compose stack `docker/compose-prod.yml` is an example how to run wust in docker. Start the whole stack with docker-compose:
+The compose stack `core/docker/docker-compose.yml` is an example how to run wust in docker. Start the whole stack with docker-compose:
 ```
-$ docker-compose --file <project>/compose-prod.yml up
+$ docker-compose --file core/docker/docker-compose.yml up
 ```
-# Deploy-Script
-```bash
-DOCKER_USERNAME=woost DOCKER_PASSWORD=xxx DOCKER_REGISTRY=docker.woost.space STAGING_URL=https://xxx ./manual-deploy
-```
-This will build all docker images and push them to `:latest`.
 
 # App and Favicons
 * https://realfavicongenerator.net
