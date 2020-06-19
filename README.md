@@ -1,12 +1,11 @@
 # Woost
 [![Build Status](https://codebuild.eu-central-1.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoicDNUWjI3S0tjTlkrNTVmZnVEd0Q2eDhXUGxubER6dVQveEJNMjZxNFlGMS8wMTBScEF0UGptVlVJdlV6YWpZYnJUMi9DZ29Sd1h2NnEwdzkvaHh0Y3owPSIsIml2UGFyYW1ldGVyU3BlYyI6ImM5c2w4NnBMVmxBR00xdzgiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=master)](https://eu-central-1.console.aws.amazon.com/codesuite/codebuild/projects/Woost/history?region=eu-central-1)
-[![Coverage Status](https://coveralls.io/repos/github/woost/wust2/badge.svg)](https://coveralls.io/github/woost/wust2)
 [![Join the chat at https://gitter.im/wust2/Lobby](https://badges.gitter.im/wust2/Lobby.svg)](https://gitter.im/wust2/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 Goal: Scale communication and collaboration within large groups.
 The core idea can be imagined as a mix of the expressiveness of mind-mapping, Wiki and realtime collaborative editing.
 
-This project is in an early stage of development. You can already play around with the online version: https://wust.space. Current master is deployed automatically to https://wust.space:8443.
+This project is in an early stage of development. You can already play around with the online version: https://app.woost.space.
 
 Contributions very welcome. Please ask questions and share ideas.
 
@@ -15,7 +14,6 @@ A directed graph stored in postgres accessed via rpc-calls over websockets and b
 
 # Building blocks
 * [scala](https://github.com/scala/scala)/[scala-js](https://github.com/scala-js/scala-js) (scala for backend, scala-js is scala compiled to javascript for the webApp. Allows to share code between both.)
-* [nginx](https://github.com/nginx/nginx) (serving static assets, https, forwarding websocket connections to backend)
 * [postgres](https://github.com/postgres/postgres) (relational database with views and stored procedures for graph traversal)
 * [flyway](https://github.com/flyway/flyway) (database migrations)
 * [quill](https://github.com/getquill/quill) (compile-time language integrated database queries for Scala)
