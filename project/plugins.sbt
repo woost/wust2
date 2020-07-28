@@ -5,8 +5,8 @@ addSbtPlugin("ch.epfl.scala" % "sbt-scalajs-bundler-sjs06" % "0.16.0")
 addSbtPlugin("com.typesafe.sbt" % "sbt-native-packager" % "1.3.19")
 
 // scalablytyped
-resolvers += Resolver.bintrayRepo("oyvindberg", "ScalablyTyped")
-addSbtPlugin("org.scalablytyped" % "sbt-scalablytyped" % "202001070854")
+resolvers += Resolver.bintrayRepo("oyvindberg", "converter")
+addSbtPlugin("org.scalablytyped.converter" % "sbt-converter06" % "1.0.0-beta21")
 
 // workflow
 addSbtPlugin("io.spray" % "sbt-revolver" % "0.9.1")

@@ -165,6 +165,7 @@ object Deps {
     val wdtEmojiBundle = "wdt-emoji-bundle" -> "git://github.com/fdietze/wdt-emoji-bundle.git#fcf05d9"
     val tribute = "tributejs" -> "3.7.1"
     val chartJs = "chart.js" -> "2.8.0"
+    val chartJsTypes = "@types/chart.js" -> "2.8.0"
     val hopscotch = "hopscotch" -> "0.3.1"
     val canvasImageUploader = "canvas-image-uploader" -> "git+https://git@github.com/selbekk/CanvasImageUploader.git#6e5a71b5c2c01b00e76c86d65f2959d3fa9f3125" // fork without jquery and black canvas fix
     val exifJS = "exif-js" -> "git+https://git@github.com/fdietze/exif-js.git#da3116c" // fork merges PR which avoids runtime error

@@ -501,7 +501,7 @@ lazy val webUtilMacro = project
   )
 
 lazy val webUtil = project
-  .enablePlugins(ScalaJSPlugin)
+  .enablePlugins(ScalaJSPlugin, ScalablyTypedConverterPlugin)
   .dependsOn(idsJS, webUtilMacro)
   .settings(commonSettings, commonWebSettings)
   .settings(
@@ -520,7 +520,9 @@ lazy val webUtil = project
       Deps.kantanRegex.core.value ::
       Deps.kantanRegex.generic.value ::
       Deps.fontawesome.value ::
-      ScalablyTyped.C.chart_dot_js ::
+      Nil,
+    npmDependencies in Compile ++=
+      Deps.npm.chartJsTypes ::
       Nil
   )
 
@@ -543,7 +545,7 @@ val externalJS = external.js
 val externalJVM = external.jvm
 
 lazy val webApp = project
-  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin, ScalablyTypedConverterPlugin)
   .dependsOn(sdkJS, cssJS, webUtil, externalJS)
   .settings(commonSettings, commonWebSettings, webSettings)
   .settings(
@@ -573,6 +575,7 @@ lazy val webApp = project
       Deps.npm.wdtEmojiBundle ::
       Deps.npm.tribute ::
       Deps.npm.chartJs ::
+      Deps.npm.chartJsTypes ::
       Deps.npm.hopscotch ::
       Deps.npm.canvasImageUploader ::
       Deps.npm.exifJS ::
