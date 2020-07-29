@@ -1,0 +1,29 @@
+name: Run tests on push
+
+on:
+    push:
+        branches: [ $default-branch ]
+    pull_request:
+        branches: [ $default-branch ]
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  assign_one_project:
+    runs-on: ubuntu-latest
+    name: Build Woost Project
+    steps:
+        - name: Scala SBT Action
+        uses: matankdr/github-docker-sbt@openjdk8_alpine_sbt1_3_8_2
+        with:
+            # Commands to run
+            command: 
+            # A directory to run SBT in
+            working-directory: # optional, default is .
+            # docker login username
+            docker-login-username: # optional
+            # docker login password
+            docker-login-password: # optional
+            # docker registry, defaults to DockerHub
+            docker-registry: # optional
