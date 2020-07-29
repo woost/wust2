@@ -46,7 +46,11 @@ object Segment {
   // custom
   def trackError(event:String, errorMessage: String) = trackEvent("Error", js.Dynamic.literal(error = event, details = errorMessage))
 
-  @inline def ifLoaded(f: Analytics => Unit): Unit = SegmentGlobalScope.analytics.foreach(f)
+  @inline def ifLoaded(f: Analytics => Unit): Unit = {
+    if(js.typeOf(js.Dynamic.global.analytics) != "undefined") {
+      SegmentGlobalScope.analytics.foreach(f)
+    }
+  }
 }
 
 @js.native

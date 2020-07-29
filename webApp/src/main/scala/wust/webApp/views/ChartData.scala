@@ -18,7 +18,7 @@ object ChartData {
   case class ChartRenderData(rawChartData: Rx[Seq[ChartDataContainer]], steps: Option[Double] = None, chartLabel: String = "# Tasks", chartType: String = "bar") {
 
     def render(implicit ctx: Ctx.Owner): HtmlVNode = {
-      import typings.chartDotJs.chartDotJsMod._
+      import typings.chartJs.mod._
       import scala.scalajs.js
       import scala.scalajs.js.`|`
       import scala.scalajs.js.JSConverters._
@@ -36,34 +36,34 @@ object ChartData {
 
           val chartSteps = if(rawDataContainer.isEmpty) 1 else steps.getOrElse(math.max(math.ceil( rawDataContainer.map(_.dataValue).max / 10), 1))
 
-          Elements.chartCanvas {
-            ChartConfiguration(
-              `type` = chartType,
-              data = new ChartData {
-                labels = chartLabels
-                datasets = js.Array(new ChartDataSets {
-                  label = chartLabel
-                  data = chartPoints
-                  backgroundColor = chartColors.map {
-                    case c@LabelColor(_, None) => c.front.toCSS(a = 0.2)
-                    case c@LabelColor(_, Some(bgColor)) => bgColor.toCSS(0.2)
-                  }
-                  borderColor = chartColors.map(_.front.toCSS)
-                  borderWidth = 1.0
-                })
-              },
-              options = new ChartOptions {
-                scales = new ChartScales {
-                  yAxes = js.Array(new ChartYAxe {
-                    ticks = new TickOptions {
-                      beginAtZero = true
-                      stepSize = chartSteps
-                    }
-                  })
-                }
-              }
-            )
+          // TODO: Structure code like in this demo:
+          // https://github.com/ScalablyTyped/Demos/blob/master/chart/src/main/scala/demo/Demo.scala
+
+          val config = ChartConfiguration()
+          val data = typings.chartJs.mod.ChartData()
+          data.labels = chartLabels
+          val dataSets = ChartDataSets()
+          dataSets.label = chartLabel
+          dataSets.data = chartPoints
+          dataSets.backgroundColor = chartColors.map {
+            case c@LabelColor(_, None) => c.front.toCSS(a = 0.2)
+            case c@LabelColor(_, Some(bgColor)) => bgColor.toCSS(0.2)
           }
+          dataSets.borderColor = chartColors.map(_.front.toCSS)
+          dataSets.borderWidth = 1.0
+          data.datasets = js.Array(dataSets)
+          val yAxes = CommonAxe()
+          yAxes.ticks = TickOptions()
+          // yAxes.ticks.beginAtZero = true
+          // yAxes.ticks.stepSize = chartSteps
+          val scales = ChartScales()
+          scales.yAxes = js.Array(yAxes)
+          val options = ChartOptions()
+          options.scales = scales
+          config.`type` = chartType
+          config.data = data
+          config.options = options
+          Elements.chartCanvas(config)
         },
       )
     }

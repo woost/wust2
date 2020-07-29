@@ -1,7 +1,7 @@
 package wust.webUtil
 
 import org.scalajs.dom.console
-import typings.chartDotJs.chartDotJsMod.ChartConfiguration
+import typings.chartJs.mod.ChartConfiguration
 import fontAwesome.{ IconLookup, Params, Transform, fontawesome, freeSolid }
 import wust.facades.dateFns.DateFns
 import wust.facades.hammerjs
@@ -561,8 +561,8 @@ object Elements {
   def chartCanvas(configuration: ChartConfiguration): VNode = {
     canvas(
       managedElement { elem =>
-        val context = elem.asInstanceOf[dom.html.Canvas].getContext("2d").asInstanceOf[typings.std.CanvasRenderingContext2D]
-        val chart = new typings.chartDotJs.chartDotJsMod.^(context, configuration)
+        val context = elem.asInstanceOf[dom.html.Canvas].getContext("2d").asInstanceOf[org.scalajs.dom.raw.CanvasRenderingContext2D]
+        val chart = new typings.chartJs.mod.^(context, configuration)
 
         cancelable(() => chart.destroy())
       }

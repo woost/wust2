@@ -6,6 +6,7 @@ import org.scalajs.dom.raw.HTMLElement
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSGlobalScope
 import scala.scalajs.js.annotation.JSBracketAccess
+import scala.scalajs.js.annotation.JSName
 import org.scalajs.dom
 
 @js.native
@@ -13,6 +14,8 @@ import org.scalajs.dom
 object JQuery extends js.Object {
   def `$`(elem: HTMLElement): JQuerySelection = js.native
   def `$`(elem: String): JQuerySelection = js.native
+  @JSName("$")
+  def dollar: js.Dynamic = js.native
 
   def alert(message: String): Unit = js.native
 }

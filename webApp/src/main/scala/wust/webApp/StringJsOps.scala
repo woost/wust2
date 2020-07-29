@@ -34,7 +34,7 @@ object StringJsOps {
 
   def timeToTimeString(t: TimeMilli): String = {
     val date = new Date(t)
-    f"${date.getHours}%02d:${date.getMinutes}%02d"
+    f"${date.getHours.toInt}%02d:${date.getMinutes.toInt}%02d"
   }
 
   def timeStringToTime(str: String): Option[TimeMilli] = {

@@ -23,10 +23,10 @@ class EmojiConvertor() extends js.Object {
   var replace_mode: js.UndefOr[String] = js.native
 
   def init_env(): Unit = js.native
-  private def replace_emoticons_with_colons(emoticon: String): String = js.native
-  private def replace_emoticons(emoticon: String): String = js.native
-  private def replace_colons(colonString: String): String = js.native
-  private def replace_unified(unifiedString: String): String = js.native
+  def replace_emoticons_with_colons(emoticon: String): String = js.native
+  def replace_emoticons(emoticon: String): String = js.native
+  def replace_colons(colonString: String): String = js.native
+  def replace_unified(unifiedString: String): String = js.native
 }
 object EmojiConvertor extends EmojiConvertor {
   implicit class SafeEmoji(val emoji: EmojiConvertor)  extends AnyVal {

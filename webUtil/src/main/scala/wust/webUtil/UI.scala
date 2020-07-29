@@ -249,7 +249,7 @@ object UI {
           // get the th elements in this elem
           val tr = elem.children(0).children(0) // table  > thead > tr
           if (sort.index >= 0 && sort.index < tr.children.length) {
-            val th = jquery.JQuery.$(tr.children(sort.index).asInstanceOf[dom.html.TableHeaderCell])
+            val th = jquery.JQuery.$(tr.children(sort.index).asInstanceOf[dom.html.TableCell])
 
             // need to update data object
             data.index = sort.index

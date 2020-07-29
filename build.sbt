@@ -11,7 +11,7 @@ import Def.{setting => dep}
 
 // -- common setting --
 // 2.11 is needed for android app
-crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.10")
+crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.12")
 scalaVersion in ThisBuild := crossScalaVersions.value.last
 
 Global / onChangedBuildSource := IgnoreSourceChanges // disabled, since it doesn't recover state of devserver
@@ -25,11 +25,11 @@ lazy val commonSettings = Seq(
       ("jitpack" at "https://jitpack.io") ::
       Resolver.sonatypeRepo("releases") ::
       Nil,
-  addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.10"),
+  addCompilerPlugin("org.typelevel" % "kind-projector" % "0.11.0" cross CrossVersion.full),
   addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
   libraryDependencies ++=
     Deps.scribe.core.value ::
-      Deps.scribe.perfolation.value ::
+      /* Deps.scribe.perfolation.value :: */
       Deps.sourcecode.value ::
       Deps.scalatest.value % Test ::
       Deps.mockito.value % Test ::
@@ -41,7 +41,7 @@ lazy val commonSettings = Seq(
     Deps.circe.genericExtras.value,
     Deps.cats.core.value,
     Deps.akka.httpCore.value,
-    Deps.scribe.perfolation.value,
+    /* Deps.scribe.perfolation.value, */
   ),
 
   // we need this merge strategy, since we want to override the original perfolation dependency of scribe with a jitpack version. But since the have different artifact and group ids, assembly gets confused, because they contain the same classes. For the JVM code it stayed exactly the same, so we can just use MergeStrategy.first.
@@ -130,7 +130,6 @@ lazy val commonWebSettings = Seq(
     "--ignore-engines", // ignoring, since javascript people seem to be too stupid to compare node versions. When version 9 is available and >= 8 is required, it fails. Affected: @gfx/node-zopfli
     s"--cache-folder ${(baseDirectory in ThisBuild).value}/.yarn-offline-cache", "--prefer-offline", // make yarn-offline-cache survive webApp/clean
   ), 
-  scalacOptions += "-P:scalajs:sjsDefinedByDefault",
   scalacOptions ++= {
     if (isDevRun.?.value.getOrElse(false)) {
       // To enable dev source map support,
@@ -148,6 +147,7 @@ lazy val commonWebSettings = Seq(
     }
   },
   scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.CommonJSModule)),
+  scalaJSLinkerConfig ~= { _.withESFeatures(_.withUseECMAScript2015(false)) }
 )
 
 val withSourceMaps: Boolean = sys.env.get("SOURCEMAPS").fold(false)(_ == "true")
@@ -501,10 +501,15 @@ lazy val webUtilMacro = project
   )
 
 lazy val webUtil = project
-  .enablePlugins(ScalaJSPlugin)
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin, ScalablyTypedConverterPlugin)
   .dependsOn(idsJS, webUtilMacro)
   .settings(commonSettings, commonWebSettings)
   .settings(
+    npmDependencies in Compile ++=
+      Deps.npm.chartJs ::
+      Deps.npm.chartJsTypes ::
+      Nil,
+
     libraryDependencies ++=
       Deps.scalaJsDom.value ::
       Deps.scalacss.value ::
@@ -520,7 +525,6 @@ lazy val webUtil = project
       Deps.kantanRegex.core.value ::
       Deps.kantanRegex.generic.value ::
       Deps.fontawesome.value ::
-      ScalablyTyped.C.chart_dot_js ::
       Nil
   )
 

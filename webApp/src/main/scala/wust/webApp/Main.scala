@@ -60,7 +60,7 @@ object Main {
     import dsl._
     import wust.css.Styles
 
-    JQuery.asInstanceOf[js.Dynamic].`$`.fn.search.settings.templates.node = { results =>
+    JQuery.dollar.fn.search.settings.templates.node = { results =>
       div(
         results.results.map { result =>
           val node = result.data.asInstanceOf[Node]
@@ -96,7 +96,7 @@ object Main {
   }
 
   private def setupChartJS(): Unit = {
-    typings.chartDotJs.chartDotJsRequire
+    typings.chartJs.chartJsRequire
   }
 
   private def enableEventLogging() = {
