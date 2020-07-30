@@ -21,6 +21,3 @@ addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.14.7")
 /* addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.5.1") */
 /* addSbtPlugin("org.scoverage" % "sbt-coveralls" % "1.2.6") */
 
-// android
-// addSbtPlugin("org.scala-android" % "sbt-android" % "1.7.10")
-// addSbtPlugin("org.scala-android" % "sbt-android-gms" % "0.4")

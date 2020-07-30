@@ -10,15 +10,13 @@ dynver in ThisBuild ~= (_.replace('+', '-')) // TODO: https://github.com/dwijnan
 import Def.{setting => dep}
 
 // -- common setting --
-// 2.11 is needed for android app
-crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.12")
+crossScalaVersions in ThisBuild := Seq("2.12.12")
 scalaVersion in ThisBuild := crossScalaVersions.value.last
 
 Global / onChangedBuildSource := IgnoreSourceChanges // disabled, since it doesn't recover state of devserver
 
 lazy val commonSettings = Seq(
 
-//  exportJars := true, // for android app
   resolvers ++=
     ("Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots") ::
       Resolver.jcenterRepo ::
@@ -256,9 +254,6 @@ lazy val root = project
       "; set every isDevRun := true; ~compile; core/reStart; project webApp; fastOptJS::startWebpackDevServer; devwatchandcopy; all fastOptJS::stopWebpackDevServer core/reStop; project root"
     ),
     addCommandAlias("devwatchandcopy", "~; fastOptJS; copyFastOptJS"),
-    // addCommandAlias("deva", "; project androidApp; ++2.11.12; ~android:run; project root; ++2.12.6"),
-
-    // addCommandAlias("compileAndroid", "; project androidApp; ++2.11.12; compile; project root; ++2.12.6"),
     addCommandAlias(
       "testJS",
       "; utilJS/test; graphJS/test; sdkJS/test; apiJS/test; webApp/test"
@@ -610,53 +605,6 @@ lazy val webApp = project
       /*   Wart.Recursion, Wart.NonUnitStatements, Wart.ImplicitParameter, */
       /* ), */
   )
-
-// lazy val androidApp = project
-//   .settings(commonSettings)
-//   .dependsOn(sdkJVM)
-//   .enablePlugins(AndroidGms, AndroidApp)
-//   .settings(
-
-//     resolvers ++= (
-//       ("google" at "https://maven.google.com") ::
-//       // ("vivareal" at "http://dl.bintray.com/vivareal/maven") ::
-//       Nil
-//     ),
-
-//     android.useSupportVectors,
-//     versionCode := Some(1),
-//     version := "0.1-SNAPSHOT",
-//     platformTarget := "android-25",
-//     minSdkVersion in Android :="25",
-//     targetSdkVersion in Android := "25",
-//     javacOptions in Compile ++= "-source" :: "1.7" :: "-target" :: "1.7" :: Nil,
-//     libraryDependencies ++=
-//       aar("org.macroid" %% "macroid" % "2.0") ::
-//       aar("org.macroid" %% "macroid-extras" % "2.0") ::
-//       "com.android.support" % "appcompat-v7" % "24.2.1" ::
-//       "com.android.support.constraint" % "constraint-layout" % "1.0.2" ::
-//         "com.google.firebase"       % "firebase-messaging" % "11.8.0" ::
-//       "com.google.android.gms"    % "play-services"     % "11.8.0" ::
-// //      "com.google.firebase" % "firebase-core" % "11.8.0" ::
-//       // "br.com.vivareal" % "cuid-android" % "0.1.0" ::
-//       Nil,
-//     dependencyOverrides ++= Set(
-//     ),
-//     // excludeDependencies += "cool.graph.cuid-java",
-
-//     dexMaxHeap in Android :="8048M",
-//     dexMulti in Android := true,
-//     // dexAdditionalParams in Android ++= Seq("--min-sdk-version=25"),
-//     proguardScala in Android := true,
-//     proguardCache := Nil,
-//     shrinkResources := true,
-
-//     proguardOptions in Android ++= Seq(
-//       "-ignorewarnings"
-//     ),
-// //    proguardConfig -= "-dontoptimize",
-//     packagingOptions in Android := PackagingOptions(excludes = Seq("reference.conf"))
-//   )
 
 lazy val slackApp = project
   .dependsOn(sdkJVM, dbUtil, serviceUtil)
