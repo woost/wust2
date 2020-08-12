@@ -9,6 +9,18 @@ import Def.{setting => dep}
 // -- common setting --
 scalaVersion in ThisBuild := "2.12.12"
 
+ inThisBuild(
+   List(
+     semanticdbEnabled := true, // enable SemanticDB
+     semanticdbVersion := scalafixSemanticdb.revision // use Scalafix compatible version
+   )
+ )
+
+
+scalafixDependencies in ThisBuild += "org.scala-lang.modules" %% "scala-collection-migrations" % "2.1.4"
+addCompilerPlugin(scalafixSemanticdb)
+scalacOptions ++= List("-Yrangepos", "-P:semanticdb:synthetics:on")
+
 
 Global / onChangedBuildSource := IgnoreSourceChanges // disabled, since it doesn't recover state of devserver
 
