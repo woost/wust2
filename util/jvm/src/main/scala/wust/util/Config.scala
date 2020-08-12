@@ -2,6 +2,7 @@ package wust.util
 
 import pureconfig._
 import pureconfig.error.{ConvertFailure, KeyNotFound}
+import pureconfig.generic.ProductHint
 
 object Config {
   implicit def hint[T] =

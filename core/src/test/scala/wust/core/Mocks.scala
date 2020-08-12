@@ -1,10 +1,10 @@
 package wust.core
 
 import org.mockito.Mockito
-import org.scalatest.mockito.MockitoSugar
 import wust.db.Db
 
 import scala.concurrent.Future
+import org.scalatestplus.mockito.MockitoSugar
 
 trait SpecsLikeMockito extends MockitoSugar {
   class MockitoMock[T](method: T) {

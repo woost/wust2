@@ -1,8 +1,10 @@
 package wust.util
 
 import org.scalatest._
+import org.scalatest.matchers._
+import org.scalatest.freespec.AnyFreeSpec
 
-class CollectionSpec extends FreeSpec with MustMatchers {
+class CollectionSpec extends AnyFreeSpec with must.Matchers {
   import collection._
 
   "RichCollection" - {

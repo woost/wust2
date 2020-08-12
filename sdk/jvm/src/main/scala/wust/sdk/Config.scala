@@ -25,6 +25,7 @@ final case class DefaultConfig(appServer: ServerConfig, wustServer: WustConfig, 
 
 object Config {
   import pureconfig._
+  import pureconfig.generic.auto._
   import pureconfig.error.ConfigReaderFailures
   import wust.util.Config._
 

@@ -3,8 +3,10 @@ package wust.ids
 import java.util.UUID
 
 import org.scalatest._
+import org.scalatest.matchers._
+import org.scalatest.freespec.AnyFreeSpec
 
-class CuidSpec extends FreeSpec with MustMatchers {
+class CuidSpec extends AnyFreeSpec with must.Matchers {
   "uuid" in {
     val original = new UUID(12, 25)
     val bag = Cuid.fromUuid(original)

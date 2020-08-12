@@ -3,7 +3,6 @@ package wust
 import java.util.Date
 import java.time.{LocalDateTime, ZonedDateTime, ZoneOffset, Instant}
 
-import com.github.ghik.silencer.silent
 import supertagged._
 
 import scala.util.Try
@@ -83,7 +82,6 @@ package object ids {
     @inline def now: EpochMilli = localNow plus delta
     @inline def zero: EpochMilli = EpochMilli(0L)
 
-    @silent("deprecated")
     def parse(str: String) = Try(Date.parse(str)).toOption.map(EpochMilli(_))
 
     def fromDate(d: Date): EpochMilli = EpochMilli(d.toInstant.toEpochMilli)
@@ -108,7 +106,6 @@ package object ids {
       @inline def toLocalDateTime: LocalDateTime = toZonedDateTime.toLocalDateTime
       def toZonedDateTime: ZonedDateTime = Instant.ofEpochMilli(t).atZone(ZoneOffset.UTC)
 
-      @silent("deprecated")
       def humanReadable: String = {
         // java.util.Date is deprecated, but implemented in java and scalajs
         // and therefore a simple cross-compiling solution
@@ -123,7 +120,6 @@ package object ids {
         f"$year%04d-$month%02d-$day%02d $hour%02d:$minute%02d:$second%02d"
       }
 
-      @silent("deprecated")
       def isoDate: String = {
         // java.util.Date is deprecated, but implemented in java and scalajs
         // and therefore a simple cross-compiling solution
@@ -135,7 +131,6 @@ package object ids {
         f"$year%04d-$month%02d-$day%02d"
       }
 
-      @silent("deprecated")
       def isoDateAndTime: String = {
         // java.util.Date is deprecated, but implemented in java and scalajs
         // and therefore a simple cross-compiling solution

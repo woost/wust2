@@ -2,11 +2,13 @@ package wust.webApp.parsers
 
 import cats.data.NonEmptyList
 import org.scalatest._
+import org.scalatest.matchers._
+import org.scalatest.freespec.AnyFreeSpec
 import wust.graph.Page
 import wust.ids.{Cuid, NodeId, View, ViewOperator}
 import wust.webApp.state.{PageChange, UrlConfig, UrlRoute}
 
-class UrlConfigParsingSpec extends FreeSpec with MustMatchers {
+class UrlConfigParsingSpec extends AnyFreeSpec with must.Matchers {
   def createUrlConfig(view: Option[View], page: Page, prevView: Option[View]) = UrlConfig.default.copy(view = view, pageChange = PageChange(page), redirectTo = prevView)
 
   def toUrlRouteAndBack(viewConfig: UrlConfig): UrlConfig =
@@ -20,7 +22,7 @@ class UrlConfigParsingSpec extends FreeSpec with MustMatchers {
     val cfg = UrlConfigParser.fromUrlRoute(UrlRoute(None, Some(str)))
     val expected = createUrlConfig(
       Some(View.Tiled(ViewOperator.Row, NonEmptyList[View.Visible](View.Graph, View.Chat :: Nil))),
-      Page(NodeId(cuid1)), None)
+      Page(cuid1), None)
     cfg.pageChange mustEqual expected.pageChange
     cfg.view.get.viewKey mustEqual expected.view.get.viewKey
   }
@@ -31,7 +33,7 @@ class UrlConfigParsingSpec extends FreeSpec with MustMatchers {
     val cfg = UrlConfigParser.fromUrlRoute(UrlRoute(None, Some(str)))
     val expected = createUrlConfig(
       Some(View.Tiled(ViewOperator.Row, NonEmptyList[View.Visible](View.Graph, View.Chat :: Nil))),
-      Page(NodeId(cuid1)), None)
+      Page(cuid1), None)
     cfg.pageChange mustEqual expected.pageChange
     cfg.view.get.viewKey mustEqual expected.view.get.viewKey
   }
@@ -42,7 +44,7 @@ class UrlConfigParsingSpec extends FreeSpec with MustMatchers {
     val cfg = UrlConfigParser.fromUrlRoute(UrlRoute(None, Some(str)))
     val expected = createUrlConfig(
       Some(View.Tiled(ViewOperator.Column, NonEmptyList[View.Visible](View.Graph, View.Chat :: Nil))),
-      Page(NodeId(cuid1)), None)
+      Page(cuid1), None)
     cfg.pageChange mustEqual expected.pageChange
     cfg.view.get.viewKey mustEqual expected.view.get.viewKey
   }
@@ -53,7 +55,7 @@ class UrlConfigParsingSpec extends FreeSpec with MustMatchers {
     val cfg = UrlConfigParser.fromUrlRoute(UrlRoute(None, Some(str)))
     val expected = createUrlConfig(
       Some(View.Tiled(ViewOperator.Auto, NonEmptyList[View.Visible](View.Graph, View.Chat :: Nil))),
-      Page(NodeId(cuid1)), None)
+      Page(cuid1), None)
     cfg.pageChange mustEqual expected.pageChange
     cfg.view.get.viewKey mustEqual expected.view.get.viewKey
   }
@@ -64,7 +66,7 @@ class UrlConfigParsingSpec extends FreeSpec with MustMatchers {
     val cfg = UrlConfigParser.fromUrlRoute(UrlRoute(None, Some(str)))
     val expected = createUrlConfig(
       Some(View.Tiled(ViewOperator.Optional, NonEmptyList[View.Visible](View.Graph, View.Chat :: Nil))),
-      Page(NodeId(cuid1)), None)
+      Page(cuid1), None)
     cfg.pageChange mustEqual expected.pageChange
     cfg.view.get.viewKey mustEqual expected.view.get.viewKey
   }

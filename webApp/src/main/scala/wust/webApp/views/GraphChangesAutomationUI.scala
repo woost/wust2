@@ -1,7 +1,6 @@
 package wust.webApp.views
 
 import wust.sdk.{BaseColors, NodeColor}
-import com.github.ghik.silencer.silent
 import outwatch._
 import outwatch.dsl._
 import colibri.ext.rx._
@@ -27,7 +26,6 @@ import fontAwesome.freeSolid
 
 // Offers methods for rendering components for the GraphChangesAutomation.
 
-@silent("possible missing interpolator")
 object GraphChangesAutomationUI {
 
   val createAutomationTemplateText = "Create Template"

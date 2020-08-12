@@ -61,6 +61,7 @@ final case class Config(
 object Config {
   import pureconfig._
   import wust.util.Config._
+  import pureconfig.generic.auto._
 
   def load = loadConfig[Config]("wust.core")
 }

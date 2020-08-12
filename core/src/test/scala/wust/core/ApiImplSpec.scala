@@ -10,7 +10,7 @@
 // import java.time.LocalDateTime
 // import scala.concurrent.duration._
 
-// class ApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
+// class ApiImplSpec extends AsyncFreeSpec with must.Matchers with ApiTestKit {
 
 //   object User {
 //     def apply(id: Long, name: String): User = new User(id, name, isImplicit = false, 0)

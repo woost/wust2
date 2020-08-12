@@ -3,13 +3,15 @@ package wust.core
 import java.time.Instant
 
 import org.scalatest._
+import org.scalatest.matchers._
+import org.scalatest.freespec.AnyFreeSpec
 import wust.api.{AuthUser, Authentication}
 import wust.core.auth.JWT
 import wust.ids._
 
 import scala.concurrent.duration._
 
-class JWTSpec extends FreeSpec with MustMatchers {
+class JWTSpec extends AnyFreeSpec with must.Matchers {
   val jwt = new JWT("secret", 1 hours)
 
   def User(name: String): AuthUser.Persisted = new AuthUser.Real(UserId.fresh, name, 0, None)

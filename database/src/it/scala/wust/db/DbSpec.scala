@@ -25,7 +25,7 @@
 //  }
 //}
 
-//class DbSpec extends DbIntegrationTestSpec with MustMatchers {
+//class DbSpec extends DbIntegrationTestSpec with must.Matchers {
 //  import DbSpec._
 //  implicit def passwordToDigest(pw: String): Array[Byte] = pw.map(_.toByte).toArray
 //  implicit class EqualityByteArray(val arr: Array[Byte]) {

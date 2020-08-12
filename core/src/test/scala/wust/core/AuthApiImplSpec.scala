@@ -12,7 +12,7 @@
 // import scala.concurrent.duration._
 // import com.roundeights.hasher.Hasher
 
-// class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
+// class AuthApiImplSpec extends AsyncFreeSpec with must.Matchers with ApiTestKit {
 //   implicit def passwordToDigest(pw: String): Array[Byte] = Hasher(pw).bcrypt
 //   // implicit class EqualityByteArray(val arr: Array[Byte]) {
 //   //   def mustEqualDigest(pw: String) = assert(passwordToDigest(pw)

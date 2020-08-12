@@ -4,6 +4,7 @@ import java.nio.ByteBuffer
 
 import akka.actor.ActorSystem
 import akka.util.ByteStringBuilder
+import ch.megard.akka.http.cors.scaladsl.model.HttpOriginMatcher
 import akka.http.scaladsl.marshalling.{Marshaller, ToResponseMarshaller}
 import akka.http.scaladsl.model.headers.HttpOriginRange
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse, StatusCodes}
@@ -49,7 +50,7 @@ object Server {
 
     val route = createRoute(config)
 
-    Http().bindAndHandle(route, interface = "0.0.0.0", port = config.server.port).onComplete {
+    Http().newServerAt("0.0.0.0", config.server.port).bindFlow(route).onComplete {
       case Success(binding) => {
         val separator = "\n" + ("#" * 50)
         val readyMsg = s"\n##### Server online at ${binding.localAddress} #####"
@@ -108,7 +109,7 @@ object Server {
       val (protocol,port) = if (config.server.host == "localhost") ("http://", ":12345") else ("https://", "")
       s"${protocol}${config.server.host}${port}"
     }
-    val corsSettings = CorsSettings.defaultSettings.withAllowedOrigins(HttpOriginRange(websiteOrigin))
+    val corsSettings = CorsSettings.defaultSettings.withAllowedOrigins(HttpOriginMatcher(websiteOrigin))
 
     implicit val jsonMarshaller: ToResponseMarshaller[String] =
       Marshaller.withFixedContentType(ContentTypes.`application/json`) { s =>

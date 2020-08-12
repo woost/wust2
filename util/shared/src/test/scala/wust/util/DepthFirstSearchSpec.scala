@@ -2,11 +2,13 @@ package wust.util
 
 import flatland._
 import org.scalatest._
+import org.scalatest.matchers._
+import org.scalatest.freespec.AnyFreeSpec
 import wust.util.algorithm._
 
 import scala.collection.mutable
 
-class DepthFirstSearchSpec extends FreeSpec with MustMatchers {
+class DepthFirstSearchSpec extends AnyFreeSpec with must.Matchers {
 
   "depth-first-search" - {
     "one vertex" in {

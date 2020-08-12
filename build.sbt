@@ -1,6 +1,3 @@
-// shadow sbt-scalajs' crossProject and CrossType until Scala.js 1.0.0 is released
-import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
-
 name := "wust"
 
 // docker versions do not allow '+'
@@ -10,8 +7,8 @@ dynver in ThisBuild ~= (_.replace('+', '-')) // TODO: https://github.com/dwijnan
 import Def.{setting => dep}
 
 // -- common setting --
-crossScalaVersions in ThisBuild := Seq("2.12.12")
-scalaVersion in ThisBuild := crossScalaVersions.value.last
+scalaVersion in ThisBuild := "2.12.12"
+
 
 Global / onChangedBuildSource := IgnoreSourceChanges // disabled, since it doesn't recover state of devserver
 
@@ -31,6 +28,9 @@ lazy val commonSettings = Seq(
       Deps.sourcecode.value ::
       Deps.scalatest.value % Test ::
       Deps.mockito.value % Test ::
+      Deps.scalatestFreespec.value % Test ::
+      Deps.scalatestMustmatchers.value % Test ::
+      Deps.scalatestMockito.value % Test ::
       Nil,
   dependencyOverrides ++= List(
     Deps.circe.core.value,
@@ -72,17 +72,12 @@ lazy val commonSettings = Seq(
     "-feature" ::
     "-language:_" ::
     "-Xfuture" ::
-    "-Yno-adapted-args" ::
-    "-Ywarn-infer-any" ::
-    "-Ywarn-nullary-override" ::
-    "-Ywarn-nullary-unit" ::
     // "-opt-warnings:at-inline-failed" ::
     "-Xlint:_" ::
     "-Ywarn-unused:-imports" ::
     // "-Ywarn-self-implicit" ::
     // "-Ywarn-dead-code" :: // does not work well with scalajs js.native in facades
     "-Ywarn-extra-implicit" ::
-    "-P:silencer:checkUnused" ::
     "-Ypatmat-exhaust-depth" :: "off" :: // needed for huge match in FeatureDetails
     Nil,
 
@@ -115,11 +110,6 @@ lazy val commonSettings = Seq(
   // scalacOptions in Test ~= (_ filterNot (_ == "-Xplugin-require:scalaxy-streams")),
   // scalacOptions in Test += "-Xplugin-disable:scalaxy-streams",
   // addCompilerPlugin("com.github.fdietze" % "scalaxy-streams" % "2.12-819f13722a-1"), //TODO: https://github.com/nativelibs4java/scalaxy-streams/pull/13
-
-  libraryDependencies ++= Seq(
-    compilerPlugin("com.github.ghik" %% "silencer-plugin" % Deps.silencerVersion),
-    "com.github.ghik" %% "silencer-lib" % Deps.silencerVersion % Provided
-  )
 )
 
 lazy val commonWebSettings = Seq(

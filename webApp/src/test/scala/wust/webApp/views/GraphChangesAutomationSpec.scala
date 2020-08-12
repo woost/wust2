@@ -1,6 +1,8 @@
 package wust.webApp.views
 
 import org.scalatest._
+import org.scalatest.matchers._
+import org.scalatest.freespec.AnyFreeSpec
 import wust.graph._
 import wust.ids._
 import wust.webApp.state.GraphChangesAutomation
@@ -8,7 +10,7 @@ import wust.webApp.state.GraphChangesAutomation
 import scala.collection.breakOut
 
 
-class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
+class GraphChangesAutomationSpec extends AnyFreeSpec with must.Matchers {
   def randomPositiveInt() = {
     val r = scala.util.Random.nextInt
     if (r < 0) r * -1 else r

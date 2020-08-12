@@ -1,7 +1,6 @@
 package wust.webApp.views
 
 import acyclic.file
-import com.github.ghik.silencer.silent
 import fontAwesome.freeSolid
 import outwatch._
 import outwatch.dsl._
@@ -485,7 +484,7 @@ object RightSidebar {
             },
             customOptions = Some(VDomModifier(
               UI.checkbox("Create a new node from the reference", isCreateReference),
-              UI.checkbox("Rename existing node (original content in `${woost.original}`)", isRenameReference): @silent("possible missing interpolator")
+              UI.checkbox("Rename existing node (original content in `${woost.original}`)", isRenameReference) 
             ))
           ),
           ItemProperties.EdgeFactory.Plain(create),

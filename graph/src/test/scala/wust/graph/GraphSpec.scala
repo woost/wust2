@@ -1,9 +1,11 @@
 package wust.graph
 
 import org.scalatest._
+import org.scalatest.matchers._
+import org.scalatest.freespec.AnyFreeSpec
 import wust.ids._
 
-class GraphSpec extends FreeSpec with MustMatchers {
+class GraphSpec extends AnyFreeSpec with must.Matchers {
   implicit def intToNodeId(id: Int): NodeId = NodeId(Cuid(id, 0))
   implicit def idToNode(id: Int): Node = Node.Content(id = id, data = NodeData.PlainText("content"), role = NodeRole.default, meta = NodeMeta(NodeAccess.ReadWrite))
   implicit def nodeListToMap(nodes: List[Int]): List[Node] = nodes.map(idToNode)

@@ -73,43 +73,43 @@ class OAuthClient(val oAuthConfig: OAuthConfig, appServerConfig: ServerConfig, w
   //val newAccessToken: Future[Either[Throwable, OAuthToken]] =
   //  client.getAccessToken(GrantType.RefreshToken, Map("refresh_token" -> "zzzzzzzz"))
 
-  def route(tokenObserver: Observer[AuthenticationData]): Route = path(separateOnSlashes(oAuthPath)) {
-    get {
-      parameters(('code, 'state)) { (code: String, state: String) =>
-        val confirmedRequest = confirmOAuthRequest(code, state)
-        if (confirmedRequest.isDefined) {
+  //def route(tokenObserver: Observer[AuthenticationData]): Route = path(separateOnSlashes(oAuthPath)) {
+  //  get {
+  //    parameters(('code, 'state)) { (code: String, state: String) =>
+  //      val confirmedRequest = confirmOAuthRequest(code, state)
+  //      if (confirmedRequest.isDefined) {
 
-          val accessToken: Future[Either[Throwable, OAuthToken]] = authClient.getAccessToken(
-            grant = GrantType.AuthorizationCode,
-            params = Map(
-              "code" -> code,
-              "redirect_uri" -> redirectUri,
-              "state" -> state
-            )
-          )
+  //        val accessToken: Future[Either[Throwable, OAuthToken]] = authClient.getAccessToken(
+  //          grant = GrantType.AuthorizationCode,
+  //          params = Map(
+  //            "code" -> code,
+  //            "redirect_uri" -> redirectUri,
+  //            "state" -> state
+  //          )
+  //        )
 
-          accessToken.foreach {
-            case Right(t) =>
-              tokenObserver.onNext(AuthenticationData(confirmedRequest.get, t))
-              oAuthRequests.remove(state)
-            case Left(ex: UnauthorizedException) =>
-              scribe.error(s"unauthorized error receiving access token: $ex")
-            case ex =>
-              scribe.error(s"unknown error receiving access token: $ex")
-          }
+  //        accessToken.foreach {
+  //          case Right(t) =>
+  //            tokenObserver.onNext(AuthenticationData(confirmedRequest.get, t))
+  //            oAuthRequests.remove(state)
+  //          case Left(ex: UnauthorizedException) =>
+  //            scribe.error(s"unauthorized error receiving access token: $ex")
+  //          case ex =>
+  //            scribe.error(s"unknown error receiving access token: $ex")
+  //        }
 
-        } else {
-          scribe.error(s"Could not verify request(code, state): ($code, $state)")
-        }
+  //      } else {
+  //        scribe.error(s"Could not verify request(code, state): ($code, $state)")
+  //      }
 
-        //TODO env varibles
-        val wustProtocol = if(wustServerConfig.port == 443) "https" else "http"
-        val wustPort = if(wustServerConfig.port != 443) ":12345" else ""
-        redirect(s"$wustProtocol://${wustServerConfig.host}$wustPort/#view=usersettings&page=default", StatusCodes.SeeOther)
-      }
-      // TODO: handle user aborts
-    }
-  }
+  //      //TODO env varibles
+  //      val wustProtocol = if(wustServerConfig.port == 443) "https" else "http"
+  //      val wustPort = if(wustServerConfig.port != 443) ":12345" else ""
+  //      redirect(s"$wustProtocol://${wustServerConfig.host}$wustPort/#view=usersettings&page=default", StatusCodes.SeeOther)
+  //    }
+  //    // TODO: handle user aborts
+  //  }
+  //}
 }
 
 object OAuthClient {

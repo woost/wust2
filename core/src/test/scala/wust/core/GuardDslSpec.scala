@@ -12,7 +12,7 @@
 // import scala.concurrent.Future
 // import scala.concurrent.duration._
 
-// class GuardDslSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
+// class GuardDslSpec extends AsyncFreeSpec with must.Matchers with DbMocks {
 //   val implicitUserDb = Data.User(14, "implicit", isImplicit = true, 0)
 //   val implicitUser = DbConversions.forClient(implicitUserDb)
 //   val initialUser = User(11, "existing", isImplicit = false, 0)

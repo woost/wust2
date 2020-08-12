@@ -2,9 +2,11 @@ package wust.util
 
 import flatland._
 import org.scalatest._
+import org.scalatest.matchers._
 import wust.util.algorithm._
+import org.scalatest.freespec.AnyFreeSpec
 
-class AlgorithmsSpec extends FreeSpec with MustMatchers {
+class AlgorithmsSpec extends AnyFreeSpec with must.Matchers {
 
   "connected components" - {
     "one vertex" in {

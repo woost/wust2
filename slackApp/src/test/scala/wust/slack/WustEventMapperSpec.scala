@@ -71,7 +71,7 @@ object TestConstants {
   val userId: UserId = UserId.fromBase58String("5R5TZsZJeL3enTMmq8Jwmg").right.get
 }
 
-class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
+class WustEventMapperSpec extends AnyFreeSpec with EitherValues with Matchers {
 
   implicit val system: ActorSystem = ActorSystem("slack-test-wust-event")
   import monix.execution.Scheduler.Implicits.global

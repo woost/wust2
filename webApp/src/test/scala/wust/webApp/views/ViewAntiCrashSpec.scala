@@ -27,7 +27,7 @@
 //   )
 // }
 
-// class ViewAntiCrashSpec extends FreeSpec with TableDrivenPropertyChecks with MustMatchers with LocalStorageMock with RequestAnimationFrameMock {
+// class ViewAntiCrashSpec extends AnyFreeSpec with TableDrivenPropertyChecks with must.Matchers with LocalStorageMock with RequestAnimationFrameMock {
 
 //   def freshNodeId(i:Int) = NodeId(Cuid(i, i))
 

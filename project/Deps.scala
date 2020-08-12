@@ -4,16 +4,17 @@ import sbt._
 object Deps {
   import Def.{ setting => dep }
 
-  val silencerVersion = "1.4.2"
-
-  val acyclicDef = "com.lihaoyi" %% "acyclic" % "0.1.9"
+  val acyclicDef = "com.lihaoyi" %% "acyclic" % "0.2.0"
   val acyclic = dep(acyclicDef % "provided")
 
   // testing
   val scalatest = dep("org.scalatest" %%% "scalatest" % "3.2.0")
+  val scalatestFreespec = dep("org.scalatest" %%% "scalatest-freespec" % "3.2.0")
+  val scalatestMustmatchers = dep("org.scalatest" %%% "scalatest-mustmatchers" % "3.2.0")
+  val scalatestMockito = dep("org.scalatestplus" %% "mockito-3-3" % "3.2.0.0")
+  val mockito = dep("org.mockito" % "mockito-core" % "2.28.2")
   val selenium = dep("org.seleniumhq.selenium" % "selenium-java" % "3.3.1")
   val specs2 = dep("org.specs2" %% "specs2-core" % "4.7.0")
-  val mockito = dep("org.mockito" % "mockito-core" % "2.28.2")
 
   // core libraries
   val cats = new {
@@ -22,12 +23,12 @@ object Deps {
   }
   val akka = new {
     private val version = "2.6.6"
-    private val httpVersion = "10.1.12"
+    private val httpVersion = "10.2.0"
     val http = dep("com.typesafe.akka" %% "akka-http" % httpVersion)
     val httpCore = dep("com.typesafe.akka" %% "akka-http-core" % httpVersion)
     val httpCirce = dep("de.heikoseeberger" %% "akka-http-circe" % "1.30.0")
     val httpPlay = dep("de.heikoseeberger" %% "akka-http-play-json" % "1.30.0")
-    val httpCors = dep("ch.megard" %% "akka-http-cors" % "0.3.1")
+    val httpCors = dep("ch.megard" %% "akka-http-cors" % "1.1.0")
     val stream = dep("com.typesafe.akka" %% "akka-stream" % version)
     val actor = dep("com.typesafe.akka" %% "akka-actor" % version)
     val testkit = dep("com.typesafe.akka" %% "akka-testkit" % version)
@@ -50,7 +51,7 @@ object Deps {
   val scalaJsDom = dep("org.scala-js" %%% "scalajs-dom" % "1.0.0")
   val d3v4 = dep("com.github.fdietze.scala-js-d3v4" %%% "scala-js-d3v4" % "809f086")
   // val d3v4 = dep("com.github.fdietze" %%% "scala-js-d3v4" % "master-SNAPSHOT")
-  val fontawesome = dep("com.github.fdietze" % "scala-js-fontawesome" % "308e305")
+  val fontawesome = dep("com.github.fdietze.scala-js-fontawesome" %%% "scala-js-fontawesome" % "559c7f7")
   val vectory = dep("com.github.fdietze.vectory" %%% "vectory" % "14bf5d2")
   val scalarx = dep("com.lihaoyi" %%% "scalarx" % "0.4.3")
   val outwatch = new {
@@ -65,15 +66,14 @@ object Deps {
     val monix = dep("com.github.cornerman.colibri" %%% "colibri-monix" % version)
     val rx = dep("com.github.cornerman.colibri" %%% "colibri-rx" % version)
   }
-  val bench = dep("com.github.fdietze.bench" %%% "bench" % "e66a721")
-  // val bench = dep("com.github.fdietze" %%% "bench" % "master-SNAPSHOT")
+  val bench = dep("com.github.fdietze.bench" %%% "bench" % "087e511")
 
   // utility
   val scribe = new {
     // TODO: val perfolation = dep("com.github.fdietze.perfolation" %%% "perfolation" % "6854947")
     val core = dep("com.outr" %%% "scribe" % "2.7.12")
   }
-  val pureconfig = dep("com.github.pureconfig" %% "pureconfig" % "0.9.2")
+  val pureconfig = dep("com.github.pureconfig" %% "pureconfig" % "0.11.1") // https://github.com/pureconfig/pureconfig/blob/master/CHANGELOG.md
   val monocle = dep("com.github.julien-truffaut" %% "monocle-macro" % "2.0.0")
   val monocleCore = dep("com.github.julien-truffaut" %% "monocle-core" % "2.0.0")
   val sourcecode = dep("com.lihaoyi" %%% "sourcecode" % "0.2.1")
@@ -81,7 +81,7 @@ object Deps {
   val base58s = dep("io.github.fdietze.base58s" %%% "base58s" % "43d5684")
   val monix = dep("io.monix" %%% "monix" % "3.2.2")
   // val taggedTypes = dep("org.rudogma" %%% "supertagged" % "2.0-RC1")
-  val taggedTypes = dep("com.github.lolgab" % "scala-supertagged" % "scalajs-1.0.0-RC2-SNAPSHOT")
+  val taggedTypes = dep("com.github.fdietze.scala-supertagged" %%% "supertagged" % "0157b28") // until https://github.com/rudogma/scala-supertagged/pull/2 is merged
   val colorado = dep("com.github.fdietze.colorado" %%% "colorado" % "d36c389")
   val scalacss = dep("com.github.japgolly.scalacss" %%% "core" % "0.6.1")
   val kantanRegex = new {
@@ -109,16 +109,17 @@ object Deps {
   }
 
   // auth
-  val hasher = dep("com.roundeights" %% "hasher" % "1.2.0")
+  //val hasher = dep("com.roundeights" %% "hasher" % "1.2.0") //TODO: https://github.com/Nycto/Hasher/pull/28
+  val hasher = dep("com.github.fdietze.hasher" %% "hasher" % "75be8ed")
   val jbcrypt = dep("org.mindrot" % "jbcrypt" % "0.4")
   val jwt = dep("com.pauldijou" %% "jwt-circe" % "4.2.0")
   val bouncyCastle = dep("org.bouncycastle" % "bcpkix-jdk15on" % "1.60")
   val oAuthServer = dep("com.nulab-inc" %% "scala-oauth2-core" % "1.3.0")
   val oAuthAkkaProvider = dep("com.nulab-inc" %% "akka-http-oauth2-provider" % "1.3.0")
-  val oAuthClient = dep("com.github.fdietze" % "akka-http-oauth2-client" % "cf77841")
+  val oAuthClient = dep("com.github.fdietze.akka-http-oauth2-client" %% "akka-http-oauth2-client" % "dd8e734")
 
   // database
-  val quill = dep("io.getquill" %% "quill-async-postgres" % "3.2.2")
+  val quill = dep("io.getquill" %% "quill-async-postgres" % "3.5.2")
 
   // interfaces
   //val github4s = dep("com.47deg" %% "github4s" % "0.17.0") // only temporarly here
