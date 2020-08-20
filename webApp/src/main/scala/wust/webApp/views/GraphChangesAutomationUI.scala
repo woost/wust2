@@ -20,7 +20,6 @@ import wust.webUtil.outwatchHelpers._
 import wust.webUtil._
 import wust.webUtil.Elements._
 
-import scala.collection.breakOut
 import wust.facades.segment.Segment
 import fontAwesome.freeSolid
 
@@ -239,7 +238,7 @@ object GraphChangesAutomationUI {
                       },
 
                       {
-                        val users: List[VNode] = propertySingle.info.assignedUsers.map { user =>
+                        val users: List[VNode] = propertySingle.info.assignedUsers.iterator.map { user =>
                           Components.removableUserAvatar( user, templateNode.id)
                         }(breakOut)
 

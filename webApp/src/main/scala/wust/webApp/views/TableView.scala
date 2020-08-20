@@ -20,7 +20,7 @@ import wust.webUtil.UI
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.Elements.onClickDefault
 
-import scala.collection.{breakOut, mutable}
+import scala.collection.mutable
 
 object TableView {
 
@@ -193,7 +193,7 @@ object TableView {
           position.relative, // for cancel and save button absolute popup
           EditableContent.inlineEditorOrRender[String](name, editMode, _ => columnHeader(_)).editValue.foreach { newName =>
             if (newName.nonEmpty) {
-              GlobalState.submitChanges(GraphChanges(delEdges = edges.map(e => e)(breakOut)) merge GraphChanges(addEdges = edges.map(edge => edge.copy(data = edge.data.copy(key = newName)))(breakOut)))
+              GlobalState.submitChanges(GraphChanges(delEdges = edges.iterator.map(e => e)(breakOut)) merge GraphChanges(addEdges = edges.iterator.map(edge => edge.copy(data = edge.data.copy(key = newName)))(breakOut)))
             }
           }
         ),
@@ -257,7 +257,7 @@ object TableView {
 
       def showOnCard(edge: Edge.LabeledProperty) = edge.data.showOnCard
 
-      val propertyColumns: List[UI.Column] = propertyGroup.properties.map { property =>
+      val propertyColumns: List[UI.Column] = propertyGroup.properties.iterator.map { property =>
         val (predictedType, predictedShowOnCard) = property.groups.find(_.values.nonEmpty).fold((Option.empty[NodeTypeSelection], false)) { group =>
           val value = group.values.head
           val tpe = nodeTypeFromNode(value.node)
@@ -267,7 +267,7 @@ object TableView {
 
         UI.Column(
           columnHeaderWithDelete(property.key, property.groups.flatMap(_.values.map(_.edge))),
-          property.groups.map { group =>
+          property.groups.iterator.map { group =>
             columnEntryOfNodes(
               group.node.id,
               group.values.map(v => Some(v.edge) -> v.node),
@@ -279,7 +279,7 @@ object TableView {
       val nodeColumns: Seq[UI.Column] = {
         val firstColumn = UI.Column(
           "#",
-          propertyGroup.infos.zipWithIndex.map {
+          propertyGroup.infos.zipWithIndex.iterator.map {
             case (property, idx) =>
               UI.ColumnEntry(
                 idx,
@@ -302,10 +302,10 @@ object TableView {
 
         val referrerProperty = UI.Column(
           columnHeader("Referrer"),
-          propertyGroup.infos.map { nodeInfo =>
+          propertyGroup.infos.iterator.map { nodeInfo =>
             columnEntryOfNodes(
               nodeInfo.node.id,
-              nodeInfo.reverseProperties.map(None -> _)(breakOut),
+              nodeInfo.reverseProperties.iterator.map(None -> _)(breakOut),
             )
           }(breakOut)
         )
@@ -314,14 +314,14 @@ object TableView {
           case ColumnData(StaticColumns.Item(title), _, dataExtractor) =>
             UI.Column(
               columnStaticHeader(title),
-              propertyGroup.infos.map { property =>
+              propertyGroup.infos.iterator.map { property =>
                 columnEntryOfNodes(property.node.id, dataExtractor(property))
               }(breakOut)
             )
           case staticColumn =>
             UI.Column(
               columnHeader(staticColumn.title.tpe),
-              propertyGroup.infos.map { property =>
+              propertyGroup.infos.iterator.map { property =>
                 columnEntryOfNodes(property.node.id, staticColumn.dataExtractor(property))
               }(breakOut)
             )
@@ -396,7 +396,7 @@ object TableView {
                 b(s"Edit Column '$name'", marginBottom := "5px"),
 
                 UI.checkboxEmitter(span(Icons.showOnCard, " Show on Card"), edges.forall(_.data.showOnCard)).map { showOnCard =>
-                  GraphChanges(addEdges = edges.collect { case edge if edge.data.showOnCard != showOnCard => edge.copy(data = edge.data.copy(showOnCard = showOnCard)) }(breakOut))
+                  GraphChanges(addEdges = edges.iterator.collect { case edge if edge.data.showOnCard != showOnCard => edge.copy(data = edge.data.copy(showOnCard = showOnCard)) }(breakOut))
                 } --> GlobalState.eventProcessor.changes,
 
                 div(
@@ -407,7 +407,7 @@ object TableView {
                   " Delete",
                   onClickDefault.foreach {
                     if (dom.window.confirm(s"Do you really want to remove the column '$name' in all children?")) {
-                      GlobalState.submitChanges(GraphChanges(delEdges = edges.map(e => e)(breakOut)))
+                      GlobalState.submitChanges(GraphChanges(delEdges = edges.iterator.map(e => e)(breakOut)))
                     }
                     ()
                   },

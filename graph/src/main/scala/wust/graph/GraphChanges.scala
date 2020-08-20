@@ -5,7 +5,7 @@ import wust.util.algorithm.dfs
 import wust.util.collection.{ HashSetFromArray, RichCollection }
 import wust.util.macros.InlineList
 
-import scala.collection.{ breakOut, mutable }
+import scala.collection.mutable
 import scala.reflect.ClassTag
 
 final case class GraphChanges(
@@ -18,7 +18,7 @@ final case class GraphChanges(
   def withAuthor(userId: UserId, timestamp: EpochMilli = EpochMilli.now): GraphChanges = {
     if (addNodes.isEmpty) this
     else {
-      val existingAuthors: mutable.HashSet[NodeId] = addEdges.collect { case edge: Edge.Author => edge.nodeId }(breakOut)
+      val existingAuthors: mutable.HashSet[NodeId] = addEdges.iterator.collect { case edge: Edge.Author => edge.nodeId }(breakOut)
       val allAddEdges = Array.newBuilder[Edge]
       allAddEdges ++= addEdges
       addNodes.foreach { node =>
@@ -188,13 +188,13 @@ object GraphChanges {
   def addNodeWithParent(node: Node, parentId: ParentId) =
     GraphChanges(addNodes = Array(node), addEdges = Array(Edge.Child(parentId, ChildId(node.id))))
   def addNodeWithParent(node: Node, parentIds: Iterable[ParentId]) =
-    GraphChanges(addNodes = Array(node), addEdges = parentIds.map(parentId => Edge.Child(parentId, ChildId(node.id)))(breakOut))
+    GraphChanges(addNodes = Array(node), addEdges = parentIds.iterator.map(parentId => Edge.Child(parentId, ChildId(node.id)))(breakOut))
   def addNodeWithParent(node: Node, parentIds: Iterable[ParentId], ordering: BigDecimal) =
-    GraphChanges(addNodes = Array(node), addEdges = parentIds.map(parentId => Edge.Child(parentId, ChildId(node.id), ordering))(breakOut))
+    GraphChanges(addNodes = Array(node), addEdges = parentIds.iterator.map(parentId => Edge.Child(parentId, ChildId(node.id), ordering))(breakOut))
   def addNodesWithParents(nodes: Iterable[Node], parentIds: Iterable[ParentId]) =
-    GraphChanges(addNodes = nodes.toArray, addEdges = nodes.flatMap(node => parentIds.map(parentId => Edge.Child(parentId, ChildId(node.id))))(breakOut))
+    GraphChanges(addNodes = nodes.toArray, addEdges = nodes.iterator.flatMap(node => parentIds.map(parentId => Edge.Child(parentId, ChildId(node.id))))(breakOut))
   def addNodeWithDeletedParent(node: Node, parentIds: Iterable[ParentId], deletedAt: EpochMilli) =
-    GraphChanges(addNodes = Array(node), addEdges = parentIds.map(parentId => Edge.Child.delete(parentId, deletedAt, ChildId(node.id)))(breakOut))
+    GraphChanges(addNodes = Array(node), addEdges = parentIds.iterator.map(parentId => Edge.Child.delete(parentId, deletedAt, ChildId(node.id)))(breakOut))
 
   def addDoneStage(doneStageId:NodeId, parentId: ParentId) = {
     val doneNode = Node.Content(doneStageId, data = NodeData.Markdown(Graph.doneText), role = NodeRole.Stage)
@@ -204,13 +204,13 @@ object GraphChanges {
 
   def addToParent(nodeId: ChildId, parentId: ParentId): GraphChanges = addToParent(List(nodeId), parentId)
   def addToParent(nodeIds: Iterable[ChildId], parentId: ParentId): GraphChanges = GraphChanges(
-    addEdges = nodeIds.map { channelId =>
+    addEdges = nodeIds.iterator.map { channelId =>
       Edge.Child(parentId, channelId)
     }(breakOut)
   )
 
   def addToParents(nodeId: ChildId, parentIds: Iterable[ParentId]): GraphChanges = GraphChanges(
-    addEdges = parentIds.map { parentId =>
+    addEdges = parentIds.iterator.map { parentId =>
       Edge.Child(parentId, nodeId)
     }(breakOut)
   )
@@ -244,7 +244,7 @@ object GraphChanges {
   def delete(childIds: Iterable[ChildId], parentIds: Iterable[ParentId]): GraphChanges =
     childIds.foldLeft(empty)((acc, nextNode) => acc merge delete(nextNode, parentIds))
   def delete(childId: ChildId, parentIds: Iterable[ParentId], deletedAt: EpochMilli = EpochMilli.now): GraphChanges = GraphChanges(
-    addEdges = parentIds.map(
+    addEdges = parentIds.iterator.map(
       parentId => Edge.Child.delete(parentId, deletedAt, childId)
     )(breakOut)
   )
@@ -254,7 +254,7 @@ object GraphChanges {
 
   def deleteFromGraph(childId: ChildId, graph: Graph, timestamp: EpochMilli = EpochMilli.now) = graph.idToIdxFold(childId)(GraphChanges.empty) { childIdx =>
     GraphChanges(
-      addEdges = graph.parentEdgeIdx(childIdx).flatMap { edgeIdx =>
+      addEdges = graph.parentEdgeIdx(childIdx).iterator.flatMap { edgeIdx =>
         val edge = graph.edges(edgeIdx).asInstanceOf[Edge.Child]
         if (edge.data.deletedAt.isDefined) None
         else Some(edge.copy(data = edge.data.copy(deletedAt = Some(timestamp))))
@@ -266,22 +266,22 @@ object GraphChanges {
     def apply(sourceId: SOURCEID, targetId: TARGETID): GraphChanges =
       if (sourceId != targetId) toGraphChanges(Array(edge(sourceId, targetId))) else empty
     def apply(sourceId: SOURCEID, targetIds: Iterable[TARGETID]): GraphChanges =
-      toGraphChanges(targetIds.collect { case targetId if targetId != sourceId => edge(sourceId, targetId) }(breakOut))
+      toGraphChanges(targetIds.iterator.collect { case targetId if targetId != sourceId => edge(sourceId, targetId) }(breakOut))
     def apply(sourceIds: Iterable[SOURCEID], targetId: TARGETID): GraphChanges =
-      toGraphChanges(sourceIds.collect { case sourceId if sourceId != targetId => edge(sourceId, targetId) }(breakOut))
+      toGraphChanges(sourceIds.iterator.collect { case sourceId if sourceId != targetId => edge(sourceId, targetId) }(breakOut))
     def apply(sourceIds: Iterable[SOURCEID], targetIds: Iterable[TARGETID]): GraphChanges =
-      toGraphChanges(sourceIds.flatMap(sourceId => targetIds.collect { case targetId if targetId != sourceId => edge(sourceId, targetId) })(breakOut))
+      toGraphChanges(sourceIds.iterator.flatMap(sourceId => targetIds.collect { case targetId if targetId != sourceId => edge(sourceId, targetId) })(breakOut))
   }
 
   class ConnectFactoryWithData[SOURCE, TARGET, DATA, EDGE <: Edge: ClassTag](edge: (SOURCE, DATA, TARGET) => EDGE, toGraphChanges: Array[EDGE] => GraphChanges) {
     def apply(sourceId: SOURCE, data: DATA, targetId: TARGET): GraphChanges =
       if (sourceId != targetId) toGraphChanges(Array(edge(sourceId, data, targetId))) else empty
     def apply(sourceId: SOURCE, data: DATA, targetIds: Iterable[TARGET]): GraphChanges =
-      toGraphChanges(targetIds.collect { case targetId if targetId != sourceId => edge(sourceId, data, targetId) }(breakOut))
+      toGraphChanges(targetIds.iterator.collect { case targetId if targetId != sourceId => edge(sourceId, data, targetId) }(breakOut))
     def apply(sourceIds: Iterable[SOURCE], data: DATA, targetId: TARGET): GraphChanges =
-      toGraphChanges(sourceIds.collect { case sourceId if sourceId != targetId => edge(sourceId, data, targetId) }(breakOut))
+      toGraphChanges(sourceIds.iterator.collect { case sourceId if sourceId != targetId => edge(sourceId, data, targetId) }(breakOut))
     def apply(sourceIds: Iterable[SOURCE], data: DATA, targetIds: Iterable[TARGET]): GraphChanges =
-      toGraphChanges(sourceIds.flatMap(sourceId => targetIds.collect { case targetId if targetId != sourceId => edge(sourceId, data, targetId) })(breakOut))
+      toGraphChanges(sourceIds.iterator.flatMap(sourceId => targetIds.collect { case targetId if targetId != sourceId => edge(sourceId, data, targetId) })(breakOut))
   }
 
   def connect[SOURCE <: NodeId, TARGET <: NodeId, EDGE <: Edge](edge: (SOURCE, TARGET) => EDGE) = new ConnectFactory(edge, (edges: Array[Edge]) => GraphChanges(addEdges = edges))
@@ -309,7 +309,7 @@ object GraphChanges {
   def moveInto(graph: Graph, subjectIds: Iterable[ChildId], newParentId: ParentId): GraphChanges = {
     // TODO: only keep deepest parent in transitive chain
     val newParentships: Array[Edge] = subjectIds
-      .filterNot(_ == newParentId) // avoid creating self-loops
+      .filterNot(_ == newParentId).iterator // avoid creating self-loops
       .map { subjectId =>
         // if subject was not deleted in one of its parents => keep it
         // if it was deleted, take the latest deletion date

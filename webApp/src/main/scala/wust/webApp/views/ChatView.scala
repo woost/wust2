@@ -25,7 +25,7 @@ import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{BrowserDetect, Ownable}
 
-import scala.collection.{breakOut, mutable}
+import scala.collection.mutable
 import scala.scalajs.js
 
 object ChatView {
@@ -297,7 +297,7 @@ object ChatView {
                 // and statically calculate the parentIds and use inReplyGroup here.
                 // isDeletedNow on the other hand needs to be dynamically calculated.
                 val parentIdxs = groupGraph.parentsIdx(nodeIdx)
-                val parentIds: Set[ParentId] = parentIdxs.map(idx => ParentId(groupGraph.nodeIds(idx)))(breakOut)
+                val parentIds: Set[ParentId] = parentIdxs.iterator.map(idx => ParentId(groupGraph.nodeIds(idx)))(breakOut)
 
                 val isDeletedNow = GlobalState.graph.map(g => g.idToIdx(nodeId).exists(idx => g.isDeletedNowIdx(idx, g.parentsIdx(idx))))
 
@@ -424,7 +424,7 @@ object ChatView {
   private def additionalNodeActions(focusState: FocusState, currentReply: Var[Set[NodeId]], inputFieldTriggerFocus: Subject[Unit])(implicit ctx: Ctx.Owner): Boolean => List[VNode] = canWriteAll => List(
     replyButton(
       onClickDefault foreach {
-        currentReply() = GlobalState.selectedNodes.now.map(_.nodeId)(breakOut):Set[NodeId]
+        currentReply() = GlobalState.selectedNodes.now.iterator.map(_.nodeId)(breakOut):Set[NodeId]
         GlobalState.clearSelectedNodes()
         inputFieldTriggerFocus.onNext(Unit)
         ()
@@ -446,7 +446,7 @@ object ChatView {
         Styles.flexStatic,
 
         Styles.flex,
-        currentReply().map { replyNodeId =>
+        currentReply().iterator.map { replyNodeId =>
           val isDeletedNow = graph.isDeletedNow(replyNodeId, focusState.focusedId)
           div(
             padding := "5px",

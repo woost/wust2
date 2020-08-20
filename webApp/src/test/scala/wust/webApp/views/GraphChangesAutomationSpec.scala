@@ -7,7 +7,6 @@ import wust.graph._
 import wust.ids._
 import wust.webApp.state.GraphChangesAutomation
 
-import scala.collection.breakOut
 
 
 class GraphChangesAutomationSpec extends AnyFreeSpec with must.Matchers {
@@ -28,7 +27,7 @@ class GraphChangesAutomationSpec extends AnyFreeSpec with must.Matchers {
   def copySubGraphOfNode(graph: Graph, newNode: Node.Content, templateNodes: Seq[Node.Content]): GraphChanges = {
     val newIdMap = scala.collection.mutable.HashMap[NodeId, Int]()
     GraphChangesAutomation.copySubGraphOfNode(
-      UserId(freshNodeId()), graph, newNode, templateNodes.map(node => graph.idToIdxOrThrow(node.id))(breakOut), newId = copyNodeId(_), copyTime = copyTime, toastEnabled = false
+      UserId(freshNodeId()), graph, newNode, templateNodes.iterator.map(node => graph.idToIdxOrThrow(node.id))(breakOut), newId = copyNodeId(_), copyTime = copyTime, toastEnabled = false
     )
   }
 

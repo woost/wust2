@@ -30,7 +30,6 @@ import wust.webUtil.{BrowserDetect, Elements, UI}
 import wust.facades.segment.Segment
 import java.util.regex.Pattern
 
-import scala.collection.breakOut
 import scala.scalajs.js
 
 // This file contains woost-related UI helpers.
@@ -230,7 +229,7 @@ object Components {
 
       b(
         EditableContent.inlineEditorOrRender[String](key, editKey, _ => key => span(key + ":", cls := "propertykey")).editValue.collect { case newKey if newKey != key =>
-          GraphChanges(addEdges = properties.map(p => p.edge.copy(data = p.edge.data.copy(key = newKey)))(breakOut), delEdges = properties.map(_.edge)(breakOut)),
+          GraphChanges(addEdges = properties.iterator.map(p => p.edge.copy(data = p.edge.data.copy(key = newKey)))(breakOut), delEdges = properties.iterator.map(_.edge)(breakOut)),
         } --> GlobalState.eventProcessor.changes,
         onClickDefault.use(true) --> editKey,
       ),
@@ -718,7 +717,7 @@ object Components {
           minCharacters = 0
           showNoResults = showNotFound
 
-          source = graph.now.nodes.collect { case node: Node if filter(node) =>
+          source = graph.now.nodes.iterator.collect { case node: Node if filter(node) =>
             val str = node match {
               case user: Node.User => Components.displayUserName(user.data)
               case _ => node.str

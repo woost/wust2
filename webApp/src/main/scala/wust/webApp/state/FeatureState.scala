@@ -13,7 +13,7 @@ import wust.webUtil.Elements.defer
 import wust.webUtil.UI
 import wust.webUtil.UI.ToastLevel
 
-import scala.collection.{breakOut, mutable}
+import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 
 object FeatureState {
@@ -38,7 +38,7 @@ object FeatureState {
         recentlyUsed() = Vector.empty
         notSentFirstTimeFeatures.clear()
         Client.api.getUsedFeatures().foreach { list =>
-          firstTimeUsed() = list.map{ case UsedFeature(feature, timestamp) => feature -> timestamp }(breakOut): Map[Feature, EpochMilli]
+          firstTimeUsed() = list.iterator.map{ case UsedFeature(feature, timestamp) => feature -> timestamp }(breakOut): Map[Feature, EpochMilli]
           recentlyUsed() = recentFirstTimeUsed.now.distinct.take(recentlyUsedLimit).toVector
         }
 
@@ -46,7 +46,7 @@ object FeatureState {
       } else { // user is the same
         sendNotSentFeatures()
         Client.api.getUsedFeatures().foreach { list =>
-          firstTimeUsed() = firstTimeUsed.now ++ list.map{ case UsedFeature(feature, timestamp) => feature -> timestamp }(breakOut): Map[Feature, EpochMilli]
+          firstTimeUsed() = firstTimeUsed.now ++ list.iterator.map{ case UsedFeature(feature, timestamp) => feature -> timestamp }(breakOut): Map[Feature, EpochMilli]
           recentlyUsed() = recentFirstTimeUsed.now.distinct.take(recentlyUsedLimit).toVector
         }
       }

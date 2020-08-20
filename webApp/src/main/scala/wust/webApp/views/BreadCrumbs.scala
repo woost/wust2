@@ -14,7 +14,6 @@ import wust.webApp.state.FeatureState
 import wust.webApp.views.DragComponents.registerDragContainer
 import wust.webUtil.outwatchHelpers._
 
-import scala.collection.breakOut
 
 // Breadcrumbs are a path of nodes rendered up to an endpoint.
 // The path starts either at the highest reachable root nodes or at a specified endpoint.
@@ -77,7 +76,7 @@ object BreadCrumbs {
                 elementNodes.dropWhile(_ != startPoint.nodeId).dropWhile(_ == startPoint.nodeId)
             case EndPoint.None => elementNodes
 
-          }).map { nid =>
+          }).iterator.map { nid =>
             val onClickFocus = VDomModifier(
               cursor.pointer,
               onClick foreach { e =>

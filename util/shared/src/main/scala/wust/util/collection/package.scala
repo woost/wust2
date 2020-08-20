@@ -1,6 +1,5 @@
 package wust.util
 
-import scala.collection.generic.CanBuildFrom
 import scala.collection.{GenTraversableOnce, IterableLike, mutable}
 
 package object collection {
@@ -81,7 +80,7 @@ package object collection {
       }
     }
 
-    @inline def mapWithIndex[B, That](f: (Int, T) => B)(implicit bf: CanBuildFrom[Repr[T], B, That]): That = {
+    @inline def mapWithIndex[B, That](f: (Int, T) => B)(implicit bf: BuildFrom[Repr[T], B, That]): That = {
       var counter = 0
       col.map[B, That] { a =>
         val b = f(counter, a)
@@ -90,7 +89,7 @@ package object collection {
       }
     }
 
-    @inline def flatMapWithIndex[B, That](f: (Int, T) => GenTraversableOnce[B])(implicit bf: CanBuildFrom[Repr[T], B, That]): That = {
+    @inline def flatMapWithIndex[B, That](f: (Int, T) => GenTraversableOnce[B])(implicit bf: BuildFrom[Repr[T], B, That]): That = {
       var counter = 0
       col.flatMap[B, That] { a =>
         val b = f(counter, a)
@@ -101,7 +100,7 @@ package object collection {
 
     def randomSelect: T = col.iterator.drop(scala.util.Random.nextInt(col.size)).next
 
-    def leftPadTo(len: Int, elem: T)(implicit canBuildFrom: CanBuildFrom[Repr[T], T, Repr[T]]): Repr[T] = {
+    def leftPadTo(len: Int, elem: T)(implicit canBuildFrom: BuildFrom[Repr[T], T, Repr[T]]): Repr[T] = {
       leftPadWithBuilder(len, elem, col)
     }
   }
@@ -143,12 +142,12 @@ package object collection {
     new DistinctBuilder[T, That[T]](cb.apply())
   }
 
-  private def leftPadWithBuilder[T, That](len: Int, fillElem: T, elements: IterableLike[T, That])(implicit cb: CanBuildFrom[That, T, That]): That = {
+  private def leftPadWithBuilder[T, That](len: Int, fillElem: T, elements: IterableLike[T, That])(implicit cb: BuildFrom[That, T, That]): That = {
     val actualLen = elements.size
     val missing = len - actualLen
     if (missing <= 0) elements.repr
     else {
-      val builder = cb.apply(elements.repr)
+      val builder = cb.newBuilder(elements.repr)
       builder.sizeHint(len)
       var diff = missing
       while (diff > 0) {

@@ -14,7 +14,7 @@ import wust.webApp.views.graphview.VisualizationType.{Containment, Edge, Tag}
 
 import scala.Double.NaN
 import scala.collection.mutable.ArrayBuffer
-import scala.collection.{breakOut, mutable}
+import scala.collection.mutable
 import scala.scalajs.js
 
 /*
@@ -212,7 +212,7 @@ object StaticData {
       }
 
       val eulerSets: Array[EulerSet] = {
-        graph.allParentIdsTopologicallySortedByChildren.map { nodeIdx =>
+        graph.allParentIdsTopologicallySortedByChildren.iterator.map { nodeIdx =>
           val depth = graph.childDepth(nodeIdx)
           new EulerSet(
             parent = nodeIdx,

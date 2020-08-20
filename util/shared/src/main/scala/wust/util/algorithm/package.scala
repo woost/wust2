@@ -2,7 +2,7 @@ package wust.util
 
 import flatland._
 
-import scala.collection.{breakOut, mutable}
+import scala.collection.mutable
 
 package object algorithm {
 
@@ -218,8 +218,8 @@ package object algorithm {
           Array(parentSet -> (nodeIndices.filterNot(isEulerSet) :+ parentSet.head))
         case other => Array(other)
       }.toSeq.filter(_._2.nonEmpty) ++ parents.indices.filter(i => (children.sliceNonEmpty(i) || isEulerSet(i)) && children.forall(i)(c => parents.sliceLength(c) != 1)).map(i => (Set(i), Seq(i)))
-    val eulerZones: Array[Set[Int]] = zoneGrouping.map(_._1)(breakOut)
-    val eulerZoneNodes: Array[Array[Int]] = zoneGrouping.map(_._2.toArray)(breakOut)
+    val eulerZones: Array[Set[Int]] = zoneGrouping.iterator.map(_._1)(breakOut)
+    val eulerZoneNodes: Array[Array[Int]] = zoneGrouping.iterator.map(_._2.toArray)(breakOut)
 
     def setDifference[T](a: Set[T], b: Set[T]) = (a union b) diff (a intersect b)
     val neighbourhoodBuilder = mutable.ArrayBuilder.make[(Int, Int)]

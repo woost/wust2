@@ -19,7 +19,7 @@ import com.vdurmont.emoji.EmojiParser
 import scala.collection.JavaConverters._
 import scala.collection.parallel.ExecutionContextTaskSupport
 import scala.collection.parallel.ParSeq
-import scala.collection.{breakOut, mutable}
+import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 import DbConversions._

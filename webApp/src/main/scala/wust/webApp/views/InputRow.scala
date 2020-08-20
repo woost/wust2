@@ -24,7 +24,7 @@ import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{BrowserDetect, Elements, Ownable}
 
-import scala.collection.{breakOut, mutable}
+import scala.collection.mutable
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
@@ -94,12 +94,12 @@ object InputRow {
         markdownHelpOpened() = false
 
         val actualMentions = {
-          val stringMentions = mentionsRegex.findAllIn(str).map(_.drop(1)).to[List]
+          val stringMentions = mentionsRegex.findAllIn(str).map(_.drop(1)).to(List)
           stringMentions.flatMap(str => collectedMentions.get(str).map(str -> _))
         }
         def extraChanges(nodeId: NodeId): GraphChanges = {
           additionalChanges(nodeId) merge GraphChanges(
-            addEdges = actualMentions.map { case (mentionName, mentionedNode) =>
+            addEdges = actualMentions.iterator.map { case (mentionName, mentionedNode) =>
               Edge.Mention(nodeId, EdgeData.Mention(mentionName), mentionedNode.id)
             }(breakOut)
           )

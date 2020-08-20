@@ -3,7 +3,6 @@ package wust.sdk
 import wust.graph._
 import wust.ids._
 
-import scala.collection.breakOut
 
 object EventToGraphChangeMapper {
 
@@ -14,7 +13,7 @@ object EventToGraphChangeMapper {
 //    val nodeAuthorEdge = Edge.Author(wustAuthorUserId, EdgeData.Author(timestamp), nodeContent.id)
 //    val nodeAuthorMemberEdge = Edge.Member(wustAuthorUserId, EdgeData.Member(AccessLevel.ReadWrite), nodeContent.id)
 
-    val parentEdges: Array[Edge] = parents.map(parent => Edge.Child(ParentId(parent), ChildId(nodeContent.id)))(breakOut)
+    val parentEdges: Array[Edge] = parents.iterator.map(parent => Edge.Child(ParentId(parent), ChildId(nodeContent.id)))(breakOut)
 //    val memberEdges: Set[Edge] = additionalMembers.collect {
 //      case (member: UserId, access: AccessLevel) => Edge.Member(member, EdgeData.Member(access), nodeContent.id)
 //    }
