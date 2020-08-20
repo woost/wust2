@@ -25,7 +25,6 @@ import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil._
 
-import scala.collection.breakOut
 import scala.scalajs.js
 
 object SharedViewElements {
@@ -222,7 +221,7 @@ object SharedViewElements {
         val node = graph.nodes(nodeIdx)
         val selection = GlobalState.selectedNodes()
         // payload is call by name, so it's always the current selectedNodeIds
-        def payloadOverride:Option[() => DragPayload] = selection.find(_.nodeId == nodeId).map(_ => () => DragItem.SelectedNodes(selection.map(_.nodeId)(breakOut)))
+        def payloadOverride:Option[() => DragPayload] = selection.find(_.nodeId == nodeId).map(_ => () => DragItem.SelectedNodes(selection.iterator.map(_.nodeId)(breakOut)))
         VDomModifier(
           nodeDragOptions(nodeId, node.role, withHandle = false, payloadOverride = payloadOverride),
           DragComponents.onAfterPayloadWasDragged.foreach{ GlobalState.clearSelectedNodes() }
@@ -518,7 +517,7 @@ object SharedViewElements {
               cls := "tiny-scrollbar",
               overflowX.auto, // make scrollable for long member lists
               overflowY.hidden, // wtf firefox and chrome...
-              otherMembers.map(memberVNode(_, false))(breakOut): js.Array[VNode]
+              otherMembers.iterator.map(memberVNode(_, false))(breakOut): js.Array[VNode]
             )
           )
       }

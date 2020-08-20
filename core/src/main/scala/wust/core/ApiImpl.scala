@@ -14,7 +14,6 @@ import wust.db.{Data, Db, SuccessResult}
 import wust.graph._
 import wust.ids._
 
-import scala.collection.breakOut
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
@@ -41,10 +40,10 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], serve
       import changes.consistent._
 
       for {
-        _ <- db.node.create(addNodes.map(forDb)(breakOut))
-        _ <- db.edge.delete(delEdges.map(forDb)(breakOut))
-        _ <- db.edge.create(addEdges.map(forDb)(breakOut))
-        _ <- db.node.addMember(addNodes.map(_.id)(breakOut), user.id, AccessLevel.ReadWrite)
+        _ <- db.node.create(addNodes.iterator.map(forDb)(breakOut))
+        _ <- db.edge.delete(delEdges.iterator.map(forDb)(breakOut))
+        _ <- db.edge.create(addEdges.iterator.map(forDb)(breakOut))
+        _ <- db.node.addMember(addNodes.iterator.map(_.id)(breakOut), user.id, AccessLevel.ReadWrite)
       } yield SuccessResult
     }
 
@@ -160,8 +159,8 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], serve
         case _ => None
       }
 
-      parentId.flatMap(graph.idToIdx).fold[List[api.SimpleNode]](graph.nodes.flatMap(toSimpleNode)(breakOut)) { parentIdx =>
-        graph.notDeletedChildrenIdx(parentIdx).flatMap(idx => toSimpleNode(graph.nodes(idx)))(breakOut)
+      parentId.flatMap(graph.idToIdx).fold[List[api.SimpleNode]](graph.nodes.iterator.flatMap(toSimpleNode)(breakOut)) { parentIdx =>
+        graph.notDeletedChildrenIdx(parentIdx).iterator.flatMap(idx => toSimpleNode(graph.nodes(idx)))(breakOut)
       }
     }
   }
@@ -189,7 +188,7 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], serve
       // This way, we have a filename, a content type and so on...alternative: store uploads in own db or get s3 metadata for each key
       val allFiles = fileUploader.getAllObjectSummariesForUser(user.id)
       allFiles.flatMap { files =>
-        Task.fromFuture(db.node.getFileNodes(files.map(_.getKey)(breakOut))).map { fileNodes =>
+        Task.fromFuture(db.node.getFileNodes(files.iterator.map(_.getKey)(breakOut))).map { fileNodes =>
           val fileNodeMap = fileNodes.groupBy(_._2.key)
           files.flatMap { file =>
             fileNodeMap.get(file.getKey).map(_.maxBy(_._1)) match {

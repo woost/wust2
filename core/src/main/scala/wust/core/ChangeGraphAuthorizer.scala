@@ -6,7 +6,7 @@ import wust.graph._
 import wust.ids.NodeId
 import wust.util.collection._
 
-import scala.collection.{breakOut, mutable}
+import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
@@ -33,8 +33,8 @@ class DbChangeGraphAuthorizer(db: Db)(implicit ec: ExecutionContext) extends Cha
   type Rule = (AuthUser, GraphChanges) => Future[ChangeGraphAuthorization]
 
   val canOnlyAddNodesWithAuthors: Rule = { (_, changes) =>
-    val addNodeIds: mutable.HashSet[NodeId] = changes.addNodes.map(_.id)(breakOut)
-    val authoredNodeIds: mutable.HashSet[NodeId] = changes.addEdges.collect { case e: Edge.Author => e.nodeId }(breakOut)
+    val addNodeIds: mutable.HashSet[NodeId] = changes.addNodes.iterator.map(_.id)(breakOut)
+    val authoredNodeIds: mutable.HashSet[NodeId] = changes.addEdges.iterator.collect { case e: Edge.Author => e.nodeId }(breakOut)
 
     val allNodesHaveAuthor = addNodeIds.forall(authoredNodeIds.contains)
     val allAuthorsHaveNode = authoredNodeIds.forall(addNodeIds)
@@ -63,7 +63,7 @@ class DbChangeGraphAuthorizer(db: Db)(implicit ec: ExecutionContext) extends Cha
     //We allow this because it is convenient for automation. We should have a more dedicated check?
     //Allow for node where the template applies and the user did this explicitly to the template.
     //Do not allow to do this for every possible node. attackers can spam an account.
-    val addEdgesCheck: Either[Seq[String], Seq[Seq[NodeId]]] = eitherSeq(changes.addEdges.map {
+    val addEdgesCheck: Either[Seq[String], Seq[Seq[NodeId]]] = eitherSeq(changes.addEdges.iterator.map {
       case e: Edge.Author  => Either.cond(user.id == e.userId, Seq(e.nodeId), "Can only add author edge for own user and an added node")
       case e: Edge.User    => Right(Seq(e.nodeId))
       case e: Edge.Mention => Right(Seq(e.nodeId)) //TODO: generally you need access to a mentioned node, but i could be a user, so allow...
@@ -75,7 +75,7 @@ class DbChangeGraphAuthorizer(db: Db)(implicit ec: ExecutionContext) extends Cha
     //permission in order to delete this edge:
     //  Left(reason: String) => Not allowed to delete this edge, because $reason
     //  Right(nodeIds: Seq[NodeId]) => Allowed to delete this edge, if you have acces to all $nodeIds
-    val delEdgesCheck: Either[Seq[String], Seq[Seq[NodeId]]] = eitherSeq(changes.delEdges.map {
+    val delEdgesCheck: Either[Seq[String], Seq[Seq[NodeId]]] = eitherSeq(changes.delEdges.iterator.map {
       case _: Edge.Author   => Left("Cannot delete author edges")
       case _: Edge.Mention  => Left("Cannot delete mention edges")
       case e: Edge.Member   => Right(Seq(e.nodeId))

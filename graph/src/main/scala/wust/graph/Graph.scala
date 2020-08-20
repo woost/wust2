@@ -7,7 +7,7 @@ import wust.util.algorithm._
 import wust.util.collection._
 import wust.util.macros.InlineList
 
-import scala.collection.{breakOut, immutable, mutable}
+import scala.collection.{immutable, mutable}
 
 object Graph {
   val empty = apply(Array.empty, Array.empty)
@@ -102,9 +102,9 @@ final class Graph(val nodes: Array[Node], val edges: Array[Edge], createNewLooku
   private def changeGraphInternal(addNodes: Array[Node], addEdges: Array[Edge], deleteEdges: Array[Edge] = Array.empty): Graph = {
 
     def collectNodes() = {
-      val nodesBuilder = mutable.ArrayBuilder.make[Node]()
+      val nodesBuilder = mutable.ArrayBuilder.make[Node]
       // nodesBuilder.sizeHint(nodes.length + addNodes.size)
-      val addNodeIds: mutable.Set[NodeId] = addNodes.map(_.id)(breakOut)
+      val addNodeIds: mutable.Set[NodeId] = addNodes.iterator.map(_.id)(breakOut)
       nodes.foreach { node =>
         if (!addNodeIds(node.id)) nodesBuilder += node
       }
@@ -114,10 +114,10 @@ final class Graph(val nodes: Array[Node], val edges: Array[Edge], createNewLooku
       nodesBuilder.result
     }
     def collectEdges() = {
-      val edgesBuilder = mutable.ArrayBuilder.make[Edge]()
+      val edgesBuilder = mutable.ArrayBuilder.make[Edge]
       // edgesBuilder.sizeHint(edges.length + addEdges.size)
-      val addEdgeIds: mutable.Set[EdgeEquality.Unique] = addEdges.flatMap(EdgeEquality.Unique(_))(breakOut)
-      val deleteEdgeIds: mutable.Set[EdgeEquality.Unique] = deleteEdges.flatMap(EdgeEquality.Unique(_))(breakOut)
+      val addEdgeIds: mutable.Set[EdgeEquality.Unique] = addEdges.iterator.flatMap(EdgeEquality.Unique(_))(breakOut)
+      val deleteEdgeIds: mutable.Set[EdgeEquality.Unique] = deleteEdges.iterator.flatMap(EdgeEquality.Unique(_))(breakOut)
       val updatedEdgeIds = addEdgeIds ++ deleteEdgeIds
 
       edges.foreach { edge =>
@@ -313,7 +313,7 @@ final case class GraphLookup private(
     automatedEdgeReverseIdx.sliceNonEmpty(idx) || ancestorsIdxExists(idx)(parentIdx => automatedEdgeReverseIdx.sliceNonEmpty(parentIdx))
   }
 
-  val sortedAuthorshipEdgeIdx: NestedArrayInt = NestedArrayInt(authorshipEdgeIdx.map(slice => slice.sortBy(author => edges(author).as[Edge.Author].data.timestamp).toArray)(breakOut) : Array[Array[Int]])
+  val sortedAuthorshipEdgeIdx: NestedArrayInt = NestedArrayInt(authorshipEdgeIdx.iterator.map(slice => slice.sortBy(author => edges(author).as[Edge.Author].data.timestamp).toArray)(breakOut) : Array[Array[Int]])
 
   // not lazy because it often used for sorting. and we do not want to compute a lazy val in a for loop.
   val (nodeCreated: Array[EpochMilli], nodeCreatorIdx: Array[Int], nodeModified: Array[EpochMilli]) = {
@@ -529,9 +529,9 @@ final case class GraphLookup private(
   def topologicalSortByIdx[T](seq: Seq[T], extractIdx: T => Int, liftIdx: Int => Option[T]): Seq[T] = {
     if (seq.isEmpty || nodes.isEmpty) return seq
 
-    @inline def idArray: Array[Int] = seq.map(extractIdx)(breakOut)
+    @inline def idArray: Array[Int] = seq.iterator.map(extractIdx)(breakOut)
 
-    idArray.sortBy(nodeCreated).flatMap(i => liftIdx(i))(breakOut)
+    idArray.sortBy(nodeCreated).iterator.flatMap(i => liftIdx(i))(breakOut)
   }
 
   lazy val allParentIdsTopologicallySortedByChildren: Array[Int] = {
@@ -691,7 +691,7 @@ final case class GraphLookup private(
   def isDoneStage(nodeId: NodeId): Boolean = { nodesById(nodeId).exists(isDoneStage) }
 
   def workspacesForNode(nodeIdx: Int): Array[Int] = {
-    (parentsIdx(nodeIdx).flatMap(workspacesForParent)(breakOut): Array[Int]).distinct
+    (parentsIdx(nodeIdx).iterator.flatMap(workspacesForParent)(breakOut): Array[Int]).distinct
   }
 
   def workspacesForParent(parentIdx: Int): Array[Int] = {
@@ -731,7 +731,7 @@ final case class GraphLookup private(
     if (visited.containsNot(root) && nodes(root).role == role) {
       visited.add(root)
       Tree.Parent(nodes(root), (
-        childrenIdx(root)
+        childrenIdx(root).iterator
           .collect{
             case idx if nodes(idx).role == role => roleTree(idx, role, visited)
           }(breakOut): List[Tree]
@@ -1231,8 +1231,8 @@ sealed trait Tree {
 object Tree {
   final case class Parent(node: Node, children: List[Tree]) extends Tree {
     override def hasChildren = children.nonEmpty
-    override def flatten: List[Node] = node :: (children.flatMap(_.flatten)(breakOut): List[Node])
-    override def flattenWithDepth(depth: Int = 0): List[(Node, Int)] = (node, depth) :: (children.flatMap(_.flattenWithDepth(depth + 1))(breakOut): List[(Node, Int)])
+    override def flatten: List[Node] = node :: (children.iterator.flatMap(_.flatten)(breakOut): List[Node])
+    override def flattenWithDepth(depth: Int = 0): List[(Node, Int)] = (node, depth) :: (children.iterator.flatMap(_.flattenWithDepth(depth + 1))(breakOut): List[(Node, Int)])
   }
   final case class Leaf(node: Node) extends Tree {
     override def hasChildren = false

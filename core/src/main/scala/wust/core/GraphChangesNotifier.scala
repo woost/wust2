@@ -7,7 +7,6 @@ import wust.ids.{NodeId, UserId, EmailAddress}
 import wust.util.collection._
 import DbConversions._
 
-import scala.collection.breakOut
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
 
@@ -28,8 +27,8 @@ class GraphChangesNotifier(db: Db, emailFlow: AppEmailFlow) {
           val mentionsBySourceId = mentions.groupBy(_.nodeId)
           db.node.get(mentionsBySourceId.keys.toSeq).onComplete {
             case Success(nodes) =>
-              val nodeMap: Map[NodeId, Node.Content] = nodes.map(forClient).collect { case n: Node.Content => n.id -> n }(breakOut)
-              val groupedMentions = mentionsBySourceId.flatMap { case (nodeId, mentions) => nodeMap.get(nodeId).map(MentionsWithNode(mentions, _)) }(breakOut)
+              val nodeMap: Map[NodeId, Node.Content] = nodes.map(forClient).iterator.collect { case n: Node.Content => n.id -> n }(breakOut)
+              val groupedMentions = mentionsBySourceId.iterator.flatMap { case (nodeId, mentions) => nodeMap.get(nodeId).map(MentionsWithNode(mentions, _)) }(breakOut)
               notifyMentions(author, authorEmail, groupedMentions)
             case Failure(t) => scribe.error("Failed to query nodes with mention, will not send email.", t)
           }
@@ -42,7 +41,7 @@ class GraphChangesNotifier(db: Db, emailFlow: AppEmailFlow) {
 
   private def notifyMentions(author: AuthUser, authorEmail: EmailAddress, groupedMentions: Seq[MentionsWithNode])(implicit ec:ExecutionContext): Unit = {
     groupedMentions.foreach { groupedMention =>
-      val mentionedIds: List[NodeId] = groupedMention.mentions.map(_.mentionedId)(breakOut)
+      val mentionedIds: List[NodeId] = groupedMention.mentions.iterator.map(_.mentionedId)(breakOut)
       val mentionsAuthorDirectly = mentionedIds.contains(author.id)
       db.node.resolveMentionedNodesWithAccess(mentionedIds, canAccessNodeId = groupedMention.node.id).onComplete {
         case Success(targetUsers) =>

@@ -1,7 +1,8 @@
 package wust.util
 
-import scala.collection.generic.CanBuildFrom
-import scala.collection.{GenTraversableOnce, IterableLike, mutable}
+import scala.collection.mutable
+import scala.collection.{ AbstractView, BuildFrom }
+import scala.collection.generic.IsSeq
 
 package object collection {
 
@@ -13,103 +14,119 @@ package object collection {
   }
 
 
-  implicit class RichCollection[T, Repr[_]](val col: IterableLike[T, Repr[T]]) extends AnyVal {
+  class CollectionOperations[Repr, T <: IsSeq[Repr]](col: Repr, seq: T) {
 
-    def findMap[B](f: T => Option[B]): Option[B] = {
-      col.foreach { x =>
-        val result = f(x)
-        if (result.isDefined) return result
-      }
+    // def findMap[B](f: T => Option[B]): Option[B] = {
+    //   col.foreach { x =>
+    //     val result = f(x)
+    //     if (result.isDefined) return result
+    //   }
 
-      None
+    //   None
+    // }
+
+    // @inline def groupByForeach[K,B](f: ((K, B) => Unit) => T => Unit): scala.collection.Map[K, scala.collection.Seq[B]] = {
+    //   val map = mutable.HashMap[K, mutable.ArrayBuffer[B]]()
+    //   val add: (K, B) => Unit = { (k,b) =>
+    //     val buf = map.getOrElseUpdate(k, mutable.ArrayBuffer[B]())
+    //     buf += b
+    //     ()
+    //   }
+    //   col.foreach(f(add))
+    //   map
+    // }
+
+    // def groupByCollect[K,B](f: PartialFunction[T, (K,B)]): scala.collection.Map[K, scala.collection.Seq[B]] = groupByForeach { add =>
+    //   f.runWith { case (k,b) => add(k, b) }.andThen(_ => ())
+    // }
+
+    // @inline def groupByMap[K,B](f: T => (K,B)): scala.collection.Map[K, scala.collection.Seq[B]] = groupByForeach { add => t =>
+    //   val (a,b) = f(t)
+    //   add(a, b)
+    // }
+
+    // @inline def by[X](lens: T => X): scala.collection.Map[X, T] = {
+    //   val map = mutable.HashMap[X, T]()
+    //   map.sizeHint(col.size)
+    //   col.foreach { x =>
+    //     map(lens(x)) = x
+    //   }
+    //   map
+    // }
+
+    // @inline def histogram[X](lens: T => X = (x:T) => x):scala.collection.Map[X,Long] = {
+    //   val map = mutable.HashMap[X, Long]()
+    //   col.foreach { x =>
+    //     val key = lens(x)
+    //     map.update(key, map.getOrElse(key,0L) + 1)
+    //   }
+    //   map
+    // }
+
+    @inline def distinctBy[X, That](lens: seq.A => X)(implicit bf: BuildFrom[Repr, seq.A, That]): That = {
+      bf.fromSpecific(col)(seq(col).iterator.filterNot {
+        val seen = mutable.HashSet[X]()
+        (elem: seq.A) => {
+          val id = lens(elem)
+          val b = seen(id)
+          seen += id
+          b
+        }
+      })
     }
 
-    @inline def groupByForeach[K,B](f: ((K, B) => Unit) => T => Unit): scala.collection.Map[K, scala.collection.Seq[B]] = {
-      val map = mutable.HashMap[K, mutable.ArrayBuffer[B]]()
-      val add: (K, B) => Unit = { (k,b) =>
-        val buf = map.getOrElseUpdate(k, mutable.ArrayBuffer[B]())
-        buf += b
-        ()
-      }
-      col.foreach(f(add))
-      map
-    }
-
-    def groupByCollect[K,B](f: PartialFunction[T, (K,B)]): scala.collection.Map[K, scala.collection.Seq[B]] = groupByForeach { add =>
-      f.runWith { case (k,b) => add(k, b) }.andThen(_ => ())
-    }
-
-    @inline def groupByMap[K,B](f: T => (K,B)): scala.collection.Map[K, scala.collection.Seq[B]] = groupByForeach { add => t =>
-      val (a,b) = f(t)
-      add(a, b)
-    }
-
-    @inline def by[X](lens: T => X): scala.collection.Map[X, T] = {
-      val map = mutable.HashMap[X, T]()
-      map.sizeHint(col.size)
-      col.foreach { x =>
-        map(lens(x)) = x
-      }
-      map
-    }
-
-    @inline def histogram[X](lens: T => X = (x:T) => x):scala.collection.Map[X,Long] = {
-      val map = mutable.HashMap[X, Long]()
-      col.foreach { x =>
-        val key = lens(x)
-        map.update(key, map.getOrElse(key,0L) + 1)
-      }
-      map
-    }
-
-    @inline def distinctBy[X](lens: T => X): Repr[T] = col.filterNot {
-      val seen = mutable.HashSet[X]()
-      (elem: T) => {
-        val id = lens(elem)
-        val b = seen(id)
-        seen += id
-        b
-      }
-    }
-
-    @inline def foreachWithIndex[U](f: (Int, T) => U): Unit = {
+    @inline def foreachWithIndex[U](f: (Int, seq.A) => U): Unit = {
       var counter = 0
-      col.foreach { a =>
+      seq(col).foreach { a =>
         val b = f(counter, a)
         counter += 1
         b
       }
     }
 
-    @inline def mapWithIndex[B, That](f: (Int, T) => B)(implicit bf: CanBuildFrom[Repr[T], B, That]): That = {
+    @inline def mapWithIndex[B, That](f: (Int, seq.A) => B)(implicit bf: BuildFrom[Repr, B, That]): That = {
       var counter = 0
-      col.map[B, That] { a =>
+      bf.fromSpecific(col)(seq(col).map[B] { a =>
         val b = f(counter, a)
         counter += 1
         b
-      }
+      }.iterator)
     }
 
-    @inline def flatMapWithIndex[B, That](f: (Int, T) => GenTraversableOnce[B])(implicit bf: CanBuildFrom[Repr[T], B, That]): That = {
+    @inline def flatMapWithIndex[B, That](f: (Int, seq.A) => IterableOnce[B])(implicit bf: BuildFrom[Repr, B, That]): That = {
       var counter = 0
-      col.flatMap[B, That] { a =>
+      bf.fromSpecific(col)(seq(col).flatMap[B] { a =>
         val b = f(counter, a)
         counter += 1
         b
-      }
+      }.iterator)
     }
 
-    def randomSelect: T = col.iterator.drop(scala.util.Random.nextInt(col.size)).next
-
-    def leftPadTo(len: Int, elem: T)(implicit canBuildFrom: CanBuildFrom[Repr[T], T, Repr[T]]): Repr[T] = {
-      leftPadWithBuilder(len, elem, col)
+    private def leftPadTo[That](len: Int, fillElem: seq.A)(implicit bf: BuildFrom[Repr, seq.A, That]): That = {
+      val seqOps = seq(col)
+      val actualLen = seqOps.size
+      val missing = len - actualLen
+      if (missing <= 0) bf.fromSpecific(col)(seqOps.iterator)
+      else {
+        val builder = bf.newBuilder(col)
+        builder.sizeHint(len)
+        var diff = missing
+        while (diff > 0) {
+          builder += fillElem
+          diff -= 1
+        }
+        builder ++= seqOps.iterator
+        builder.result()
+      }
     }
   }
 
-  implicit class RichString(val s: String) extends AnyVal {
-    def leftPadTo(len: Int, elem: Char): String = {
-      leftPadWithBuilder(len, elem, s)
+
+  implicit class CollectionOperationToScalar[A](coll: IterableOnce[A]) {
+    def randomSelect: A = {
+      coll.iterator.drop(scala.util.Random.nextInt(coll.size)).next
     }
+
   }
 
   implicit class RichSeqOps[A](val sequence: Seq[A]) extends AnyVal {
@@ -139,26 +156,10 @@ package object collection {
 
   def groupByBuilder[K,T]: GroupByBuilder[K,T] = new GroupByBuilder[K,T]
 
-  def distinctBuilder[T, That[_]](implicit cb: CanBuildFrom[That[T], T, That[T]]): DistinctBuilder[T, That[T]] = {
+  def distinctBuilder[T, That[_]]: DistinctBuilder[T, That[T]] = {
     new DistinctBuilder[T, That[T]](cb.apply())
   }
 
-  private def leftPadWithBuilder[T, That](len: Int, fillElem: T, elements: IterableLike[T, That])(implicit cb: CanBuildFrom[That, T, That]): That = {
-    val actualLen = elements.size
-    val missing = len - actualLen
-    if (missing <= 0) elements.repr
-    else {
-      val builder = cb.apply(elements.repr)
-      builder.sizeHint(len)
-      var diff = missing
-      while (diff > 0) {
-        builder += fillElem
-        diff -= 1
-      }
-      builder ++= elements
-      builder.result()
-    }
-  }
 
   def eitherSeq[A, B](list: Seq[Either[A, B]]): Either[Seq[A], Seq[B]] = {
     val lefts = new mutable.ArrayBuffer[A]

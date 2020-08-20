@@ -4,7 +4,6 @@ import cats.data.NonEmptyList
 import wust.util.collection.BasicMap
 import wust.util.macros.SubObjects
 
-import scala.collection.breakOut
 
 // BE AWARE: Whenever you rename/change/delete a View.Visible from here, you have to write a DB MIGRATION
 // to update the json views in the node table.
@@ -170,7 +169,7 @@ object View {
       map += v.viewKey -> ((_: List[String]) => Some(v))
     }
 
-    map += "table" -> { params => Some(Table(params.flatMap(s => NodeRole.fromString(s))(breakOut))) }
+    map += "table" -> { params => Some(Table(params.iterator.flatMap(s => NodeRole.fromString(s))(breakOut))) }
     //TODO viewops for TiledView should be done here too. currently hardcoded in UrlParsing
 
     map

@@ -25,7 +25,7 @@ import outwatch.dsl._
 import rx._
 import wust.webUtil.outwatchHelpers._
 
-import scala.collection.{ breakOut, mutable }
+import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.scalajs.{ LinkingInfo, js }
 import scala.util.Try
@@ -214,7 +214,7 @@ object GlobalState {
 
   val addNodesInTransit: Rx[collection.Set[NodeId]] = {
     val changesAddNodes = eventProcessor.changesInTransit
-      .map(changes => changes.flatMap(_.addNodes.map(_.id))(breakOut): mutable.HashSet[NodeId])
+      .map(changes => changes.iterator.flatMap(_.addNodes.map(_.id))(breakOut): mutable.HashSet[NodeId])
       .unsafeToRx(mutable.HashSet.empty)
 
     Rx {

@@ -7,13 +7,13 @@ import wust.util.algorithm.dfs
 import wust.util.collection._
 import wust.webApp.state.TraverseState
 
-import scala.collection.{breakOut, mutable}
+import scala.collection.mutable
 
 object ChannelTreeData {
 
   def invites(graph: Graph, userId: UserId): Seq[NodeId] = {
     val userIdx = graph.idToIdxOrThrow(userId)
-    graph.inviteNodeIdx(userIdx).collect { case idx if !graph.pinnedNodeIdx.contains(userIdx)(idx) => graph.nodeIds(idx) }(breakOut)
+    graph.inviteNodeIdx(userIdx).iterator.collect { case idx if !graph.pinnedNodeIdx.contains(userIdx)(idx) => graph.nodeIds(idx) }(breakOut)
   }
 
   def toplevelChannels(graph: Graph, userId: UserId, filter: Node => Boolean): Seq[NodeId] = {

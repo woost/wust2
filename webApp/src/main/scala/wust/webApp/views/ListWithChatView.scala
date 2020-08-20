@@ -28,7 +28,7 @@ import wust.webUtil.UI
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{ BrowserDetect, Ownable }
 
-import scala.collection.{ breakOut, mutable }
+import scala.collection.mutable
 import scala.scalajs.js
 
 object ListWithChatView {

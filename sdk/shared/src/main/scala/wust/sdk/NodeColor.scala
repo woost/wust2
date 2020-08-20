@@ -6,7 +6,6 @@ import wust.ids._
 import wust.graph.{ Node, Graph }
 import rx._
 
-import scala.collection.breakOut
 
 case class BaseColor(base: Color) {
   val hcl = base.hcl

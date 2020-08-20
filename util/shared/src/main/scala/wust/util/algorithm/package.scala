@@ -2,7 +2,8 @@ package wust.util
 
 import flatland._
 
-import scala.collection.{breakOut, mutable}
+import scala.collection.mutable
+import scala.collection.immutable.ArraySeq
 
 package object algorithm {
 
@@ -206,20 +207,20 @@ package object algorithm {
   def eulerDiagramDualGraph(parents: NestedArrayInt, children: NestedArrayInt, isEulerSet: Int => Boolean): (Array[Set[Int]], NestedArrayInt, InterleavedArrayInt) = {
 
     // for each node, the set of parent nodes identifies its zone
-    val zoneGrouping: Seq[(Set[Int], Seq[Int])] = parents.indices
+    val zoneGrouping = parents.indices
       .groupBy{ nodeIdx =>
         val parentSet = parents(nodeIdx).toSet
         // remove redundant higher-level parents
         parentSet.filter(parentIdx => children(parentIdx).filter(parentSet).count(isEulerSet) == 0)
       }.flatMap{
         case (parentSet, nodeIndices) if parentSet.isEmpty => // All isolated nodes
-          Array(parentSet -> nodeIndices.filterNot(isEulerSet)) // remove parents from isolated nodes
+          ArraySeq(parentSet -> nodeIndices.filterNot(isEulerSet)) // remove parents from isolated nodes
         case (parentSet, nodeIndices) if parentSet.size == 1 => // non overlapping area of eulerset
-          Array(parentSet -> (nodeIndices.filterNot(isEulerSet) :+ parentSet.head))
-        case other => Array(other)
+          ArraySeq(parentSet -> (nodeIndices.filterNot(isEulerSet) :+ parentSet.head))
+        case other => ArraySeq(other)
       }.toSeq.filter(_._2.nonEmpty) ++ parents.indices.filter(i => (children.sliceNonEmpty(i) || isEulerSet(i)) && children.forall(i)(c => parents.sliceLength(c) != 1)).map(i => (Set(i), Seq(i)))
-    val eulerZones: Array[Set[Int]] = zoneGrouping.map(_._1)(breakOut)
-    val eulerZoneNodes: Array[Array[Int]] = zoneGrouping.map(_._2.toArray)(breakOut)
+    val eulerZones: Array[Set[Int]] = zoneGrouping.iterator.map(_._1).toArray
+    val eulerZoneNodes: Array[Array[Int]] = zoneGrouping.iterator.map(_._2.toArray).toArray
 
     def setDifference[T](a: Set[T], b: Set[T]) = (a union b) diff (a intersect b)
     val neighbourhoodBuilder = mutable.ArrayBuilder.make[(Int, Int)]

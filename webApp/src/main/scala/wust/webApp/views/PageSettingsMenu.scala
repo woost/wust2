@@ -16,7 +16,6 @@ import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{Elements, Ownable, UI}
 import wust.webUtil.Elements.onClickDefault
 
-import scala.collection.breakOut
 
 
 object PageSettingsMenu {
@@ -84,7 +83,7 @@ object PageSettingsMenu {
           span("Archive at all places"),
           onClick.stopPropagation foreach {
             GlobalState.submitChanges(
-              GraphChanges.delete(ChildId(channelId), GlobalState.graph.now.parents(channelId).map(ParentId(_))(breakOut))
+              GraphChanges.delete(ChildId(channelId), GlobalState.graph.now.parents(channelId).iterator.map(ParentId(_))(breakOut))
                 .merge(GraphChanges.disconnect(Edge.Pinned)(channelId, GlobalState.userId.now))
             )
             UI.toast(s"Archived '${ StringOps.trimToMaxLength(channel.str, 10) }' at all places", level = UI.ToastLevel.Success)

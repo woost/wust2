@@ -1,7 +1,6 @@
 package wust.util.macros
 
 import scala.reflect.macros.blackbox.Context
-import scala.collection.breakOut
 
 // This macro is for expanding a class type into a list of objects that extend this class.
 // Example:
@@ -27,7 +26,7 @@ object SubObjectsMacro {
       case _ => Set.empty
     }
 
-    val subObjects: Array[Tree] = recursiveSubObjects(traitTag.tpe.typeSymbol).map(utils.fullNameTree)(breakOut)
+    val subObjects: Array[Tree] = recursiveSubObjects(traitTag.tpe.typeSymbol).map(utils.fullNameTree).toArray
     c.Expr[Array[Trait]](q"..$subObjects")
 /* TODO: generates too much runtime code:
   var array = [$m_Lwust_webApp_state_Feature$TaskUnchecked$(), $m_Lwust_webApp_state_Feature$TaskChecked$(), $m_Lwust_webApp_state_Feature$TaskReordered$()];

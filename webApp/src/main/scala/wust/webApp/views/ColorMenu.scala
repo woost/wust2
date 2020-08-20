@@ -32,7 +32,6 @@ import wust.facades.segment.Segment
 import java.util.regex.Pattern
 import colorado.HCL
 
-import scala.collection.breakOut
 import scala.scalajs.js
 
 object ColorMenu {

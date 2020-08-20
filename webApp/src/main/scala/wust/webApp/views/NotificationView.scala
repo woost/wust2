@@ -19,7 +19,6 @@ import wust.webUtil.Elements.onClickDefault
 import wust.webUtil.{BrowserDetect, UI}
 import wust.webUtil.outwatchHelpers._
 
-import scala.collection.breakOut
 import scala.scalajs.js
 import scala.scalajs.js.Date
 
@@ -384,7 +383,7 @@ object NotificationView {
 
       onClickDefault.foreach {
         val changes = GraphChanges(
-          addEdges = calculateDeepUnreadChildren(graph, parentId, userId, renderTime = renderTime)
+          addEdges = calculateDeepUnreadChildren(graph, parentId, userId, renderTime = renderTime).iterator
             .map(nodeIdx => Edge.Read(GlobalState.graph.now.nodeIds(nodeIdx), EdgeData.Read(EpochMilli.now), GlobalState.user.now.id))(breakOut)
         )
 
@@ -405,7 +404,7 @@ object NotificationView {
         color := Colors.unread,
         onClickDefault.foreach {
           val changes = GraphChanges(
-            addEdges = calculateDeepUnreadChildren(graph, parentId, userId, renderTime = renderTime)
+            addEdges = calculateDeepUnreadChildren(graph, parentId, userId, renderTime = renderTime).iterator
               .map(nodeIdx => Edge.Read(GlobalState.graph.now.nodeIds(nodeIdx), EdgeData.Read(EpochMilli.now), GlobalState.user.now.id))(breakOut)
           )
 
