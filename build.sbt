@@ -7,7 +7,7 @@ dynver in ThisBuild ~= (_.replace('+', '-')) // TODO: https://github.com/dwijnan
 import Def.{setting => dep}
 
 // -- common setting --
-scalaVersion in ThisBuild := "2.12.12"
+scalaVersion in ThisBuild := "2.13.3"
 
  inThisBuild(
    List(
