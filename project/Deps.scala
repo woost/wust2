@@ -4,8 +4,6 @@ import sbt._
 object Deps {
   import Def.{ setting => dep }
 
-  val silencerVersion = "1.4.2"
-
   val acyclicDef = "com.lihaoyi" %% "acyclic" % "0.1.9"
   val acyclic = dep(acyclicDef % "provided")
 
@@ -81,7 +79,7 @@ object Deps {
   val base58s = dep("io.github.fdietze.base58s" %%% "base58s" % "43d5684")
   val monix = dep("io.monix" %%% "monix" % "3.2.2")
   // val taggedTypes = dep("org.rudogma" %%% "supertagged" % "2.0-RC1")
-  val taggedTypes = dep("com.github.lolgab" % "scala-supertagged" % "scalajs-1.0.0-RC2-SNAPSHOT")
+  val taggedTypes = dep("com.github.fdietze.scala-supertagged" %%% "supertagged" % "0157b28")
   val colorado = dep("com.github.fdietze.colorado" %%% "colorado" % "d36c389")
   val scalacss = dep("com.github.japgolly.scalacss" %%% "core" % "0.6.1")
   val kantanRegex = new {

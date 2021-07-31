@@ -82,7 +82,6 @@ lazy val commonSettings = Seq(
     // "-Ywarn-self-implicit" ::
     // "-Ywarn-dead-code" :: // does not work well with scalajs js.native in facades
     "-Ywarn-extra-implicit" ::
-    "-P:silencer:checkUnused" ::
     "-Ypatmat-exhaust-depth" :: "off" :: // needed for huge match in FeatureDetails
     Nil,
 
@@ -115,11 +114,6 @@ lazy val commonSettings = Seq(
   // scalacOptions in Test ~= (_ filterNot (_ == "-Xplugin-require:scalaxy-streams")),
   // scalacOptions in Test += "-Xplugin-disable:scalaxy-streams",
   // addCompilerPlugin("com.github.fdietze" % "scalaxy-streams" % "2.12-819f13722a-1"), //TODO: https://github.com/nativelibs4java/scalaxy-streams/pull/13
-
-  libraryDependencies ++= Seq(
-    compilerPlugin("com.github.ghik" %% "silencer-plugin" % Deps.silencerVersion),
-    "com.github.ghik" %% "silencer-lib" % Deps.silencerVersion % Provided
-  )
 )
 
 lazy val commonWebSettings = Seq(

@@ -1,0 +1,1 @@
+{"name":"sbt","version":"1.4.9","bspVersion":"2.0.0-M5","languages":["scala"],"argv":["/nix/store/abf238kd43q2478jkwbghy0icv9k2hw6-openjdk-8u272-b10/lib/openjdk/jre/bin/java","-Xms100m","-Xmx100m","-classpath","/nix/store/bn90iy8idpqb3ls6ds1d7rfrqcr58yws-sbt-1.5.4/share/sbt/bin/sbt-launch.jar","xsbt.boot.Boot","-bsp"]}

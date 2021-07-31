@@ -1,7 +1,6 @@
 package wust.webApp.state
 
 // import acyclic.file
-import com.github.ghik.silencer.silent
 import org.scalajs.dom.experimental.permissions.PermissionState
 import org.scalajs.dom.window
 import outwatch.dsl.events
@@ -100,7 +99,6 @@ object GlobalState {
   val uiModalConfig = Subject.publish[Ownable[ModalConfig]]
   val uiModalClose = Subject.publish[Unit]
 
-  @silent("deprecated")
   val rawGraph: Rx[Graph] = {
     val internalGraph = eventProcessor.graph.unsafeToRx(seed = Graph.empty)
 

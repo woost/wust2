@@ -2,11 +2,10 @@ package wust.facades.crisp
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation._
-import com.github.ghik.silencer.silent
 
 //TODO: this is a workaround for scalajs: https://github.com/scala-js/scala-js/issues/3737
 object JSNames {
-  @silent("possible missing interpolator") final val Crisp = "$crisp"
+  final val Crisp = "$crisp"
 }
 @js.native
 @JSGlobal(JSNames.Crisp)
