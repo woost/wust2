@@ -166,7 +166,7 @@ object FeatureExplorer {
   val progress: Rx[String] = Rx {
     val total = Feature.allWithoutSecrets.length
     val ratio = Math.ceil(FeatureState.score().toDouble / total.toDouble * 100).min(100.0) // everything greater 0 is at least 1%
-    f"${ratio}%0.0f"
+    f"${ratio}%2.0f"
   }
 
   val progressBar = div(
