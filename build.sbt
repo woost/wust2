@@ -7,7 +7,7 @@ dynver in ThisBuild ~= (_.replace('+', '-')) // TODO: https://github.com/dwijnan
 import Def.{setting => dep}
 
 // -- common setting --
-scalaVersion in ThisBuild := "2.12.12"
+scalaVersion in ThisBuild := "2.12.14"
 
 
 Global / onChangedBuildSource := IgnoreSourceChanges // disabled, since it doesn't recover state of devserver
@@ -20,7 +20,7 @@ lazy val commonSettings = Seq(
       ("jitpack" at "https://jitpack.io") ::
       Resolver.sonatypeRepo("releases") ::
       Nil,
-  addCompilerPlugin("org.typelevel" % "kind-projector" % "0.11.0" cross CrossVersion.full),
+  addCompilerPlugin("org.typelevel" % "kind-projector" % "0.13.0" cross CrossVersion.full),
   addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
   libraryDependencies ++=
     Deps.scribe.core.value ::
