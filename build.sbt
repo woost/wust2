@@ -46,9 +46,11 @@ lazy val commonSettings = Seq(
   // https://github.com/sbt/sbt-assembly#merge-strategy
   assemblyMergeStrategy in assembly := {
     case PathList("perfolation", xs @ _*) => MergeStrategy.first
+    case PathList("META-INF", "MANIFEST.MF") => MergeStrategy.discard // https://github.com/sbt/sbt-assembly/issues/80#issuecomment-27927098
     case x =>
-      val oldStrategy = (assemblyMergeStrategy in assembly).value
-      oldStrategy(x)
+      /* val oldStrategy = (assemblyMergeStrategy in assembly).value */
+      /* oldStrategy(x) */
+      MergeStrategy.first
   },
 
 

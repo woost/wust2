@@ -1,36 +1,36 @@
 { }:
 
-let
-  pkgs = import <nixpkgs> { };
-in
-  pkgs.stdenv.mkDerivation {
-    name = "Woost";
-    buildInputs = with pkgs; [
-      awscli
-      git zsh
-      scala sbt
-      docker
-      # graalvm8 # broken -> segfaults webpack
-      docker-compose
-      # python37Packages.docker_compose
-      # python27Packages.docker_compose
-      # python27Packages.backports_ssl_match_hostname
-      # ngrok # github app -> webhooks to localhost
-      nodejs-12_x yarn
-      phantomjs
-      # Dev tools
-      #jetbrains.idea-community
-      # pgadmin -> does not compile in nixos-unstable
-      pgmanage
-      pgcli
-      # redis-dump
-      visualvm
-    ];
+let pkgs = import <nixpkgs> { };
+in pkgs.stdenv.mkDerivation {
+  name = "Woost";
+  buildInputs = with pkgs; [
+    awscli
+    git
+    zsh
+    scala
+    sbt
+    docker
+    # graalvm8 # broken -> segfaults webpack
+    docker-compose
+    # python37Packages.docker_compose
+    # python27Packages.docker_compose
+    # python27Packages.backports_ssl_match_hostname
+    # ngrok # github app -> webhooks to localhost
+    nodejs-12_x
+    yarn
+    phantomjs
+    # Dev tools
+    #jetbrains.idea-community
+    # pgadmin -> does not compile in nixos-unstable
+    pgmanage
+    pgcli
+    # redis-dump
+    visualvm
+  ];
 
-    installPhase= ''
-    '';
+  installPhase = "";
 
-    shellHook=''
+  shellHook = ''
     echo --- Welcome to woost! ---
     echo "Make sure you have the docker service running and added your user to the group 'docker'."
     echo Now run ./start sbt
@@ -53,5 +53,5 @@ in
     # tar -xvf graalvm-ce-1.0.0-rc14-linux-amd64.tar.gz
     # export GRAAL_HOME=/path/to/graalvm-ce-1.0.0-rc14-linux-amd64
     EOF
-    '';
-  }
+  '';
+}
