@@ -14,7 +14,7 @@ if [ -n "$git_head_tag" ]; then
     exit 1
 fi
 
-git_last_tag="$(git describe --tags --abbrev=0 2> /dev/null)"
+git_last_tag="$(git describe --tags "$(git rev-list --tags='v[0-9].*' --max-count=1)" 2> /dev/null)"
 if [ -z "$git_last_tag" ] || [ -z "$(echo v$git_last_tag | grep $BASE_VERSION)" ]; then
     new_tag="$BASE_VERSION.0"
 else
