@@ -61,17 +61,17 @@ object DashboardView {
       //TODO: renderSubprojects mit summary
       div(
         width := "100%",
-        div(
-          Styles.flex,
-          flexDirection.row,
-          justifyContent.center,
-          flexWrap.wrap,
-          VDomModifier.ifNot(BrowserDetect.isPhone)( UI.segmentWithoutHeader(ChartData.renderStagesChart(traverseState).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod) ),
-          VDomModifier.ifNot(BrowserDetect.isPhone)( UI.segmentWithoutHeader(ChartData.renderAssignedChart(traverseState).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod) ),
-          DevOnly {
-            VDomModifier.ifNot(BrowserDetect.isPhone)(UI.segmentWithoutHeader(ChartData.renderDeadlineChart(assignedTasks).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod))
-          }
-        ),
+        // div(
+        //   Styles.flex,
+        //   flexDirection.row,
+        //   justifyContent.center,
+        //   flexWrap.wrap,
+        //   VDomModifier.ifNot(BrowserDetect.isPhone)( UI.segmentWithoutHeader(ChartData.renderStagesChart(traverseState).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod) ),
+        //   VDomModifier.ifNot(BrowserDetect.isPhone)( UI.segmentWithoutHeader(ChartData.renderAssignedChart(traverseState).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod) ),
+        //   DevOnly {
+        //     VDomModifier.ifNot(BrowserDetect.isPhone)(UI.segmentWithoutHeader(ChartData.renderDeadlineChart(assignedTasks).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod))
+        //   }
+        // ),
         div(
           Styles.flex,
           alignItems.flexStart,

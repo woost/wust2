@@ -1,7 +1,6 @@
 package wust.webUtil
 
 import org.scalajs.dom.console
-import typings.chartDotJs.chartDotJsMod.ChartConfiguration
 import fontAwesome.{ IconLookup, Params, Transform, fontawesome, freeSolid }
 import wust.facades.dateFns.DateFns
 import wust.facades.hammerjs
@@ -557,16 +556,16 @@ object Elements {
   //     }
   //   }
   // },
-  def chartCanvas(configuration: ChartConfiguration): VNode = {
-    canvas(
-      managedElement { elem =>
-        val context = elem.asInstanceOf[dom.html.Canvas].getContext("2d").asInstanceOf[typings.std.CanvasRenderingContext2D]
-        val chart = new typings.chartDotJs.chartDotJsMod.^(context, configuration)
+  // def chartCanvas(configuration: ChartConfiguration): VNode = {
+  //   canvas(
+  //     managedElement { elem =>
+  //       val context = elem.asInstanceOf[dom.html.Canvas].getContext("2d").asInstanceOf[typings.std.CanvasRenderingContext2D]
+  //       val chart = new typings.chartDotJs.chartDotJsMod.^(context, configuration)
 
-        cancelable(() => chart.destroy())
-      }
-    )
-  }
+  //       cancelable(() => chart.destroy())
+  //     }
+  //   )
+  // }
 
   // https://stackoverflow.com/questions/28983016/how-to-paste-rich-text-from-clipboard-to-html-textarea-element
   val onPasteHtmlOrTextIntoValue: VDomModifier = {

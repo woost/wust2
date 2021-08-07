@@ -157,7 +157,11 @@ object MainView {
     )
   }
 
-  def topBannerContainer(implicit ctx: Ctx.Owner) = {
+  def topBannerContainer(implicit ctx: Ctx.Owner) = Seq(
+    div(
+      cls := "topBannerContainer",
+      WoostNotification.shutdownBanner()
+    ),
     div(
       cls := "topBannerContainer",
       Rx {
@@ -165,7 +169,7 @@ object MainView {
         else WoostNotification.banner(GlobalState.permissionState())
       }
     )
-  }
+  )
 
   def content(presentationMode: PresentationMode)(implicit ctx: Ctx.Owner) = {
     val viewIsContent = Rx {

@@ -87,7 +87,7 @@ object Main {
     setupEmojis()
     setupEmojiPicker()
     setupFomanticUISearch()
-    setupChartJS()
+    // setupChartJS()
 
     if (LinkingInfo.developmentMode) {
       setupRuntimeScalaCSSInjection()
@@ -95,9 +95,9 @@ object Main {
     }
   }
 
-  private def setupChartJS(): Unit = {
-    typings.chartDotJs.chartDotJsRequire
-  }
+  // private def setupChartJS(): Unit = {
+  //   typings.chartDotJs.chartDotJsRequire
+  // }
 
   private def enableEventLogging() = {
     val boxBgColor = "#666" // HCL(baseHue, 50, 63).toHex

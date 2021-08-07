@@ -183,5 +183,19 @@ object WoostNotification {
     //        "Notifications are blocked by your browser. Please reconfigure your browser settings for this site.",
   }
 
+  def shutdownBanner()(implicit ctx: Ctx.Owner): VDomModifier = {
+      def desktopText = div(
+        marginLeft.auto,
+        marginRight.auto,
+        s"Woost is shutting down at 2021-09-15. Now is the time to look for an alternative. Our code is on GitHub: ", a(href := "https://github.com/woost/wust2", "https://github.com/woost/wust2"),
+      )
+      div(
+        color.black,
+        backgroundColor := "yellow",
+        height := "auto",
+        Elements.topBanner(Some(desktopText), Some(desktopText)),
+      )
+  }
+
 }
 
