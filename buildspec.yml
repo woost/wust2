@@ -4,6 +4,7 @@ phases:
   install:
     runtime-versions:
       docker: 2.2
+      java: corretto11
     commands:
       - nohup dockerd --host=unix:///var/run/docker.sock &
       - timeout 15 sh -c "until docker info; do echo .; sleep 1; done"
