@@ -2,7 +2,9 @@
 [![Build Status](https://codebuild.eu-central-1.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoicDNUWjI3S0tjTlkrNTVmZnVEd0Q2eDhXUGxubER6dVQveEJNMjZxNFlGMS8wMTBScEF0UGptVlVJdlV6YWpZYnJUMi9DZ29Sd1h2NnEwdzkvaHh0Y3owPSIsIml2UGFyYW1ldGVyU3BlYyI6ImM5c2w4NnBMVmxBR00xdzgiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=master)](https://eu-central-1.console.aws.amazon.com/codesuite/codebuild/projects/Woost/history?region=eu-central-1)
 [![Join the chat at https://gitter.im/wust2/Lobby](https://badges.gitter.im/wust2/Lobby.svg)](https://gitter.im/wust2/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-A collaboration system, with todo-list, kanban-board, chat and folders. Everything can be nested. For example a card in a kanban-board can contain a kanban-board itself.
+A collaboration system with todo-list, kanban-board, chat and folders. Everything can be nested. For example a card in a kanban-board can contain a kanban-board itself.
+
+![Kanban Board](screenshot.png)
 
 # Rough Architecture
 A directed graph stored in postgres accessed via rpc-calls over websockets and binary serialization, visualized using reactive programming and a force-directed graph layout.
